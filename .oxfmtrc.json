@@ -1,0 +1,7 @@
+{
+  "printWidth": 80,
+  "sortTailwindcss": {
+    "stylesheet": "./apps/web/src/globals.css",
+    "functions": ["clsx", "cn"]
+  }
+}

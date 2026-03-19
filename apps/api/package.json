@@ -1,0 +1,20 @@
+{
+  "name": "api",
+  "private": true,
+  "type": "module",
+  "module": "index.ts",
+  "scripts": {
+    "dev": "bun --watch src/index.ts --port 4099"
+  },
+  "dependencies": {
+    "@node-escpos/core": "^0.6.0",
+    "@node-escpos/usb-adapter": "^0.3.1",
+    "@trpc/server": "^11.13.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

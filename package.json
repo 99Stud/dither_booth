@@ -1,14 +1,23 @@
 {
   "name": "dither_booth",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt --check .",
+    "format:fix": "oxfmt .",
+    "lint:turbo": "turbo run lint",
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "oxfmt": "0.41.0",
+    "oxlint": "1.56.0",
     "prettier": "3.7.4",
     "turbo": "2.8.20",
     "typescript": "5.9.2"
@@ -16,9 +25,5 @@
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "bun@1.3.6",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+  "packageManager": "bun@1.3.6"
 }
