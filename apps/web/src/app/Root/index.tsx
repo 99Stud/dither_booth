@@ -1,20 +1,22 @@
-import { type FC, useRef } from "react";
+import { useRef, type FC } from "react";
 
-import { trpc } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
-import { useUserMedia } from "@/lib/hooks/user-media";
+
+import { Webcam, type WebcamHandle } from "@/components/misc/Webcam";
+import { downloadBlob } from "@/lib/utils";
 
 export const Root: FC = () => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useUserMedia((stream) => {
-    if (!videoRef.current) return;
-    videoRef.current.srcObject = stream;
-  });
+  const webcamRef = useRef<WebcamHandle>(null);
 
   const handlePrint = async () => {
     try {
-      await trpc.print.mutate();
+      if (!webcamRef.current) {
+        throw new Error("Camera is not available.");
+      }
+
+      const photo = await webcamRef.current.takePhoto();
+      console.log(photo);
+      downloadBlob(photo, Date.now().toString());
     } catch (e) {
       console.error(e);
     }
@@ -22,13 +24,7 @@ export const Root: FC = () => {
 
   return (
     <>
-      <video
-        ref={videoRef}
-        className="h-dvh w-dvw object-cover"
-        autoPlay
-        playsInline
-        muted
-      />
+      <Webcam ref={webcamRef} />
       <div className="fixed top-8 left-8">
         <Button onClick={handlePrint}>Print</Button>
       </div>
