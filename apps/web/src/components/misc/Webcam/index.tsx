@@ -25,13 +25,7 @@ export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
   useImperativeHandle(
     ref,
     () => ({
-      takePhoto: async (photoSettings?: PhotoSettings) => {
-        if (!takePhoto) {
-          throw new Error("Camera is not ready yet.");
-        }
-
-        return takePhoto(photoSettings);
-      },
+      takePhoto,
     }),
     [takePhoto],
   );

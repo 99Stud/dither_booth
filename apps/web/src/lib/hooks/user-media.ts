@@ -1,17 +1,34 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 export const useUserMedia = (params: {
   onStream: (stream: MediaStream) => void;
 }) => {
   const { onStream } = params;
 
-  const [takePhoto, setTakePhoto] =
-    useState<(photoSettings?: PhotoSettings) => Promise<Blob>>();
+  const onStreamRef = useRef(onStream);
+  const takePhotoRef = useRef<
+    ((photoSettings?: PhotoSettings) => Promise<Blob>) | undefined
+  >(undefined);
+
+  onStreamRef.current = onStream;
+
+  const clearTakePhoto = useCallback(() => {
+    takePhotoRef.current = undefined;
+  }, []);
+
+  const takePhoto = useCallback(async (photoSettings?: PhotoSettings) => {
+    const capturePhoto = takePhotoRef.current;
+
+    if (!capturePhoto) {
+      throw new Error("Camera is not ready yet.");
+    }
+
+    return capturePhoto(photoSettings);
+  }, []);
 
   useEffect(() => {
     let active: MediaStream | undefined;
     let cancelled = false;
-    const clearTakePhoto = () => setTakePhoto(undefined);
 
     if (!window.isSecureContext) {
       console.error("Camera access requires a secure context.");
@@ -45,7 +62,7 @@ export const useUserMedia = (params: {
         if (track) {
           try {
             const imageCapture = new ImageCapture(track);
-            setTakePhoto(() => async (photoSettings?: PhotoSettings) => {
+            takePhotoRef.current = async (photoSettings?: PhotoSettings) => {
               if (cancelled || track.readyState !== "live") {
                 throw new DOMException(
                   "Video track is no longer live.",
@@ -54,7 +71,7 @@ export const useUserMedia = (params: {
               }
 
               return imageCapture.takePhoto(photoSettings);
-            });
+            };
           } catch (e) {
             clearTakePhoto();
             console.error(e);
@@ -63,7 +80,7 @@ export const useUserMedia = (params: {
           clearTakePhoto();
         }
 
-        onStream(next);
+        onStreamRef.current(next);
       })
       .catch((e) => {
         if (cancelled) return;
@@ -76,7 +93,7 @@ export const useUserMedia = (params: {
       clearTakePhoto();
       active?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
+  }, [clearTakePhoto]);
 
   return {
     takePhoto,
