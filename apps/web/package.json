@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --hot --port  src/index.ts",
+    "dev": "bun --hot --port 4098 src/index.ts",
     "build": "bun build ./src/index.html --outdir=dist --sourcemap --target=browser --minify --define:process.env.NODE_ENV='\"production\"' --env='BUN_PUBLIC_*'",
     "start": "NODE_ENV=production bun src/index.ts",
     "lint": "cd ../.. && oxlint .",

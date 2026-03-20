@@ -9,7 +9,10 @@
   "dependencies": {
     "@node-escpos/core": "^0.6.0",
     "@node-escpos/usb-adapter": "^0.3.1",
-    "@trpc/server": "^11.13.4"
+    "@opendisplay/epaper-dithering": "^2.2.1",
+    "@trpc/server": "^11.13.4",
+    "sharp": "^0.34.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bun": "latest"
