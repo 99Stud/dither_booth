@@ -1,0 +1,20 @@
+{
+  "name": "@dither-booth/ports",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants": "./src/constants.ts"
+  },
+  "scripts": {
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt --check",
+    "format:fix": "oxfmt .",
+    "check-types": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "6.0.2"
+  }
+}

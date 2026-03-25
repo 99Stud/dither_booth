@@ -5,14 +5,16 @@
  * It is included in `src/index.html`.
  */
 
+import { Root } from "#app/Root/index.tsx";
+import { Toaster } from "#components/ui/sonner.tsx";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { Root } from "./app/Root";
 
 const elem = document.getElementById("root")!;
 const app = (
   <StrictMode>
     <Root />
+    <Toaster />
   </StrictMode>
 );
 

@@ -2,10 +2,8 @@
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
   "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+    "start": {
+      "dependsOn": ["^start"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -15,7 +13,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["MAKE_LOCALLY_ACCESSIBLE", "NODE_ENV"]
     }
   }
 }

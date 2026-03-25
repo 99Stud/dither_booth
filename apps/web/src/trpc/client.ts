@@ -1,12 +1,25 @@
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import type { AppRouter } from "@api/router";
+import type { AppRouter } from "@dither-booth/api/appRouter";
 
-const url = import.meta.env?.BUN_PUBLIC_TRPC_URL ?? "http://localhost:3000";
+import {
+  createTRPCClient,
+  httpBatchLink,
+  httpLink,
+  isNonJsonSerializable,
+  splitLink,
+} from "@trpc/client";
+
+import { TRPC_PROXY_PATH } from "./constants";
 
 export const trpc = createTRPCClient<AppRouter>({
   links: [
-    httpBatchLink({
-      url,
+    splitLink({
+      condition: (op) => isNonJsonSerializable(op.input),
+      true: httpLink({
+        url: TRPC_PROXY_PATH,
+      }),
+      false: httpBatchLink({
+        url: TRPC_PROXY_PATH,
+      }),
     }),
   ],
 });

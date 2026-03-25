@@ -1,10 +1,10 @@
-import { print } from "./printer";
-import { publicProcedure, router } from "./trpc";
+import { imageManipulation } from "./domains/image-manipulation";
+import { printer } from "./domains/printer";
+import { router } from "./trpc";
 
 export const appRouter = router({
-  print: publicProcedure.mutation(() => {
-    print();
-  }),
+  ...printer,
+  ...imageManipulation,
 });
 
 export type AppRouter = typeof appRouter;

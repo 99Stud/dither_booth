@@ -1,6 +1,9 @@
-import { useUserMedia } from "@/lib/hooks/user-media";
-import { cn } from "@/lib/utils";
-import { useImperativeHandle, useRef, type FC, type Ref } from "react";
+import {
+  type CapturePhotoOptions,
+  useUserMedia,
+} from "#lib/hooks/user-media.ts";
+import { cn } from "#lib/utils.ts";
+import { type FC, type Ref, useImperativeHandle, useRef } from "react";
 
 interface WebcamProps {
   className?: string;
@@ -9,7 +12,7 @@ interface WebcamProps {
 }
 
 export interface WebcamHandle {
-  takePhoto: (photoSettings?: PhotoSettings) => Promise<Blob>;
+  takePhoto: (photoSettings?: CapturePhotoOptions) => Promise<Blob>;
 }
 
 export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
@@ -33,7 +36,7 @@ export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
   return (
     <video
       ref={videoRef}
-      className={cn("aspect-square h-dvh object-cover", className)}
+      className={cn(className)}
       autoPlay
       playsInline
       muted

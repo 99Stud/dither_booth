@@ -1,5 +1,114 @@
 import { useCallback, useEffect, useRef } from "react";
 
+export type CapturePhotoOptions = Omit<
+  PhotoSettings,
+  "imageWidth" | "imageHeight"
+>;
+
+const getMaxSquareSide = (track: MediaStreamTrack) => {
+  const { width, height } = track.getCapabilities();
+  const maxWidth = width?.max;
+  const maxHeight = height?.max;
+
+  if (maxWidth === undefined || maxHeight === undefined) {
+    return undefined;
+  }
+
+  return Math.floor(Math.min(maxWidth, maxHeight));
+};
+
+const getSquarePhotoSettings = async (
+  imageCapture: ImageCapture,
+  preferredSide?: number,
+) => {
+  try {
+    const photoCapabilities = await imageCapture.getPhotoCapabilities();
+    console.log("📷 Camera capabilities", photoCapabilities);
+    const { imageWidth, imageHeight } = photoCapabilities;
+    const capabilityWidth = imageWidth?.max;
+    const capabilityHeight = imageHeight?.max;
+
+    if (capabilityWidth === undefined || capabilityHeight === undefined) {
+      if (preferredSide === undefined) {
+        return undefined;
+      }
+
+      return {
+        imageWidth: preferredSide,
+        imageHeight: preferredSide,
+      };
+    }
+
+    const nextSide = Math.floor(
+      Math.min(
+        preferredSide ?? Number.POSITIVE_INFINITY,
+        capabilityWidth,
+        capabilityHeight,
+      ),
+    );
+
+    if (!Number.isFinite(nextSide)) {
+      return undefined;
+    }
+
+    return {
+      imageWidth: nextSide,
+      imageHeight: nextSide,
+    };
+  } catch {
+    if (preferredSide === undefined) {
+      return undefined;
+    }
+
+    return {
+      imageWidth: preferredSide,
+      imageHeight: preferredSide,
+    };
+  }
+};
+
+const applySquareConstraints = async (
+  track: MediaStreamTrack,
+  maxSquareSide?: number,
+) => {
+  const exactConstraints: MediaTrackConstraints = {
+    aspectRatio: {
+      exact: 1,
+    },
+  };
+
+  if (maxSquareSide !== undefined) {
+    exactConstraints.width = {
+      exact: maxSquareSide,
+    };
+    exactConstraints.height = {
+      exact: maxSquareSide,
+    };
+  }
+
+  try {
+    await track.applyConstraints(exactConstraints);
+  } catch {
+    // Fall back to softer constraints so the preview and capture stay usable.
+    const idealConstraints: MediaTrackConstraints = {
+      aspectRatio: {
+        ideal: 1,
+      },
+    };
+
+    if (maxSquareSide !== undefined) {
+      idealConstraints.width = {
+        ideal: maxSquareSide,
+      };
+      idealConstraints.height = {
+        ideal: maxSquareSide,
+      };
+    }
+
+    await track.applyConstraints(idealConstraints);
+  }
+};
+
 export const useUserMedia = (params: {
   onStream: (stream: MediaStream) => void;
 }) => {
@@ -7,7 +116,7 @@ export const useUserMedia = (params: {
 
   const onStreamRef = useRef(onStream);
   const takePhotoRef = useRef<
-    ((photoSettings?: PhotoSettings) => Promise<Blob>) | undefined
+    ((photoSettings?: CapturePhotoOptions) => Promise<Blob>) | undefined
   >(undefined);
 
   onStreamRef.current = onStream;
@@ -16,7 +125,7 @@ export const useUserMedia = (params: {
     takePhotoRef.current = undefined;
   }, []);
 
-  const takePhoto = useCallback(async (photoSettings?: PhotoSettings) => {
+  const takePhoto = useCallback(async (photoSettings?: CapturePhotoOptions) => {
     const capturePhoto = takePhotoRef.current;
 
     if (!capturePhoto) {
@@ -61,8 +170,18 @@ export const useUserMedia = (params: {
 
         if (track) {
           try {
+            const maxSquareSide = getMaxSquareSide(track);
+
+            await applySquareConstraints(track, maxSquareSide);
+
             const imageCapture = new ImageCapture(track);
-            takePhotoRef.current = async (photoSettings?: PhotoSettings) => {
+            const squarePhotoSettings = await getSquarePhotoSettings(
+              imageCapture,
+              maxSquareSide,
+            );
+            takePhotoRef.current = async (
+              photoSettings?: CapturePhotoOptions,
+            ) => {
               if (cancelled || track.readyState !== "live") {
                 throw new DOMException(
                   "Video track is no longer live.",
@@ -70,7 +189,32 @@ export const useUserMedia = (params: {
                 );
               }
 
-              return imageCapture.takePhoto(photoSettings);
+              const nextPhotoSettings =
+                squarePhotoSettings === undefined
+                  ? photoSettings
+                  : {
+                      ...photoSettings,
+                      ...squarePhotoSettings,
+                    };
+
+              try {
+                console.log("Taking a picture 📸");
+                console.log("settings", nextPhotoSettings);
+
+                return await imageCapture.takePhoto(nextPhotoSettings);
+              } catch (error) {
+                if (squarePhotoSettings === undefined) {
+                  throw error;
+                }
+                console.error(error);
+                if (photoSettings) {
+                  console.log("Taking a picture 📸");
+                  console.log("user settings", photoSettings);
+                } else {
+                  console.log("Taking a picture with default settings 📸");
+                }
+                return imageCapture.takePhoto(photoSettings);
+              }
             };
           } catch (e) {
             clearTakePhoto();

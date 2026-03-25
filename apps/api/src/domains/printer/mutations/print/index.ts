@@ -1,9 +1,17 @@
+import { publicProcedure } from "#trpc.ts";
 import { Printer } from "@node-escpos/core";
-import USB from "@node-escpos/usb-adapter";
+import { TRPCError } from "@trpc/server";
 
-const device = new USB();
+export const print = publicProcedure.mutation(({ ctx }) => {
+  const device = ctx.printerDevice;
 
-export const print = () => {
+  if (!device) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "No printer device available.",
+    });
+  }
+
   console.log("Printing...");
   device.open(async (err) => {
     if (err) {
@@ -18,4 +26,4 @@ export const print = () => {
     printer.cut();
     printer.close();
   });
-};
+});
