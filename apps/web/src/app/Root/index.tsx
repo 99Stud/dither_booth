@@ -1,5 +1,6 @@
 import { Webcam, type WebcamHandle } from "#components/misc/Webcam/index.tsx";
 import { Button } from "#components/ui/button.tsx";
+import { logKioskEvent, toErrorMessage } from "#lib/logging.ts";
 import { base64ToBlob } from "#lib/trpc/utils.ts";
 import { downloadBlob } from "#lib/utils.ts";
 import { trpc } from "#trpc/client.ts";
@@ -33,20 +34,25 @@ export const Root: FC = () => {
       const filename = Date.now().toString();
       const { width, height } = await getBlobDimensions(photo);
 
-      console.log(`Photo original dimensions: ${width}x${height}`);
+      logKioskEvent("info", "web.root", "photo-captured", {
+        height,
+        width,
+      });
 
       if (width === height) {
         downloadBlob(photo, filename);
         return;
       }
 
-      console.log("Resizing photo to square...");
+      logKioskEvent("info", "web.root", "square-resize-requested");
 
       const resizedPhoto = await trpc.squareResize.mutate(photo).catch((e) => {
         if (isTRPCClientError(e)) {
           toast.error(e.message);
         }
-        console.error(e);
+        logKioskEvent("error", "web.root", "square-resize-failed", {
+          error: toErrorMessage(e, "Square resize failed."),
+        });
       });
 
       if (!resizedPhoto) {
@@ -60,11 +66,16 @@ export const Root: FC = () => {
 
       const { width: resizedWidth, height: resizedHeight } =
         await getBlobDimensions(squarePhoto);
-      console.log(`Resized photo dimensions: ${resizedWidth}x${resizedHeight}`);
+      logKioskEvent("info", "web.root", "photo-resized", {
+        height: resizedHeight,
+        width: resizedWidth,
+      });
 
       downloadBlob(squarePhoto, filename);
     } catch (e) {
-      console.error(e);
+      logKioskEvent("error", "web.root", "download-failed", {
+        error: toErrorMessage(e, "Download failed."),
+      });
     }
   };
 
@@ -73,7 +84,9 @@ export const Root: FC = () => {
       if (isTRPCClientError(e)) {
         toast.error(e.message);
       }
-      console.error(e);
+      logKioskEvent("error", "web.root", "print-failed", {
+        error: toErrorMessage(e, "Print failed."),
+      });
     });
   };
 

@@ -1,6 +1,7 @@
 import { getPort } from "@dither-booth/ports";
 import { serve } from "bun";
 
+import { logKioskEvent } from "./lib/logging";
 import index from "./index.html";
 import { TRPC_PROXY_PATH } from "./trpc/constants";
 
@@ -42,5 +43,7 @@ const server = serve({
   },
 });
 
-console.log(`🚀 Server running at ${server.url}`);
-console.log(`Environment: ${process.env.NODE_ENV}`);
+logKioskEvent("info", "web.server", "server-started", {
+  environment: process.env.NODE_ENV,
+  url: server.url,
+});

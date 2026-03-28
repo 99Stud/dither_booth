@@ -1,9 +1,30 @@
-import { useCallback, useEffect, useRef } from "react";
+import { logKioskEvent, toErrorMessage } from "#lib/logging.ts";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type CapturePhotoOptions = Omit<
   PhotoSettings,
   "imageWidth" | "imageHeight"
 >;
+
+type PhotoDimensionRange = {
+  min: number;
+  max: number;
+  step: number;
+};
+
+type PreferredPhotoSettings = {
+  imageWidth: number;
+  imageHeight: number;
+};
+
+export type CameraStatus = "error" | "initializing" | "ready" | "unsupported";
+
+export interface CameraState {
+  error: string | null;
+  isSecureContext: boolean;
+  lastUpdatedAt: number | null;
+  status: CameraStatus;
+}
 
 const getMaxSquareSide = (track: MediaStreamTrack) => {
   const { width, height } = track.getCapabilities();
@@ -17,53 +38,190 @@ const getMaxSquareSide = (track: MediaStreamTrack) => {
   return Math.floor(Math.min(maxWidth, maxHeight));
 };
 
-const getSquarePhotoSettings = async (
+const normalizeCapabilityValue = (value?: number) => {
+  if (value === undefined || !Number.isFinite(value)) {
+    return undefined;
+  }
+
+  return Math.max(1, Math.round(value));
+};
+
+const getPhotoDimensionRange = (
+  range?: MediaSettingsRange,
+): PhotoDimensionRange | undefined => {
+  const min = normalizeCapabilityValue(range?.min);
+  const max = normalizeCapabilityValue(range?.max);
+
+  if (min === undefined || max === undefined || min > max) {
+    return undefined;
+  }
+
+  return {
+    min,
+    max,
+    step: normalizeCapabilityValue(range?.step) ?? 1,
+  };
+};
+
+const getPositiveModulo = (value: number, divisor: number) => {
+  return ((value % divisor) + divisor) % divisor;
+};
+
+const getFallbackPhotoSettings = (
+  preferredSide?: number,
+): PreferredPhotoSettings | undefined => {
+  if (preferredSide === undefined) {
+    return undefined;
+  }
+
+  return {
+    imageWidth: preferredSide,
+    imageHeight: preferredSide,
+  };
+};
+
+const getGreatestCommonDivisor = (a: number, b: number) => {
+  let nextA = Math.abs(a);
+  let nextB = Math.abs(b);
+
+  while (nextB !== 0) {
+    const remainder = nextA % nextB;
+    nextA = nextB;
+    nextB = remainder;
+  }
+
+  return nextA;
+};
+
+const getExtendedGreatestCommonDivisor = (
+  a: number,
+  b: number,
+): {
+  gcd: number;
+  x: number;
+  y: number;
+} => {
+  if (b === 0) {
+    return {
+      gcd: a,
+      x: 1,
+      y: 0,
+    };
+  }
+
+  const next = getExtendedGreatestCommonDivisor(b, a % b);
+
+  return {
+    gcd: next.gcd,
+    x: next.y,
+    y: next.x - Math.floor(a / b) * next.y,
+  };
+};
+
+const getModularInverse = (value: number, modulus: number) => {
+  if (modulus === 1) {
+    return 0;
+  }
+
+  const { gcd, x } = getExtendedGreatestCommonDivisor(value, modulus);
+
+  if (Math.abs(gcd) !== 1) {
+    return undefined;
+  }
+
+  return getPositiveModulo(x, modulus);
+};
+
+const getLeastCommonMultiple = (a: number, b: number) => {
+  return (a / getGreatestCommonDivisor(a, b)) * b;
+};
+
+// Width and height capabilities form arithmetic progressions; intersect them directly.
+const getLargestSharedDimension = (
+  widthRange: PhotoDimensionRange,
+  heightRange: PhotoDimensionRange,
+) => {
+  const lowerBound = Math.max(widthRange.min, heightRange.min);
+  const upperBound = Math.min(widthRange.max, heightRange.max);
+
+  if (lowerBound > upperBound) {
+    return undefined;
+  }
+
+  const greatestCommonDivisor = getGreatestCommonDivisor(
+    widthRange.step,
+    heightRange.step,
+  );
+  const dimensionOffset = heightRange.min - widthRange.min;
+
+  if (dimensionOffset % greatestCommonDivisor !== 0) {
+    return undefined;
+  }
+
+  const reducedWidthStep = widthRange.step / greatestCommonDivisor;
+  const reducedHeightStep = heightRange.step / greatestCommonDivisor;
+  const modularInverse = getModularInverse(reducedWidthStep, reducedHeightStep);
+
+  if (modularInverse === undefined) {
+    return undefined;
+  }
+
+  const sharedOffset = getPositiveModulo(
+    (dimensionOffset / greatestCommonDivisor) * modularInverse,
+    reducedHeightStep,
+  );
+  const firstSharedDimension = widthRange.min + widthRange.step * sharedOffset;
+  const sharedDimensionStep = getLeastCommonMultiple(
+    widthRange.step,
+    heightRange.step,
+  );
+  const firstSharedDimensionInRange =
+    firstSharedDimension >= lowerBound
+      ? firstSharedDimension
+      : firstSharedDimension +
+        Math.ceil((lowerBound - firstSharedDimension) / sharedDimensionStep) *
+          sharedDimensionStep;
+
+  if (firstSharedDimensionInRange > upperBound) {
+    return undefined;
+  }
+
+  return (
+    firstSharedDimensionInRange +
+    Math.floor(
+      (upperBound - firstSharedDimensionInRange) / sharedDimensionStep,
+    ) *
+      sharedDimensionStep
+  );
+};
+
+const getPreferredPhotoSettings = async (
   imageCapture: ImageCapture,
   preferredSide?: number,
 ) => {
+  const normalizedPreferredSide = normalizeCapabilityValue(preferredSide);
+
   try {
     const photoCapabilities = await imageCapture.getPhotoCapabilities();
-    console.log("📷 Camera capabilities", photoCapabilities);
-    const { imageWidth, imageHeight } = photoCapabilities;
-    const capabilityWidth = imageWidth?.max;
-    const capabilityHeight = imageHeight?.max;
+    const widthRange = getPhotoDimensionRange(photoCapabilities.imageWidth);
+    const heightRange = getPhotoDimensionRange(photoCapabilities.imageHeight);
 
-    if (capabilityWidth === undefined || capabilityHeight === undefined) {
-      if (preferredSide === undefined) {
-        return undefined;
-      }
-
-      return {
-        imageWidth: preferredSide,
-        imageHeight: preferredSide,
-      };
+    if (widthRange === undefined || heightRange === undefined) {
+      return getFallbackPhotoSettings(normalizedPreferredSide);
     }
 
-    const nextSide = Math.floor(
-      Math.min(
-        preferredSide ?? Number.POSITIVE_INFINITY,
-        capabilityWidth,
-        capabilityHeight,
-      ),
-    );
+    const squareSide = getLargestSharedDimension(widthRange, heightRange);
 
-    if (!Number.isFinite(nextSide)) {
-      return undefined;
+    if (squareSide === undefined) {
+      return getFallbackPhotoSettings(normalizedPreferredSide);
     }
 
     return {
-      imageWidth: nextSide,
-      imageHeight: nextSide,
+      imageWidth: squareSide,
+      imageHeight: squareSide,
     };
   } catch {
-    if (preferredSide === undefined) {
-      return undefined;
-    }
-
-    return {
-      imageWidth: preferredSide,
-      imageHeight: preferredSide,
-    };
+    return getFallbackPhotoSettings(normalizedPreferredSide);
   }
 };
 
@@ -109,51 +267,126 @@ const applySquareConstraints = async (
   }
 };
 
+const createCameraState = (
+  status: CameraStatus,
+  error: string | null = null,
+): CameraState => {
+  return {
+    error,
+    isSecureContext:
+      typeof window === "undefined" ? true : window.isSecureContext,
+    lastUpdatedAt: Date.now(),
+    status,
+  };
+};
+
 export const useUserMedia = (params: {
   onStream: (stream: MediaStream) => void;
 }) => {
   const { onStream } = params;
 
+  const [cameraState, setCameraState] = useState<CameraState>(() =>
+    createCameraState("initializing"),
+  );
+  const lastLoggedCameraStateRef = useRef<string | null>(null);
   const onStreamRef = useRef(onStream);
+  const captureInitializationRef = useRef<Promise<void> | undefined>(undefined);
+  const captureInitializationErrorRef = useRef<unknown>(undefined);
   const takePhotoRef = useRef<
     ((photoSettings?: CapturePhotoOptions) => Promise<Blob>) | undefined
   >(undefined);
 
   onStreamRef.current = onStream;
 
+  const updateCameraState = useCallback(
+    (status: CameraStatus, error: string | null = null) => {
+      setCameraState(createCameraState(status, error));
+    },
+    [],
+  );
+
   const clearTakePhoto = useCallback(() => {
+    captureInitializationErrorRef.current = undefined;
+    captureInitializationRef.current = undefined;
     takePhotoRef.current = undefined;
   }, []);
 
-  const takePhoto = useCallback(async (photoSettings?: CapturePhotoOptions) => {
-    const capturePhoto = takePhotoRef.current;
+  useEffect(() => {
+    const nextLogKey = [cameraState.status, cameraState.error ?? "none"].join(
+      ":",
+    );
 
-    if (!capturePhoto) {
-      throw new Error("Camera is not ready yet.");
+    if (lastLoggedCameraStateRef.current === nextLogKey) {
+      return;
     }
 
-    return capturePhoto(photoSettings);
+    lastLoggedCameraStateRef.current = nextLogKey;
+    logKioskEvent(
+      cameraState.status === "error" || cameraState.status === "unsupported"
+        ? "warn"
+        : "info",
+      "web.camera",
+      "camera-state-changed",
+      {
+        error: cameraState.error,
+        isSecureContext: cameraState.isSecureContext,
+        status: cameraState.status,
+      },
+    );
+  }, [cameraState]);
+
+  const takePhoto = useCallback(async (photoSettings?: CapturePhotoOptions) => {
+    await captureInitializationRef.current;
+
+    const capturePhoto = takePhotoRef.current;
+
+    if (capturePhoto) {
+      return capturePhoto(photoSettings);
+    }
+
+    const captureInitializationError = captureInitializationErrorRef.current;
+
+    if (captureInitializationError instanceof Error) {
+      throw captureInitializationError;
+    }
+
+    if (captureInitializationError !== undefined) {
+      throw new Error("Camera capture initialization failed.");
+    }
+
+    throw new Error("Camera is not ready yet.");
   }, []);
 
   useEffect(() => {
     let active: MediaStream | undefined;
     let cancelled = false;
 
+    updateCameraState("initializing");
+
     if (!window.isSecureContext) {
-      console.error("Camera access requires a secure context.");
       clearTakePhoto();
+      updateCameraState(
+        "unsupported",
+        "Camera access requires HTTPS or localhost.",
+      );
       return;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      console.error("MediaDevices.getUserMedia is not available.");
       clearTakePhoto();
+      updateCameraState(
+        "unsupported",
+        "This browser does not support camera capture.",
+      );
       return;
     }
 
     if (typeof ImageCapture === "undefined") {
-      console.error("ImageCapture is not available.");
       clearTakePhoto();
+      updateCameraState(
+        "unsupported",
+        "This browser does not support still photo capture.",
+      );
       return;
     }
 
@@ -169,67 +402,83 @@ export const useUserMedia = (params: {
         const track = next.getVideoTracks()[0];
 
         if (track) {
+          const maxSquareSide = getMaxSquareSide(track);
+
           try {
-            const maxSquareSide = getMaxSquareSide(track);
-
             await applySquareConstraints(track, maxSquareSide);
-
-            const imageCapture = new ImageCapture(track);
-            const squarePhotoSettings = await getSquarePhotoSettings(
-              imageCapture,
-              maxSquareSide,
-            );
-            takePhotoRef.current = async (
-              photoSettings?: CapturePhotoOptions,
-            ) => {
-              if (cancelled || track.readyState !== "live") {
-                throw new DOMException(
-                  "Video track is no longer live.",
-                  "InvalidStateError",
-                );
-              }
-
-              const nextPhotoSettings =
-                squarePhotoSettings === undefined
-                  ? photoSettings
-                  : {
-                      ...photoSettings,
-                      ...squarePhotoSettings,
-                    };
-
-              try {
-                console.log("Taking a picture 📸");
-                console.log("settings", nextPhotoSettings);
-
-                return await imageCapture.takePhoto(nextPhotoSettings);
-              } catch (error) {
-                if (squarePhotoSettings === undefined) {
-                  throw error;
-                }
-                console.error(error);
-                if (photoSettings) {
-                  console.log("Taking a picture 📸");
-                  console.log("user settings", photoSettings);
-                } else {
-                  console.log("Taking a picture with default settings 📸");
-                }
-                return imageCapture.takePhoto(photoSettings);
-              }
-            };
           } catch (e) {
-            clearTakePhoto();
-            console.error(e);
+            captureInitializationErrorRef.current = e;
+            logKioskEvent("warn", "web.camera", "constraint-fallback-failed", {
+              error: toErrorMessage(e, "Camera constraint fallback failed."),
+            });
+          }
+
+          if (!cancelled) {
+            captureInitializationRef.current = (async () => {
+              const imageCapture = new ImageCapture(track);
+              const preferredPhotoSettings = await getPreferredPhotoSettings(
+                imageCapture,
+                maxSquareSide,
+              );
+
+              if (cancelled || track.readyState !== "live") {
+                return;
+              }
+
+              captureInitializationErrorRef.current = undefined;
+              updateCameraState("ready");
+              takePhotoRef.current = async (
+                photoSettings?: CapturePhotoOptions,
+              ) => {
+                if (cancelled || track.readyState !== "live") {
+                  throw new DOMException(
+                    "Video track is no longer live.",
+                    "InvalidStateError",
+                  );
+                }
+
+                const nextPhotoSettings =
+                  preferredPhotoSettings === undefined
+                    ? photoSettings
+                    : {
+                        ...photoSettings,
+                        ...preferredPhotoSettings,
+                      };
+
+                try {
+                  return await imageCapture.takePhoto(nextPhotoSettings);
+                } catch (error) {
+                  if (preferredPhotoSettings === undefined) {
+                    throw error;
+                  }
+
+                  return imageCapture.takePhoto(photoSettings);
+                }
+              };
+            })().catch((error) => {
+              if (cancelled) {
+                return;
+              }
+
+              takePhotoRef.current = undefined;
+              captureInitializationErrorRef.current = error;
+              updateCameraState(
+                "error",
+                toErrorMessage(error, "Camera initialization failed."),
+              );
+            });
+
+            onStreamRef.current(next);
           }
         } else {
           clearTakePhoto();
+          updateCameraState("error", "Camera did not provide a video track.");
         }
-
-        onStreamRef.current(next);
       })
       .catch((e) => {
         if (cancelled) return;
         clearTakePhoto();
-        console.error(e);
+        updateCameraState("error", toErrorMessage(e, "Camera access failed."));
       });
 
     return () => {
@@ -237,9 +486,10 @@ export const useUserMedia = (params: {
       clearTakePhoto();
       active?.getTracks().forEach((track) => track.stop());
     };
-  }, [clearTakePhoto]);
+  }, [clearTakePhoto, updateCameraState]);
 
   return {
+    cameraState,
     takePhoto,
   };
 };
