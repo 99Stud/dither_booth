@@ -1,9 +1,11 @@
 import type USB from "@node-escpos/usb-adapter";
+import type { Page } from "puppeteer";
 
 import { initTRPC } from "@trpc/server";
 
 export interface Context {
   printerDevice?: USB;
+  page?: Page;
 }
 
 const t = initTRPC.context<Context>().create();

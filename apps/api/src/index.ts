@@ -1,13 +1,17 @@
+import type { Page } from "puppeteer";
+
 import { getPort } from "@dither-booth/ports";
 import USB from "@node-escpos/usb-adapter";
 import { createHTTPHandler } from "@trpc/server/adapters/standalone";
 import http from "node:http";
+import puppeteer from "puppeteer";
 
 import type { Context } from "./trpc";
 
 import { appRouter } from "./appRouter";
 
 let printerDevice: USB | undefined;
+let page: Page | undefined;
 
 try {
   printerDevice = new USB();
@@ -15,8 +19,21 @@ try {
   console.error(error);
 }
 
+try {
+  const browser = await puppeteer.launch();
+  page = await browser.newPage();
+  page.setViewport({
+    deviceScaleFactor: 2,
+    width: 1440,
+    height: 900,
+  });
+} catch (error) {
+  console.error(error);
+}
+
 const createContext = (): Context => ({
   printerDevice,
+  page,
 });
 
 const trpcHandler = createHTTPHandler({

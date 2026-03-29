@@ -1,9 +1,25 @@
+import { INCH_TO_MM, MBP_2018_13_DPI } from "#lib/constants.ts";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export const blobToDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Failed to read blob as data URL."));
+      }
+    };
+    reader.onerror = () =>
+      reject(reader.error ?? new Error("FileReader failed."));
+    reader.readAsDataURL(blob);
+  });
 
 export const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -15,4 +31,8 @@ export const downloadBlob = (blob: Blob, filename: string) => {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+};
+
+export const mmToPx = (mm: number) => {
+  return ((mm / INCH_TO_MM) * MBP_2018_13_DPI) / window.devicePixelRatio;
 };

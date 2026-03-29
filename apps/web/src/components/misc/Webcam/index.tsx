@@ -3,6 +3,7 @@ import {
   useUserMedia,
 } from "#lib/hooks/user-media.ts";
 import { cn } from "#lib/utils.ts";
+import { format } from "date-fns";
 import { type FC, type Ref, useImperativeHandle, useRef } from "react";
 
 interface WebcamProps {
@@ -38,7 +39,12 @@ export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
         Camera status: {cameraState.status}
         {cameraState.error && <p>Error: {cameraState.error}</p>}
         <p>Is secure context: true</p>
-        <p>Last updated at: {cameraState.lastUpdatedAt}</p>
+        {cameraState.lastUpdatedAt && (
+          <p>
+            Last updated at:{" "}
+            {format(new Date(cameraState.lastUpdatedAt), "HH:mm:ss")}
+          </p>
+        )}
       </div>
       <video
         ref={videoRef}

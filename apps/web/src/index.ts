@@ -1,8 +1,8 @@
 import { getPort } from "@dither-booth/ports";
 import { serve } from "bun";
 
-import { logKioskEvent } from "./lib/logging";
 import index from "./index.html";
+import { logKioskEvent } from "./lib/logging";
 import { TRPC_PROXY_PATH } from "./trpc/constants";
 
 const apiOrigin = `http://127.0.0.1:${getPort("API_PORT")}`;
@@ -45,5 +45,5 @@ const server = serve({
 
 logKioskEvent("info", "web.server", "server-started", {
   environment: process.env.NODE_ENV,
-  url: server.url,
+  url: server.url.toString(),
 });

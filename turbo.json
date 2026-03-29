@@ -3,7 +3,9 @@
   "ui": "tui",
   "tasks": {
     "start": {
-      "dependsOn": ["^start"]
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["MAKE_LOCALLY_ACCESSIBLE", "NODE_ENV"]
     },
     "lint": {
       "dependsOn": ["^lint"]

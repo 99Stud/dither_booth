@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "start": "NODE_ENV=production bun src/index.ts",
+    "start": "bun src/index.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",
@@ -23,7 +23,8 @@
     "@node-escpos/core": "0.6.0",
     "@node-escpos/usb-adapter": "0.3.1",
     "@opendisplay/epaper-dithering": "2.2.1",
-    "@trpc/server": "11.13.4",
+    "@trpc/server": "11.16.0",
+    "puppeteer": "24.40.0",
     "sharp": "0.34.5",
     "zod": "4.3.6"
   },
@@ -31,6 +32,6 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "5"
+    "typescript": "5.9.3"
   }
 }

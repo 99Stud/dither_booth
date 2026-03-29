@@ -5,16 +5,57 @@
  * It is included in `src/index.html`.
  */
 
+import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
 import { Root } from "#app/Root/index.tsx";
 import { Toaster } from "#components/ui/sonner.tsx";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  RouterProvider,
+} from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+const rootRoute = createRootRoute({
+  component: () => (
+    <>
+      <Outlet />
+      <TanStackRouterDevtools />
+      <Toaster />
+    </>
+  ),
+});
+
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: Root,
+});
+
+const receiptViewerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/receipt-viewer",
+  component: ReceiptViewer,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, receiptViewerRoute]);
+
+const router = createRouter({ routeTree });
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
 const elem = document.getElementById("root")!;
+
 const app = (
   <StrictMode>
-    <Root />
-    <Toaster />
+    <RouterProvider router={router} />
   </StrictMode>
 );
 
