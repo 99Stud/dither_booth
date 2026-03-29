@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly BUN_PUBLIC_TRPC_URL?: string;
+  readonly BUN_PUBLIC_ENABLE_PRINT_DEBUG_PANEL?: string;
 }
 
 interface ImportMeta {
