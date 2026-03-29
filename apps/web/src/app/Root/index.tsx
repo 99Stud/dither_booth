@@ -11,7 +11,7 @@ import {
 } from "#lib/print-config.ts";
 import { ENABLE_PRINT_DEBUG_PANEL } from "#lib/public-env.ts";
 import { base64ToBlob } from "#lib/trpc/utils.ts";
-import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
+import { blobToDataUrl, downloadBlob, getBlobDimensions } from "#lib/utils.ts";
 import { trpc } from "#trpc/client.ts";
 import { isTRPCClientError } from "#trpc/utils.ts";
 import {
@@ -24,23 +24,9 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-const ENABLE_DEBUG_PANEL = ENABLE_PRINT_DEBUG_PANEL;
 const CONFIG_ENTRY_TAP_COUNT = 5;
 const CONFIG_ENTRY_WINDOW_MS = 1500;
 const PREVIEW_DEBOUNCE_MS = 250;
-
-const getBlobDimensions = async (blob: Blob) => {
-  const imageBitmap = await createImageBitmap(blob);
-
-  try {
-    return {
-      width: imageBitmap.width,
-      height: imageBitmap.height,
-    };
-  } finally {
-    imageBitmap.close();
-  }
-};
 
 const captureImage = async (
   webcamRef: RefObject<WebcamHandle | null>,
@@ -340,7 +326,7 @@ export const Root: FC = () => {
         >
           Print
         </Button>
-        {ENABLE_DEBUG_PANEL && !debugOpen && (
+        {ENABLE_PRINT_DEBUG_PANEL && !debugOpen && (
           <Button variant="outline" onClick={openConfigTool}>
             Debug
           </Button>
