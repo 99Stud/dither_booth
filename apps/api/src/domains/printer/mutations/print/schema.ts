@@ -36,7 +36,8 @@ export const printImageSchema = z
     if (!data.image.startsWith("data:image/") && data.mimeType === undefined) {
       ctx.addIssue({
         code: "custom",
-        message: "mimeType is required when image is raw base64 (not a data URL)",
+        message:
+          "mimeType is required when image is raw base64 (not a data URL)",
         path: ["mimeType"],
       });
     }

@@ -9,6 +9,7 @@ import puppeteer from "puppeteer";
 import type { Context } from "./trpc";
 
 import { appRouter } from "./appRouter";
+import { db } from "./db";
 
 let printerDevice: USB | undefined;
 let page: Page | undefined;
@@ -34,6 +35,7 @@ try {
 const createContext = (): Context => ({
   printerDevice,
   page,
+  db,
 });
 
 const trpcHandler = createHTTPHandler({

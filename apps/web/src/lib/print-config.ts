@@ -90,5 +90,8 @@ export const savePrintDebugParams = (params: PrintDebugParams) => {
     return;
   }
 
-  window.localStorage.setItem(PRINT_DEBUG_CONFIG_STORAGE_KEY, JSON.stringify(params));
+  window.localStorage.setItem(
+    PRINT_DEBUG_CONFIG_STORAGE_KEY,
+    JSON.stringify(params),
+  );
 };

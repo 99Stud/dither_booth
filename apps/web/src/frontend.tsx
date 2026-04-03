@@ -8,6 +8,7 @@
 import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
 import { Root } from "#app/Root/index.tsx";
 import { Toaster } from "#components/ui/sonner.tsx";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createRootRoute,
   createRoute,
@@ -19,10 +20,14 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+const queryClient = new QueryClient();
+
 const rootRoute = createRootRoute({
   component: () => (
     <>
-      <Outlet />
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+      </QueryClientProvider>
       <TanStackRouterDevtools />
       <Toaster />
     </>

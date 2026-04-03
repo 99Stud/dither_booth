@@ -8,12 +8,6 @@ import {
 } from "#components/ui/card.tsx";
 import { Label } from "#components/ui/label.tsx";
 import {
-  PRINT_DEBUG_DEFAULTS,
-  arePrintDebugParamsEqual,
-  type DitherModeKey,
-  type PrintDebugParams,
-} from "#lib/print-config.ts";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -21,6 +15,13 @@ import {
   SelectValue,
 } from "#components/ui/select.tsx";
 import { Slider } from "#components/ui/slider.tsx";
+import {
+  PRINT_DEBUG_DEFAULTS,
+  arePrintDebugParamsEqual,
+  type DitherModeKey,
+  type PrintDebugParams,
+} from "#lib/print-config.ts";
+import { cn } from "#lib/utils.ts";
 import { X } from "lucide-react";
 import { type FC, useCallback } from "react";
 
@@ -50,7 +51,7 @@ const SliderControl: FC<{
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <Label>{label}</Label>
-        <span className="text-xs tabular-nums text-muted-foreground">
+        <span className="text-xs text-muted-foreground tabular-nums">
           {value.toFixed(step < 1 ? 2 : 0)}
         </span>
       </div>
@@ -68,6 +69,7 @@ const SliderControl: FC<{
 };
 
 export const PrintDebugPanel: FC<{
+  className?: string;
   onClose: () => void;
   params: PrintDebugParams;
   onParamsChange: (params: PrintDebugParams) => void;
@@ -81,6 +83,7 @@ export const PrintDebugPanel: FC<{
   onPrintWithParams: () => void;
 }> = (props) => {
   const {
+    className,
     onClose,
     params,
     onParamsChange,
@@ -104,7 +107,12 @@ export const PrintDebugPanel: FC<{
   const isAtDefaults = arePrintDebugParamsEqual(params, PRINT_DEBUG_DEFAULTS);
 
   return (
-    <Card className="w-72 max-h-[calc(100dvh-4rem)] overflow-y-auto bg-card/95 backdrop-blur-sm">
+    <Card
+      className={cn(
+        "max-h-[calc(100dvh-4rem)] w-72 overflow-y-auto bg-card/95 backdrop-blur-sm",
+        className,
+      )}
+    >
       <CardHeader className="border-b">
         <CardTitle>Print Config</CardTitle>
         <CardAction>
@@ -203,11 +211,7 @@ export const PrintDebugPanel: FC<{
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onResetToApplied}
-          >
+          <Button variant="outline" size="sm" onClick={onResetToApplied}>
             {hasSavedConfig ? "Revert" : "Reset"}
           </Button>
           <Button
