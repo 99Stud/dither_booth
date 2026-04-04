@@ -1,5 +1,6 @@
 import type { AppRouter } from "@dither-booth/api/appRouter";
 
+import { QueryClient } from "@tanstack/react-query";
 import {
   createTRPCClient,
   httpBatchLink,
@@ -7,10 +8,23 @@ import {
   isNonJsonSerializable,
   splitLink,
 } from "@trpc/client";
+import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
 import { TRPC_PROXY_PATH } from "./constants";
 
-export const trpc = createTRPCClient<AppRouter>({
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    mutations: {
+      retry: false,
+    },
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+export const trpcClient = createTRPCClient<AppRouter>({
   links: [
     splitLink({
       condition: (op) => isNonJsonSerializable(op.input),
@@ -22,4 +36,9 @@ export const trpc = createTRPCClient<AppRouter>({
       }),
     }),
   ],
+});
+
+export const trpc = createTRPCOptionsProxy<AppRouter>({
+  client: trpcClient,
+  queryClient,
 });

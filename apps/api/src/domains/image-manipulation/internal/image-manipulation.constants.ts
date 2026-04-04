@@ -10,7 +10,7 @@ export const DITHER_MODE_OPTIONS = [
 ] satisfies Array<DitherMode>;
 
 export const CONFIGURE_DITHER_SCHEMA = z.object({
-  ditherMode: z.literal(DITHER_MODE_OPTIONS).optional().default(2),
+  ditherModeCode: z.literal(DITHER_MODE_OPTIONS).optional().default(2),
   brightness: z.number().min(0).max(3).optional().default(1),
   contrast: z.number().min(0).max(3).optional().default(1),
   gamma: z.number().min(1).max(3).optional().default(1),

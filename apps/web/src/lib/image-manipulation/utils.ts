@@ -1,3 +1,6 @@
+import { logKioskEvent } from "#lib/logging.ts";
+import { getBlobDimensions } from "#lib/utils.ts";
+
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";
 
 const canvasToBlob = (
@@ -63,4 +66,22 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
   } finally {
     imageBitmap.close();
   }
+};
+
+export const takeSquarePhoto = async (takePhoto: () => Promise<Blob>) => {
+  const photo = await takePhoto();
+  const { width, height } = await getBlobDimensions(photo);
+
+  logKioskEvent("info", "web.root", "photo-captured", {
+    height,
+    width,
+  });
+
+  if (width === height) {
+    return photo;
+  }
+
+  logKioskEvent("info", "web.root", "client-square-resize-requested");
+
+  return await resizeBlobToSquare(photo);
 };

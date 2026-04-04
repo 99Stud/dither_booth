@@ -22,17 +22,16 @@ import {
   SelectValue,
 } from "#components/ui/select.tsx";
 import { Slider } from "#components/ui/slider.tsx";
-import { DITHER_CONFIGURATION_QUERY_KEY } from "#lib/data/dither-configuration/constants.ts";
-import { useDitherConfiguration } from "#lib/data/dither-configuration/queries.ts";
-import { resizeBlobToSquare } from "#lib/image-manipulation/utils.ts";
-import { logKioskEvent, toErrorMessage } from "#lib/logging.ts";
-import { cn, getBlobDimensions } from "#lib/utils.ts";
-import { trpc } from "#trpc/client.ts";
+import { takeSquarePhoto } from "#lib/image-manipulation/utils.ts";
+import { reportKioskError } from "#lib/logging.ts";
+import { cn } from "#lib/utils.ts";
+import { useTRPC } from "#trpc/utils.ts";
 import { useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Loader2, X } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -41,64 +40,208 @@ import {
   type RefObject,
 } from "react";
 
+import type { PrintConfigurationFormValues } from "./internal/PrintConfigurationPanel.types";
+
 import {
-  DEFAULT_PRINT_CONFIGURATION_FORM_VALUES,
+  AUTOSAVE_DEBOUNCE_MS,
+  DITHER_MODE_CODE_LABELS,
+  getPrintConfigurationFormValues,
   PRINT_CONFIGURATION_FORM_SCHEMA,
-  type PrintConfigurationFormValues,
+  PRINT_CONFIGURATION_PANEL_ERROR_SOURCE,
 } from "./internal/PrintConfigurationPanel.constants";
 
 interface PrintConfigurationPanelProps {
+  className?: string;
   onClose: () => void;
   webcamRef: RefObject<WebcamHandle | null>;
 }
 
-type AutosaveStatus = "idle" | "saving" | "saved" | "error";
-type PrintConfigurationComparableValues = Omit<
-  PrintConfigurationFormValues,
-  "ditherModeCode"
-> & {
-  ditherModeCode: number;
+const reportPrintConfigurationError = (
+  error: unknown,
+  event: string,
+  fallback: string,
+) => {
+  return reportKioskError(error, {
+    event,
+    fallback,
+    source: PRINT_CONFIGURATION_PANEL_ERROR_SOURCE,
+  });
 };
 
-const AUTOSAVE_DEBOUNCE_MS = 500;
-const SAVED_STATUS_DURATION_MS = 1500;
-
-const getPrintConfigurationSignature = (
-  values: PrintConfigurationComparableValues,
-) => JSON.stringify(values);
-
 export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
+  className,
   onClose,
   webcamRef,
 }) => {
   const [previewSrc, setPreviewSrc] = useState<string>();
-  const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>("idle");
-  const [autosaveError, setAutosaveError] = useState<string>();
-  const queryClient = useQueryClient();
-  const didHydrateFormRef = useRef(false);
-  const isResettingFormRef = useRef(false);
-  const hasPersistedConfigurationRef = useRef(false);
-  const lastHydratedSignatureRef = useRef<string | undefined>(undefined);
-  const lastSavedSignatureRef = useRef<string | null>(null);
-  const savedStatusTimeoutRef = useRef<number | undefined>(undefined);
-  const queuedSubmitTimeoutRef = useRef<number | undefined>(undefined);
+  const hasTriggeredInitialPreviewRef = useRef(false);
+  const lastLoadErrorRef = useRef<string | null>(null);
 
-  const { data: ditherConfiguration, isLoading: isLoadingDitherConfiguration } =
-    useDitherConfiguration();
+  const trpc = useTRPC();
 
-  const defaultValues = useMemo(
-    () =>
-      ditherConfiguration
-        ? {
-            ditherModeCode: ditherConfiguration.ditherModeCode,
-            brightness: ditherConfiguration.brightness,
-            contrast: ditherConfiguration.contrast,
-            gamma: ditherConfiguration.gamma,
-            threshold: ditherConfiguration.threshold,
-          }
-        : DEFAULT_PRINT_CONFIGURATION_FORM_VALUES,
+  const {
+    data: ditherConfiguration,
+    error: ditherConfigurationError,
+    isError: hasDitherConfigurationError,
+    isLoading: isLoadingDitherConfiguration,
+  } = useQuery(trpc.getDitherConfiguration.queryOptions());
+
+  const ditherConfigurationUpdater = useMutation(
+    trpc.updateDitherConfiguration.mutationOptions(),
+  );
+  const { isPending: isUpdatingDitherConfiguration } =
+    ditherConfigurationUpdater;
+
+  const ditherConfigurationCreator = useMutation(
+    trpc.createDitherConfiguration.mutationOptions(),
+  );
+  const { isPending: isCreatingDitherConfiguration } =
+    ditherConfigurationCreator;
+
+  const ditherer = useMutation(trpc.dither.mutationOptions());
+  const { isPending: isDithering } = ditherer;
+
+  useEffect(() => {
+    if (!hasDitherConfigurationError) {
+      lastLoadErrorRef.current = null;
+      return;
+    }
+
+    const errorMessage =
+      ditherConfigurationError instanceof Error
+        ? ditherConfigurationError.message
+        : "Load dither configuration failed.";
+
+    if (lastLoadErrorRef.current === errorMessage) {
+      return;
+    }
+
+    lastLoadErrorRef.current = errorMessage;
+    reportPrintConfigurationError(
+      ditherConfigurationError,
+      "load-dither-configuration-failed",
+      "Load dither configuration failed.",
+    );
+  }, [ditherConfigurationError, hasDitherConfigurationError]);
+
+  const generatePreviewDataUrl = useCallback(async () => {
+    const image = await takeSquarePhoto(async () => {
+      if (!webcamRef.current) {
+        throw new Error("Camera is not available.");
+      }
+
+      return await webcamRef.current.takePhoto();
+    }).catch((e) => {
+      reportPrintConfigurationError(
+        e,
+        "preview-photo-capture-failed",
+        "Take square photo failed.",
+      );
+    });
+
+    if (!image) {
+      return;
+    }
+
+    const res = await ditherer.mutateAsync(image).catch((e) => {
+      reportPrintConfigurationError(
+        e,
+        "preview-dither-failed",
+        "Generate preview failed.",
+      );
+    });
+
+    if (!res) {
+      return;
+    }
+
+    return `data:${res.mimeType};base64,${res.data}`;
+  }, [ditherer, webcamRef]);
+
+  const refreshPreview = useCallback(async () => {
+    const previewDataUrl = await generatePreviewDataUrl();
+
+    if (previewDataUrl) {
+      setPreviewSrc(previewDataUrl);
+    }
+  }, [generatePreviewDataUrl]);
+
+  const persistDitherConfiguration = useCallback(
+    async (submittedValues: PrintConfigurationFormValues) => {
+      try {
+        if (ditherConfiguration) {
+          await ditherConfigurationUpdater.mutateAsync(submittedValues);
+        } else {
+          await ditherConfigurationCreator.mutateAsync(submittedValues);
+        }
+      } catch (e) {
+        reportPrintConfigurationError(
+          e,
+          ditherConfiguration
+            ? "update-dither-configuration-failed"
+            : "create-dither-configuration-failed",
+          ditherConfiguration
+            ? "Update dither configuration failed."
+            : "Create dither configuration failed.",
+        );
+        return false;
+      }
+
+      return true;
+    },
+    [
+      ditherConfiguration,
+      ditherConfigurationCreator,
+      ditherConfigurationUpdater,
+    ],
+  );
+
+  const saveAndRefreshPreview = useCallback(
+    async (
+      submittedValues: PrintConfigurationFormValues,
+      options?: { skipPersist?: boolean },
+    ) => {
+      if (!options?.skipPersist) {
+        const wasPersisted = await persistDitherConfiguration(submittedValues);
+
+        if (!wasPersisted) {
+          return;
+        }
+      }
+
+      await refreshPreview();
+    },
+    [persistDitherConfiguration, refreshPreview],
+  );
+
+  const defaultValues = useMemo<PrintConfigurationFormValues>(
+    () => getPrintConfigurationFormValues(ditherConfiguration),
     [ditherConfiguration],
   );
+
+  useEffect(() => {
+    if (
+      hasTriggeredInitialPreviewRef.current ||
+      isLoadingDitherConfiguration ||
+      hasDitherConfigurationError
+    ) {
+      return;
+    }
+
+    hasTriggeredInitialPreviewRef.current = true;
+
+    void saveAndRefreshPreview(
+      getPrintConfigurationFormValues(ditherConfiguration),
+      {
+        skipPersist: ditherConfiguration != null,
+      },
+    );
+  }, [
+    ditherConfiguration,
+    hasDitherConfigurationError,
+    isLoadingDitherConfiguration,
+    saveAndRefreshPreview,
+  ]);
 
   const form = useForm({
     defaultValues,
@@ -108,190 +251,20 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
     },
     listeners: {
       onChangeDebounceMs: AUTOSAVE_DEBOUNCE_MS,
-      onChange: async ({ formApi }) => {
-        if (isLoadingDitherConfiguration) {
-          return;
-        }
-
-        await formApi.handleSubmit();
+      onChange: async () => {
+        form.handleSubmit();
       },
     },
     onSubmit: async (submitted) => {
-      const submittedValues = submitted.value;
-      const submittedSignature =
-        getPrintConfigurationSignature(submittedValues);
-      let didSave = false;
-
-      window.clearTimeout(savedStatusTimeoutRef.current);
-
-      try {
-        if (hasPersistedConfigurationRef.current) {
-          await trpc.updateDitherConfiguration.mutate(submittedValues);
-        } else {
-          await trpc.createDitherConfiguration.mutate(submittedValues);
-          hasPersistedConfigurationRef.current = true;
-        }
-
-        lastSavedSignatureRef.current = submittedSignature;
-        didSave = true;
-        setAutosaveError(undefined);
-        setAutosaveStatus("saved");
-
-        void queryClient.invalidateQueries({
-          queryKey: [DITHER_CONFIGURATION_QUERY_KEY],
-        });
-
-        if (
-          getPrintConfigurationSignature(form.state.values) ===
-          submittedSignature
-        ) {
-          isResettingFormRef.current = true;
-          form.reset(submittedValues);
-          isResettingFormRef.current = false;
-        }
-
-        savedStatusTimeoutRef.current = window.setTimeout(() => {
-          setAutosaveStatus((currentStatus) =>
-            currentStatus === "saved" ? "idle" : currentStatus,
-          );
-        }, SAVED_STATUS_DURATION_MS);
-      } catch (error) {
-        setAutosaveStatus("error");
-        setAutosaveError(
-          toErrorMessage(error, "Saving print configuration failed."),
-        );
-      } finally {
-        if (!didSave) {
-          return;
-        }
-
-        const latestValues = PRINT_CONFIGURATION_FORM_SCHEMA.safeParse(
-          form.state.values,
-        );
-
-        if (!latestValues.success) {
-          return;
-        }
-
-        if (
-          getPrintConfigurationSignature(latestValues.data) !==
-          lastSavedSignatureRef.current
-        ) {
-          window.clearTimeout(queuedSubmitTimeoutRef.current);
-          queuedSubmitTimeoutRef.current = window.setTimeout(() => {
-            setAutosaveError(undefined);
-            setAutosaveStatus("saving");
-            void form.handleSubmit();
-          }, 0);
-        }
-      }
+      await saveAndRefreshPreview(submitted.value);
     },
   });
-
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(savedStatusTimeoutRef.current);
-      window.clearTimeout(queuedSubmitTimeoutRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isLoadingDitherConfiguration) {
-      return;
-    }
-
-    const nextSignature = getPrintConfigurationSignature(defaultValues);
-    const currentSignature = getPrintConfigurationSignature(form.state.values);
-    const hasUnsavedChanges =
-      lastSavedSignatureRef.current !== null &&
-      currentSignature !== lastSavedSignatureRef.current;
-
-    if (
-      didHydrateFormRef.current &&
-      nextSignature === lastHydratedSignatureRef.current
-    ) {
-      return;
-    }
-
-    if (didHydrateFormRef.current && hasUnsavedChanges) {
-      return;
-    }
-
-    isResettingFormRef.current = true;
-    form.reset(defaultValues);
-    isResettingFormRef.current = false;
-    didHydrateFormRef.current = true;
-    lastHydratedSignatureRef.current = nextSignature;
-    hasPersistedConfigurationRef.current = Boolean(ditherConfiguration);
-    lastSavedSignatureRef.current = ditherConfiguration ? nextSignature : null;
-  }, [defaultValues, ditherConfiguration, form, isLoadingDitherConfiguration]);
-
-  const takeSquarePhoto = async () => {
-    try {
-      if (!webcamRef.current) {
-        throw new Error("Camera is not available.");
-      }
-
-      const photo = await webcamRef.current.takePhoto().catch(() => {
-        console.log("takePhoto failed");
-        throw new Error("Take photo failed.");
-      });
-
-      const { width, height } = await getBlobDimensions(photo);
-
-      logKioskEvent("info", "web.root", "photo-captured", {
-        height,
-        width,
-      });
-
-      if (width === height) {
-        return photo;
-      }
-
-      logKioskEvent("info", "web.root", "client-square-resize-requested");
-
-      return await resizeBlobToSquare(photo);
-    } catch (e) {
-      console.log(e);
-
-      logKioskEvent(
-        "error",
-        "web.root",
-        "take-square-photo-and-get-data-url-failed",
-        {
-          error: toErrorMessage(
-            e,
-            "Take square photo and get data URL failed.",
-          ),
-        },
-      );
-    }
-  };
-
-  const getPreviewSrc = async () => {
-    const image = await takeSquarePhoto();
-
-    if (!image) {
-      return;
-    }
-
-    const res = await trpc.dither.mutate(image);
-
-    return `data:${res.mimeType};base64,${res.data}`;
-  };
-
-  const handleUpdatePreview = async () => {
-    const previewSrc = await getPreviewSrc();
-
-    if (previewSrc) {
-      setPreviewSrc(previewSrc);
-    }
-  };
 
   return (
     <Card
       className={cn(
         "max-h-[calc(100dvh-4rem)] w-72 overflow-y-auto bg-card/95 backdrop-blur-sm",
+        className,
       )}
     >
       <CardHeader className="border-b">
@@ -313,8 +286,18 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
         </CardAction>
       </CardHeader>
       <CardContent>
-        <div className={clsx("flex flex-col gap-4")}>
-          {previewSrc ? (
+        <div className={clsx("flex flex-col gap-4", "mb-4")}>
+          {isDithering ? (
+            <div
+              className={clsx(
+                "aspect-square w-full",
+                "flex items-center justify-center",
+                "bg-black",
+              )}
+            >
+              <p className="text-xs text-muted-foreground">Dithering...</p>
+            </div>
+          ) : previewSrc ? (
             <img src={previewSrc} alt="Preview" />
           ) : (
             <div
@@ -327,14 +310,12 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
               <p className="text-xs text-muted-foreground">Preview</p>
             </div>
           )}
-          <Button className={clsx("self-end")} onClick={handleUpdatePreview}>
-            Update preview
-          </Button>
         </div>
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
+            form.handleSubmit();
           }}
         >
           <form.Field
@@ -352,13 +333,17 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                     )}
                   </FieldContent>
                   <Select
-                    disabled={isLoadingDitherConfiguration}
+                    disabled={
+                      isLoadingDitherConfiguration ||
+                      isUpdatingDitherConfiguration ||
+                      isCreatingDitherConfiguration
+                    }
                     id={field.name}
                     name={field.name}
                     value={field.state.value}
-                    onValueChange={(e) => {
-                      if (e) {
-                        field.handleChange(e);
+                    onValueChange={(value) => {
+                      if (value != null) {
+                        field.handleChange(value);
                       }
                     }}
                   >
@@ -370,14 +355,14 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                       <SelectValue placeholder="Select a dither mode" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={1}>Burkes</SelectItem>
-                      <SelectItem value={2}>Ordered</SelectItem>
-                      <SelectItem value={3}>Floyd-Steinberg</SelectItem>
-                      <SelectItem value={4}>Atkinson</SelectItem>
-                      <SelectItem value={5}>Stucki</SelectItem>
-                      <SelectItem value={6}>Sierra</SelectItem>
-                      <SelectItem value={7}>Sierra Lite</SelectItem>
-                      <SelectItem value={8}>Jarvis-Judice-Ninke</SelectItem>
+                      {DITHER_MODE_CODE_LABELS.map((ditherMode) => (
+                        <SelectItem
+                          key={ditherMode.value}
+                          value={ditherMode.value}
+                        >
+                          {ditherMode.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </Field>
@@ -400,7 +385,11 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                   </FieldContent>
                   <div className="flex items-center gap-2">
                     <Slider
-                      disabled={isLoadingDitherConfiguration}
+                      disabled={
+                        isLoadingDitherConfiguration ||
+                        isUpdatingDitherConfiguration ||
+                        isCreatingDitherConfiguration
+                      }
                       min={0}
                       max={3}
                       step={0.05}
@@ -437,7 +426,11 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                   </FieldContent>
                   <div className="flex items-center gap-2">
                     <Slider
-                      disabled={isLoadingDitherConfiguration}
+                      disabled={
+                        isLoadingDitherConfiguration ||
+                        isUpdatingDitherConfiguration ||
+                        isCreatingDitherConfiguration
+                      }
                       min={0}
                       max={3}
                       step={0.05}
@@ -474,7 +467,11 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                   </FieldContent>
                   <div className="flex items-center gap-2">
                     <Slider
-                      disabled={isLoadingDitherConfiguration}
+                      disabled={
+                        isLoadingDitherConfiguration ||
+                        isUpdatingDitherConfiguration ||
+                        isCreatingDitherConfiguration
+                      }
                       min={1}
                       max={3}
                       step={0.05}
@@ -511,7 +508,11 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                   </FieldContent>
                   <div className="flex items-center gap-2">
                     <Slider
-                      disabled={isLoadingDitherConfiguration}
+                      disabled={
+                        isLoadingDitherConfiguration ||
+                        isUpdatingDitherConfiguration ||
+                        isCreatingDitherConfiguration
+                      }
                       min={0}
                       max={255}
                       step={1}
@@ -532,31 +533,6 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
               );
             }}
           />
-          <form.Subscribe
-            selector={(state) => ({
-              isTouched: state.isTouched,
-              isValid: state.isValid,
-              isSubmitting: state.isSubmitting,
-            })}
-          >
-            {(state) => (
-              <p
-                className="text-right text-xs text-muted-foreground"
-                role="status"
-                aria-live="polite"
-              >
-                {state.isSubmitting || autosaveStatus === "saving"
-                  ? "Saving..."
-                  : autosaveStatus === "error"
-                    ? (autosaveError ?? "Autosave failed.")
-                    : state.isTouched && !state.isValid
-                      ? "Fix validation errors to save."
-                      : autosaveStatus === "saved"
-                        ? "Saved"
-                        : "Changes save automatically."}
-              </p>
-            )}
-          </form.Subscribe>
         </form>
       </CardContent>
     </Card>

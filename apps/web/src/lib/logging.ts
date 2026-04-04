@@ -1,4 +1,13 @@
+import { toast } from "sonner";
+
 export type KioskLogLevel = "error" | "info" | "warn";
+
+type ReportKioskErrorOptions = {
+  details?: Record<string, unknown>;
+  event: string;
+  fallback: string;
+  source: string;
+};
 
 const getConsoleMethod = (level: KioskLogLevel) => {
   if (level === "error") {
@@ -47,4 +56,20 @@ export const toErrorMessage = (error: unknown, fallback: string) => {
   }
 
   return fallback;
+};
+
+export const reportKioskError = (
+  error: unknown,
+  options: ReportKioskErrorOptions,
+) => {
+  const { details, event, fallback, source } = options;
+  const errorMessage = toErrorMessage(error, fallback);
+
+  toast.error(errorMessage);
+  logKioskEvent("error", source, event, {
+    ...details,
+    error: errorMessage,
+  });
+
+  return errorMessage;
 };

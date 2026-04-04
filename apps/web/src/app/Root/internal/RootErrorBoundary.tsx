@@ -1,0 +1,113 @@
+import { Button, buttonVariants } from "#components/ui/button.tsx";
+import { reportKioskError, toErrorMessage } from "#lib/logging.ts";
+import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
+
+import { ROOT_ERROR_SOURCE } from "./Root.constants";
+
+type RootErrorBoundaryProps = {
+  children: ReactNode;
+};
+
+type RootErrorBoundaryState = {
+  error: unknown | null;
+};
+
+type RootScreenProps = {
+  description: string;
+  details?: string;
+  title: string;
+};
+
+let lastReportedRootErrorKey: string | null = null;
+
+const reportRootError = (error: unknown, event: string, fallback: string) => {
+  const errorMessage = toErrorMessage(error, fallback);
+  const errorKey = `${event}:${errorMessage}`;
+
+  if (lastReportedRootErrorKey !== errorKey) {
+    lastReportedRootErrorKey = errorKey;
+    reportKioskError(error, {
+      event,
+      fallback,
+      source: ROOT_ERROR_SOURCE,
+    });
+  }
+
+  return errorMessage;
+};
+
+const RootScreen = ({ description, details, title }: RootScreenProps) => {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-black p-6 text-white">
+      <div className="flex max-w-sm flex-col items-center gap-4 text-center">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-lg font-semibold">{title}</h1>
+          <p className="text-sm text-white/70">{description}</p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <a className={buttonVariants({ variant: "outline" })} href="/">
+            Back to home
+          </a>
+          <Button
+            onClick={() => {
+              window.location.reload();
+            }}
+          >
+            Reload app
+          </Button>
+        </div>
+        {details && <p className="text-xs text-white/60">{details}</p>}
+      </div>
+    </div>
+  );
+};
+
+const RootErrorScreen = ({ error }: { error: unknown }) => {
+  useEffect(() => {
+    reportRootError(error, "root-route-render-failed", "This screen failed.");
+  }, [error]);
+
+  return (
+    <RootScreen
+      title="Something went wrong"
+      description="This screen failed to load."
+      details={toErrorMessage(error, "This screen failed.")}
+    />
+  );
+};
+
+export const RootNotFoundScreen = () => {
+  return (
+    <RootScreen
+      title="Page not found"
+      description="This page does not exist."
+    />
+  );
+};
+
+export class RootErrorBoundary extends Component<
+  RootErrorBoundaryProps,
+  RootErrorBoundaryState
+> {
+  override state: RootErrorBoundaryState = {
+    error: null,
+  };
+
+  static getDerivedStateFromError(error: unknown): RootErrorBoundaryState {
+    return { error };
+  }
+
+  override componentDidCatch(error: Error, _errorInfo: ErrorInfo) {
+    reportRootError(error, "root-app-render-failed", "The app failed to load.");
+  }
+
+  override render() {
+    if (this.state.error) {
+      return <RootErrorScreen error={this.state.error} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+export { RootErrorScreen };

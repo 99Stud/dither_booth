@@ -38,7 +38,7 @@ export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
       <div className="fixed top-8 right-8 flex flex-col gap-1 text-sm text-white">
         Camera status: {cameraState.status}
         {cameraState.error && <p>Error: {cameraState.error}</p>}
-        <p>Is secure context: true</p>
+        <p>Is secure context: {String(cameraState.isSecureContext)}</p>
         {cameraState.lastUpdatedAt && (
           <p>
             Last updated at:{" "}
