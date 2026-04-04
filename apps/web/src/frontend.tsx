@@ -27,6 +27,8 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { Sandbox } from "./app/Sandbox";
+
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 const rootRoute = createRootRoute({
@@ -47,7 +49,17 @@ const receiptViewerRoute = createRoute({
   component: ReceiptViewer,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, receiptViewerRoute]);
+const sandboxRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sandbox",
+  component: Sandbox,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  receiptViewerRoute,
+  sandboxRoute,
+]);
 
 const router = createRouter({ routeTree });
 

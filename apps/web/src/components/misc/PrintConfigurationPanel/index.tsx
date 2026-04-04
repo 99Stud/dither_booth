@@ -263,7 +263,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   return (
     <Card
       className={cn(
-        "max-h-[calc(100dvh-4rem)] w-72 overflow-y-auto bg-card/95 backdrop-blur-sm",
+        "max-h-[calc(100dvh-4rem)] w-96 overflow-y-auto bg-card/95 backdrop-blur-sm",
         className,
       )}
     >
@@ -287,18 +287,18 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
       </CardHeader>
       <CardContent>
         <div className={clsx("flex flex-col gap-4", "mb-4")}>
-          {isDithering ? (
-            <div
-              className={clsx(
-                "aspect-square w-full",
-                "flex items-center justify-center",
-                "bg-black",
-              )}
-            >
-              <p className="text-xs text-muted-foreground">Dithering...</p>
+          {previewSrc ? (
+            <div className={clsx("relative", "aspect-square w-full")}>
+              <div
+                className={clsx(
+                  "absolute",
+                  "h-full w-full",
+                  "transition-all",
+                  isDithering && "bg-card/05 backdrop-blur-xs",
+                )}
+              />
+              <img src={previewSrc} alt="Preview" />
             </div>
-          ) : previewSrc ? (
-            <img src={previewSrc} alt="Preview" />
           ) : (
             <div
               className={clsx(
@@ -307,7 +307,9 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                 "bg-black",
               )}
             >
-              <p className="text-xs text-muted-foreground">Preview</p>
+              <p className="text-xs text-muted-foreground">
+                Preview loading...
+              </p>
             </div>
           )}
         </div>
