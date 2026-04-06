@@ -1,5 +1,11 @@
-import { logKioskEvent, toErrorMessage } from "#lib/logging.ts";
+import {
+  logKioskEvent,
+  reportKioskError,
+  toErrorMessage,
+} from "#lib/logging.ts";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import { USER_MEDIA_LOG_SOURCE } from "./user-media.constants.ts";
 
 export type CapturePhotoOptions = Omit<
   PhotoSettings,
@@ -321,18 +327,33 @@ export const useUserMedia = (params: {
     }
 
     lastLoggedCameraStateRef.current = nextLogKey;
-    logKioskEvent(
-      cameraState.status === "error" || cameraState.status === "unsupported"
-        ? "warn"
-        : "info",
-      "web.camera",
-      "camera-state-changed",
-      {
+
+    const isCameraFailure =
+      cameraState.status === "error" || cameraState.status === "unsupported";
+
+    if (isCameraFailure) {
+      const fallback =
+        cameraState.status === "unsupported"
+          ? "Camera is not supported in this environment."
+          : "Camera failed.";
+      const message = cameraState.error ?? fallback;
+
+      reportKioskError(new Error(message), {
+        details: {
+          isSecureContext: cameraState.isSecureContext,
+          status: cameraState.status,
+        },
+        event: "camera-state-changed",
+        fallback,
+        source: USER_MEDIA_LOG_SOURCE,
+      });
+    } else {
+      logKioskEvent("info", USER_MEDIA_LOG_SOURCE, "camera-state-changed", {
         error: cameraState.error,
         isSecureContext: cameraState.isSecureContext,
         status: cameraState.status,
-      },
-    );
+      });
+    }
   }, [cameraState]);
 
   const takePhoto = useCallback(async (photoSettings?: CapturePhotoOptions) => {
@@ -408,9 +429,14 @@ export const useUserMedia = (params: {
             await applySquareConstraints(track, maxSquareSide);
           } catch (e) {
             captureInitializationErrorRef.current = e;
-            logKioskEvent("warn", "web.camera", "constraint-fallback-failed", {
-              error: toErrorMessage(e, "Camera constraint fallback failed."),
-            });
+            logKioskEvent(
+              "warn",
+              USER_MEDIA_LOG_SOURCE,
+              "constraint-fallback-failed",
+              {
+                error: toErrorMessage(e, "Camera constraint fallback failed."),
+              },
+            );
           }
 
           if (!cancelled) {

@@ -1,18 +1,19 @@
 import { getPort } from "@dither-booth/ports";
 import { serve } from "bun";
 
+import { TRPC_BASE_PATH } from "../constants";
+import { WEB_SERVER_LOG_SOURCE } from "./index.constants";
 import index from "./index.html";
 import { logKioskEvent } from "./lib/logging";
 import { TRPC_PROXY_PATH } from "./trpc/constants";
 
 const apiOrigin = `http://127.0.0.1:${getPort("API_PORT")}`;
-const trpcBasePath = "/api/trpc";
 
 async function proxyApiRequest(req: Request) {
   const url = new URL(req.url);
-  const upstreamPath = url.pathname.startsWith(`${trpcBasePath}/`)
-    ? url.pathname.slice(trpcBasePath.length)
-    : url.pathname === trpcBasePath
+  const upstreamPath = url.pathname.startsWith(`${TRPC_BASE_PATH}/`)
+    ? url.pathname.slice(TRPC_BASE_PATH.length)
+    : url.pathname === TRPC_BASE_PATH
       ? "/"
       : url.pathname;
   const upstreamUrl = new URL(`${upstreamPath}${url.search}`, apiOrigin);
@@ -43,7 +44,7 @@ const server = serve({
   },
 });
 
-logKioskEvent("info", "web.server", "server-started", {
+logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-started", {
   environment: process.env.NODE_ENV,
   url: server.url.toString(),
 });

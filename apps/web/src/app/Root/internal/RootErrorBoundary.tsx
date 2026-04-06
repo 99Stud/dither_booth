@@ -2,7 +2,7 @@ import { Button, buttonVariants } from "#components/ui/button.tsx";
 import { reportKioskError, toErrorMessage } from "#lib/logging.ts";
 import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
 
-import { ROOT_ERROR_SOURCE } from "./Root.constants";
+import { ROOT_LOG_SOURCE } from "./Root.constants";
 
 type RootErrorBoundaryProps = {
   children: ReactNode;
@@ -29,7 +29,7 @@ const reportRootError = (error: unknown, event: string, fallback: string) => {
     reportKioskError(error, {
       event,
       fallback,
-      source: ROOT_ERROR_SOURCE,
+      source: ROOT_LOG_SOURCE,
     });
   }
 

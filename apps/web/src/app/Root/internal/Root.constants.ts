@@ -1,1 +1,1 @@
-export const ROOT_ERROR_SOURCE = "web.root";
+export const ROOT_LOG_SOURCE = "web.root";

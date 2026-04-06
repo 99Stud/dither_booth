@@ -68,11 +68,14 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
   }
 };
 
-export const takeSquarePhoto = async (takePhoto: () => Promise<Blob>) => {
+export const takeSquarePhoto = async (
+  source: string,
+  takePhoto: () => Promise<Blob>,
+) => {
   const photo = await takePhoto();
   const { width, height } = await getBlobDimensions(photo);
 
-  logKioskEvent("info", "web.root", "photo-captured", {
+  logKioskEvent("info", source, "photo-captured", {
     height,
     width,
   });
@@ -81,7 +84,7 @@ export const takeSquarePhoto = async (takePhoto: () => Promise<Blob>) => {
     return photo;
   }
 
-  logKioskEvent("info", "web.root", "client-square-resize-requested");
+  logKioskEvent("info", source, "client-square-resize-requested");
 
   return await resizeBlobToSquare(photo);
 };

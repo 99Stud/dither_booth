@@ -10,7 +10,7 @@ import { useTRPC } from "#trpc/utils.ts";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, useRef, useState } from "react";
 
-import { ROOT_ERROR_SOURCE } from "./internal/Root.constants";
+import { ROOT_LOG_SOURCE } from "./internal/Root.constants";
 
 export const Root: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);
@@ -25,7 +25,7 @@ export const Root: FC = () => {
 
   const takeSquarePhotoAndGetDataUrl = async () => {
     try {
-      const squarePhoto = await takeSquarePhoto(async () => {
+      const squarePhoto = await takeSquarePhoto(ROOT_LOG_SOURCE, async () => {
         if (!webcamRef.current) {
           throw new Error("Camera is not available.");
         }
@@ -38,7 +38,7 @@ export const Root: FC = () => {
       reportKioskError(e, {
         event: "take-square-photo-and-get-data-url-failed",
         fallback: "Take square photo and get data URL failed.",
-        source: ROOT_ERROR_SOURCE,
+        source: ROOT_LOG_SOURCE,
       });
     }
   };
@@ -62,7 +62,7 @@ export const Root: FC = () => {
       reportKioskError(e, {
         event: "generate-receipt-failed",
         fallback: "Generate receipt failed.",
-        source: ROOT_ERROR_SOURCE,
+        source: ROOT_LOG_SOURCE,
       });
     }
   };

@@ -47,7 +47,7 @@ import {
   DITHER_MODE_CODE_FIELD_OPTIONS,
   getPrintConfigurationFormValues,
   PRINT_CONFIGURATION_FORM_SCHEMA,
-  PRINT_CONFIGURATION_PANEL_ERROR_SOURCE,
+  PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
   SLIDER_FIELD_CONFIGS,
 } from "./internal/PrintConfigurationPanel.constants";
 
@@ -59,7 +59,7 @@ const reportPrintConfigurationError = (
   return reportKioskError(error, {
     event,
     fallback,
-    source: PRINT_CONFIGURATION_PANEL_ERROR_SOURCE,
+    source: PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
   });
 };
 
@@ -138,7 +138,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   }, [ditherConfigurationError, hasDitherConfigurationError]);
 
   const generatePreviewDataUrl = useCallback(async () => {
-    const image = await takeSquarePhoto(async () => {
+    const image = await takeSquarePhoto(PRINT_CONFIGURATION_PANEL_LOG_SOURCE, async () => {
       if (!webcamRef.current) {
         throw new Error("Camera is not available.");
       }
