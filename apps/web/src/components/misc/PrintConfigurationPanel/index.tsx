@@ -54,12 +54,12 @@ import {
 const reportPrintConfigurationError = (
   error: unknown,
   event: string,
-  fallback: string,
+  userMessage: string,
 ) => {
   return reportKioskError(error, {
     event,
-    fallback,
     source: PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
+    userMessage,
   });
 };
 

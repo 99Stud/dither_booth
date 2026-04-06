@@ -1,7 +1,7 @@
 import {
+  getKioskErrorDiagnostics,
   logKioskEvent,
   reportKioskError,
-  toErrorMessage,
 } from "#lib/logging.ts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -294,6 +294,7 @@ export const useUserMedia = (params: {
   const [cameraState, setCameraState] = useState<CameraState>(() =>
     createCameraState("initializing"),
   );
+  const cameraStateDiagnosticErrorRef = useRef<unknown>(undefined);
   const lastLoggedCameraStateRef = useRef<string | null>(null);
   const onStreamRef = useRef(onStream);
   const captureInitializationRef = useRef<Promise<void> | undefined>(undefined);
@@ -305,7 +306,12 @@ export const useUserMedia = (params: {
   onStreamRef.current = onStream;
 
   const updateCameraState = useCallback(
-    (status: CameraStatus, error: string | null = null) => {
+    (
+      status: CameraStatus,
+      error: string | null = null,
+      diagnosticError?: unknown,
+    ) => {
+      cameraStateDiagnosticErrorRef.current = diagnosticError;
       setCameraState(createCameraState(status, error));
     },
     [],
@@ -332,26 +338,28 @@ export const useUserMedia = (params: {
       cameraState.status === "error" || cameraState.status === "unsupported";
 
     if (isCameraFailure) {
-      const fallback =
+      const userMessage =
         cameraState.status === "unsupported"
           ? "Camera is not supported in this environment."
           : "Camera failed.";
-      const message = cameraState.error ?? fallback;
+      const error = cameraStateDiagnosticErrorRef.current;
 
-      reportKioskError(new Error(message), {
+      reportKioskError(error ?? new Error(cameraState.error ?? userMessage), {
         details: {
           isSecureContext: cameraState.isSecureContext,
           status: cameraState.status,
         },
         event: "camera-state-changed",
-        fallback,
         source: USER_MEDIA_LOG_SOURCE,
+        userMessage: cameraState.error ?? userMessage,
       });
     } else {
       logKioskEvent("info", USER_MEDIA_LOG_SOURCE, "camera-state-changed", {
-        error: cameraState.error,
-        isSecureContext: cameraState.isSecureContext,
-        status: cameraState.status,
+        details: {
+          error: cameraState.error,
+          isSecureContext: cameraState.isSecureContext,
+          status: cameraState.status,
+        },
       });
     }
   }, [cameraState]);
@@ -434,7 +442,10 @@ export const useUserMedia = (params: {
               USER_MEDIA_LOG_SOURCE,
               "constraint-fallback-failed",
               {
-                error: toErrorMessage(e, "Camera constraint fallback failed."),
+                error: getKioskErrorDiagnostics(
+                  e,
+                  "Camera constraint fallback failed.",
+                ),
               },
             );
           }
@@ -488,10 +499,7 @@ export const useUserMedia = (params: {
 
               takePhotoRef.current = undefined;
               captureInitializationErrorRef.current = error;
-              updateCameraState(
-                "error",
-                toErrorMessage(error, "Camera initialization failed."),
-              );
+              updateCameraState("error", "Camera initialization failed.", error);
             });
 
             onStreamRef.current(next);
@@ -504,7 +512,7 @@ export const useUserMedia = (params: {
       .catch((e) => {
         if (cancelled) return;
         clearTakePhoto();
-        updateCameraState("error", toErrorMessage(e, "Camera access failed."));
+        updateCameraState("error", "Camera access failed.", e);
       });
 
     return () => {

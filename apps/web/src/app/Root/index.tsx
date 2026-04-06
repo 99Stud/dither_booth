@@ -37,8 +37,8 @@ export const Root: FC = () => {
     } catch (e) {
       reportKioskError(e, {
         event: "take-square-photo-and-get-data-url-failed",
-        fallback: "Take square photo and get data URL failed.",
         source: ROOT_LOG_SOURCE,
+        userMessage: "Take square photo and get data URL failed.",
       });
     }
   };
@@ -61,8 +61,8 @@ export const Root: FC = () => {
     } catch (e) {
       reportKioskError(e, {
         event: "generate-receipt-failed",
-        fallback: "Generate receipt failed.",
         source: ROOT_LOG_SOURCE,
+        userMessage: "Generate receipt failed.",
       });
     }
   };

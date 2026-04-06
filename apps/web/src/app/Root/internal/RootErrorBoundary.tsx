@@ -1,5 +1,5 @@
 import { Button, buttonVariants } from "#components/ui/button.tsx";
-import { reportKioskError, toErrorMessage } from "#lib/logging.ts";
+import { getKioskErrorDiagnostics, reportKioskError } from "#lib/logging.ts";
 import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
 
 import { ROOT_LOG_SOURCE } from "./Root.constants";
@@ -20,20 +20,23 @@ type RootScreenProps = {
 
 let lastReportedRootErrorKey: string | null = null;
 
-const reportRootError = (error: unknown, event: string, fallback: string) => {
-  const errorMessage = toErrorMessage(error, fallback);
-  const errorKey = `${event}:${errorMessage}`;
+const reportRootError = (
+  error: unknown,
+  event: string,
+  userMessage: string,
+  details?: Record<string, unknown>,
+) => {
+  const errorKey = `${event}:${getKioskErrorDiagnostics(error, userMessage).message}`;
 
   if (lastReportedRootErrorKey !== errorKey) {
     lastReportedRootErrorKey = errorKey;
     reportKioskError(error, {
+      ...(details ? { details } : {}),
       event,
-      fallback,
       source: ROOT_LOG_SOURCE,
+      userMessage,
     });
   }
-
-  return errorMessage;
 };
 
 const RootScreen = ({ description, details, title }: RootScreenProps) => {
@@ -71,7 +74,6 @@ const RootErrorScreen = ({ error }: { error: unknown }) => {
     <RootScreen
       title="Something went wrong"
       description="This screen failed to load."
-      details={toErrorMessage(error, "This screen failed.")}
     />
   );
 };
@@ -97,8 +99,10 @@ export class RootErrorBoundary extends Component<
     return { error };
   }
 
-  override componentDidCatch(error: Error, _errorInfo: ErrorInfo) {
-    reportRootError(error, "root-app-render-failed", "The app failed to load.");
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    reportRootError(error, "root-app-render-failed", "The app failed to load.", {
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   override render() {

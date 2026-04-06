@@ -76,8 +76,10 @@ export const takeSquarePhoto = async (
   const { width, height } = await getBlobDimensions(photo);
 
   logKioskEvent("info", source, "photo-captured", {
-    height,
-    width,
+    details: {
+      height,
+      width,
+    },
   });
 
   if (width === height) {

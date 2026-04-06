@@ -45,6 +45,8 @@ const server = serve({
 });
 
 logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-started", {
-  environment: process.env.NODE_ENV,
-  url: server.url.toString(),
+  details: {
+    environment: process.env.NODE_ENV,
+    url: server.url.toString(),
+  },
 });

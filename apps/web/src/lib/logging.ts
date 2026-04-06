@@ -2,11 +2,25 @@ import { toast } from "sonner";
 
 export type KioskLogLevel = "error" | "info" | "warn";
 
+export type KioskLogDetails = Record<string, unknown>;
+
+export type KioskErrorDiagnostics = {
+  cause?: string;
+  message: string;
+  name?: string;
+  stack?: string;
+};
+
+type KioskLogContext = {
+  details?: KioskLogDetails;
+  error?: KioskErrorDiagnostics;
+};
+
 type ReportKioskErrorOptions = {
-  details?: Record<string, unknown>;
+  details?: KioskLogDetails;
   event: string;
-  fallback: string;
   source: string;
+  userMessage: string;
 };
 
 const getConsoleMethod = (level: KioskLogLevel) => {
@@ -21,55 +35,79 @@ const getConsoleMethod = (level: KioskLogLevel) => {
   return console.info;
 };
 
-export const createCorrelationId = (prefix: string) => {
-  if (
-    typeof crypto !== "undefined" &&
-    "randomUUID" in crypto &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return `${prefix}-${crypto.randomUUID()}`;
+const hasDetails = (details?: KioskLogDetails) => {
+  return details !== undefined && Object.keys(details).length > 0;
+};
+
+const getErrorCauseMessage = (cause: unknown) => {
+  if (cause instanceof Error) {
+    return cause.message || cause.name;
   }
 
-  return `${prefix}-${Date.now().toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 10)}`;
+  if (typeof cause === "string" && cause.length > 0) {
+    return cause;
+  }
+
+  return undefined;
+};
+
+export const getKioskErrorDiagnostics = (
+  error: unknown,
+  fallbackMessage: string,
+): KioskErrorDiagnostics => {
+  if (error instanceof Error) {
+    const cause = getErrorCauseMessage(error.cause);
+
+    return {
+      ...(cause ? { cause } : {}),
+      ...(error.name ? { name: error.name } : {}),
+      message: error.message || fallbackMessage,
+      ...(typeof error.stack === "string" && error.stack.length > 0
+        ? { stack: error.stack }
+        : {}),
+    };
+  }
+
+  if (typeof error === "string" && error.length > 0) {
+    return {
+      message: error,
+    };
+  }
+
+  return {
+    message: fallbackMessage,
+  };
 };
 
 export const logKioskEvent = (
   level: KioskLogLevel,
   source: string,
   event: string,
-  details: Record<string, unknown> = {},
+  context: KioskLogContext = {},
 ) => {
+  const { details, error } = context;
+
   getConsoleMethod(level)("[kiosk]", {
     loggedAt: new Date().toISOString(),
     level,
     source,
     event,
-    ...details,
+    ...(hasDetails(details) ? { details } : {}),
+    ...(error ? { error } : {}),
   });
-};
-
-export const toErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return fallback;
 };
 
 export const reportKioskError = (
   error: unknown,
   options: ReportKioskErrorOptions,
 ) => {
-  const { details, event, fallback, source } = options;
-  const errorMessage = toErrorMessage(error, fallback);
+  const { details, event, source, userMessage } = options;
 
-  toast.error(errorMessage);
+  toast.error(userMessage);
   logKioskEvent("error", source, event, {
-    ...details,
-    error: errorMessage,
+    ...(details ? { details } : {}),
+    error: getKioskErrorDiagnostics(error, userMessage),
   });
 
-  return errorMessage;
+  return userMessage;
 };
