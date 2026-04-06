@@ -1,10 +1,19 @@
+import type {
+  SelectFieldOption,
+  SelectFieldValue,
+} from "#components/fields/SelectField/internal/SelectField.types.ts";
+
 import z from "zod";
 
 import type { PrintConfigurationFormValues } from "./PrintConfigurationPanel.types";
 
 export const DITHER_MODE_CODE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 export const DITHER_MODE_CODE_SCHEMA = z.literal(DITHER_MODE_CODE_OPTIONS);
-export const DITHER_MODE_CODE_LABELS = [
+export const DITHER_MODE_CODE_FIELD_OPTIONS: Array<
+  SelectFieldOption<
+    SelectFieldValue<PrintConfigurationFormValues, "ditherModeCode">
+  >
+> = [
   { label: "None", value: 0 },
   { label: "Burkes", value: 1 },
   { label: "Ordered", value: 2 },
@@ -14,7 +23,7 @@ export const DITHER_MODE_CODE_LABELS = [
   { label: "Sierra", value: 6 },
   { label: "Sierra Lite", value: 7 },
   { label: "Jarvis-Judice-Ninke", value: 8 },
-] as const;
+];
 
 export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   ditherModeCode: DITHER_MODE_CODE_SCHEMA,

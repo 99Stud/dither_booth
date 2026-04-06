@@ -22,3 +22,7 @@ export const formatToMimeType = (format?: string) => {
       return FALLBACK_MIME_TYPE;
   }
 };
+
+export const wait = (ms: number) => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};

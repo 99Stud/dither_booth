@@ -1,5 +1,6 @@
 import type { WebcamHandle } from "#components/misc/Webcam/index.tsx";
 
+import { SelectField } from "#components/fields/SelectField/index.tsx";
 import { Button } from "#components/ui/button.tsx";
 import {
   Card,
@@ -14,14 +15,8 @@ import {
   FieldError,
   FieldLabel,
 } from "#components/ui/field.tsx";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "#components/ui/select.tsx";
 import { Slider } from "#components/ui/slider.tsx";
+import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/utils.ts";
 import { reportKioskError } from "#lib/logging.ts";
 import { cn } from "#lib/utils.ts";
@@ -29,7 +24,7 @@ import { useTRPC } from "#trpc/utils.ts";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -44,7 +39,7 @@ import type { PrintConfigurationFormValues } from "./internal/PrintConfiguration
 
 import {
   AUTOSAVE_DEBOUNCE_MS,
-  DITHER_MODE_CODE_LABELS,
+  DITHER_MODE_CODE_FIELD_OPTIONS,
   getPrintConfigurationFormValues,
   PRINT_CONFIGURATION_FORM_SCHEMA,
   PRINT_CONFIGURATION_PANEL_ERROR_SOURCE,
@@ -263,7 +258,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   return (
     <Card
       className={cn(
-        "max-h-[calc(100dvh-4rem)] w-96 overflow-y-auto bg-card/95 backdrop-blur-sm",
+        "h-[calc(100dvh-4rem)] bg-card/95 backdrop-blur-sm",
         className,
       )}
     >
@@ -272,7 +267,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
           <CardTitle>Print Config</CardTitle>
           {isLoadingDitherConfiguration && (
             <>
-              <Loader2 className="size-3.5 animate-spin" />
+              <Spinner />
               <span className="sr-only text-xs text-muted-foreground">
                 Loading...
               </span>
@@ -285,10 +280,23 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent>
-        <div className={clsx("flex flex-col gap-4", "mb-4")}>
+      <CardContent
+        className={clsx(
+          "h-[calc(100%-57.5px)]",
+          "grid grid-rows-[auto_min-content] gap-4",
+        )}
+      >
+        <div
+          className={clsx(
+            "relative",
+            "aspect-square",
+            "overflow-hidden",
+            "flex items-center justify-center",
+            "bg-black",
+          )}
+        >
           {previewSrc ? (
-            <div className={clsx("relative", "aspect-square w-full")}>
+            <>
               <div
                 className={clsx(
                   "absolute",
@@ -297,79 +305,30 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                   isDithering && "bg-card/05 backdrop-blur-xs",
                 )}
               />
-              <img src={previewSrc} alt="Preview" />
-            </div>
+              {isDithering && <Spinner className="absolute z-10" />}
+              <img src={previewSrc} alt="Preview" className="h-full w-full" />
+            </>
           ) : (
-            <div
-              className={clsx(
-                "aspect-square w-full",
-                "flex items-center justify-center",
-                "bg-black",
-              )}
-            >
-              <p className="text-xs text-muted-foreground">
-                Preview loading...
-              </p>
-            </div>
+            <Spinner className="text-white" />
           )}
         </div>
         <form
-          className="flex flex-col gap-4"
+          className={clsx("flex flex-col gap-4")}
           onSubmit={(e) => {
             e.preventDefault();
             form.handleSubmit();
           }}
         >
-          <form.Field
+          <SelectField
+            form={form}
             name="ditherModeCode"
-            // oxlint-disable-next-line react/no-children-prop
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid;
-              return (
-                <Field orientation="responsive" data-invalid={isInvalid}>
-                  <FieldContent>
-                    <FieldLabel htmlFor={field.name}>Dither Mode</FieldLabel>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </FieldContent>
-                  <Select
-                    disabled={
-                      isLoadingDitherConfiguration ||
-                      isUpdatingDitherConfiguration ||
-                      isCreatingDitherConfiguration
-                    }
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onValueChange={(value) => {
-                      if (value != null) {
-                        field.handleChange(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger
-                      className={clsx("min-w-[120px]")}
-                      aria-invalid={isInvalid}
-                      id={field.name}
-                    >
-                      <SelectValue placeholder="Select a dither mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DITHER_MODE_CODE_LABELS.map((ditherMode) => (
-                        <SelectItem
-                          key={ditherMode.value}
-                          value={ditherMode.value}
-                        >
-                          {ditherMode.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              );
-            }}
+            options={DITHER_MODE_CODE_FIELD_OPTIONS}
+            disabled={
+              isLoadingDitherConfiguration ||
+              isUpdatingDitherConfiguration ||
+              isCreatingDitherConfiguration ||
+              isDithering
+            }
           />
           <form.Field
             name="brightness"
