@@ -5,7 +5,10 @@ import type {
 
 import z from "zod";
 
-import type { PrintConfigurationFormValues } from "./PrintConfigurationPanel.types";
+import type {
+  PrintConfigurationFormValues,
+  SliderFieldConfig,
+} from "./PrintConfigurationPanel.types";
 
 export const DITHER_MODE_CODE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 export const DITHER_MODE_CODE_SCHEMA = z.literal(DITHER_MODE_CODE_OPTIONS);
@@ -68,3 +71,38 @@ export const getPrintConfigurationFormValues = (
     threshold: ditherConfiguration.threshold,
   };
 };
+
+export const SLIDER_FIELD_CONFIGS = [
+  {
+    formatValue: (value) => value.toFixed(2),
+    label: "Brightness",
+    max: 3,
+    min: 0,
+    name: "brightness",
+    step: 0.05,
+  },
+  {
+    formatValue: (value) => value.toFixed(2),
+    label: "Contrast",
+    max: 3,
+    min: 0,
+    name: "contrast",
+    step: 0.05,
+  },
+  {
+    formatValue: (value) => value.toFixed(2),
+    label: "Gamma",
+    max: 3,
+    min: 1,
+    name: "gamma",
+    step: 0.05,
+  },
+  {
+    formatValue: (value) => String(value),
+    label: "Threshold",
+    max: 255,
+    min: 0,
+    name: "threshold",
+    step: 1,
+  },
+] satisfies ReadonlyArray<SliderFieldConfig>;

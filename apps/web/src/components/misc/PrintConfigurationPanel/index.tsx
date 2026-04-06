@@ -10,6 +10,11 @@ import {
   CardTitle,
 } from "#components/ui/card.tsx";
 import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "#components/ui/dialog.tsx";
+import {
   Field,
   FieldContent,
   FieldError,
@@ -43,13 +48,8 @@ import {
   getPrintConfigurationFormValues,
   PRINT_CONFIGURATION_FORM_SCHEMA,
   PRINT_CONFIGURATION_PANEL_ERROR_SOURCE,
+  SLIDER_FIELD_CONFIGS,
 } from "./internal/PrintConfigurationPanel.constants";
-
-interface PrintConfigurationPanelProps {
-  className?: string;
-  onClose: () => void;
-  webcamRef: RefObject<WebcamHandle | null>;
-}
 
 const reportPrintConfigurationError = (
   error: unknown,
@@ -62,6 +62,24 @@ const reportPrintConfigurationError = (
     source: PRINT_CONFIGURATION_PANEL_ERROR_SOURCE,
   });
 };
+
+const getSliderValue = (value: number | ReadonlyArray<number>) => {
+  return Array.isArray(value) ? value[0] : value;
+};
+
+const previewDisplayWrapperClassName = clsx(
+  "relative",
+  "aspect-square",
+  "overflow-hidden",
+  "flex items-center justify-center",
+  "bg-black",
+);
+
+interface PrintConfigurationPanelProps {
+  className?: string;
+  onClose: () => void;
+  webcamRef: RefObject<WebcamHandle | null>;
+}
 
 export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   className,
@@ -213,6 +231,12 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
     () => getPrintConfigurationFormValues(ditherConfiguration),
     [ditherConfiguration],
   );
+  const isPersistingDitherConfiguration =
+    isLoadingDitherConfiguration ||
+    isUpdatingDitherConfiguration ||
+    isCreatingDitherConfiguration;
+  const isSelectFieldDisabled = isPersistingDitherConfiguration || isDithering;
+  const isSliderFieldDisabled = isPersistingDitherConfiguration;
 
   useEffect(() => {
     if (
@@ -286,32 +310,21 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
           "grid grid-rows-[auto_min-content] gap-4",
         )}
       >
-        <div
-          className={clsx(
-            "relative",
-            "aspect-square",
-            "overflow-hidden",
-            "flex items-center justify-center",
-            "bg-black",
-          )}
-        >
-          {previewSrc ? (
-            <>
-              <div
-                className={clsx(
-                  "absolute",
-                  "h-full w-full",
-                  "transition-all",
-                  isDithering && "bg-card/05 backdrop-blur-xs",
-                )}
+        <Dialog>
+          <DialogTrigger
+            className={clsx(previewDisplayWrapperClassName, "cursor-pointer")}
+          >
+            <PreviewDisplay isDithering={isDithering} previewSrc={previewSrc} />
+          </DialogTrigger>
+          <DialogContent className={clsx("max-w-[calc(100dvh-2rem)]!")}>
+            <div className={previewDisplayWrapperClassName}>
+              <PreviewDisplay
+                isDithering={isDithering}
+                previewSrc={previewSrc}
               />
-              {isDithering && <Spinner className="absolute z-10" />}
-              <img src={previewSrc} alt="Preview" className="h-full w-full" />
-            </>
-          ) : (
-            <Spinner className="text-white" />
-          )}
-        </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         <form
           className={clsx("flex flex-col gap-4")}
           onSubmit={(e) => {
@@ -323,179 +336,75 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
             form={form}
             name="ditherModeCode"
             options={DITHER_MODE_CODE_FIELD_OPTIONS}
-            disabled={
-              isLoadingDitherConfiguration ||
-              isUpdatingDitherConfiguration ||
-              isCreatingDitherConfiguration ||
-              isDithering
-            }
+            disabled={isSelectFieldDisabled}
           />
-          <form.Field
-            name="brightness"
-            // oxlint-disable-next-line react/no-children-prop
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid;
-              return (
-                <Field orientation="responsive" data-invalid={isInvalid}>
-                  <FieldContent>
-                    <FieldLabel htmlFor={field.name}>Brightness</FieldLabel>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </FieldContent>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      disabled={
-                        isLoadingDitherConfiguration ||
-                        isUpdatingDitherConfiguration ||
-                        isCreatingDitherConfiguration
-                      }
-                      min={0}
-                      max={3}
-                      step={0.05}
-                      value={[field.state.value]}
-                      onValueChange={(v) => {
-                        if (Array.isArray(v)) {
-                          field.handleChange(v[0]);
-                        } else {
-                          field.handleChange(v as number);
-                        }
-                      }}
-                    />
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {field.state.value.toFixed(2)}
-                    </span>
-                  </div>
-                </Field>
-              );
-            }}
-          />
-          <form.Field
-            name="contrast"
-            // oxlint-disable-next-line react/no-children-prop
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid;
-              return (
-                <Field orientation="responsive" data-invalid={isInvalid}>
-                  <FieldContent>
-                    <FieldLabel htmlFor={field.name}>Contrast</FieldLabel>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </FieldContent>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      disabled={
-                        isLoadingDitherConfiguration ||
-                        isUpdatingDitherConfiguration ||
-                        isCreatingDitherConfiguration
-                      }
-                      min={0}
-                      max={3}
-                      step={0.05}
-                      value={[field.state.value]}
-                      onValueChange={(v) => {
-                        if (Array.isArray(v)) {
-                          field.handleChange(v[0]);
-                        } else {
-                          field.handleChange(v as number);
-                        }
-                      }}
-                    />
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {field.state.value.toFixed(2)}
-                    </span>
-                  </div>
-                </Field>
-              );
-            }}
-          />
-          <form.Field
-            name="gamma"
-            // oxlint-disable-next-line react/no-children-prop
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid;
-              return (
-                <Field orientation="responsive" data-invalid={isInvalid}>
-                  <FieldContent>
-                    <FieldLabel htmlFor={field.name}>Gamma</FieldLabel>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </FieldContent>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      disabled={
-                        isLoadingDitherConfiguration ||
-                        isUpdatingDitherConfiguration ||
-                        isCreatingDitherConfiguration
-                      }
-                      min={1}
-                      max={3}
-                      step={0.05}
-                      value={[field.state.value]}
-                      onValueChange={(v) => {
-                        if (Array.isArray(v)) {
-                          field.handleChange(v[0]);
-                        } else {
-                          field.handleChange(v as number);
-                        }
-                      }}
-                    />
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {field.state.value.toFixed(2)}
-                    </span>
-                  </div>
-                </Field>
-              );
-            }}
-          />
-          <form.Field
-            name="threshold"
-            // oxlint-disable-next-line react/no-children-prop
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid;
-              return (
-                <Field orientation="responsive" data-invalid={isInvalid}>
-                  <FieldContent>
-                    <FieldLabel htmlFor={field.name}>Threshold</FieldLabel>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </FieldContent>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      disabled={
-                        isLoadingDitherConfiguration ||
-                        isUpdatingDitherConfiguration ||
-                        isCreatingDitherConfiguration
-                      }
-                      min={0}
-                      max={255}
-                      step={1}
-                      value={[field.state.value]}
-                      onValueChange={(v) => {
-                        if (Array.isArray(v)) {
-                          field.handleChange(v[0]);
-                        } else {
-                          field.handleChange(v as number);
-                        }
-                      }}
-                    />
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {field.state.value}
-                    </span>
-                  </div>
-                </Field>
-              );
-            }}
-          />
+          {SLIDER_FIELD_CONFIGS.map((sliderField) => (
+            <form.Field
+              key={sliderField.name}
+              name={sliderField.name}
+              // oxlint-disable-next-line react/no-children-prop
+              children={(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid;
+                return (
+                  <Field orientation="responsive" data-invalid={isInvalid}>
+                    <FieldContent>
+                      <FieldLabel htmlFor={field.name}>
+                        {sliderField.label}
+                      </FieldLabel>
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </FieldContent>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        disabled={isSliderFieldDisabled}
+                        min={sliderField.min}
+                        max={sliderField.max}
+                        step={sliderField.step}
+                        value={[field.state.value]}
+                        onValueChange={(value) => {
+                          field.handleChange(getSliderValue(value));
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {sliderField.formatValue(field.state.value)}
+                      </span>
+                    </div>
+                  </Field>
+                );
+              }}
+            />
+          ))}
         </form>
       </CardContent>
     </Card>
+  );
+};
+
+interface PreviewDisplayProps {
+  isDithering: boolean;
+  previewSrc?: string;
+}
+
+const PreviewDisplay: FC<PreviewDisplayProps> = ({
+  isDithering,
+  previewSrc,
+}) => {
+  return previewSrc ? (
+    <>
+      <div
+        className={clsx(
+          "absolute",
+          "h-full w-full",
+          "transition-all",
+          isDithering && "bg-card/05 backdrop-blur-xs",
+        )}
+      />
+      {isDithering && <Spinner className="absolute z-10" />}
+      <img src={previewSrc} alt="Preview" className="h-full w-full" />
+    </>
+  ) : (
+    <Spinner className="text-white" />
   );
 };
