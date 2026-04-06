@@ -1,4 +1,4 @@
-import { logKioskEvent } from "#lib/logging.ts";
+import { logKioskEvent } from "#lib/logging/logging.utils.ts";
 import { getBlobDimensions } from "#lib/utils.ts";
 
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";

@@ -13,6 +13,7 @@ import {
   RootNotFoundScreen,
 } from "#app/Root/internal/RootErrorBoundary.tsx";
 import { Toaster } from "#components/ui/sonner.tsx";
+import { initializeBrowserLogging } from "#lib/logging/logging.utils.ts";
 import { queryClient, trpcClient } from "#trpc/client.ts";
 import { TRPCProvider } from "#trpc/utils.ts";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -30,6 +31,8 @@ import { createRoot } from "react-dom/client";
 import { Sandbox } from "./app/Sandbox";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
+
+initializeBrowserLogging();
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,

@@ -2,7 +2,7 @@ import { PrintConfigurationPanel } from "#components/misc/PrintConfigurationPane
 import { Webcam, type WebcamHandle } from "#components/misc/Webcam/index.tsx";
 import { Button } from "#components/ui/button.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/utils.ts";
-import { reportKioskError } from "#lib/logging.ts";
+import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { ENABLE_PRINT_DEBUG_PANEL } from "#lib/public-env.ts";
 import { base64ToBlob } from "#lib/trpc/utils.ts";
 import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";

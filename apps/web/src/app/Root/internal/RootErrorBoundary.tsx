@@ -1,5 +1,8 @@
 import { Button, buttonVariants } from "#components/ui/button.tsx";
-import { getKioskErrorDiagnostics, reportKioskError } from "#lib/logging.ts";
+import {
+  getKioskErrorDiagnostics,
+  reportKioskError,
+} from "#lib/logging/logging.utils.ts";
 import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
 
 import { ROOT_LOG_SOURCE } from "./Root.constants";
@@ -100,9 +103,14 @@ export class RootErrorBoundary extends Component<
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    reportRootError(error, "root-app-render-failed", "The app failed to load.", {
-      componentStack: errorInfo.componentStack,
-    });
+    reportRootError(
+      error,
+      "root-app-render-failed",
+      "The app failed to load.",
+      {
+        componentStack: errorInfo.componentStack,
+      },
+    );
   }
 
   override render() {

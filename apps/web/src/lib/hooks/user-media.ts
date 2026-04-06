@@ -2,7 +2,7 @@ import {
   getKioskErrorDiagnostics,
   logKioskEvent,
   reportKioskError,
-} from "#lib/logging.ts";
+} from "#lib/logging/logging.utils.ts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { USER_MEDIA_LOG_SOURCE } from "./user-media.constants.ts";
@@ -499,7 +499,11 @@ export const useUserMedia = (params: {
 
               takePhotoRef.current = undefined;
               captureInitializationErrorRef.current = error;
-              updateCameraState("error", "Camera initialization failed.", error);
+              updateCameraState(
+                "error",
+                "Camera initialization failed.",
+                error,
+              );
             });
 
             onStreamRef.current(next);

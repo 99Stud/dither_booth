@@ -23,7 +23,7 @@ import {
 import { Slider } from "#components/ui/slider.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/utils.ts";
-import { reportKioskError } from "#lib/logging.ts";
+import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { cn } from "#lib/utils.ts";
 import { useTRPC } from "#trpc/utils.ts";
 import { useForm } from "@tanstack/react-form";
@@ -138,13 +138,16 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   }, [ditherConfigurationError, hasDitherConfigurationError]);
 
   const generatePreviewDataUrl = useCallback(async () => {
-    const image = await takeSquarePhoto(PRINT_CONFIGURATION_PANEL_LOG_SOURCE, async () => {
-      if (!webcamRef.current) {
-        throw new Error("Camera is not available.");
-      }
+    const image = await takeSquarePhoto(
+      PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
+      async () => {
+        if (!webcamRef.current) {
+          throw new Error("Camera is not available.");
+        }
 
-      return await webcamRef.current.takePhoto();
-    }).catch((e) => {
+        return await webcamRef.current.takePhoto();
+      },
+    ).catch((e) => {
       reportPrintConfigurationError(
         e,
         "preview-photo-capture-failed",

@@ -4,7 +4,7 @@ import { serve } from "bun";
 import { TRPC_BASE_PATH } from "../constants";
 import { WEB_SERVER_LOG_SOURCE } from "./index.constants";
 import index from "./index.html";
-import { logKioskEvent } from "./lib/logging";
+import { logKioskEvent } from "./lib/logging/logging.utils";
 import { TRPC_PROXY_PATH } from "./trpc/constants";
 
 const apiOrigin = `http://127.0.0.1:${getPort("API_PORT")}`;
@@ -35,9 +35,9 @@ const server = serve({
     "/*": index,
   },
 
-  development: process.env.NODE_ENV !== "production" && {
+  development: {
     // Enable browser hot reloading in development
-    hmr: true,
+    hmr: process.env.NODE_ENV !== "production" && true,
 
     // Echo console logs from the browser to the server
     console: true,
