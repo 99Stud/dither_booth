@@ -1,67 +1,87 @@
 import { publicProcedure } from "#internal/trpc.ts";
+import { isImageElement } from "#lib/browser/browser.utils.ts";
+import { getPort } from "@dither-booth/ports";
+import { TRPCError } from "@trpc/server";
 import z from "zod";
+
+const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
+
+const receiptViewerUrl = new URL(
+  "/receipt-viewer",
+  `http://127.0.0.1:${getPort("WEB_PORT")}`,
+).toString();
 
 export const generateReceipt = publicProcedure
   .input(
     z.object({
-      image: z.string(),
+      image: z.string().min(1, "Receipt image is required."),
     }),
   )
   .mutation(async ({ input, ctx }) => {
     if (!ctx.page) {
-      throw new Error("Page not initialized");
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Receipt page is not initialized.",
+      });
     }
 
-    await ctx.page.goto("http://localhost:9998/receipt-viewer");
+    try {
+      await ctx.page.goto(receiptViewerUrl);
 
-    const imageElement = await ctx.page.waitForSelector("img#booth-photo");
+      const imageElement = await ctx.page.waitForSelector("img#booth-photo");
 
-    if (!imageElement) {
-      throw new Error("Booth photo element not found.");
-    }
-
-    await imageElement.evaluate(async (element, image) => {
-      const isImageElement = (
-        element: unknown,
-      ): element is {
-        src: string;
-        decode: () => Promise<void>;
-      } => {
-        return (
-          typeof element === "object" &&
-          element !== null &&
-          "src" in element &&
-          typeof (element as { decode?: unknown }).decode === "function"
-        );
-      };
-
-      if (!isImageElement(element)) {
-        throw new Error("Booth photo element is not an image.");
+      if (!imageElement) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Receipt photo element was not found.",
+        });
       }
 
-      element.src = image;
-      await element.decode();
-    }, input.image);
+      await imageElement.evaluate(async (element, image) => {
+        if (!isImageElement(element)) {
+          throw new Error("Receipt photo element is not an image.");
+        }
 
-    let receiptScreenshot: string | undefined;
+        element.src = image;
+        await element.decode();
+      }, input.image);
 
-    const handle = await ctx.page.locator("div#receipt").waitHandle();
+      const handle = await ctx.page.locator("div#receipt").waitHandle();
 
-    if (handle) {
-      receiptScreenshot = await handle.screenshot({
+      if (!handle) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Receipt element was not found.",
+        });
+      }
+
+      const receiptScreenshot = await handle.screenshot({
         type: "webp",
         quality: 100,
         optimizeForSpeed: true,
         encoding: "base64",
       });
-    }
 
-    if (!receiptScreenshot) {
-      throw new Error("Failed to screenshot receipt.");
-    }
+      if (!receiptScreenshot) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: RECEIPT_GENERATION_FAILED_MESSAGE,
+        });
+      }
 
-    return {
-      data: receiptScreenshot,
-      mimeType: "image/webp",
-    };
+      return {
+        data: receiptScreenshot,
+        mimeType: "image/webp",
+      };
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: RECEIPT_GENERATION_FAILED_MESSAGE,
+        cause: error,
+      });
+    }
   });

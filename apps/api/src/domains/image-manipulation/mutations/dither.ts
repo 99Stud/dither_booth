@@ -28,7 +28,15 @@ export const dither = publicProcedure
       });
     }
 
-    const dithered = await ditherImage(inputBuffer, ditherConfiguration);
+    try {
+      const dithered = await ditherImage(inputBuffer, ditherConfiguration);
 
-    return renderDitheredToPng(dithered, ditherConfiguration.threshold);
+      return renderDitheredToPng(dithered, ditherConfiguration.threshold);
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to process photo.",
+        cause: error,
+      });
+    }
   });

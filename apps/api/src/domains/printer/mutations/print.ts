@@ -33,5 +33,13 @@ export const print = publicProcedure
       });
     }
 
-    await printImageToDevice(device, inputBuffer, ditherConfiguration);
+    try {
+      await printImageToDevice(device, inputBuffer, ditherConfiguration);
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to print photo.",
+        cause: error,
+      });
+    }
   });

@@ -51,6 +51,21 @@ const createContext = (): TRPCContext => ({
 const trpcHandler = createHTTPHandler({
   router: apiRouter,
   createContext,
+  onError({ error, path, req, type }) {
+    logKioskEvent("error", API_SERVER_LOG_SOURCE, "trpc-request-failed", {
+      details: {
+        code: error.code,
+        method: req.method,
+        ...(path ? { path } : {}),
+        type,
+        url: req.url,
+      },
+      error: getKioskErrorDiagnostics(
+        error,
+        error.message || "API request failed.",
+      ),
+    });
+  },
 });
 
 const server = http.createServer((req, res) => {
