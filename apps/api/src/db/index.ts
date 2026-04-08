@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 
-import { printConfigTable } from "./schema";
+import { printConfigTable } from "./internal/db.schema";
 
 const dbFileName = process.env.DB_FILE_NAME;
 

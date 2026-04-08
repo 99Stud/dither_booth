@@ -3,7 +3,7 @@ import {
   ditherImage,
   renderDitheredToPng,
 } from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
-import { publicProcedure } from "#trpc.ts";
+import { publicProcedure } from "#internal/trpc.ts";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 

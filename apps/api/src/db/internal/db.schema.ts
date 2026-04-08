@@ -1,25 +1,17 @@
 import { sql } from "drizzle-orm";
 import { check, integer, real, sqliteTable } from "drizzle-orm/sqlite-core";
 
-export const PRINT_CONFIG_SINGLETON_ID = 1 as const;
-
-const DEFAULT_DITHER_MODE_CODE = 2;
-const DEFAULT_BRIGHTNESS = 1;
-const DEFAULT_CONTRAST = 1;
-const DEFAULT_GAMMA = 1;
-const DEFAULT_THRESHOLD = 128;
+import { PRINT_CONFIG_SINGLETON_ID } from "./db.constants";
 
 export const printConfigTable = sqliteTable(
   "print_debug_config",
   {
     id: integer("id").primaryKey().notNull().default(PRINT_CONFIG_SINGLETON_ID),
-    ditherModeCode: integer("dither_mode_code")
-      .notNull()
-      .default(DEFAULT_DITHER_MODE_CODE),
-    brightness: real("brightness").notNull().default(DEFAULT_BRIGHTNESS),
-    contrast: real("contrast").notNull().default(DEFAULT_CONTRAST),
-    gamma: real("gamma").notNull().default(DEFAULT_GAMMA),
-    threshold: real("threshold").notNull().default(DEFAULT_THRESHOLD),
+    ditherModeCode: integer("dither_mode_code").notNull().default(2),
+    brightness: real("brightness").notNull().default(1),
+    contrast: real("contrast").notNull().default(1),
+    gamma: real("gamma").notNull().default(1),
+    threshold: real("threshold").notNull().default(128),
   },
   (table) => [
     check("print_debug_config_singleton_check", sql`${table.id} = 1`),

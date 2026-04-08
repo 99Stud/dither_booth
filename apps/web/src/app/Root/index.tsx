@@ -1,12 +1,11 @@
 import { PrintConfigurationPanel } from "#components/misc/PrintConfigurationPanel/index.tsx";
 import { Webcam, type WebcamHandle } from "#components/misc/Webcam/index.tsx";
 import { Button } from "#components/ui/button.tsx";
-import { takeSquarePhoto } from "#lib/image-manipulation/utils.ts";
+import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { ENABLE_PRINT_DEBUG_PANEL } from "#lib/public-env.ts";
-import { base64ToBlob } from "#lib/trpc/utils.ts";
+import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
-import { useTRPC } from "#trpc/utils.ts";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, useRef, useState } from "react";
 

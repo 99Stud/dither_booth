@@ -1,11 +1,8 @@
-import {
-  getKioskErrorDiagnostics,
-  logKioskEvent,
-  reportKioskError,
-} from "#lib/logging/logging.utils.ts";
+import { reportKioskError } from "#lib/logging/logging.utils.ts";
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { USER_MEDIA_LOG_SOURCE } from "./user-media.constants.ts";
+import { USER_MEDIA_LOG_SOURCE } from "./internal/user-media.constants.ts";
 
 export type CapturePhotoOptions = Omit<
   PhotoSettings,

@@ -22,10 +22,9 @@ import {
 } from "#components/ui/field.tsx";
 import { Slider } from "#components/ui/slider.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
-import { takeSquarePhoto } from "#lib/image-manipulation/utils.ts";
-import { reportKioskError } from "#lib/logging/logging.utils.ts";
+import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
+import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn } from "#lib/utils.ts";
-import { useTRPC } from "#trpc/utils.ts";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
@@ -50,18 +49,7 @@ import {
   PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
   SLIDER_FIELD_CONFIGS,
 } from "./internal/PrintConfigurationPanel.constants";
-
-const reportPrintConfigurationError = (
-  error: unknown,
-  event: string,
-  userMessage: string,
-) => {
-  return reportKioskError(error, {
-    event,
-    source: PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
-    userMessage,
-  });
-};
+import { reportPrintConfigurationError } from "./internal/PrintConfigurationPanel.utils";
 
 const getSliderValue = (value: number | ReadonlyArray<number>) => {
   return Array.isArray(value) ? value[0] : value;
@@ -88,16 +76,11 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
 }) => {
   const [previewSrc, setPreviewSrc] = useState<string>();
   const hasTriggeredInitialPreviewRef = useRef(false);
-  const lastLoadErrorRef = useRef<string | null>(null);
 
   const trpc = useTRPC();
 
-  const {
-    data: ditherConfiguration,
-    error: ditherConfigurationError,
-    isError: hasDitherConfigurationError,
-    isLoading: isLoadingDitherConfiguration,
-  } = useQuery(trpc.getDitherConfiguration.queryOptions());
+  const { data: ditherConfiguration, isLoading: isLoadingDitherConfiguration } =
+    useQuery(trpc.getDitherConfiguration.queryOptions());
 
   const ditherConfigurationUpdater = useMutation(
     trpc.updateDitherConfiguration.mutationOptions(),
@@ -113,29 +96,6 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
 
   const ditherer = useMutation(trpc.dither.mutationOptions());
   const { isPending: isDithering } = ditherer;
-
-  useEffect(() => {
-    if (!hasDitherConfigurationError) {
-      lastLoadErrorRef.current = null;
-      return;
-    }
-
-    const errorMessage =
-      ditherConfigurationError instanceof Error
-        ? ditherConfigurationError.message
-        : "Load dither configuration failed.";
-
-    if (lastLoadErrorRef.current === errorMessage) {
-      return;
-    }
-
-    lastLoadErrorRef.current = errorMessage;
-    reportPrintConfigurationError(
-      ditherConfigurationError,
-      "load-dither-configuration-failed",
-      "Load dither configuration failed.",
-    );
-  }, [ditherConfigurationError, hasDitherConfigurationError]);
 
   const generatePreviewDataUrl = useCallback(async () => {
     const image = await takeSquarePhoto(
@@ -182,42 +142,37 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
     }
   }, [generatePreviewDataUrl]);
 
-  const persistDitherConfiguration = useCallback(
-    async (submittedValues: PrintConfigurationFormValues) => {
-      try {
-        if (ditherConfiguration) {
-          await ditherConfigurationUpdater.mutateAsync(submittedValues);
-        } else {
-          await ditherConfigurationCreator.mutateAsync(submittedValues);
-        }
-      } catch (e) {
-        reportPrintConfigurationError(
-          e,
-          ditherConfiguration
-            ? "update-dither-configuration-failed"
-            : "create-dither-configuration-failed",
-          ditherConfiguration
-            ? "Update dither configuration failed."
-            : "Create dither configuration failed.",
-        );
-        return false;
-      }
-
-      return true;
-    },
-    [
-      ditherConfiguration,
-      ditherConfigurationCreator,
-      ditherConfigurationUpdater,
-    ],
-  );
-
   const saveAndRefreshPreview = useCallback(
     async (
       submittedValues: PrintConfigurationFormValues,
       options?: { skipPersist?: boolean },
     ) => {
       if (!options?.skipPersist) {
+        const persistDitherConfiguration = async (
+          submittedValues: PrintConfigurationFormValues,
+        ) => {
+          try {
+            if (ditherConfiguration) {
+              await ditherConfigurationUpdater.mutateAsync(submittedValues);
+            } else {
+              await ditherConfigurationCreator.mutateAsync(submittedValues);
+            }
+          } catch (e) {
+            reportPrintConfigurationError(
+              e,
+              ditherConfiguration
+                ? "update-dither-configuration-failed"
+                : "create-dither-configuration-failed",
+              ditherConfiguration
+                ? "Update dither configuration failed."
+                : "Create dither configuration failed.",
+            );
+            return false;
+          }
+
+          return true;
+        };
+
         const wasPersisted = await persistDitherConfiguration(submittedValues);
 
         if (!wasPersisted) {
@@ -227,7 +182,12 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
 
       await refreshPreview();
     },
-    [persistDitherConfiguration, refreshPreview],
+    [
+      refreshPreview,
+      ditherConfiguration,
+      ditherConfigurationCreator,
+      ditherConfigurationUpdater,
+    ],
   );
 
   const defaultValues = useMemo<PrintConfigurationFormValues>(
@@ -242,11 +202,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   const isSliderFieldDisabled = isPersistingDitherConfiguration;
 
   useEffect(() => {
-    if (
-      hasTriggeredInitialPreviewRef.current ||
-      isLoadingDitherConfiguration ||
-      hasDitherConfigurationError
-    ) {
+    if (hasTriggeredInitialPreviewRef.current || isLoadingDitherConfiguration) {
       return;
     }
 
@@ -260,7 +216,6 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
     );
   }, [
     ditherConfiguration,
-    hasDitherConfigurationError,
     isLoadingDitherConfiguration,
     saveAndRefreshPreview,
   ]);

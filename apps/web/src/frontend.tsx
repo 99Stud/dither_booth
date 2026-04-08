@@ -11,11 +11,11 @@ import {
   RootErrorBoundary,
   RootErrorScreen,
   RootNotFoundScreen,
-} from "#app/Root/internal/RootErrorBoundary.tsx";
+} from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
 import { Toaster } from "#components/ui/sonner.tsx";
-import { initializeBrowserLogging } from "#lib/logging/logging.utils.ts";
-import { queryClient, trpcClient } from "#trpc/client.ts";
-import { TRPCProvider } from "#trpc/utils.ts";
+import { queryClient, trpcClient } from "#lib/trpc/trpc.client.ts";
+import { TRPCProvider } from "#lib/trpc/trpc.utils.ts";
+import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   createRootRoute,

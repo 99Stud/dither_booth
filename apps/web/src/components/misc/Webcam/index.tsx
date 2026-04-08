@@ -1,18 +1,18 @@
 import {
   type CapturePhotoOptions,
   useUserMedia,
-} from "#lib/hooks/user-media.ts";
+} from "#lib/hooks/user-media/index.ts";
 import { cn } from "#lib/utils.ts";
 import { format } from "date-fns";
 import { type FC, type Ref, useImperativeHandle, useRef } from "react";
 
+export interface WebcamHandle {
+  takePhoto: (photoSettings?: CapturePhotoOptions) => Promise<Blob>;
+}
+
 interface WebcamProps {
   className?: string;
   ref?: Ref<WebcamHandle>;
-}
-
-export interface WebcamHandle {
-  takePhoto: (photoSettings?: CapturePhotoOptions) => Promise<Blob>;
 }
 
 export const Webcam: FC<WebcamProps> = ({ className, ref }) => {

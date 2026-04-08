@@ -1,6 +1,6 @@
-import { printConfigTable } from "#db/schema.ts";
+import { printConfigTable } from "#db/internal/db.schema.ts";
 import { CONFIGURE_DITHER_SCHEMA } from "#domains/image-manipulation/internal/image-manipulation.constants.ts";
-import { publicProcedure } from "#trpc.ts";
+import { publicProcedure } from "#internal/trpc.ts";
 
 export const createDitherConfiguration = publicProcedure
   .input(CONFIGURE_DITHER_SCHEMA)

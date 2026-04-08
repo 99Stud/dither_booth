@@ -1,25 +1,14 @@
+import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants.ts";
 import { Button, buttonVariants } from "#components/ui/button.tsx";
-import {
-  getKioskErrorDiagnostics,
-  reportKioskError,
-} from "#lib/logging/logging.utils.ts";
-import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
+import { reportKioskError } from "#lib/logging/logging.utils.ts";
+import { getKioskErrorDiagnostics } from "@dither-booth/logging";
+import { Component, type ErrorInfo, useEffect } from "react";
 
-import { ROOT_LOG_SOURCE } from "./Root.constants";
-
-type RootErrorBoundaryProps = {
-  children: ReactNode;
-};
-
-type RootErrorBoundaryState = {
-  error: unknown | null;
-};
-
-type RootScreenProps = {
-  description: string;
-  details?: string;
-  title: string;
-};
+import type {
+  RootErrorBoundaryProps,
+  RootErrorBoundaryState,
+  RootScreenProps,
+} from "./internal/RootErrorBoundary.types";
 
 let lastReportedRootErrorKey: string | null = null;
 

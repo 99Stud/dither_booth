@@ -1,4 +1,4 @@
-import type { AppRouter } from "@dither-booth/api/appRouter";
+import type { ApiRouter } from "@dither-booth/api/router.types";
 
 import { QueryClient } from "@tanstack/react-query";
 import {
@@ -10,7 +10,7 @@ import {
 } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
-import { TRPC_PROXY_PATH } from "./constants";
+import { TRPC_PROXY_PATH } from "./trpc.constants";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,7 +24,7 @@ export const queryClient = new QueryClient({
   },
 });
 
-export const trpcClient = createTRPCClient<AppRouter>({
+export const trpcClient = createTRPCClient<ApiRouter>({
   links: [
     splitLink({
       condition: (op) => isNonJsonSerializable(op.input),
@@ -38,7 +38,7 @@ export const trpcClient = createTRPCClient<AppRouter>({
   ],
 });
 
-export const trpc = createTRPCOptionsProxy<AppRouter>({
+export const trpc = createTRPCOptionsProxy<ApiRouter>({
   client: trpcClient,
   queryClient,
 });

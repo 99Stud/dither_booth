@@ -7,13 +7,13 @@
     "#*": "./src/*"
   },
   "exports": {
-    "./appRouter": "./src/appRouter.ts"
+    "./router.types": "./src/lib/router/router.types.ts"
   },
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun src/db/migrate.ts",
+    "db:migrate": "bun src/db/db.migrate.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",
@@ -21,6 +21,7 @@
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@dither-booth/logging": "workspace:*",
     "@dither-booth/ports": "workspace:*",
     "@node-escpos/core": "0.6.0",
     "@node-escpos/usb-adapter": "0.3.1",

@@ -1,6 +1,7 @@
-import { PRINT_CONFIG_SINGLETON_ID, printConfigTable } from "#db/schema.ts";
+import { PRINT_CONFIG_SINGLETON_ID } from "#db/internal/db.constants.ts";
+import { printConfigTable } from "#db/internal/db.schema.ts";
 import { CONFIGURE_DITHER_SCHEMA } from "#domains/image-manipulation/internal/image-manipulation.constants.ts";
-import { publicProcedure } from "#trpc.ts";
+import { publicProcedure } from "#internal/trpc.ts";
 import { eq } from "drizzle-orm";
 
 export const updateDitherConfiguration = publicProcedure
