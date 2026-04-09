@@ -1,0 +1,101 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "ae1dc9ca-eba9-417c-880f-274579d11d57",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "print_debug_config": {
+      "name": "print_debug_config",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "dither_mode_code": {
+          "name": "dither_mode_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 2
+        },
+        "brightness": {
+          "name": "brightness",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "contrast": {
+          "name": "contrast",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "gamma": {
+          "name": "gamma",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "threshold": {
+          "name": "threshold",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 128
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "print_debug_config_singleton_check": {
+          "name": "print_debug_config_singleton_check",
+          "value": "\"print_debug_config\".\"id\" = 1"
+        },
+        "print_debug_config_dither_mode_code_check": {
+          "name": "print_debug_config_dither_mode_code_check",
+          "value": "\"print_debug_config\".\"dither_mode_code\" between 0 and 8"
+        },
+        "print_debug_config_brightness_step_check": {
+          "name": "print_debug_config_brightness_step_check",
+          "value": "\"print_debug_config\".\"brightness\" between 0 and 3"
+        },
+        "print_debug_config_contrast_step_check": {
+          "name": "print_debug_config_contrast_step_check",
+          "value": "\"print_debug_config\".\"contrast\" between 0 and 3"
+        },
+        "print_debug_config_gamma_step_check": {
+          "name": "print_debug_config_gamma_step_check",
+          "value": "\"print_debug_config\".\"gamma\" between 1 and 3"
+        },
+        "print_debug_config_threshold_check": {
+          "name": "print_debug_config_threshold_check",
+          "value": "\"print_debug_config\".\"threshold\" between 0 and 255"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

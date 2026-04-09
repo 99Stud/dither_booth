@@ -1,18 +1,18 @@
 import {
   type CapturePhotoOptions,
   useUserMedia,
-} from "#lib/hooks/user-media.ts";
+} from "#lib/hooks/user-media/index.ts";
 import { cn } from "#lib/utils.ts";
 import { format } from "date-fns";
 import { type FC, type Ref, useImperativeHandle, useRef } from "react";
 
+export interface WebcamHandle {
+  takePhoto: (photoSettings?: CapturePhotoOptions) => Promise<Blob>;
+}
+
 interface WebcamProps {
   className?: string;
   ref?: Ref<WebcamHandle>;
-}
-
-export interface WebcamHandle {
-  takePhoto: (photoSettings?: CapturePhotoOptions) => Promise<Blob>;
 }
 
 export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
@@ -38,7 +38,7 @@ export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
       <div className="fixed top-8 right-8 flex flex-col gap-1 text-sm text-white">
         Camera status: {cameraState.status}
         {cameraState.error && <p>Error: {cameraState.error}</p>}
-        <p>Is secure context: true</p>
+        <p>Is secure context: {String(cameraState.isSecureContext)}</p>
         {cameraState.lastUpdatedAt && (
           <p>
             Last updated at:{" "}

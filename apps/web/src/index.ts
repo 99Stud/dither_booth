@@ -1,18 +1,18 @@
+import { logKioskEvent } from "@dither-booth/logging";
 import { getPort } from "@dither-booth/ports";
 import { serve } from "bun";
 
+import { WEB_SERVER_LOG_SOURCE } from "./constants";
 import index from "./index.html";
-import { logKioskEvent } from "./lib/logging";
-import { TRPC_PROXY_PATH } from "./trpc/constants";
+import { TRPC_PROXY_PATH } from "./lib/trpc/trpc.constants";
 
 const apiOrigin = `http://127.0.0.1:${getPort("API_PORT")}`;
-const trpcBasePath = "/api/trpc";
 
 async function proxyApiRequest(req: Request) {
   const url = new URL(req.url);
-  const upstreamPath = url.pathname.startsWith(`${trpcBasePath}/`)
-    ? url.pathname.slice(trpcBasePath.length)
-    : url.pathname === trpcBasePath
+  const upstreamPath = url.pathname.startsWith(`${TRPC_PROXY_PATH}/`)
+    ? url.pathname.slice(TRPC_PROXY_PATH.length)
+    : url.pathname === TRPC_PROXY_PATH
       ? "/"
       : url.pathname;
   const upstreamUrl = new URL(`${upstreamPath}${url.search}`, apiOrigin);
@@ -34,16 +34,18 @@ const server = serve({
     "/*": index,
   },
 
-  development: process.env.NODE_ENV !== "production" && {
+  development: {
     // Enable browser hot reloading in development
-    hmr: true,
+    hmr: process.env.NODE_ENV !== "production" && true,
 
     // Echo console logs from the browser to the server
     console: true,
   },
 });
 
-logKioskEvent("info", "web.server", "server-started", {
-  environment: process.env.NODE_ENV,
-  url: server.url.toString(),
+logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-started", {
+  details: {
+    environment: process.env.NODE_ENV,
+    url: server.url.toString(),
+  },
 });

@@ -1,14 +1,21 @@
+import type { TRPCContext } from "#lib/trpc/trpc.types.ts";
 import type { Page } from "puppeteer";
 
+import { apiRouter } from "#internal/router.ts";
+import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
+import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
+import {
+  API_SERVER_HOSTNAME,
+  API_SERVER_LOG_SOURCE,
+} from "#lib/server/server.constants.ts";
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { getPort } from "@dither-booth/ports";
 import USB from "@node-escpos/usb-adapter";
 import { createHTTPHandler } from "@trpc/server/adapters/standalone";
 import http from "node:http";
 import puppeteer from "puppeteer";
 
-import type { Context } from "./trpc";
-
-import { appRouter } from "./appRouter";
+import { db } from "./db";
 
 let printerDevice: USB | undefined;
 let page: Page | undefined;
@@ -16,7 +23,9 @@ let page: Page | undefined;
 try {
   printerDevice = new USB();
 } catch (error) {
-  console.error(error);
+  logKioskEvent("error", API_PRINTER_LOG_SOURCE, "printer-init-failed", {
+    error: getKioskErrorDiagnostics(error, "Printer initialization failed."),
+  });
 }
 
 try {
@@ -28,17 +37,35 @@ try {
     height: 900,
   });
 } catch (error) {
-  console.error(error);
+  logKioskEvent("error", API_BROWSER_LOG_SOURCE, "browser-init-failed", {
+    error: getKioskErrorDiagnostics(error, "Browser initialization failed."),
+  });
 }
 
-const createContext = (): Context => ({
+const createContext = (): TRPCContext => ({
   printerDevice,
   page,
+  db,
 });
 
 const trpcHandler = createHTTPHandler({
-  router: appRouter,
+  router: apiRouter,
   createContext,
+  onError({ error, path, req, type }) {
+    logKioskEvent("error", API_SERVER_LOG_SOURCE, "trpc-request-failed", {
+      details: {
+        code: error.code,
+        method: req.method,
+        ...(path ? { path } : {}),
+        type,
+        url: req.url,
+      },
+      error: getKioskErrorDiagnostics(
+        error,
+        error.message || "API request failed.",
+      ),
+    });
+  },
 });
 
 const server = http.createServer((req, res) => {
@@ -61,13 +88,15 @@ const server = http.createServer((req, res) => {
   trpcHandler(req, res);
 });
 
-server.listen(getPort("API_PORT"), "127.0.0.1");
+server.listen(getPort("API_PORT"), API_SERVER_HOSTNAME);
 
 const address = server.address();
 
 if (address && typeof address !== "string") {
-  console.log(
-    `🚀 API server running at http://${address.address}:${address.port}`,
-  );
-  console.log(`Environment: ${process.env.NODE_ENV}`);
+  logKioskEvent("info", API_SERVER_LOG_SOURCE, "server-started", {
+    details: {
+      environment: process.env.NODE_ENV,
+      url: `http://${address.address}:${address.port}`,
+    },
+  });
 }

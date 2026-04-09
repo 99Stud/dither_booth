@@ -36,3 +36,16 @@ export const downloadBlob = (blob: Blob, filename: string) => {
 export const mmToPx = (mm: number) => {
   return ((mm / INCH_TO_MM) * MBP_2018_13_DPI) / window.devicePixelRatio;
 };
+
+export const getBlobDimensions = async (blob: Blob) => {
+  const imageBitmap = await createImageBitmap(blob);
+
+  try {
+    return {
+      width: imageBitmap.width,
+      height: imageBitmap.height,
+    };
+  } finally {
+    imageBitmap.close();
+  }
+};

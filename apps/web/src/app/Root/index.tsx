@@ -1,127 +1,102 @@
+import { PrintConfigurationPanel } from "#components/misc/PrintConfigurationPanel/index.tsx";
 import { Webcam, type WebcamHandle } from "#components/misc/Webcam/index.tsx";
 import { Button } from "#components/ui/button.tsx";
-import { logKioskEvent, toErrorMessage } from "#lib/logging.ts";
-import { base64ToBlob } from "#lib/trpc/utils.ts";
+import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
+import { reportKioskError } from "#lib/logging/logging.utils.ts";
+import { ENABLE_PRINT_DEBUG_PANEL } from "#lib/public-env.ts";
+import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
-import { trpc } from "#trpc/client.ts";
-import { isTRPCClientError } from "#trpc/utils.ts";
-import { type FC, useRef } from "react";
-import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
+import { type FC, useRef, useState } from "react";
 
-const getBlobDimensions = async (blob: Blob) => {
-  const imageBitmap = await createImageBitmap(blob);
-
-  try {
-    return {
-      width: imageBitmap.width,
-      height: imageBitmap.height,
-    };
-  } finally {
-    imageBitmap.close();
-  }
-};
+import { ROOT_LOG_SOURCE } from "./internal/Root.constants";
 
 export const Root: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);
 
+  const trpc = useTRPC();
+
+  const [printConfigurationPanelOpen, setPrintConfigurationPanelOpen] =
+    useState(false);
+
+  const generateReceipt = useMutation(trpc.generateReceipt.mutationOptions());
+  const { isPending: isGeneratingReceipt } = generateReceipt;
+
   const takeSquarePhotoAndGetDataUrl = async () => {
     try {
-      if (!webcamRef.current) {
-        throw new Error("Camera is not available.");
-      }
-
-      const photo = await webcamRef.current.takePhoto();
-      const { width, height } = await getBlobDimensions(photo);
-
-      logKioskEvent("info", "web.root", "photo-captured", {
-        height,
-        width,
-      });
-
-      if (width === height) {
-        return await blobToDataUrl(photo);
-      }
-
-      logKioskEvent("info", "web.root", "square-resize-requested");
-
-      const resizedPhoto = await trpc.squareResize.mutate(photo).catch((e) => {
-        if (isTRPCClientError(e)) {
-          toast.error(e.message);
+      const squarePhoto = await takeSquarePhoto(ROOT_LOG_SOURCE, async () => {
+        if (!webcamRef.current) {
+          throw new Error("Camera is not available.");
         }
-        logKioskEvent("error", "web.root", "square-resize-failed", {
-          error: toErrorMessage(e, "Square resize failed."),
-        });
+
+        return await webcamRef.current.takePhoto();
       });
 
-      if (!resizedPhoto) {
-        return;
-      }
-
-      return `data:${resizedPhoto.mimeType};base64,${resizedPhoto.data}`;
+      return await blobToDataUrl(squarePhoto);
     } catch (e) {
-      logKioskEvent(
-        "error",
-        "web.root",
-        "take-square-photo-and-get-data-url-failed",
-        {
-          error: toErrorMessage(
-            e,
-            "Take square photo and get data URL failed.",
-          ),
-        },
-      );
-    }
-  };
-
-  const handlePrint = async () => {
-    await trpc.print.mutate().catch((e) => {
-      if (isTRPCClientError(e)) {
-        toast.error(e.message);
-      }
-      logKioskEvent("error", "web.root", "print-failed", {
-        error: toErrorMessage(e, "Print failed."),
+      reportKioskError(e, {
+        event: "take-square-photo-and-get-data-url-failed",
+        source: ROOT_LOG_SOURCE,
+        userMessage: "Take square photo and get data URL failed.",
       });
-    });
+    }
   };
 
   const downloadReceipt = async () => {
-    const photoDataUrl = await takeSquarePhotoAndGetDataUrl();
+    try {
+      const photoDataUrl = await takeSquarePhotoAndGetDataUrl();
 
-    if (!photoDataUrl) {
-      return;
-    }
+      if (!photoDataUrl) {
+        return;
+      }
 
-    const screenshot = await trpc.generateReceipt
-      .mutate({
+      const screenshot = await generateReceipt.mutateAsync({
         image: photoDataUrl,
-      })
-      .catch((e) => {
-        if (isTRPCClientError(e)) {
-          toast.error(e.message);
-        }
-        logKioskEvent("error", "web.root", "generate-receipt-failed", {
-          error: toErrorMessage(e, "Generate receipt failed."),
-        });
       });
 
-    if (!screenshot) {
-      return;
+      const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
+
+      downloadBlob(blob, "screenshot.webp");
+    } catch (e) {
+      reportKioskError(e, {
+        event: "generate-receipt-failed",
+        source: ROOT_LOG_SOURCE,
+        userMessage: "Generate receipt failed.",
+      });
     }
+  };
 
-    const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
+  const closePrintConfigurationPanel = () => {
+    setPrintConfigurationPanelOpen(false);
+  };
 
-    downloadBlob(blob, "screenshot.webp");
+  const openPrintConfigurationPanel = () => {
+    setPrintConfigurationPanelOpen(true);
   };
 
   return (
-    <div className="relative min-h-dvh bg-black">
-      <div className="flex min-h-dvh items-center justify-center p-4">
-        <Webcam ref={webcamRef} />
+    <div className="relative h-dvh bg-black">
+      <div className="flex h-full items-center justify-center p-4">
+        <Webcam ref={webcamRef} className="h-full" />
       </div>
       <div className="fixed top-8 left-8 flex flex-col gap-2">
-        <Button onClick={handlePrint}>Print</Button>
-        <Button onClick={downloadReceipt}>Download Receipt</Button>
+        <Button disabled={isGeneratingReceipt} onClick={downloadReceipt}>
+          {isGeneratingReceipt ? "Generating receipt..." : "Download Receipt"}
+        </Button>
+        {ENABLE_PRINT_DEBUG_PANEL && (
+          <Button variant="outline" onClick={openPrintConfigurationPanel}>
+            Open Print Configuration Panel
+          </Button>
+        )}
       </div>
+      {ENABLE_PRINT_DEBUG_PANEL && printConfigurationPanelOpen && (
+        <div className="fixed top-8 right-8 z-50">
+          <PrintConfigurationPanel
+            webcamRef={webcamRef}
+            onClose={closePrintConfigurationPanel}
+          />
+        </div>
+      )}
     </div>
   );
 };
