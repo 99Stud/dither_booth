@@ -1,5 +1,4 @@
 import { publicProcedure } from "#internal/trpc.ts";
-import { isImageElement } from "#lib/browser/browser.utils.ts";
 import { getPort } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
@@ -8,7 +7,7 @@ const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 
 const receiptViewerUrl = new URL(
   "/receipt-viewer",
-  `http://127.0.0.1:${getPort("WEB_PORT")}`,
+  `http://localhost:${getPort("WEB_PORT")}`,
 ).toString();
 
 export const generateReceipt = publicProcedure
@@ -38,6 +37,23 @@ export const generateReceipt = publicProcedure
       }
 
       await imageElement.evaluate(async (element, image) => {
+        // INFO: do not extract this function, puppeteer needs this to be created on runtime
+        const isImageElement = (
+          element: unknown,
+        ): element is {
+          src: string;
+          decode: () => Promise<undefined>;
+        } => {
+          return (
+            element !== null &&
+            typeof element === "object" &&
+            "src" in element &&
+            typeof element.src === "string" &&
+            "decode" in element &&
+            typeof element.decode === "function"
+          );
+        };
+
         if (!isImageElement(element)) {
           throw new Error("Receipt photo element is not an image.");
         }
