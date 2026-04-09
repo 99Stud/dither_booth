@@ -33,17 +33,22 @@ const reportRootError = (
 
 const RootScreen = ({ description, details, title }: RootScreenProps) => {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-black p-6 text-white">
-      <div className="flex max-w-sm flex-col items-center gap-4 text-center">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-lg font-semibold">{title}</h1>
-          <p className="text-sm text-white/70">{description}</p>
+    <div className="relative flex min-h-dvh items-center justify-center bg-background p-6 text-foreground">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 hud-grid-bg opacity-40"
+      />
+      <div className="relative z-10 flex max-w-sm flex-col items-center gap-4 text-center">
+        <div className="flex flex-col gap-1 font-mono">
+          <h1 className="hud-text-glow-title text-lg tracking-wide">{title}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <a className={buttonVariants({ variant: "outline" })} href="/">
             Back to home
           </a>
           <Button
+            variant="hud"
             onClick={() => {
               window.location.reload();
             }}
@@ -51,7 +56,7 @@ const RootScreen = ({ description, details, title }: RootScreenProps) => {
             Reload app
           </Button>
         </div>
-        {details && <p className="text-xs text-white/60">{details}</p>}
+        {details && <p className="text-xs text-muted-foreground">{details}</p>}
       </div>
     </div>
   );

@@ -9,9 +9,9 @@ import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, useRef, useState } from "react";
 
-import { ROOT_LOG_SOURCE } from "./internal/Root.constants";
+import { BOOTH_LOG_SOURCE } from "./internal/Booth.constants";
 
-export const Root: FC = () => {
+export const Booth: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);
 
   const trpc = useTRPC();
@@ -24,7 +24,7 @@ export const Root: FC = () => {
 
   const takeSquarePhotoAndGetDataUrl = async () => {
     try {
-      const squarePhoto = await takeSquarePhoto(ROOT_LOG_SOURCE, async () => {
+      const squarePhoto = await takeSquarePhoto(BOOTH_LOG_SOURCE, async () => {
         if (!webcamRef.current) {
           throw new Error("Camera is not available.");
         }
@@ -36,7 +36,7 @@ export const Root: FC = () => {
     } catch (e) {
       reportKioskError(e, {
         event: "take-square-photo-and-get-data-url-failed",
-        source: ROOT_LOG_SOURCE,
+        source: BOOTH_LOG_SOURCE,
         userMessage: "Take square photo and get data URL failed.",
       });
     }
@@ -60,7 +60,7 @@ export const Root: FC = () => {
     } catch (e) {
       reportKioskError(e, {
         event: "generate-receipt-failed",
-        source: ROOT_LOG_SOURCE,
+        source: BOOTH_LOG_SOURCE,
         userMessage: "Generate receipt failed.",
       });
     }
@@ -75,19 +75,36 @@ export const Root: FC = () => {
   };
 
   return (
-    <div className="relative h-dvh bg-black">
-      <div className="flex h-full items-center justify-center p-4">
+    <div className="relative h-dvh bg-background">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 hud-grid-bg opacity-50"
+      />
+      <div className="relative z-10 flex h-full items-center justify-center p-4">
         <Webcam ref={webcamRef} className="h-full" />
       </div>
-      <div className="fixed top-8 left-8 flex flex-col gap-2">
-        <Button disabled={isGeneratingReceipt} onClick={downloadReceipt}>
-          {isGeneratingReceipt ? "Generating receipt..." : "Download Receipt"}
-        </Button>
-        {ENABLE_PRINT_DEBUG_PANEL && (
-          <Button variant="outline" onClick={openPrintConfigurationPanel}>
-            Open Print Configuration Panel
-          </Button>
-        )}
+      <div className="fixed top-8 left-8 z-20 flex flex-col gap-3 font-mono">
+        <div className="border border-primary/45 bg-background/90 shadow-[0_0_32px_oklch(0_0_0/0.55)] backdrop-blur-sm">
+          <div className="hud-text-glow-orange border-b border-primary/35 px-3 py-1.5 text-[10px] tracking-[0.25em] text-primary uppercase">
+            Output
+          </div>
+          <div className="flex flex-col gap-2 p-3">
+            <Button
+              disabled={isGeneratingReceipt}
+              variant="hud"
+              size="touch"
+              className="w-full min-w-[220px] justify-center normal-case tracking-normal"
+              onClick={downloadReceipt}
+            >
+              {isGeneratingReceipt ? "Generating receipt…" : "Download receipt"}
+            </Button>
+            {ENABLE_PRINT_DEBUG_PANEL && (
+              <Button variant="outline" size="default" onClick={openPrintConfigurationPanel}>
+                Print configuration
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
       {ENABLE_PRINT_DEBUG_PANEL && printConfigurationPanelOpen && (
         <div className="fixed top-8 right-8 z-50">

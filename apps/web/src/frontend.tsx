@@ -5,13 +5,14 @@
  * It is included in `src/index.html`.
  */
 
+import { Booth } from "#app/Booth/index.tsx";
 import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
-import { Root } from "#app/Root/index.tsx";
 import {
   RootErrorBoundary,
   RootErrorScreen,
   RootNotFoundScreen,
 } from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
+import { Splash } from "#app/Splash/index.tsx";
 import { Toaster } from "#components/ui/sonner.tsx";
 import { queryClient, trpcClient } from "#lib/trpc/trpc.client.ts";
 import { TRPCProvider } from "#lib/trpc/trpc.utils.ts";
@@ -27,6 +28,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ThemeProvider } from "next-themes";
 
 import { Sandbox } from "./app/Sandbox";
 
@@ -43,7 +45,13 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: Root,
+  component: Splash,
+});
+
+const boothRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/booth",
+  component: Booth,
 });
 
 const receiptViewerRoute = createRoute({
@@ -60,6 +68,7 @@ const sandboxRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  boothRoute,
   receiptViewerRoute,
   sandboxRoute,
 ]);
@@ -80,15 +89,22 @@ if (!elem) {
 
 const app = (
   <StrictMode>
-    <RootErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
-          <Toaster />
-          <RouterProvider router={router} />
-          {isDevelopment && <TanStackRouterDevtools router={router} />}
-        </TRPCProvider>
-      </QueryClientProvider>
-    </RootErrorBoundary>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={false}
+      forcedTheme="dark"
+    >
+      <RootErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
+            <Toaster />
+            <RouterProvider router={router} />
+            {isDevelopment && <TanStackRouterDevtools router={router} />}
+          </TRPCProvider>
+        </QueryClientProvider>
+      </RootErrorBoundary>
+    </ThemeProvider>
   </StrictMode>
 );
 
