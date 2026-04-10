@@ -1,3 +1,4 @@
+import { serializeTicketSearch } from "#lib/ticket-names-url.ts";
 import { publicProcedure } from "#internal/trpc.ts";
 import { getPort } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
@@ -5,15 +6,16 @@ import z from "zod";
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 
-const receiptViewerUrl = new URL(
+const receiptViewerBaseUrl = new URL(
   "/receipt-viewer",
   `http://localhost:${getPort("WEB_PORT")}`,
-).toString();
+);
 
 export const generateReceipt = publicProcedure
   .input(
     z.object({
       image: z.string().min(1, "Receipt image is required."),
+      names: z.array(z.string().max(120)).max(5).optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -25,6 +27,16 @@ export const generateReceipt = publicProcedure
     }
 
     try {
+      const receiptViewerUrl = (() => {
+        const names = input.names?.map((n) => n.trim()).filter(Boolean).slice(0, 5) ?? [];
+        if (names.length === 0) {
+          return receiptViewerBaseUrl.toString();
+        }
+        const url = new URL(receiptViewerBaseUrl.href);
+        url.search = serializeTicketSearch({ ticket: names });
+        return url.toString();
+      })();
+
       await ctx.page.goto(receiptViewerUrl);
 
       const imageElement = await ctx.page.waitForSelector("img#booth-photo");

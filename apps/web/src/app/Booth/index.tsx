@@ -4,15 +4,20 @@ import { Button } from "#components/ui/button.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { ENABLE_PRINT_DEBUG_PANEL } from "#lib/public-env.ts";
+import { normalizeTicketNames, ticketNamesParser } from "#lib/ticket-names.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
 import { useMutation } from "@tanstack/react-query";
+import { useQueryState } from "nuqs";
 import { type FC, useRef, useState } from "react";
 
 import { BOOTH_LOG_SOURCE } from "./internal/Booth.constants";
 
 export const Booth: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);
+
+  const [ticketRaw] = useQueryState("ticket", ticketNamesParser);
+  const ticketNames = normalizeTicketNames(ticketRaw ?? []);
 
   const trpc = useTRPC();
 
@@ -52,6 +57,7 @@ export const Booth: FC = () => {
 
       const screenshot = await generateReceipt.mutateAsync({
         image: photoDataUrl,
+        names: ticketNames.length > 0 ? ticketNames : undefined,
       });
 
       const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
@@ -89,6 +95,18 @@ export const Booth: FC = () => {
             Output
           </div>
           <div className="flex flex-col gap-2 p-3">
+            {ticketNames.length > 0 && (
+              <div className="border-b border-primary/25 pb-2 font-mono text-[10px] leading-snug text-primary">
+                <div className="hud-text-glow-orange-soft mb-1 tracking-[0.2em] uppercase">
+                  Ticket
+                </div>
+                <ul className="space-y-0.5 text-muted-foreground">
+                  {ticketNames.map((name, index) => (
+                    <li key={`${index}-${name}`}>— {name}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <Button
               disabled={isGeneratingReceipt}
               variant="hud"

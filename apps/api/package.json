@@ -28,6 +28,7 @@
     "@opendisplay/epaper-dithering": "2.2.1",
     "@trpc/server": "11.16.0",
     "drizzle-orm": "0.45.2",
+    "nuqs": "^2.8.9",
     "puppeteer": "24.40.0",
     "sharp": "0.34.5",
     "zod": "4.3.6"

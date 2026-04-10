@@ -6,6 +6,7 @@
  */
 
 import { Booth } from "#app/Booth/index.tsx";
+import { Names } from "#app/Names/index.tsx";
 import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
 import {
   RootErrorBoundary,
@@ -29,6 +30,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "next-themes";
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
 import { Sandbox } from "./app/Sandbox";
 
@@ -37,7 +39,11 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 initializeBrowserLogging();
 
 const rootRoute = createRootRoute({
-  component: () => <Outlet />,
+  component: () => (
+    <NuqsAdapter>
+      <Outlet />
+    </NuqsAdapter>
+  ),
   errorComponent: ({ error }) => <RootErrorScreen error={error} />,
   notFoundComponent: RootNotFoundScreen,
 });
@@ -46,6 +52,12 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: Splash,
+});
+
+const namesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/names",
+  component: Names,
 });
 
 const boothRoute = createRoute({
@@ -68,6 +80,7 @@ const sandboxRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  namesRoute,
   boothRoute,
   receiptViewerRoute,
   sandboxRoute,

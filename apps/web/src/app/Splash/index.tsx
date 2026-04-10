@@ -150,7 +150,7 @@ export const Splash: FC = () => {
 
           <div className="flex w-full max-w-md flex-col items-center gap-5">
             <Link
-              to="/booth"
+              to="/names"
               className={cn(
                 buttonVariants({ variant: "hud", size: "touch" }),
                 "hud-cta-pulse w-full max-w-sm justify-center no-underline",
