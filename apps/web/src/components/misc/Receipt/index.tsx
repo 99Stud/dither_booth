@@ -18,7 +18,12 @@ export const Receipt: FC<ReceiptProps> = ({ className }) => {
   return (
     <div
       id="receipt"
-      className={cn("flex flex-col gap-4", "bg-background", className)}
+      className={cn(
+        "flex flex-col gap-4",
+        "bg-background",
+        "font-bit leading-none",
+        className,
+      )}
       style={{ width: mmToPx(80) + "px" }}
     >
       <img
@@ -32,23 +37,28 @@ export const Receipt: FC<ReceiptProps> = ({ className }) => {
           <div
             className={clsx(
               "flex items-center justify-between gap-2",
-              "text-lg font-semibold",
+              "text-2xl leading-none font-semibold",
             )}
           >
             <p>{format(today, "HH:mm")}</p>
             <p>{format(today, "dd/MM/yyyy")}</p>
           </div>
-          <div>
+          <div className={clsx("text-2xl leading-none")}>
             <p>Épicerie de Ginette</p>
             <p>24 Cr Albert Thomas</p>
             <p>69008 Lyon</p>
           </div>
         </div>
-        <NinetyNineStudQR className={clsx("h-[108px]")} />
+        <NinetyNineStudQR className={clsx("h-[104px]")} />
       </div>
 
       <div className={clsx("border border-dashed border-black")} />
-      <div className={clsx("flex flex-col gap-1", "text-xl font-medium")}>
+      <div
+        className={clsx(
+          "flex flex-col gap-0.5",
+          "text-3xl leading-none font-bold",
+        )}
+      >
         <div className={clsx("flex items-center gap-4")}>
           <p>1x</p>
           <p>99STUD X EL TONY MATE</p>

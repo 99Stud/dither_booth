@@ -24,6 +24,7 @@ export const print = publicProcedure
         message: "Dither configuration not found.",
       });
     }
+
     const device = ctx.printerDevice;
 
     if (!device) {
