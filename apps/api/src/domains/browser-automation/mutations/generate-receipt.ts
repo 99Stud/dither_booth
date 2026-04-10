@@ -1,7 +1,12 @@
+import { db } from "#db/index.ts";
+import {
+  ditherImage,
+  renderDitheredToPng,
+} from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
 import { publicProcedure } from "#internal/trpc.ts";
 import { getPort } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
-import z from "zod";
+import { octetInputParser } from "@trpc/server/http";
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 
@@ -11,12 +16,47 @@ const receiptViewerUrl = new URL(
 ).toString();
 
 export const generateReceipt = publicProcedure
-  .input(
-    z.object({
-      image: z.string().min(1, "Receipt image is required."),
-    }),
-  )
-  .mutation(async ({ input, ctx }) => {
+  .input(octetInputParser)
+  .mutation(async ({ ctx, input }) => {
+    const inputBuffer = Buffer.from(await new Response(input).arrayBuffer());
+
+    if (inputBuffer.byteLength === 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Photo input was empty.",
+      });
+    }
+
+    const ditherConfiguration = await db.query.printConfigTable.findFirst();
+
+    if (!ditherConfiguration) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Dither configuration not found.",
+      });
+    }
+
+    const dithered = await ditherImage(inputBuffer, ditherConfiguration).catch(
+      (error) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to process photo.",
+          cause: error,
+        });
+      },
+    );
+
+    const ditheredPng = await renderDitheredToPng(
+      dithered,
+      ditherConfiguration.threshold,
+    ).catch((error) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to process photo.",
+        cause: error,
+      });
+    });
+
     if (!ctx.page) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -58,9 +98,9 @@ export const generateReceipt = publicProcedure
           throw new Error("Receipt photo element is not an image.");
         }
 
-        element.src = image;
+        element.src = `data:${image.mimeType};base64,${image.data}`;
         await element.decode();
-      }, input.image);
+      }, ditheredPng);
 
       const handle = await ctx.page.locator("div#receipt").waitHandle();
 

@@ -5,7 +5,7 @@ import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.util
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { ENABLE_PRINT_DEBUG_PANEL } from "#lib/public-env.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
+import { downloadBlob } from "#lib/utils.ts";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, useRef, useState } from "react";
 
@@ -22,7 +22,7 @@ export const Root: FC = () => {
   const generateReceipt = useMutation(trpc.generateReceipt.mutationOptions());
   const { isPending: isGeneratingReceipt } = generateReceipt;
 
-  const takeSquarePhotoAndGetDataUrl = async () => {
+  const downloadReceipt = async () => {
     try {
       const squarePhoto = await takeSquarePhoto(ROOT_LOG_SOURCE, async () => {
         if (!webcamRef.current) {
@@ -32,29 +32,13 @@ export const Root: FC = () => {
         return await webcamRef.current.takePhoto();
       });
 
-      return await blobToDataUrl(squarePhoto);
-    } catch (e) {
-      reportKioskError(e, {
-        event: "take-square-photo-and-get-data-url-failed",
-        source: ROOT_LOG_SOURCE,
-        userMessage: "Take square photo and get data URL failed.",
-      });
-    }
-  };
-
-  const downloadReceipt = async () => {
-    try {
-      const photoDataUrl = await takeSquarePhotoAndGetDataUrl();
-
-      if (!photoDataUrl) {
+      if (!squarePhoto) {
         return;
       }
 
-      const screenshot = await generateReceipt.mutateAsync({
-        image: photoDataUrl,
-      });
+      const receipt = await generateReceipt.mutateAsync(squarePhoto);
 
-      const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
+      const blob = base64ToBlob(receipt.data, receipt.mimeType);
 
       downloadBlob(blob, "screenshot.webp");
     } catch (e) {
