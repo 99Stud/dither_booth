@@ -125,6 +125,7 @@ export const SelectField = <
             <Select
               {...selectProps}
               id={field.name}
+              items={options}
               name={field.name}
               value={field.state.value as SelectFieldValue<TFormData, TName>}
               onValueChange={(value) => {
