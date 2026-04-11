@@ -1,6 +1,7 @@
 import type { WebcamHandle } from "#components/misc/Webcam/index.tsx";
 
 import { SelectField } from "#components/fields/SelectField/index.tsx";
+import { SliderField } from "#components/fields/SliderField/index.tsx";
 import { Button } from "#components/ui/button.tsx";
 import {
   Card,
@@ -14,13 +15,6 @@ import {
   DialogContent,
   DialogTrigger,
 } from "#components/ui/dialog.tsx";
-import {
-  Field,
-  FieldContent,
-  FieldError,
-  FieldLabel,
-} from "#components/ui/field.tsx";
-import { Slider } from "#components/ui/slider.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
@@ -50,10 +44,6 @@ import {
   SLIDER_FIELD_CONFIGS,
 } from "./internal/PrintConfigurationPanel.constants";
 import { reportPrintConfigurationError } from "./internal/PrintConfigurationPanel.utils";
-
-const getSliderValue = (value: number | ReadonlyArray<number>) => {
-  return Array.isArray(value) ? value[0] : value;
-};
 
 const previewDisplayWrapperClassName = clsx(
   "relative",
@@ -293,45 +283,22 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
           <SelectField
             form={form}
             name="ditherModeCode"
+            label="Dither Mode"
+            placeholder="Select a dither mode"
             options={DITHER_MODE_CODE_FIELD_OPTIONS}
             disabled={isSelectFieldDisabled}
           />
           {SLIDER_FIELD_CONFIGS.map((sliderField) => (
-            <form.Field
+            <SliderField
               key={sliderField.name}
+              form={form}
               name={sliderField.name}
-              // oxlint-disable-next-line react/no-children-prop
-              children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid;
-                return (
-                  <Field orientation="responsive" data-invalid={isInvalid}>
-                    <FieldContent>
-                      <FieldLabel htmlFor={field.name}>
-                        {sliderField.label}
-                      </FieldLabel>
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
-                    </FieldContent>
-                    <div className="flex items-center gap-2">
-                      <Slider
-                        disabled={isSliderFieldDisabled}
-                        min={sliderField.min}
-                        max={sliderField.max}
-                        step={sliderField.step}
-                        value={[field.state.value]}
-                        onValueChange={(value) => {
-                          field.handleChange(getSliderValue(value));
-                        }}
-                      />
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {sliderField.formatValue(field.state.value)}
-                      </span>
-                    </div>
-                  </Field>
-                );
-              }}
+              label={sliderField.label}
+              min={sliderField.min}
+              max={sliderField.max}
+              step={sliderField.step}
+              formatValue={sliderField.formatValue}
+              disabled={isSliderFieldDisabled}
             />
           ))}
         </form>

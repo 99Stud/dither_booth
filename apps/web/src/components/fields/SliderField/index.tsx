@@ -1,11 +1,4 @@
-import type {
-  DeepKeys,
-  DeepValue,
-  FormAsyncValidateOrFn,
-  FormValidateOrFn,
-  ReactFormExtendedApi,
-} from "@tanstack/react-form";
-import type { ComponentProps, Key } from "react";
+import type { ComponentProps } from "react";
 
 import {
   Field,
@@ -13,34 +6,33 @@ import {
   FieldError,
   FieldLabel,
 } from "#components/ui/field.tsx";
+import { Slider } from "#components/ui/slider.tsx";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "#components/ui/select.tsx";
-import clsx from "clsx";
+  type DeepKeys,
+  type DeepValue,
+  type FormAsyncValidateOrFn,
+  type FormValidateOrFn,
+  type ReactFormExtendedApi,
+} from "@tanstack/react-form";
 
-import type { SelectFieldOption } from "./internal/SelectField.types";
+const getSliderValue = (value: number | ReadonlyArray<number>) => {
+  return Array.isArray(value) ? value[0] : value;
+};
 
-type SelectFieldValue<TFormData, TName extends DeepKeys<TFormData>> = Extract<
+type SliderFieldValue<TFormData, TName extends DeepKeys<TFormData>> = Extract<
   DeepValue<TFormData, TName>,
-  Key
+  number
 >;
 
-type SelectFieldName<TFormData> = {
-  [TName in DeepKeys<TFormData>]: SelectFieldValue<
-    TFormData,
-    TName
-  > extends never
-    ? never
-    : TName;
+type SliderFieldName<TFormData> = {
+  [TName in DeepKeys<TFormData>]: DeepValue<TFormData, TName> extends number
+    ? TName
+    : never;
 }[DeepKeys<TFormData>];
 
-type SelectProps<
+type SliderFieldProps<
   TFormData,
-  TName extends SelectFieldName<TFormData>,
+  TName extends SliderFieldName<TFormData>,
   TOnMount extends undefined | FormValidateOrFn<TFormData>,
   TOnChange extends undefined | FormValidateOrFn<TFormData>,
   TOnChangeAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
@@ -69,16 +61,15 @@ type SelectProps<
   >;
   name: TName;
   label: string;
-  placeholder: string;
-  options: Array<SelectFieldOption<SelectFieldValue<TFormData, TName>>>;
+  formatValue: (value: SliderFieldValue<TFormData, TName>) => string;
 } & Omit<
-  ComponentProps<typeof Select>,
+  ComponentProps<typeof Slider>,
   "id" | "name" | "value" | "onValueChange"
 >;
 
-export const SelectField = <
+export const SliderField = <
   TFormData,
-  TName extends SelectFieldName<TFormData>,
+  TName extends SliderFieldName<TFormData>,
   TOnMount extends undefined | FormValidateOrFn<TFormData>,
   TOnChange extends undefined | FormValidateOrFn<TFormData>,
   TOnChangeAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
@@ -91,7 +82,7 @@ export const SelectField = <
   TOnServer extends undefined | FormAsyncValidateOrFn<TFormData>,
   TSubmitMeta,
 >(
-  props: SelectProps<
+  props: SliderFieldProps<
     TFormData,
     TName,
     TOnMount,
@@ -107,13 +98,16 @@ export const SelectField = <
     TSubmitMeta
   >,
 ) => {
-  const { form, name, label, placeholder, options, ...selectProps } = props;
-
+  const { form, name, label, formatValue, ...sliderProps } = props;
   return (
     <form.Field
       name={name}
       // oxlint-disable-next-line react/no-children-prop
       children={(field) => {
+        const fieldValue = field.state.value as SliderFieldValue<
+          TFormData,
+          TName
+        >;
         const isInvalid =
           field.state.meta.isTouched && !field.state.meta.isValid;
         return (
@@ -122,30 +116,22 @@ export const SelectField = <
               <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
               {isInvalid && <FieldError errors={field.state.meta.errors} />}
             </FieldContent>
-            <Select
-              {...selectProps}
-              id={field.name}
-              name={field.name}
-              value={field.state.value as SelectFieldValue<TFormData, TName>}
-              onValueChange={(value) => {
-                field.handleChange(value as SelectFieldValue<TFormData, TName>);
-              }}
-            >
-              <SelectTrigger
-                className={clsx("min-w-[120px]")}
-                aria-invalid={isInvalid}
+            <div className="flex items-center gap-2">
+              <Slider
+                {...sliderProps}
                 id={field.name}
-              >
-                <SelectValue placeholder={placeholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                name={field.name}
+                value={[fieldValue]}
+                onValueChange={(value) => {
+                  field.handleChange(
+                    getSliderValue(value) as SliderFieldValue<TFormData, TName>,
+                  );
+                }}
+              />
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {formatValue(fieldValue)}
+              </span>
+            </div>
           </Field>
         );
       }}
