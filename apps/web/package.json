@@ -21,6 +21,7 @@
     "@cheprasov/qrcode": "0.1.0",
     "@dither-booth/api": "workspace:*",
     "@dither-booth/logging": "workspace:*",
+    "@dither-booth/moderation": "workspace:*",
     "@dither-booth/ports": "workspace:*",
     "@tanstack/react-form": "1.28.6",
     "@tanstack/react-pacer": "0.21.1",

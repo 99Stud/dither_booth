@@ -1,7 +1,11 @@
 import { createSerializer, parseAsArrayOf, parseAsString } from "nuqs";
+import {
+  MAX_TICKET_NAME_LENGTH,
+  MAX_TICKET_NAMES,
+  sanitizeTicketNameInput,
+} from "@dither-booth/moderation";
 
-export const MAX_TICKET_NAMES = 5;
-export const MAX_TICKET_NAME_LENGTH = 80;
+export { MAX_TICKET_NAME_LENGTH, MAX_TICKET_NAMES, sanitizeTicketNameInput };
 
 export const TICKET_QUERY_KEY = "ticket";
 
@@ -16,16 +20,4 @@ export const normalizeTicketNames = (names: string[]): string[] => {
     .map((name) => sanitizeTicketNameInput(name).trim())
     .filter(Boolean)
     .slice(0, MAX_TICKET_NAMES);
-};
-
-export const sanitizeTicketNameInput = (value: string): string => {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/\|/g, " ")
-    .replace(/[^A-Z ]/g, "")
-    .replace(/\s+/g, " ")
-    .replace(/^ /, "")
-    .slice(0, MAX_TICKET_NAME_LENGTH);
 };

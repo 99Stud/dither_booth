@@ -8,6 +8,7 @@ import {
   serializeTicketSearch,
 } from "#lib/ticket-names.ts";
 import { cn } from "#lib/utils.ts";
+import { validateTicketNames } from "@dither-booth/moderation";
 import { useNavigate } from "@tanstack/react-router";
 import { type FC, useMemo, useRef, useState } from "react";
 
@@ -86,6 +87,12 @@ export const Names: FC = () => {
     const names = normalizeTicketNames(rows.map((row) => row.value));
     if (names.length === 0) {
       setError("Indiquez au moins un prénom.");
+      return;
+    }
+
+    const validation = validateTicketNames(names);
+    if (!validation.ok) {
+      setError(validation.message);
       return;
     }
 

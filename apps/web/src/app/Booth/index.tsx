@@ -7,6 +7,7 @@ import { ENABLE_PRINT_DEBUG_PANEL } from "#lib/public-env.ts";
 import { normalizeTicketNames, ticketNamesParser } from "#lib/ticket-names.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
+import { validateTicketNames } from "@dither-booth/moderation";
 import { useMutation } from "@tanstack/react-query";
 import { useQueryState } from "nuqs";
 import { type FC, useRef, useState } from "react";
@@ -18,6 +19,9 @@ export const Booth: FC = () => {
 
   const [ticketRaw] = useQueryState("ticket", ticketNamesParser);
   const ticketNames = normalizeTicketNames(ticketRaw ?? []);
+  const ticketNamesValidation = validateTicketNames(ticketNames);
+  const canUseTicketNames = ticketNamesValidation.ok;
+  const ticketNamesForDisplay = canUseTicketNames ? ticketNames : [];
 
   const trpc = useTRPC();
 
@@ -100,15 +104,21 @@ export const Booth: FC = () => {
                 <div className="hud-text-glow-orange-soft mb-1 tracking-[0.2em] uppercase">
                   Ticket
                 </div>
-                <ul className="space-y-0.5 text-muted-foreground">
-                  {ticketNames.map((name, index) => (
-                    <li key={`${index}-${name}`}>— {name}</li>
-                  ))}
-                </ul>
+                {canUseTicketNames ? (
+                  <ul className="space-y-0.5 text-muted-foreground">
+                    {ticketNamesForDisplay.map((name, index) => (
+                      <li key={`${index}-${name}`}>— {name}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-destructive">
+                    Le ticket contient un nom bloqué. Retirez-le avant impression.
+                  </p>
+                )}
               </div>
             )}
             <Button
-              disabled={isGeneratingReceipt}
+              disabled={isGeneratingReceipt || !canUseTicketNames}
               variant="hud"
               size="touch"
               className="w-full min-w-[220px] justify-center normal-case tracking-normal"

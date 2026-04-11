@@ -1,4 +1,10 @@
 import { serializeTicketSearch } from "#lib/ticket-names-url.ts";
+import {
+  MAX_TICKET_NAME_LENGTH,
+  MAX_TICKET_NAMES,
+  TicketNameModerationError,
+  assertTicketNames,
+} from "@dither-booth/moderation";
 import { publicProcedure } from "#internal/trpc.ts";
 import { getPort } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
@@ -15,20 +21,23 @@ export const generateReceipt = publicProcedure
   .input(
     z.object({
       image: z.string().min(1, "Receipt image is required."),
-      names: z.array(z.string().max(120)).max(5).optional(),
+      names: z.array(z.string().max(MAX_TICKET_NAME_LENGTH)).max(MAX_TICKET_NAMES).optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    if (!ctx.page) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Receipt page is not initialized.",
-      });
-    }
+    const names = input.names?.map((n) => n.trim()).filter(Boolean).slice(0, MAX_TICKET_NAMES) ?? [];
 
     try {
+      assertTicketNames(names);
+
+      if (!ctx.page) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Receipt page is not initialized.",
+        });
+      }
+
       const receiptViewerUrl = (() => {
-        const names = input.names?.map((n) => n.trim()).filter(Boolean).slice(0, 5) ?? [];
         if (names.length === 0) {
           return receiptViewerBaseUrl.toString();
         }
@@ -102,6 +111,14 @@ export const generateReceipt = publicProcedure
         mimeType: "image/webp",
       };
     } catch (error) {
+      if (error instanceof TicketNameModerationError) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error.message,
+          cause: error,
+        });
+      }
+
       if (error instanceof TRPCError) {
         throw error;
       }
