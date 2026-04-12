@@ -1,76 +1,45 @@
-import type { WebcamHandle } from "#components/misc/Webcam/index.tsx";
+import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types.ts";
 
 import { SelectField } from "#components/fields/SelectField/index.tsx";
 import { SliderField } from "#components/fields/SliderField/index.tsx";
+import { Webcam } from "#components/misc/Webcam/index.tsx";
 import { Button } from "#components/ui/button.tsx";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "#components/ui/card.tsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from "#components/ui/dialog.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { cn } from "#lib/utils.ts";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { X } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FC,
-  type RefObject,
-} from "react";
+import { CameraIcon } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, type FC } from "react";
 
-import type { PrintConfigurationFormValues } from "./internal/PrintConfigurationPanel.types";
+import type { PrintConfigurationFormValues } from "./internal/PrintConfiguratio.types";
 
 import {
-  AUTOSAVE_DEBOUNCE_MS,
-  DITHER_MODE_CODE_FIELD_OPTIONS,
+  PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS,
   getPrintConfigurationFormValues,
   PRINT_CONFIGURATION_FORM_SCHEMA,
-  PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
+  PRINT_CONFIGURATION_LOG_SOURCE,
+  DITHER_MODE_CODE_FIELD_OPTIONS,
   SLIDER_FIELD_CONFIGS,
-} from "./internal/PrintConfigurationPanel.constants";
-import { reportPrintConfigurationError } from "./internal/PrintConfigurationPanel.utils";
+} from "./internal/PrintConfiguration.constants";
+import { reportPrintConfigurationError } from "./internal/PrintConfiguration.utils";
 
-const previewDisplayWrapperClassName = clsx(
-  "relative",
-  "aspect-square",
-  "overflow-hidden",
-  "flex items-center justify-center",
-  "bg-black",
-);
+export const PrintConfiguration = () => {
+  const webcamRef = useRef<WebcamHandle>(null);
+  const latestPreviewRequestIdRef = useRef(0);
 
-interface PrintConfigurationPanelProps {
-  className?: string;
-  onClose: () => void;
-  webcamRef: RefObject<WebcamHandle | null>;
-}
-
-export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
-  className,
-  onClose,
-  webcamRef,
-}) => {
   const [previewSrc, setPreviewSrc] = useState<string>();
-  const hasTriggeredInitialPreviewRef = useRef(false);
+  const [hasTriggeredInitialPreview, setHasTriggeredInitialPreview] =
+    useState(false);
 
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const ditherConfigurationQueryOptions =
+    trpc.getDitherConfiguration.queryOptions();
 
   const { data: ditherConfiguration, isLoading: isLoadingDitherConfiguration } =
-    useQuery(trpc.getDitherConfiguration.queryOptions());
+    useQuery(ditherConfigurationQueryOptions);
 
   const ditherConfigurationUpdater = useMutation(
     trpc.updateDitherConfiguration.mutationOptions(),
@@ -79,7 +48,13 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
     ditherConfigurationUpdater;
 
   const ditherConfigurationCreator = useMutation(
-    trpc.createDitherConfiguration.mutationOptions(),
+    trpc.createDitherConfiguration.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: ditherConfigurationQueryOptions.queryKey,
+        });
+      },
+    }),
   );
   const { isPending: isCreatingDitherConfiguration } =
     ditherConfigurationCreator;
@@ -89,7 +64,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
 
   const generatePreviewDataUrl = useCallback(async () => {
     const image = await takeSquarePhoto(
-      PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
+      PRINT_CONFIGURATION_LOG_SOURCE,
       async () => {
         if (!webcamRef.current) {
           throw new Error("Camera is not available.");
@@ -125,12 +100,39 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   }, [ditherer, webcamRef]);
 
   const refreshPreview = useCallback(async () => {
+    const requestId = latestPreviewRequestIdRef.current + 1;
+    latestPreviewRequestIdRef.current = requestId;
+
+    if (!hasTriggeredInitialPreview) {
+      setHasTriggeredInitialPreview(true);
+    }
+
+    if (webcamRef.current?.cameraState.status !== "ready") {
+      if (!previewSrc) {
+        setHasTriggeredInitialPreview(false);
+      }
+
+      return;
+    }
+
     const previewDataUrl = await generatePreviewDataUrl();
+
+    if (requestId !== latestPreviewRequestIdRef.current) {
+      return;
+    }
+
+    if (!previewDataUrl) {
+      if (!previewSrc) {
+        setHasTriggeredInitialPreview(false);
+      }
+
+      return;
+    }
 
     if (previewDataUrl) {
       setPreviewSrc(previewDataUrl);
     }
-  }, [generatePreviewDataUrl]);
+  }, [generatePreviewDataUrl, hasTriggeredInitialPreview, previewSrc]);
 
   const saveAndRefreshPreview = useCallback(
     async (
@@ -191,25 +193,6 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   const isSelectFieldDisabled = isPersistingDitherConfiguration || isDithering;
   const isSliderFieldDisabled = isPersistingDitherConfiguration;
 
-  useEffect(() => {
-    if (hasTriggeredInitialPreviewRef.current || isLoadingDitherConfiguration) {
-      return;
-    }
-
-    hasTriggeredInitialPreviewRef.current = true;
-
-    void saveAndRefreshPreview(
-      getPrintConfigurationFormValues(ditherConfiguration),
-      {
-        skipPersist: ditherConfiguration != null,
-      },
-    );
-  }, [
-    ditherConfiguration,
-    isLoadingDitherConfiguration,
-    saveAndRefreshPreview,
-  ]);
-
   const form = useForm({
     defaultValues,
     validators: {
@@ -217,7 +200,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
       onSubmit: PRINT_CONFIGURATION_FORM_SCHEMA,
     },
     listeners: {
-      onChangeDebounceMs: AUTOSAVE_DEBOUNCE_MS,
+      onChangeDebounceMs: PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS,
       onChange: async () => {
         form.handleSubmit();
       },
@@ -228,82 +211,53 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   });
 
   return (
-    <Card
-      className={cn(
-        "h-[calc(100dvh-4rem)] bg-card/95 backdrop-blur-sm",
-        className,
-      )}
-    >
-      <CardHeader className="border-b">
-        <div className="flex items-center gap-2">
-          <CardTitle>Print Config</CardTitle>
-          {isLoadingDitherConfiguration && (
-            <>
-              <Spinner />
-              <span className="sr-only text-xs text-muted-foreground">
-                Loading...
-              </span>
-            </>
-          )}
-        </div>
-        <CardAction>
-          <Button variant="ghost" size="icon-xs" onClick={onClose}>
-            <X className="size-3.5" />
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent
-        className={clsx(
-          "h-[calc(100%-57.5px)]",
-          "grid grid-rows-[auto_min-content] gap-4",
+    <div className={clsx("h-dvh", "p-4", "flex gap-4")}>
+      <div className={clsx("relative", "aspect-square h-full")}>
+        {hasTriggeredInitialPreview && (
+          <PreviewDisplay isDithering={isDithering} previewSrc={previewSrc} />
         )}
-      >
-        <Dialog>
-          <DialogTrigger
-            className={clsx(previewDisplayWrapperClassName, "cursor-pointer")}
-          >
-            <PreviewDisplay isDithering={isDithering} previewSrc={previewSrc} />
-          </DialogTrigger>
-          <DialogContent className={clsx("max-w-[calc(100dvh-2rem)]!")}>
-            <div className={previewDisplayWrapperClassName}>
-              <PreviewDisplay
-                isDithering={isDithering}
-                previewSrc={previewSrc}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-        <form
-          className={clsx("flex flex-col gap-4")}
-          onSubmit={(e) => {
-            e.preventDefault();
-            form.handleSubmit();
-          }}
+        <Webcam
+          ref={webcamRef}
+          className={clsx("h-full")}
+          showPreview={!previewSrc}
+        />
+        <Button
+          onClick={refreshPreview}
+          className={clsx("absolute z-10", "top-4", "left-4")}
         >
-          <SelectField
+          <CameraIcon className="size-4" />
+        </Button>
+      </div>
+      <form
+        className={clsx("flex flex-col gap-4", "min-w-96")}
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <SelectField
+          form={form}
+          name="ditherModeCode"
+          label="Dither Mode"
+          placeholder="Select a dither mode"
+          options={DITHER_MODE_CODE_FIELD_OPTIONS}
+          disabled={isSelectFieldDisabled}
+        />
+        {SLIDER_FIELD_CONFIGS.map((sliderField) => (
+          <SliderField
+            key={sliderField.name}
             form={form}
-            name="ditherModeCode"
-            label="Dither Mode"
-            placeholder="Select a dither mode"
-            options={DITHER_MODE_CODE_FIELD_OPTIONS}
-            disabled={isSelectFieldDisabled}
+            name={sliderField.name}
+            label={sliderField.label}
+            min={sliderField.min}
+            max={sliderField.max}
+            step={sliderField.step}
+            formatValue={sliderField.formatValue}
+            disabled={isSliderFieldDisabled}
           />
-          {SLIDER_FIELD_CONFIGS.map((sliderField) => (
-            <SliderField
-              key={sliderField.name}
-              form={form}
-              name={sliderField.name}
-              label={sliderField.label}
-              min={sliderField.min}
-              max={sliderField.max}
-              step={sliderField.step}
-              formatValue={sliderField.formatValue}
-              disabled={isSliderFieldDisabled}
-            />
-          ))}
-        </form>
-      </CardContent>
-    </Card>
+        ))}
+      </form>
+    </div>
   );
 };
 
@@ -320,16 +274,40 @@ const PreviewDisplay: FC<PreviewDisplayProps> = ({
     <>
       <div
         className={clsx(
-          "absolute",
+          "absolute z-10",
           "h-full w-full",
           "transition-all",
           isDithering && "bg-card/05 backdrop-blur-xs",
         )}
       />
-      {isDithering && <Spinner className="absolute z-10" />}
-      <img src={previewSrc} alt="Preview" className="h-full w-full" />
+      {isDithering && (
+        <Spinner
+          className={clsx(
+            "absolute inset-0 z-10",
+            "m-auto",
+            "text-white",
+            "size-6",
+          )}
+        />
+      )}
+      {previewSrc && (
+        <img
+          src={previewSrc}
+          alt="Preview"
+          className={clsx("h-full w-full", "-scale-x-100")}
+        />
+      )}
     </>
   ) : (
-    <Spinner className="text-white" />
+    <div
+      className={clsx(
+        "absolute z-10",
+        "h-full w-full",
+        "flex items-center justify-center",
+        "bg-card/05 backdrop-blur-xs",
+      )}
+    >
+      <Spinner className="text-white" />
+    </div>
   );
 };

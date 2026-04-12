@@ -5,66 +5,21 @@
  * It is included in `src/index.html`.
  */
 
-import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
-import { Root } from "#app/Root/index.tsx";
-import {
-  RootErrorBoundary,
-  RootErrorScreen,
-  RootNotFoundScreen,
-} from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
+import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
 import { Toaster } from "#components/ui/sonner.tsx";
+import { router } from "#lib/router/index.tsx";
 import { queryClient, trpcClient } from "#lib/trpc/trpc.client.ts";
 import { TRPCProvider } from "#lib/trpc/trpc.utils.ts";
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import { QueryClientProvider } from "@tanstack/react-query";
-import {
-  createRootRoute,
-  createRoute,
-  createRouter,
-  Outlet,
-  RouterProvider,
-} from "@tanstack/react-router";
+import { RouterProvider } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { Sandbox } from "./app/Sandbox";
-
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 initializeBrowserLogging();
-
-const rootRoute = createRootRoute({
-  component: () => <Outlet />,
-  errorComponent: ({ error }) => <RootErrorScreen error={error} />,
-  notFoundComponent: RootNotFoundScreen,
-});
-
-const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: Root,
-});
-
-const receiptViewerRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/receipt-viewer",
-  component: ReceiptViewer,
-});
-
-const sandboxRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/sandbox",
-  component: Sandbox,
-});
-
-const routeTree = rootRoute.addChildren([
-  indexRoute,
-  receiptViewerRoute,
-  sandboxRoute,
-]);
-
-const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
   interface Register {

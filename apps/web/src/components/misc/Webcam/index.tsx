@@ -1,21 +1,23 @@
-import {
-  type CapturePhotoOptions,
-  useUserMedia,
-} from "#lib/hooks/user-media/index.ts";
+import { useUserMedia } from "#lib/hooks/user-media/index.ts";
 import { cn } from "#lib/utils.ts";
 import { format } from "date-fns";
 import { type FC, type Ref, useImperativeHandle, useRef } from "react";
 
-export interface WebcamHandle {
-  takePhoto: (photoSettings?: CapturePhotoOptions) => Promise<Blob>;
-}
+import type { WebcamHandle } from "./internal/Webcam.types";
 
 interface WebcamProps {
   className?: string;
   ref?: Ref<WebcamHandle>;
+  showDebugInfo?: boolean;
+  showPreview?: boolean;
 }
 
-export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
+export const Webcam: FC<WebcamProps> = ({
+  className,
+  ref,
+  showDebugInfo = false,
+  showPreview = false,
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { takePhoto, cameraState } = useUserMedia({
@@ -29,26 +31,33 @@ export const Webcam: FC<WebcamProps> = ({ className, ref }) => {
     ref,
     () => ({
       takePhoto,
+      cameraState,
     }),
-    [takePhoto],
+    [takePhoto, cameraState],
   );
 
   return (
     <>
-      <div className="fixed top-8 right-8 flex flex-col gap-1 text-sm text-white">
-        Camera status: {cameraState.status}
-        {cameraState.error && <p>Error: {cameraState.error}</p>}
-        <p>Is secure context: {String(cameraState.isSecureContext)}</p>
-        {cameraState.lastUpdatedAt && (
-          <p>
-            Last updated at:{" "}
-            {format(new Date(cameraState.lastUpdatedAt), "HH:mm:ss")}
-          </p>
-        )}
-      </div>
+      {showDebugInfo && (
+        <div className="fixed top-8 right-8 flex flex-col gap-1 text-sm text-white">
+          Camera status: {cameraState.status}
+          {cameraState.error && <p>Error: {cameraState.error}</p>}
+          <p>Is secure context: {String(cameraState.isSecureContext)}</p>
+          {cameraState.lastUpdatedAt && (
+            <p>
+              Last updated at:{" "}
+              {format(new Date(cameraState.lastUpdatedAt), "HH:mm:ss")}
+            </p>
+          )}
+        </div>
+      )}
       <video
         ref={videoRef}
-        className={cn(className)}
+        className={cn(
+          className,
+          "origin-center -scale-x-100",
+          !showPreview && "hidden",
+        )}
         autoPlay
         playsInline
         muted

@@ -1,6 +1,6 @@
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 
-import { PRINT_CONFIGURATION_PANEL_LOG_SOURCE } from "./PrintConfigurationPanel.constants";
+import { PRINT_CONFIGURATION_LOG_SOURCE } from "./PrintConfiguration.constants";
 
 export const reportPrintConfigurationError = (
   error: unknown,
@@ -9,7 +9,7 @@ export const reportPrintConfigurationError = (
 ) => {
   return reportKioskError(error, {
     event,
-    source: PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
+    source: PRINT_CONFIGURATION_LOG_SOURCE,
     userMessage,
   });
 };
