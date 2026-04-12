@@ -13,7 +13,7 @@
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun src/db/db.migrate.ts",
+    "db:migrate": "bun src/db/internal/db.migrate.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",

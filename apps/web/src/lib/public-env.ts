@@ -6,5 +6,3 @@
  * `import.meta.env` injection like Vite; use this module instead of
  * `import.meta.env` for those variables.
  */
-export const ENABLE_PRINT_DEBUG_PANEL =
-  process.env.BUN_PUBLIC_ENABLE_PRINT_DEBUG_PANEL === "true";

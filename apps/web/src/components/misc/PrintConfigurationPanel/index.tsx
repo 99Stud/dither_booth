@@ -24,9 +24,9 @@ import { Slider } from "#components/ui/slider.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { cn } from "#lib/utils.ts";
+import { blobToDataUrl, cn } from "#lib/utils.ts";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { X } from "lucide-react";
 import {
@@ -42,7 +42,6 @@ import {
 import type { PrintConfigurationFormValues } from "./internal/PrintConfigurationPanel.types";
 
 import {
-  AUTOSAVE_DEBOUNCE_MS,
   DITHER_MODE_CODE_FIELD_OPTIONS,
   getPrintConfigurationFormValues,
   PRINT_CONFIGURATION_FORM_SCHEMA,
@@ -78,6 +77,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   const hasTriggeredInitialPreviewRef = useRef(false);
 
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   const { data: ditherConfiguration, isLoading: isLoadingDitherConfiguration } =
     useQuery(trpc.getDitherConfiguration.queryOptions());
@@ -94,99 +94,100 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   const { isPending: isCreatingDitherConfiguration } =
     ditherConfigurationCreator;
 
-  const ditherer = useMutation(trpc.dither.mutationOptions());
-  const { isPending: isDithering } = ditherer;
+  const ditherPreviewMutation = useMutation(trpc.ditherPreview.mutationOptions());
+  const { isPending: isDithering } = ditherPreviewMutation;
 
-  const generatePreviewDataUrl = useCallback(async () => {
-    const image = await takeSquarePhoto(
-      PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
-      async () => {
-        if (!webcamRef.current) {
-          throw new Error("Camera is not available.");
-        }
-
-        return await webcamRef.current.takePhoto();
-      },
-    ).catch((e) => {
-      reportPrintConfigurationError(
-        e,
-        "preview-photo-capture-failed",
-        "Take square photo failed.",
-      );
-    });
-
-    if (!image) {
-      return;
-    }
-
-    const res = await ditherer.mutateAsync(image).catch((e) => {
-      reportPrintConfigurationError(
-        e,
-        "preview-dither-failed",
-        "Generate preview failed.",
-      );
-    });
-
-    if (!res) {
-      return;
-    }
-
-    return `data:${res.mimeType};base64,${res.data}`;
-  }, [ditherer, webcamRef]);
-
-  const refreshPreview = useCallback(async () => {
-    const previewDataUrl = await generatePreviewDataUrl();
-
-    if (previewDataUrl) {
-      setPreviewSrc(previewDataUrl);
-    }
-  }, [generatePreviewDataUrl]);
-
-  const saveAndRefreshPreview = useCallback(
-    async (
-      submittedValues: PrintConfigurationFormValues,
-      options?: { skipPersist?: boolean },
-    ) => {
-      if (!options?.skipPersist) {
-        const persistDitherConfiguration = async (
-          submittedValues: PrintConfigurationFormValues,
-        ) => {
-          try {
-            if (ditherConfiguration) {
-              await ditherConfigurationUpdater.mutateAsync(submittedValues);
-            } else {
-              await ditherConfigurationCreator.mutateAsync(submittedValues);
-            }
-          } catch (e) {
-            reportPrintConfigurationError(
-              e,
-              ditherConfiguration
-                ? "update-dither-configuration-failed"
-                : "create-dither-configuration-failed",
-              ditherConfiguration
-                ? "Update dither configuration failed."
-                : "Create dither configuration failed.",
-            );
-            return false;
+  const generatePreviewDataUrl = useCallback(
+    async (configuration: PrintConfigurationFormValues) => {
+      const image = await takeSquarePhoto(
+        PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
+        async () => {
+          if (!webcamRef.current) {
+            throw new Error("Camera is not available.");
           }
 
-          return true;
-        };
+          return await webcamRef.current.takePhoto();
+        },
+      ).catch((e) => {
+        reportPrintConfigurationError(
+          e,
+          "preview-photo-capture-failed",
+          "Take square photo failed.",
+        );
+      });
 
-        const wasPersisted = await persistDitherConfiguration(submittedValues);
-
-        if (!wasPersisted) {
-          return;
-        }
+      if (!image) {
+        return;
       }
 
-      await refreshPreview();
+      const imageDataUrl = await blobToDataUrl(image);
+
+      const res = await ditherPreviewMutation
+        .mutateAsync({
+          configuration,
+          image: imageDataUrl,
+        })
+        .catch((e) => {
+          reportPrintConfigurationError(
+            e,
+            "preview-dither-failed",
+            "Generate preview failed.",
+          );
+        });
+
+      if (!res) {
+        return;
+      }
+
+      return `data:${res.mimeType};base64,${res.data}`;
+    },
+    [ditherPreviewMutation, webcamRef],
+  );
+
+  const refreshPreview = useCallback(
+    async (configuration: PrintConfigurationFormValues) => {
+      const previewDataUrl = await generatePreviewDataUrl(configuration);
+
+      if (previewDataUrl) {
+        setPreviewSrc(previewDataUrl);
+      }
+    },
+    [generatePreviewDataUrl],
+  );
+
+  const persistConfiguration = useCallback(
+    async (submittedValues: PrintConfigurationFormValues) => {
+      try {
+        if (ditherConfiguration) {
+          await ditherConfigurationUpdater.mutateAsync(submittedValues);
+        } else {
+          await ditherConfigurationCreator.mutateAsync(submittedValues);
+        }
+
+        await queryClient.invalidateQueries(
+          trpc.getDitherConfiguration.queryOptions(),
+        );
+
+        return true;
+      } catch (e) {
+        reportPrintConfigurationError(
+          e,
+          ditherConfiguration
+            ? "update-dither-configuration-failed"
+            : "create-dither-configuration-failed",
+          ditherConfiguration
+            ? "Update dither configuration failed."
+            : "Create dither configuration failed.",
+        );
+        return false;
+      }
     },
     [
-      refreshPreview,
       ditherConfiguration,
       ditherConfigurationCreator,
       ditherConfigurationUpdater,
+      queryClient,
+      trpc,
     ],
   );
 
@@ -201,6 +202,20 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   const isSelectFieldDisabled = isPersistingDitherConfiguration || isDithering;
   const isSliderFieldDisabled = isPersistingDitherConfiguration;
 
+  const form = useForm({
+    defaultValues,
+    validators: {
+      onChange: PRINT_CONFIGURATION_FORM_SCHEMA,
+      onSubmit: PRINT_CONFIGURATION_FORM_SCHEMA,
+    },
+    onSubmit: async (submitted) => {
+      const ok = await persistConfiguration(submitted.value);
+      if (ok) {
+        await refreshPreview(submitted.value);
+      }
+    },
+  });
+
   useEffect(() => {
     if (hasTriggeredInitialPreviewRef.current || isLoadingDitherConfiguration) {
       return;
@@ -208,34 +223,8 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
 
     hasTriggeredInitialPreviewRef.current = true;
 
-    void saveAndRefreshPreview(
-      getPrintConfigurationFormValues(ditherConfiguration),
-      {
-        skipPersist: ditherConfiguration != null,
-      },
-    );
-  }, [
-    ditherConfiguration,
-    isLoadingDitherConfiguration,
-    saveAndRefreshPreview,
-  ]);
-
-  const form = useForm({
-    defaultValues,
-    validators: {
-      onChange: PRINT_CONFIGURATION_FORM_SCHEMA,
-      onSubmit: PRINT_CONFIGURATION_FORM_SCHEMA,
-    },
-    listeners: {
-      onChangeDebounceMs: AUTOSAVE_DEBOUNCE_MS,
-      onChange: async () => {
-        form.handleSubmit();
-      },
-    },
-    onSubmit: async (submitted) => {
-      await saveAndRefreshPreview(submitted.value);
-    },
-  });
+    void refreshPreview(getPrintConfigurationFormValues(ditherConfiguration));
+  }, [ditherConfiguration, isLoadingDitherConfiguration, refreshPreview]);
 
   return (
     <Card
@@ -245,7 +234,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
       )}
     >
       <CardHeader className="border-b">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <CardTitle>Print Config</CardTitle>
           {isLoadingDitherConfiguration && (
             <>
@@ -334,6 +323,28 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
               }}
             />
           ))}
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+            <Button
+              type="button"
+              disabled={isLoadingDitherConfiguration || isDithering}
+              variant="outline"
+              size="default"
+              onClick={() => {
+                void refreshPreview(
+                  form.state.values as PrintConfigurationFormValues,
+                );
+              }}
+            >
+              Aperçu
+            </Button>
+            <Button
+              type="submit"
+              disabled={isPersistingDitherConfiguration}
+              size="default"
+            >
+              Enregistrer
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

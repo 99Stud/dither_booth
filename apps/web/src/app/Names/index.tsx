@@ -7,6 +7,7 @@ import {
   sanitizeTicketNameInput,
   serializeTicketSearch,
 } from "#lib/ticket-names.ts";
+import { navigateWithViewTransition } from "#lib/navigate-with-view-transition.ts";
 import { cn } from "#lib/utils.ts";
 import { validateTicketNames } from "@dither-booth/moderation";
 import { useNavigate } from "@tanstack/react-router";
@@ -97,7 +98,7 @@ export const Names: FC = () => {
     }
 
     const query = serializeTicketSearch({ ticket: names }).replace(/^\?/, "");
-    navigate({
+    navigateWithViewTransition(navigate, {
       to: "/booth",
       search: Object.fromEntries(new URLSearchParams(query)),
     });

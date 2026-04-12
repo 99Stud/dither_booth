@@ -2,13 +2,20 @@ import { getNextSyncValue } from "#app/Splash/internal/SplashHud.utils.ts";
 import { SplashHudSignalChart } from "#app/Splash/internal/SplashHudSignalChart.tsx";
 import { SplashHudTerminal } from "#app/Splash/internal/SplashHudTerminal.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
+import { navigateWithViewTransition } from "#lib/navigate-with-view-transition.ts";
 import { cn } from "#lib/utils.ts";
-import { Link } from "@tanstack/react-router";
-import { type FC, useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { type FC, useCallback, useEffect, useState } from "react";
 
 import ditherboothLogo from "../../../assets/ditherbooth_logo.png";
 
 export const Splash: FC = () => {
+  const navigate = useNavigate();
+
+  const goToNames = useCallback(() => {
+    navigateWithViewTransition(navigate, { to: "/names" });
+  }, [navigate]);
+
   const [reduceMotion, setReduceMotion] = useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -149,15 +156,16 @@ export const Splash: FC = () => {
           </div>
 
           <div className="flex w-full max-w-md flex-col items-center gap-5">
-            <Link
-              to="/names"
+            <button
+              type="button"
               className={cn(
                 buttonVariants({ variant: "hud", size: "touch" }),
-                "hud-cta-pulse w-full max-w-sm justify-center no-underline",
+                "hud-cta-pulse w-full max-w-sm justify-center",
               )}
+              onClick={goToNames}
             >
               Commencer l'expérience
-            </Link>
+            </button>
           </div>
         </div>
       </div>

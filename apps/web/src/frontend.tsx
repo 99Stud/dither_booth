@@ -5,6 +5,7 @@
  * It is included in `src/index.html`.
  */
 
+import { AdminPrint } from "#app/AdminPrint/index.tsx";
 import { Booth } from "#app/Booth/index.tsx";
 import { Names } from "#app/Names/index.tsx";
 import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
@@ -72,6 +73,12 @@ const receiptViewerRoute = createRoute({
   component: ReceiptViewer,
 });
 
+const adminPrintRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/print",
+  component: AdminPrint,
+});
+
 const sandboxRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sandbox",
@@ -83,6 +90,7 @@ const routeTree = rootRoute.addChildren([
   namesRoute,
   boothRoute,
   receiptViewerRoute,
+  adminPrintRoute,
   sandboxRoute,
 ]);
 

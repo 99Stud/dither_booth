@@ -45,7 +45,6 @@ export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValu
     threshold: 128,
   };
 
-export const AUTOSAVE_DEBOUNCE_MS = 500;
 export const PRINT_CONFIGURATION_PANEL_LOG_SOURCE = "web.print-configuration";
 
 type PersistedPrintConfiguration = Omit<
