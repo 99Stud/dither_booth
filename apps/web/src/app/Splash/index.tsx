@@ -1,5 +1,4 @@
 import { getNextSyncValue } from "#app/Splash/internal/SplashHud.utils.ts";
-import { SplashHudSignalChart } from "#app/Splash/internal/SplashHudSignalChart.tsx";
 import { SplashHudTerminal } from "#app/Splash/internal/SplashHudTerminal.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
 import { navigateWithViewTransition } from "#lib/navigate-with-view-transition.ts";
@@ -77,13 +76,6 @@ export const Splash: FC = () => {
 
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 bottom-0 h-[min(26vh,220px)] mask-[linear-gradient(to_bottom,transparent_0%,oklch(0_0_0)_38%)] opacity-[0.28]"
-      >
-        <SplashHudSignalChart reduceMotion={reduceMotion} />
-      </div>
-
-      <div
-        aria-hidden
         className="pointer-events-none fixed top-0 right-0 left-0 h-px bg-linear-to-r from-transparent via-primary/60 to-transparent hud-splash-rail-animate"
       />
       <div
@@ -149,9 +141,6 @@ export const Splash: FC = () => {
                 className="hud-splash-logo-animate mx-auto mt-6 w-full max-w-md object-contain"
                 draggable={false}
               />
-              <p className="hud-text-glow-orange-soft mt-5 text-center font-mono text-[10px] leading-relaxed tracking-wide text-muted-foreground sm:text-xs">
-                Image pipeline nominal · Awaiting pilot
-              </p>
             </div>
           </div>
 
