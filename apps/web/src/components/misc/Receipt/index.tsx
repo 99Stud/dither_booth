@@ -28,7 +28,12 @@ export const Receipt: FC<ReceiptProps> = (props) => {
   return (
     <div
       id="receipt"
-      className={cn("flex flex-col gap-4", "bg-background", className)}
+      className={cn(
+        "flex flex-col gap-4",
+        "bg-white text-black",
+        "[&_svg]:text-black",
+        className,
+      )}
       style={{ width: mmToPx(80) + "px" }}
     >
       <img
