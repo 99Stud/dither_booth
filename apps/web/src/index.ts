@@ -6,6 +6,9 @@ import { WEB_SERVER_LOG_SOURCE } from "./constants";
 import index from "./index.html";
 import { TRPC_PROXY_PATH } from "./lib/trpc/trpc.constants";
 
+const manifestFile = Bun.file(new URL("./manifest.webmanifest", import.meta.url));
+const kioskLogoFile = Bun.file(new URL("../assets/ditherbooth_logo.png", import.meta.url));
+
 const apiOrigin = `http://127.0.0.1:${getPort("API_PORT")}`;
 
 async function proxyApiRequest(req: Request) {
@@ -30,6 +33,14 @@ const server = serve({
   routes: {
     [TRPC_PROXY_PATH]: proxyApiRequest,
     [`${TRPC_PROXY_PATH}/*`]: proxyApiRequest,
+    "/manifest.webmanifest": () =>
+      new Response(manifestFile, {
+        headers: { "Content-Type": "application/manifest+json" },
+      }),
+    "/ditherbooth_logo.png": () =>
+      new Response(kioskLogoFile, {
+        headers: { "Content-Type": "image/png" },
+      }),
     // Serve index.html for all unmatched routes.
     "/*": index,
   },

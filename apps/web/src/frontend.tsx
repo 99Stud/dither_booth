@@ -37,6 +37,18 @@ import { Sandbox } from "./app/Sandbox";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
+const WEB_APP_MANIFEST_HREF = "/manifest.webmanifest";
+
+if (typeof document !== "undefined") {
+  let link = document.querySelector('link[rel="manifest"]');
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "manifest";
+    document.head.appendChild(link);
+  }
+  (link as HTMLLinkElement).href = WEB_APP_MANIFEST_HREF;
+}
+
 initializeBrowserLogging();
 
 const rootRoute = createRootRoute({

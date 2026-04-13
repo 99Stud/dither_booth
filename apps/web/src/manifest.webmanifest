@@ -1,0 +1,19 @@
+{
+  "name": "Dither Booth",
+  "short_name": "Dither Booth",
+  "description": "Dither Booth kiosk",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0a0c12",
+  "theme_color": "#0a0c12",
+  "icons": [
+    {
+      "src": "/ditherbooth_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

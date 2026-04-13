@@ -1,6 +1,8 @@
 import { getNextSyncValue } from "#app/Splash/internal/SplashHud.utils.ts";
 import { SplashHudTerminal } from "#app/Splash/internal/SplashHudTerminal.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
+import { HudBackground } from "#components/backgrounds/HudBackground/HudBackground.tsx";
+import { requestKioskFullscreen } from "#lib/kiosk-fullscreen.ts";
 import { navigateWithViewTransition } from "#lib/navigate-with-view-transition.ts";
 import { cn } from "#lib/utils.ts";
 import { useNavigate } from "@tanstack/react-router";
@@ -11,7 +13,8 @@ import ditherboothLogo from "../../../assets/ditherbooth_logo.png";
 export const Splash: FC = () => {
   const navigate = useNavigate();
 
-  const goToNames = useCallback(() => {
+  const goToNames = useCallback(async () => {
+    await requestKioskFullscreen();
     navigateWithViewTransition(navigate, { to: "/names" });
   }, [navigate]);
 
@@ -60,45 +63,8 @@ export const Splash: FC = () => {
   }, [reduceMotion]);
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 hud-grid-bg hud-splash-grid-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 hud-cyan-columns hud-splash-cyan-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 hud-scanlines hud-splash-scan-animate"
-      />
-
-      <div
-        aria-hidden
-        className="pointer-events-none fixed top-0 right-0 left-0 h-px bg-linear-to-r from-transparent via-primary/60 to-transparent hud-splash-rail-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed right-0 bottom-0 left-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent hud-splash-rail-animate"
-      />
-
-      <div
-        aria-hidden
-        className="pointer-events-none fixed top-6 left-6 size-12 border-l-2 border-t-2 border-primary/70 hud-splash-bracket-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed top-6 right-6 size-12 border-r-2 border-t-2 border-primary/70 hud-splash-bracket-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed bottom-6 left-6 size-12 border-b-2 border-l-2 border-primary/70 hud-splash-bracket-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed right-6 bottom-6 size-12 border-b-2 border-r-2 border-primary/70 hud-splash-bracket-animate"
-      />
+    <div className="relative flex min-h-dvh touch-none flex-col overflow-hidden overscroll-none bg-background text-foreground">
+      <HudBackground />
 
       <div className="relative z-10 flex min-h-dvh flex-col px-[max(1.25rem,calc(1.5rem+3rem+0.75rem))] pb-14 pt-12 sm:pt-14">
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,22rem)_1fr]">
@@ -120,42 +86,34 @@ export const Splash: FC = () => {
           </header>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-10 py-8">
-          <div className="relative w-full max-w-[min(100%,720px)]">
-            <div
-              aria-hidden
-              className="absolute inset-0 -m-3 border border-primary/25 hud-splash-frame-outer-animate"
-            />
-            <div aria-hidden className="absolute inset-0 -m-1.5 border border-primary/45" />
-            <div className="relative border-2 border-primary/55 bg-black/40 p-6 sm:p-10">
-              <div className="mb-4 flex items-center justify-between gap-2 font-mono text-[9px] text-primary uppercase sm:text-[10px]">
-                <span className="hud-text-glow-orange tracking-widest">Display</span>
-                <span className="hud-text-glow-orange tabular-nums tracking-wider">
-                  SYNC {syncPct.toFixed(1)}%
-                </span>
-              </div>
-
-              <img
-                src={ditherboothLogo}
-                alt="Dither Booth"
-                className="hud-splash-logo-animate mx-auto mt-6 w-full max-w-md object-contain"
-                draggable={false}
-              />
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-12 py-8 sm:gap-14">
+          <div className="flex flex-col items-center gap-6 sm:gap-8">
+            <div className="flex items-center gap-3 font-mono text-[9px] text-primary uppercase sm:text-[10px]">
+              <span className="hud-text-glow-orange tracking-widest">Display</span>
+              <span className="hud-text-glow-orange-soft text-primary/40">·</span>
+              <span className="hud-text-glow-orange tabular-nums tracking-wider">
+                SYNC {syncPct.toFixed(1)}%
+              </span>
             </div>
+
+            <img
+              src={ditherboothLogo}
+              alt="Dither Booth"
+              className="hud-splash-logo-animate w-full max-w-xs object-contain sm:max-w-md"
+              draggable={false}
+            />
           </div>
 
-          <div className="flex w-full max-w-md flex-col items-center gap-5">
-            <button
-              type="button"
-              className={cn(
-                buttonVariants({ variant: "hud", size: "touch" }),
-                "hud-cta-pulse w-full max-w-sm justify-center",
-              )}
-              onClick={goToNames}
-            >
-              Commencer l'expérience
-            </button>
-          </div>
+          <button
+            type="button"
+            className={cn(
+              buttonVariants({ variant: "hud", size: "touch" }),
+              "hud-cta-pulse w-full max-w-sm justify-center",
+            )}
+            onClick={goToNames}
+          >
+            Commencer l'expérience
+          </button>
         </div>
       </div>
     </div>
