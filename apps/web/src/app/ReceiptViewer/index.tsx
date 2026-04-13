@@ -10,7 +10,7 @@ export const ReceiptViewer: FC = () => {
   const namesValidation = validateTicketNames(names);
 
   return (
-    <div className="min-h-dvh bg-black p-4">
+    <div className="min-h-dvh bg-zinc-100 p-4 text-black">
       <Receipt
         className="mx-auto"
         names={namesValidation.ok && names.length > 0 ? names : undefined}

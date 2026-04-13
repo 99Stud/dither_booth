@@ -1,7 +1,7 @@
 import { getNextSyncValue } from "#app/Splash/internal/SplashHud.utils.ts";
 import { SplashHudTerminal } from "#app/Splash/internal/SplashHudTerminal.tsx";
-import { buttonVariants } from "#components/ui/button.tsx";
 import { HudBackground } from "#components/backgrounds/HudBackground/HudBackground.tsx";
+import { buttonVariants } from "#components/ui/button.tsx";
 import { requestKioskFullscreen } from "#lib/kiosk-fullscreen.ts";
 import { navigateWithViewTransition } from "#lib/navigate-with-view-transition.ts";
 import { cn } from "#lib/utils.ts";

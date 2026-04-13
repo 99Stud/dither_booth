@@ -68,11 +68,11 @@ export const HudBackground: FC = () => {
 
       <div
         aria-hidden
-        className="pointer-events-none fixed top-6 left-6 size-12 border-l-2 border-t-2 border-primary/70 hud-splash-bracket-animate"
+        className="pointer-events-none fixed top-8 left-6 size-12 border-l-2 border-t-2 border-primary/70 hud-splash-bracket-animate"
       />
       <div
         aria-hidden
-        className="pointer-events-none fixed top-6 right-6 size-12 border-r-2 border-t-2 border-primary/70 hud-splash-bracket-animate"
+        className="pointer-events-none fixed top-8 right-6 size-12 border-r-2 border-t-2 border-primary/70 hud-splash-bracket-animate"
       />
       <div
         aria-hidden

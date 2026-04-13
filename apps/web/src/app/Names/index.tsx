@@ -299,19 +299,6 @@ export const Names: FC = () => {
                   {error}
                 </p>
               )}
-
-              <div className="border-t border-primary/25 pt-3 sm:pt-4 [@media(max-height:720px)]:pt-2.5">
-                <button
-                  type="button"
-                  className={cn(
-                    buttonVariants({ variant: "hud", size: "touch" }),
-                    "hud-cta-pulse w-full min-h-14 justify-center text-base sm:min-h-17 sm:text-lg [@media(max-height:720px)]:min-h-12 [@media(max-height:720px)]:text-[15px]",
-                  )}
-                  onClick={submit}
-                >
-                  Continuer
-                </button>
-              </div>
             </section>
           </div>
         </div>
@@ -320,6 +307,7 @@ export const Names: FC = () => {
       <NamesHudKeyboard
         activeFieldLabel={activeFieldLabel}
         onBackspace={backspace}
+        onContinue={submit}
         onKeyPress={insertCharacter}
       />
     </div>
