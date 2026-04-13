@@ -1,8 +1,4 @@
-import {
-  type CameraState,
-  type CapturePhotoOptions,
-  useUserMedia,
-} from "#lib/hooks/user-media/index.ts";
+import { type CameraState, useUserMedia } from "#lib/hooks/user-media/index.ts";
 import { cn } from "#lib/utils.ts";
 import { format } from "date-fns";
 import {
@@ -13,22 +9,26 @@ import {
   useRef,
 } from "react";
 
+import type { WebcamHandle } from "./internal/Webcam.types.ts";
+
 export type { CameraState };
 export type { CameraStatus } from "#lib/hooks/user-media/index.ts";
-
-export interface WebcamHandle {
-  cameraState: CameraState;
-  takePhoto: (photoSettings?: CapturePhotoOptions) => Promise<Blob>;
-}
-
-const isDevelopment = process.env.NODE_ENV !== "production";
+export type { WebcamHandle };
 
 export const Webcam: FC<{
   className?: string;
   onCameraStateChange?: (state: CameraState) => void;
   ref?: Ref<WebcamHandle>;
+  showDebugInfo?: boolean;
+  showPreview?: boolean;
 }> = (props) => {
-  const { className, onCameraStateChange, ref } = props;
+  const {
+    className,
+    onCameraStateChange,
+    ref,
+    showDebugInfo = false,
+    showPreview = true,
+  } = props;
   const videoRef = useRef<HTMLVideoElement>(null);
   const onCameraStateChangeRef = useRef(onCameraStateChange);
   onCameraStateChangeRef.current = onCameraStateChange;
@@ -55,8 +55,8 @@ export const Webcam: FC<{
 
   return (
     <>
-      {isDevelopment && (
-        <div className="fixed top-8 left-8 z-50 flex max-w-[min(90vw,22rem)] flex-col gap-1 text-left text-sm text-white">
+      {showDebugInfo && (
+        <div className="fixed top-8 right-8 z-50 flex max-w-[min(90vw,22rem)] flex-col gap-1 text-left text-sm text-white">
           Camera status: {cameraState.status}
           {cameraState.error && <p>Error: {cameraState.error}</p>}
           <p>Is secure context: {String(cameraState.isSecureContext)}</p>
@@ -70,7 +70,11 @@ export const Webcam: FC<{
       )}
       <video
         ref={videoRef}
-        className={cn(className)}
+        className={cn(
+          className,
+          "origin-center -scale-x-100",
+          !showPreview && "hidden",
+        )}
         autoPlay
         playsInline
         muted

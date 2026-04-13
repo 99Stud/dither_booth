@@ -1,3 +1,5 @@
+export const PRINT_CONFIGURATION_LOG_SOURCE = "web.print-configuration";
+
 import type {
   SelectFieldOption,
   SelectFieldValue,
@@ -8,7 +10,7 @@ import z from "zod";
 import type {
   PrintConfigurationFormValues,
   SliderFieldConfig,
-} from "./PrintConfigurationPanel.types";
+} from "./PrintConfiguratio.types";
 
 export const DITHER_MODE_CODE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 export const DITHER_MODE_CODE_SCHEMA = z.literal(DITHER_MODE_CODE_OPTIONS);
@@ -45,6 +47,7 @@ export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValu
     threshold: 128,
   };
 
+export const PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS = 500;
 export const PRINT_CONFIGURATION_PANEL_LOG_SOURCE = "web.print-configuration";
 
 type PersistedPrintConfiguration = Omit<

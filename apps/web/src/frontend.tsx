@@ -5,108 +5,35 @@
  * It is included in `src/index.html`.
  */
 
-import { AdminPrint } from "#app/AdminPrint/index.tsx";
-import { Booth } from "#app/Booth/index.tsx";
-import { Names } from "#app/Names/index.tsx";
-import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
-import {
-  RootErrorBoundary,
-  RootErrorScreen,
-  RootNotFoundScreen,
-} from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
-import { Splash } from "#app/Splash/index.tsx";
+import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
 import { Toaster } from "#components/ui/sonner.tsx";
+import { router } from "#lib/router/index.tsx";
 import { queryClient, trpcClient } from "#lib/trpc/trpc.client.ts";
 import { TRPCProvider } from "#lib/trpc/trpc.utils.ts";
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import { QueryClientProvider } from "@tanstack/react-query";
-import {
-  createRootRoute,
-  createRoute,
-  createRouter,
-  Outlet,
-  RouterProvider,
-} from "@tanstack/react-router";
+import { RouterProvider } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
-import { Sandbox } from "./app/Sandbox";
-
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 const WEB_APP_MANIFEST_HREF = "/manifest.webmanifest";
 
 if (typeof document !== "undefined") {
-  let link = document.querySelector('link[rel="manifest"]');
+  let link: HTMLLinkElement | null = document.querySelector('link[rel="manifest"]');
   if (!link) {
     link = document.createElement("link");
     link.rel = "manifest";
     document.head.appendChild(link);
   }
-  (link as HTMLLinkElement).href = WEB_APP_MANIFEST_HREF;
+  link.href = WEB_APP_MANIFEST_HREF;
 }
 
 initializeBrowserLogging();
-
-const rootRoute = createRootRoute({
-  component: () => (
-    <NuqsAdapter>
-      <Outlet />
-    </NuqsAdapter>
-  ),
-  errorComponent: ({ error }) => <RootErrorScreen error={error} />,
-  notFoundComponent: RootNotFoundScreen,
-});
-
-const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: Splash,
-});
-
-const namesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/names",
-  component: Names,
-});
-
-const boothRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/booth",
-  component: Booth,
-});
-
-const receiptViewerRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/receipt-viewer",
-  component: ReceiptViewer,
-});
-
-const adminPrintRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/admin/print",
-  component: AdminPrint,
-});
-
-const sandboxRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/sandbox",
-  component: Sandbox,
-});
-
-const routeTree = rootRoute.addChildren([
-  indexRoute,
-  namesRoute,
-  boothRoute,
-  receiptViewerRoute,
-  adminPrintRoute,
-  sandboxRoute,
-]);
-
-const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -132,7 +59,9 @@ const app = (
         <QueryClientProvider client={queryClient}>
           <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
             <Toaster />
-            <RouterProvider router={router} />
+            <NuqsAdapter>
+              <RouterProvider router={router} />
+            </NuqsAdapter>
             {isDevelopment && <TanStackRouterDevtools router={router} />}
           </TRPCProvider>
         </QueryClientProvider>

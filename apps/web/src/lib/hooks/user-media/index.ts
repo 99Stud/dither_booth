@@ -309,7 +309,8 @@ export const useUserMedia = (params: {
       diagnosticError?: unknown,
     ) => {
       cameraStateDiagnosticErrorRef.current = diagnosticError;
-      setCameraState(createCameraState(status, error));
+      const nextCameraState = createCameraState(status, error);
+      setCameraState(nextCameraState);
     },
     [],
   );

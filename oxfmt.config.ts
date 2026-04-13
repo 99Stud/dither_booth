@@ -17,4 +17,11 @@ export default defineConfig({
     stylesheet: "./apps/web/src/styles/globals.css",
     functions: ["clsx", "cn"],
   },
+  ignorePatterns: [
+    ".agents/**",
+    ".cursor/**",
+    "AGENTS.md",
+    "skills-lock.json",
+    "bun.lock",
+  ],
 });
