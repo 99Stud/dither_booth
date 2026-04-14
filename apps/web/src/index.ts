@@ -1,15 +1,33 @@
+import { WEB_SERVER_LOG_SOURCE } from "#lib/constants.ts";
+import { WEB_REPO_ROOT } from "#lib/server-constants.ts";
+import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants.ts";
 import { logKioskEvent } from "@dither-booth/logging";
-import { getPort } from "@dither-booth/ports";
+import {
+  getApiInternalOrigin,
+  getPort,
+  getWebBindHost,
+  getWebOrigin,
+  getWebTlsCertPath,
+  getWebTlsKeyPath,
+} from "@dither-booth/ports";
 import { serve } from "bun";
+import { existsSync } from "node:fs";
 import { posix } from "node:path";
 
-import { WEB_SERVER_LOG_SOURCE } from "./constants";
 import index from "./index.html";
-import { TRPC_PROXY_PATH } from "./lib/trpc/trpc.constants";
 
-const apiOrigin = `http://127.0.0.1:${getPort("API_PORT")}`;
+const apiOrigin = getApiInternalOrigin();
 const publicDirectory = new URL("../public/", import.meta.url);
 const PUBLIC_ROUTE_PREFIX = "/public/";
+const tlsCertPath = getWebTlsCertPath({ repoRoot: WEB_REPO_ROOT });
+const tlsKeyPath = getWebTlsKeyPath({ repoRoot: WEB_REPO_ROOT });
+const webOrigin = getWebOrigin({ repoRoot: WEB_REPO_ROOT });
+
+if (!existsSync(tlsCertPath) || !existsSync(tlsKeyPath)) {
+  throw new Error(
+    `Missing local TLS certificate. Run "bun run --filter @dither-booth/api cert:generate <LAN_IP>" to create ${tlsCertPath} and ${tlsKeyPath}.`,
+  );
+}
 
 async function proxyApiRequest(req: Request) {
   const url = new URL(req.url);
@@ -50,9 +68,13 @@ function servePublicFile(req: Request) {
   }
 }
 
-const server = serve({
-  hostname: process.env.MAKE_LOCALLY_ACCESSIBLE ? "0.0.0.0" : "localhost",
+serve({
+  hostname: getWebBindHost(),
   port: getPort("WEB_PORT"),
+  tls: {
+    cert: Bun.file(tlsCertPath),
+    key: Bun.file(tlsKeyPath),
+  },
   routes: {
     // Proxy API requests to the API server (Bypass CORS).
     [TRPC_PROXY_PATH]: proxyApiRequest,
@@ -75,6 +97,6 @@ const server = serve({
 logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-started", {
   details: {
     environment: process.env.NODE_ENV,
-    url: server.url.toString(),
+    url: webOrigin,
   },
 });

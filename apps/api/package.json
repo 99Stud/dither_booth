@@ -12,6 +12,9 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
+    "cert:generate": "bun scripts/generate-local-cert.ts",
+    "cert:clean": "bun scripts/clean-local-cert.ts",
+    "cert:caroot": "mkcert -CAROOT",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/db/db.migrate.ts",
     "lint": "oxlint",

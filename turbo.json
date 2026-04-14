@@ -5,7 +5,14 @@
     "start": {
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["MAKE_LOCALLY_ACCESSIBLE", "NODE_ENV"]
+      "passThroughEnv": [
+        "API_BIND_HOST",
+        "NODE_ENV",
+        "WEB_BIND_HOST",
+        "WEB_PUBLIC_IP",
+        "WEB_TLS_CERT_PATH",
+        "WEB_TLS_KEY_PATH"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -16,7 +23,14 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["MAKE_LOCALLY_ACCESSIBLE", "NODE_ENV"]
+      "passThroughEnv": [
+        "API_BIND_HOST",
+        "NODE_ENV",
+        "WEB_BIND_HOST",
+        "WEB_PUBLIC_IP",
+        "WEB_TLS_CERT_PATH",
+        "WEB_TLS_KEY_PATH"
+      ]
     }
   }
 }

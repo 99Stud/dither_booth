@@ -4,20 +4,26 @@ import {
   renderDitheredToPng,
 } from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
 import { publicProcedure } from "#internal/trpc.ts";
-import { getPort } from "@dither-booth/ports";
+import { API_REPO_ROOT } from "#lib/constants.ts";
+import { getWebOrigin } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 
-const receiptViewerUrl = new URL(
-  "/receipt-viewer",
-  `http://localhost:${getPort("WEB_PORT")}`,
-).toString();
-
 export const generateReceipt = publicProcedure
   .input(octetInputParser)
   .mutation(async ({ ctx, input }) => {
+    const webOrigin = getWebOrigin({ repoRoot: API_REPO_ROOT });
+
+    if (!webOrigin) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Web origin not found.",
+      });
+    }
+    const receiptViewerUrl = new URL("/receipt-viewer", webOrigin).toString();
+
     const inputBuffer = Buffer.from(await new Response(input).arrayBuffer());
 
     if (inputBuffer.byteLength === 0) {
