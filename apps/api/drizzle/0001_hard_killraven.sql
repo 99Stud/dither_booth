@@ -1,0 +1,1 @@
+ALTER TABLE `print_debug_config` ADD `names_entry_enabled` integer DEFAULT 0 NOT NULL;

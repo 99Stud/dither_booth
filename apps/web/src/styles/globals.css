@@ -405,38 +405,3 @@
     }
   }
 }
-
-/* View Transitions */
-@keyframes vt-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes vt-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-::view-transition-old(root) {
-  animation: vt-fade-out 220ms ease-out both;
-}
-
-::view-transition-new(root) {
-  animation: vt-fade-in 220ms ease-in both;
-  animation-delay: 80ms;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none !important;
-  }
-}

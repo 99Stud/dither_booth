@@ -36,6 +36,7 @@ export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   contrast: z.number().min(0).max(3),
   gamma: z.number().min(1).max(3),
   threshold: z.number().int().min(0).max(255),
+  namesEntryEnabled: z.boolean(),
 });
 
 export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValues =
@@ -45,6 +46,7 @@ export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValu
     contrast: 1,
     gamma: 1,
     threshold: 128,
+    namesEntryEnabled: false,
   };
 
 export const PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS = 500;
@@ -71,6 +73,7 @@ export const getPrintConfigurationFormValues = (
     contrast: ditherConfiguration.contrast,
     gamma: ditherConfiguration.gamma,
     threshold: ditherConfiguration.threshold,
+    namesEntryEnabled: ditherConfiguration.namesEntryEnabled ?? false,
   };
 };
 

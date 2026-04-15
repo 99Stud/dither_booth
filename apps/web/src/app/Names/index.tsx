@@ -1,19 +1,21 @@
 import { NamesHudKeyboard } from "#app/Names/internal/NamesHudKeyboard.tsx";
-import { HudBackground } from "#components/backgrounds/HudBackground/HudBackground.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
+import { Spinner } from "#components/ui/spinner.tsx";
 import { useElementHeight } from "#lib/hooks/use-element-height.ts";
-import { navigateWithViewTransition } from "#lib/navigate-with-view-transition.ts";
 import {
+  DEFAULT_BOOTH_TICKET_DISPLAY_NAMES,
   MAX_TICKET_NAME_LENGTH,
   MAX_TICKET_NAMES,
   normalizeTicketNames,
   sanitizeTicketNameInput,
-  serializeTicketSearch,
+  ticketNamesToBoothSearchRecord,
 } from "#lib/ticket-names.ts";
+import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn } from "#lib/utils.ts";
 import { validateTicketNames } from "@dither-booth/moderation";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { type FC, useMemo, useRef, useState } from "react";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
 
 type NameRow = {
   id: number;
@@ -24,6 +26,25 @@ const NAMES_KEYBOARD_ELEMENT_ID = "names-hud-keyboard";
 
 export const Names: FC = () => {
   const navigate = useNavigate();
+  const trpc = useTRPC();
+  const { data: printConfig, isLoading: isLoadingPrintConfig } = useQuery(
+    trpc.getDitherConfiguration.queryOptions(),
+  );
+
+  useEffect(() => {
+    if (isLoadingPrintConfig) {
+      return;
+    }
+    if (printConfig?.namesEntryEnabled !== true) {
+      void navigate({
+        to: "/booth",
+        search: ticketNamesToBoothSearchRecord([
+          ...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES,
+        ]),
+      });
+    }
+  }, [isLoadingPrintConfig, printConfig, navigate]);
+
   const keyboardStackPx = useElementHeight(NAMES_KEYBOARD_ELEMENT_ID, 280);
   const nextIdRef = useRef(1);
   const [rows, setRows] = useState<NameRow[]>([{ id: 0, value: "" }]);
@@ -102,10 +123,9 @@ export const Names: FC = () => {
       return;
     }
 
-    const query = serializeTicketSearch({ ticket: names }).replace(/^\?/, "");
-    navigateWithViewTransition(navigate, {
+    void navigate({
       to: "/booth",
-      search: Object.fromEntries(new URLSearchParams(query)),
+      search: ticketNamesToBoothSearchRecord(names),
     });
   };
 
@@ -133,10 +153,18 @@ export const Names: FC = () => {
 
   const contentBottomPad = keyboardStackPx + 12;
 
-  return (
-    <div className="relative flex h-dvh min-h-dvh touch-none flex-col overflow-hidden overscroll-none bg-background text-foreground">
-      <HudBackground />
+  if (isLoadingPrintConfig || printConfig?.namesEntryEnabled !== true) {
+    return (
+      <div className="relative flex h-dvh min-h-dvh touch-none flex-col overflow-hidden overscroll-none text-foreground">
+        <div className="relative z-10 flex flex-1 items-center justify-center">
+          <Spinner className="size-10 text-primary" />
+        </div>
+      </div>
+    );
+  }
 
+  return (
+    <div className="relative flex h-dvh min-h-dvh touch-none flex-col overflow-hidden overscroll-none text-foreground">
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <div
           className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col overflow-y-auto overscroll-contain px-[max(1.25rem,calc(1rem+2.5rem))] py-6 sm:max-w-3xl sm:px-10 sm:py-8 [@media(max-height:720px)]:py-4"

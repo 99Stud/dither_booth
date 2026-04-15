@@ -15,6 +15,7 @@ import { useCallback, useMemo, useRef, useState, type FC } from "react";
 
 import type { PrintConfigurationFormValues } from "./internal/PrintConfiguratio.types";
 
+import { NamesEntryEnabledControl } from "./internal/NamesEntryEnabledControl.tsx";
 import {
   PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS,
   getPrintConfigurationFormValues,
@@ -243,6 +244,18 @@ export const PrintConfiguration = () => {
           options={DITHER_MODE_CODE_FIELD_OPTIONS}
           disabled={isSelectFieldDisabled}
         />
+        <form.Field name="namesEntryEnabled">
+          {(field) => (
+            <NamesEntryEnabledControl
+              inputId={field.name}
+              checked={field.state.value}
+              onCheckedChange={(v) => {
+                field.handleChange(v);
+              }}
+              disabled={isPersistingDitherConfiguration}
+            />
+          )}
+        </form.Field>
         {SLIDER_FIELD_CONFIGS.map((sliderField) => (
           <SliderField
             key={sliderField.name}

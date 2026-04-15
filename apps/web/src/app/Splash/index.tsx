@@ -1,10 +1,14 @@
 import { getNextSyncValue } from "#app/Splash/internal/SplashHud.utils.ts";
 import { SplashHudTerminal } from "#app/Splash/internal/SplashHudTerminal.tsx";
-import { HudBackground } from "#components/backgrounds/HudBackground/HudBackground.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
 import { requestKioskFullscreen } from "#lib/kiosk-fullscreen.ts";
-import { navigateWithViewTransition } from "#lib/navigate-with-view-transition.ts";
+import {
+  DEFAULT_BOOTH_TICKET_DISPLAY_NAMES,
+  ticketNamesToBoothSearchRecord,
+} from "#lib/ticket-names.ts";
+import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn } from "#lib/utils.ts";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type FC, useCallback, useEffect, useState } from "react";
 
@@ -12,11 +16,26 @@ import ditherboothLogo from "../../../assets/ditherbooth_logo.png";
 
 export const Splash: FC = () => {
   const navigate = useNavigate();
+  const trpc = useTRPC();
+  const { data: printConfig, isLoading: isLoadingPrintConfig } = useQuery(
+    trpc.getDitherConfiguration.queryOptions(),
+  );
 
-  const goToNames = useCallback(async () => {
+  const goToExperience = useCallback(async () => {
     await requestKioskFullscreen();
-    navigateWithViewTransition(navigate, { to: "/names" });
-  }, [navigate]);
+    requestAnimationFrame(() => {
+      if (printConfig?.namesEntryEnabled === true) {
+        void navigate({ to: "/names" });
+        return;
+      }
+      void navigate({
+        to: "/booth",
+        search: ticketNamesToBoothSearchRecord([
+          ...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES,
+        ]),
+      });
+    });
+  }, [navigate, printConfig]);
 
   const [reduceMotion, setReduceMotion] = useState(() =>
     typeof window !== "undefined"
@@ -63,9 +82,7 @@ export const Splash: FC = () => {
   }, [reduceMotion]);
 
   return (
-    <div className="relative flex min-h-dvh touch-none flex-col overflow-hidden overscroll-none bg-background text-foreground">
-      <HudBackground />
-
+    <div className="relative flex min-h-dvh touch-none flex-col overflow-hidden overscroll-none text-foreground">
       <div className="relative z-10 flex min-h-dvh flex-col px-[max(1.25rem,calc(1.5rem+3rem+0.75rem))] pb-14 pt-12 sm:pt-14">
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,22rem)_1fr]">
           <SplashHudTerminal reduceMotion={reduceMotion} />
@@ -106,11 +123,13 @@ export const Splash: FC = () => {
 
           <button
             type="button"
+            disabled={isLoadingPrintConfig}
             className={cn(
               buttonVariants({ variant: "hud", size: "touch" }),
               "hud-cta-pulse w-full max-w-sm justify-center",
+              isLoadingPrintConfig && "pointer-events-none opacity-50",
             )}
-            onClick={goToNames}
+            onClick={goToExperience}
           >
             Commencer l'expérience
           </button>

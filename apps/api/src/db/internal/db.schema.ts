@@ -12,6 +12,9 @@ export const printConfigTable = sqliteTable(
     contrast: real("contrast").notNull().default(1),
     gamma: real("gamma").notNull().default(1),
     threshold: real("threshold").notNull().default(128),
+    namesEntryEnabled: integer("names_entry_enabled", { mode: "boolean" })
+      .notNull()
+      .default(false),
   },
   (table) => [
     check("print_debug_config_singleton_check", sql`${table.id} = 1`),

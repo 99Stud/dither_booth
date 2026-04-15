@@ -51,6 +51,7 @@ export const ditherPreview = publicProcedure
       ditherModeCode: config.ditherModeCode,
       gamma: config.gamma,
       threshold: config.threshold,
+      namesEntryEnabled: config.namesEntryEnabled,
     };
 
     try {

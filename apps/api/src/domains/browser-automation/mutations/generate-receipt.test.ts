@@ -4,6 +4,10 @@ import { describe, expect, it } from "bun:test";
 import { router } from "#internal/trpc.ts";
 import { generateReceipt } from "./generate-receipt.ts";
 
+/** Minimal valid PNG (1×1) so server-side dithering can run in tests. */
+const VALID_PNG_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
 const createCaller = () => {
   return router({ generateReceipt }).createCaller({
     db: undefined as never,
@@ -27,7 +31,7 @@ describe("generateReceipt", () => {
   it("still requires an initialized page for allowed names", async () => {
     await expect(
       createCaller().generateReceipt({
-        image: "data:image/png;base64,AAAA",
+        image: VALID_PNG_DATA_URL,
         names: ["LEXOS"],
       }),
     ).rejects.toMatchObject({

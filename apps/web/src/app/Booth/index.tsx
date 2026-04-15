@@ -1,31 +1,20 @@
-import {
-  type CameraState,
-  Webcam,
-  type WebcamHandle,
-} from "#components/misc/Webcam/index.tsx";
-import { HudBackground } from "#components/backgrounds/HudBackground/HudBackground.tsx";
+import { type CameraState, Webcam, type WebcamHandle } from "#components/misc/Webcam/index.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
-import { navigateWithViewTransition } from "#lib/navigate-with-view-transition.ts";
 import { normalizeTicketNames, ticketNamesParser } from "#lib/ticket-names.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, cn } from "#lib/utils.ts";
 import { validateTicketNames } from "@dither-booth/moderation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryState } from "nuqs";
 import { type FC, useCallback, useEffect, useRef, useState } from "react";
 
 import { BOOTH_LOG_SOURCE } from "./internal/Booth.constants";
 
-type BoothPhase =
-  | "idle"
-  | "countdown"
-  | "flash"
-  | "processing"
-  | "thank-you";
+type BoothPhase = "idle" | "countdown" | "flash" | "processing" | "thank-you";
 
 const COUNTDOWN_SECONDS = 4;
 const THANK_YOU_DURATION_MS = 6_000;
@@ -45,14 +34,20 @@ export const Booth: FC = () => {
   const canUseTicketNames = ticketNamesValidation.ok;
 
   const trpc = useTRPC();
+  const { data: printConfig } = useQuery(trpc.getDitherConfiguration.queryOptions());
   const generateReceipt = useMutation(trpc.generateReceipt.mutationOptions());
   const printReceipt = useMutation(trpc.print.mutationOptions());
+
+  const showTicketNameHeader =
+    printConfig?.namesEntryEnabled === true &&
+    ticketNames.length > 0 &&
+    phase === "idle";
 
   const isBusy = phase !== "idle";
   const canStart = cameraReady && canUseTicketNames && !isBusy;
 
   const goToSplash = useCallback(() => {
-    navigateWithViewTransition(navigate, { to: "/" });
+    void navigate({ to: "/" });
   }, [navigate]);
 
   const handleCameraStateChange = useCallback((s: CameraState) => {
@@ -121,36 +116,18 @@ export const Booth: FC = () => {
   }, [canStart, startSequence]);
 
   return (
-    <div className="relative flex min-h-dvh touch-none flex-col overflow-x-hidden overscroll-none bg-background text-foreground">
-      <HudBackground />
-
+    <div className="relative flex min-h-dvh touch-none flex-col overflow-x-hidden overscroll-none text-foreground">
       <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(2.75rem,calc(env(safe-area-inset-bottom)+2rem))]">
         <div className="relative mb-8 w-[min(98vw,calc(100dvh-8rem))] shrink-0">
           <div
             className={cn(
               "relative aspect-square w-full overflow-hidden border border-primary/45 bg-background/30 shadow-[0_0_0_1px_oklch(0.85_0.06_48/0.12),0_12px_48px_-12px_oklch(0_0_0/0.55)]",
-              !cameraReady && "border-primary/25",
+              "transition-[border-color,box-shadow] duration-500 ease-out motion-reduce:transition-none",
+              !cameraReady && "border-primary/25 shadow-[0_12px_32px_-16px_oklch(0_0_0/0.35)]",
             )}
           >
-            <div
-              aria-hidden
-              className="pointer-events-none absolute top-2 left-2 z-10 size-7 border-l-2 border-t-2 border-primary/70 sm:top-3 sm:left-3 sm:size-9 hud-splash-bracket-animate"
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute top-2 right-2 z-10 size-7 border-r-2 border-t-2 border-primary/70 sm:top-3 sm:right-3 sm:size-9 hud-splash-bracket-animate"
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute bottom-2 left-2 z-10 size-7 border-b-2 border-l-2 border-primary/70 sm:bottom-3 sm:left-3 sm:size-9 hud-splash-bracket-animate"
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute right-2 bottom-2 z-10 size-7 border-b-2 border-r-2 border-primary/70 sm:bottom-3 sm:right-3 sm:size-9 hud-splash-bracket-animate"
-            />
-
-            {phase === "idle" && ticketNames.length > 0 && (
-              <div className="absolute top-0 right-0 left-0 z-20 border-b border-primary/25 bg-background/70 px-2 py-2 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm sm:px-3 sm:py-2.5">
+            {showTicketNameHeader && (
+              <div className="absolute top-0 right-0 left-0 z-20 animate-in fade-in slide-in-from-top-2 border-b border-primary/25 bg-background/70 px-2 py-2 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm duration-300 ease-out motion-reduce:animate-none sm:px-3 sm:py-2.5">
                 {canUseTicketNames ? (
                   <ul className="flex flex-wrap justify-center gap-x-2 gap-y-1.5 opacity-90 sm:gap-x-2.5">
                     {ticketNames.map((name, i) => (
@@ -173,23 +150,34 @@ export const Booth: FC = () => {
               </div>
             )}
 
-            <Webcam
-              ref={webcamRef}
+            <div
               className={cn(
-                "absolute inset-0 z-0 h-full w-full object-cover",
-                !cameraReady && "invisible",
+                "absolute inset-0 z-0 overflow-hidden",
+                "origin-center transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0",
+                cameraReady ? "scale-100 opacity-100" : "scale-[1.03] opacity-0",
+                phase === "countdown" && cameraReady && "brightness-[0.72]",
               )}
-              onCameraStateChange={handleCameraStateChange}
-            />
+            >
+              <Webcam
+                ref={webcamRef}
+                className="absolute inset-0 h-full w-full object-cover"
+                onCameraStateChange={handleCameraStateChange}
+              />
+            </div>
 
-            {!cameraReady && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/60 backdrop-blur-[2px]">
-                <Spinner className="size-8 text-primary" />
-                <p className="font-mono text-xs tracking-[0.25em] text-primary/70 uppercase">
-                  Initialisation caméra…
-                </p>
-              </div>
-            )}
+            <div
+              aria-hidden={cameraReady}
+              className={cn(
+                "absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/60 backdrop-blur-[2px]",
+                "transition-opacity duration-500 ease-out motion-reduce:transition-none",
+                cameraReady ? "pointer-events-none opacity-0" : "opacity-100",
+              )}
+            >
+              <Spinner className="size-8 text-primary motion-reduce:opacity-90" />
+              <p className="font-mono text-xs tracking-[0.25em] text-primary/70 uppercase">
+                Initialisation caméra…
+              </p>
+            </div>
 
             {phase === "idle" && error && (
               <p
@@ -235,7 +223,10 @@ export const Booth: FC = () => {
 
       {/* Flash overlay */}
       {phase === "flash" && (
-        <div className="fixed inset-0 z-40 animate-out fade-out bg-white pointer-events-none" style={{ animationDuration: "200ms" }} />
+        <div
+          className="fixed inset-0 z-40 animate-out fade-out bg-white pointer-events-none"
+          style={{ animationDuration: "200ms" }}
+        />
       )}
 
       {/* Processing overlay */}

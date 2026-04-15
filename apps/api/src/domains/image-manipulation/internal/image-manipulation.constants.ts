@@ -15,4 +15,5 @@ export const CONFIGURE_DITHER_SCHEMA = z.object({
   contrast: z.number().min(0).max(3).optional().default(1),
   gamma: z.number().min(1).max(3).optional().default(1),
   threshold: z.number().int().min(0).max(255).optional().default(128),
+  namesEntryEnabled: z.boolean().optional().default(false),
 });
