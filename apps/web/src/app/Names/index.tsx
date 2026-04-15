@@ -167,7 +167,7 @@ export const Names: FC = () => {
     <div className="relative flex h-dvh min-h-dvh touch-none flex-col overflow-hidden overscroll-none text-foreground">
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <div
-          className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col overflow-y-auto overscroll-contain px-[max(1.25rem,calc(1rem+2.5rem))] py-6 sm:max-w-3xl sm:px-10 sm:py-8 [@media(max-height:720px)]:py-4"
+          className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col overflow-y-auto overscroll-contain px-[max(1rem,calc(0.75rem+1.75rem+0.5rem))] py-4 sm:max-w-3xl sm:px-7 sm:py-6 [@media(max-height:720px)]:py-3"
           style={{
             paddingBottom: `${contentBottomPad}px`,
           }}
@@ -261,14 +261,6 @@ export const Names: FC = () => {
                 </p>
                 <label className="relative min-w-0 rounded-sm bg-muted/25 px-3 pt-5 pb-1 font-mono sm:px-4 sm:pt-7 [@media(max-height:720px)]:pt-4">
                   <span className="sr-only">Prénom {activeRowIndex + 1}</span>
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute top-3 left-3 h-2 w-2 border-l border-t border-primary/60 sm:left-4"
-                  />
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute top-3 right-3 h-2 w-2 border-r border-t border-primary/60 sm:right-4"
-                  />
                   <input
                     key={activeRowId}
                     type="text"

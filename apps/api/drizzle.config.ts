@@ -1,4 +1,4 @@
-import { defineConfig } from "drizzle-kit";
+^import { defineConfig } from "drizzle-kit";
 
 const dbFileName = process.env.DB_FILE_NAME;
 

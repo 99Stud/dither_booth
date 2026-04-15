@@ -53,10 +53,10 @@ export const Root: FC = () => {
 
   return (
     <div className="relative h-dvh bg-black">
-      <div className="flex h-full items-center justify-center p-4">
+      <div className="flex h-full items-center justify-center p-3">
         <Webcam showDebugInfo showPreview ref={webcamRef} className="h-full" />
       </div>
-      <div className="fixed top-8 left-8 flex flex-col gap-2">
+      <div className="fixed top-6 left-6 flex flex-col gap-2">
         <Button disabled={isGeneratingReceipt} onClick={downloadReceipt}>
           {isGeneratingReceipt ? "Generating receipt..." : "Download Receipt"}
         </Button>

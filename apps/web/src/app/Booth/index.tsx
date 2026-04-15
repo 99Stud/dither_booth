@@ -39,9 +39,7 @@ export const Booth: FC = () => {
   const printReceipt = useMutation(trpc.print.mutationOptions());
 
   const showTicketNameHeader =
-    printConfig?.namesEntryEnabled === true &&
-    ticketNames.length > 0 &&
-    phase === "idle";
+    printConfig?.namesEntryEnabled === true && ticketNames.length > 0 && phase === "idle";
 
   const isBusy = phase !== "idle";
   const canStart = cameraReady && canUseTicketNames && !isBusy;
@@ -117,7 +115,7 @@ export const Booth: FC = () => {
 
   return (
     <div className="relative flex min-h-dvh touch-none flex-col overflow-x-hidden overscroll-none text-foreground">
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(2.75rem,calc(env(safe-area-inset-bottom)+2rem))]">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-[max(0.25rem,env(safe-area-inset-top))] pb-[max(2.75rem,calc(env(safe-area-inset-bottom)+2rem))]">
         <div className="relative mb-8 w-[min(98vw,calc(100dvh-8rem))] shrink-0">
           <div
             className={cn(
@@ -196,7 +194,7 @@ export const Booth: FC = () => {
                 disabled={!canStart}
                 className={cn(
                   buttonVariants({ variant: "hud", size: "touch" }),
-                  "hud-cta-pulse pointer-events-auto w-full max-w-md translate-y-1/2 justify-center text-base shadow-[0_8px_32px_-4px_oklch(0_0_0/0.55)] sm:text-lg",
+                  "hud-cta-pulse pointer-events-auto min-h-24 w-full max-w-sm translate-y-1/2 justify-center py-4 font-bit font-bold text-2xl text-white shadow-[0_8px_32px_-4px_oklch(0_0_0/0.55)]",
                   !canStart && "pointer-events-none opacity-40",
                 )}
                 onClick={startSequence}
@@ -213,7 +211,7 @@ export const Booth: FC = () => {
         <div className="fixed inset-0 z-30 flex items-center justify-center">
           <span
             key={countdown}
-            className="animate-in zoom-in-75 fade-in font-mono text-[min(30vw,180px)] font-bold leading-none text-primary drop-shadow-[0_0_48px_oklch(0.75_0.2_48/0.7)]"
+            className="animate-in zoom-in-75 fade-in font-bit text-[min(30vw,180px)] font-bold leading-none text-white drop-shadow-[0_0_48px_oklch(0.99_0.02_95/0.55)]"
             style={{ animationDuration: "300ms" }}
           >
             {countdown}
@@ -232,8 +230,8 @@ export const Booth: FC = () => {
       {/* Processing overlay */}
       {phase === "processing" && (
         <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-background/70 backdrop-blur-sm">
-          <Spinner className="size-10 text-primary" />
-          <p className="font-mono text-sm tracking-[0.2em] text-primary/80 uppercase">
+          <Spinner className="size-10 text-white" />
+          <p className="font-bit text-lg tracking-[0.2em] text-white uppercase">
             Impression en cours…
           </p>
         </div>

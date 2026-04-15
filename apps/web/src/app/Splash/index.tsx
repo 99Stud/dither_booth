@@ -1,5 +1,6 @@
 import { getNextSyncValue } from "#app/Splash/internal/SplashHud.utils.ts";
 import { SplashHudTerminal } from "#app/Splash/internal/SplashHudTerminal.tsx";
+import { DitherBoothSplashLogo } from "#components/svg/DitherBoothSplashLogo/index.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
 import { requestKioskFullscreen } from "#lib/kiosk-fullscreen.ts";
 import {
@@ -11,8 +12,6 @@ import { cn } from "#lib/utils.ts";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type FC, useCallback, useEffect, useState } from "react";
-
-import ditherboothLogo from "../../../assets/ditherbooth_logo.png";
 
 export const Splash: FC = () => {
   const navigate = useNavigate();
@@ -30,9 +29,7 @@ export const Splash: FC = () => {
       }
       void navigate({
         to: "/booth",
-        search: ticketNamesToBoothSearchRecord([
-          ...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES,
-        ]),
+        search: ticketNamesToBoothSearchRecord([...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES]),
       });
     });
   }, [navigate, printConfig]);
@@ -83,19 +80,28 @@ export const Splash: FC = () => {
 
   return (
     <div className="relative flex min-h-dvh touch-none flex-col overflow-hidden overscroll-none text-foreground">
-      <div className="relative z-10 flex min-h-dvh flex-col px-[max(1.25rem,calc(1.5rem+3rem+0.75rem))] pb-14 pt-12 sm:pt-14">
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,22rem)_1fr]">
-          <SplashHudTerminal reduceMotion={reduceMotion} />
+      <div className="relative z-10 flex min-h-dvh flex-col px-[max(1rem,calc(1.125rem+2.25rem+0.75rem))] pb-12 pt-8 sm:pt-10">
+        <div className="grid items-start gap-6 md:grid-cols-[minmax(0,22rem)_1fr] md:gap-8 lg:gap-10">
+          <div className="flex min-w-0 flex-col gap-4">
+            <div className="font-bit flex items-end justify-between gap-4 text-white text-2xl">
+              <span className="leading-none tracking-[0.04em] uppercase text-base">Display</span>
+              <span className="leading-none tabular-nums tracking-[0.02em] text-base">
+                {syncPct.toFixed(1)}
+                <span className="text-[0.62em] align-top">%</span>
+              </span>
+            </div>
 
-          <header className="font-heading flex min-w-0 shrink-0 flex-col gap-1 text-[10px] tracking-[0.28em] uppercase lg:items-end lg:text-right sm:text-[11px]">
-            <span className="hud-text-glow-orange-soft wrap-break-word text-muted-foreground">
-              Imaging subsystem // Photo unit
-            </span>
-            <span className="hud-text-glow-orange wrap-break-word text-primary">
-              DITHER-BOOTH · STANDBY
+            <DitherBoothSplashLogo className="hud-splash-logo-animate max-w-[min(100%,15rem)]" />
+
+            <SplashHudTerminal reduceMotion={reduceMotion} />
+          </div>
+
+          <header className="font-bit flex min-w-0 shrink-0 flex-col text-white md:items-end md:text-right">
+            <span className="wrap-break-word text-base font-bold leading-tight tracking-widest uppercase">
+              DITHERBOOTH STANDBY
               <span
                 aria-hidden
-                className="hud-cursor-blink ml-0.5 inline-block align-baseline font-mono text-[0.85em]"
+                className="hud-cursor-blink ml-1 inline-block align-baseline text-[0.85em] opacity-90"
               >
                 ▍
               </span>
@@ -103,30 +109,13 @@ export const Splash: FC = () => {
           </header>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-12 py-8 sm:gap-14">
-          <div className="flex flex-col items-center gap-6 sm:gap-8">
-            <div className="flex items-center gap-3 font-mono text-[9px] text-primary uppercase sm:text-[10px]">
-              <span className="hud-text-glow-orange tracking-widest">Display</span>
-              <span className="hud-text-glow-orange-soft text-primary/40">·</span>
-              <span className="hud-text-glow-orange tabular-nums tracking-wider">
-                SYNC {syncPct.toFixed(1)}%
-              </span>
-            </div>
-
-            <img
-              src={ditherboothLogo}
-              alt="Dither Booth"
-              className="hud-splash-logo-animate w-full max-w-xs object-contain sm:max-w-md"
-              draggable={false}
-            />
-          </div>
-
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-12 py-6 sm:gap-14 sm:py-8">
           <button
             type="button"
             disabled={isLoadingPrintConfig}
             className={cn(
               buttonVariants({ variant: "hud", size: "touch" }),
-              "hud-cta-pulse w-full max-w-sm justify-center",
+              "hud-cta-pulse min-h-24 w-full max-w-sm justify-center py-4 font-bit font-bold text-white text-2xl px-56",
               isLoadingPrintConfig && "pointer-events-none opacity-50",
             )}
             onClick={goToExperience}

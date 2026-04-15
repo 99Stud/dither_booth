@@ -65,23 +65,6 @@ export const HudBackground: FC = () => {
         aria-hidden
         className="pointer-events-none fixed bottom-0 left-0 z-0 h-px w-lvw bg-linear-to-r from-transparent via-primary/40 to-transparent hud-splash-rail-animate"
       />
-
-      <div
-        aria-hidden
-        className="pointer-events-none fixed top-8 left-6 size-12 border-l-2 border-t-2 border-primary/70 hud-splash-bracket-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed top-8 right-6 size-12 border-r-2 border-t-2 border-primary/70 hud-splash-bracket-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed bottom-6 left-6 size-12 border-b-2 border-l-2 border-primary/70 hud-splash-bracket-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed right-6 bottom-6 size-12 border-b-2 border-r-2 border-primary/70 hud-splash-bracket-animate"
-      />
     </>
   );
 };

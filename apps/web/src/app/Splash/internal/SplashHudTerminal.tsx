@@ -32,7 +32,7 @@ export const SplashHudTerminal: FC<{ reduceMotion: boolean }> = (props) => {
   return (
     <div
       aria-hidden="true"
-      className="border border-primary/40 bg-background/70 px-3 py-3 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm"
+      className="border border-primary/40 px-3 py-3 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm"
     >
       <div className="mb-2 flex items-center justify-between gap-3 border-b border-primary/25 pb-2 font-mono text-[9px] uppercase">
         <span className="hud-text-glow-orange tracking-[0.22em]">99_stud feed</span>

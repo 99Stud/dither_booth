@@ -33,7 +33,7 @@ const reportRootError = (
 
 const RootScreen = ({ description, details, title }: RootScreenProps) => {
   return (
-    <div className="relative flex min-h-dvh items-center justify-center bg-background p-6 text-foreground">
+    <div className="relative flex min-h-dvh items-center justify-center bg-background p-4 text-foreground">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 hud-grid-bg opacity-40"

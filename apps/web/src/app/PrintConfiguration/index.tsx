@@ -212,7 +212,7 @@ export const PrintConfiguration = () => {
   });
 
   return (
-    <div className={clsx("h-dvh", "p-4", "flex gap-4")}>
+    <div className={clsx("h-dvh", "p-3", "flex gap-4")}>
       <div className={clsx("relative", "aspect-square h-full")}>
         {hasTriggeredInitialPreview && (
           <PreviewDisplay isDithering={isDithering} previewSrc={previewSrc} />
@@ -224,7 +224,7 @@ export const PrintConfiguration = () => {
         />
         <Button
           onClick={refreshPreview}
-          className={clsx("absolute z-10", "top-4", "left-4")}
+          className={clsx("absolute z-10", "top-3", "left-3")}
         >
           <CameraIcon className="size-4" />
         </Button>

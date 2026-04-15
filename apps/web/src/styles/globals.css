@@ -23,13 +23,12 @@
 :root {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-bit:
-    "PPNeueBit", "IBM Plex Sans", "Geist Mono", ui-monospace, "SFMono-Regular",
-    Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    "PPNeueBit", "IBM Plex Sans", "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco,
+    Consolas, "Liberation Mono", monospace;
   --font-mono:
-    "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
-  --font-heading:
-    "Orbitron", ui-sans-serif, system-ui, sans-serif;
+    "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  --font-heading: "Orbitron", ui-sans-serif, system-ui, sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -145,15 +144,8 @@
   .hud-grid-bg {
     background-color: var(--background);
     background-image:
-      linear-gradient(
-        oklch(0.7 0.2 48 / 0.06) 1px,
-        transparent 1px
-      ),
-      linear-gradient(
-        90deg,
-        oklch(0.7 0.2 48 / 0.06) 1px,
-        transparent 1px
-      );
+      linear-gradient(oklch(0.7 0.2 48 / 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.7 0.2 48 / 0.06) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 
@@ -291,20 +283,6 @@
     animation: hud-cyan-pulse 3.8s ease-in-out infinite;
   }
 
-  @keyframes hud-bracket-breathe {
-    0%,
-    100% {
-      filter: drop-shadow(0 0 4px oklch(0.7 0.2 48 / 0.4));
-    }
-    50% {
-      filter: drop-shadow(0 0 10px oklch(0.72 0.2 48 / 0.85));
-    }
-  }
-
-  .hud-splash-bracket-animate {
-    animation: hud-bracket-breathe 3.2s ease-in-out infinite;
-  }
-
   @keyframes hud-frame-power {
     0%,
     100% {
@@ -357,12 +335,16 @@
   @keyframes hud-logo-breathe {
     0%,
     100% {
-      filter: drop-shadow(0 0 12px oklch(0.75 0.2 48 / 0.5))
+      filter: drop-shadow(0 0 4px oklch(0.99 0.01 95 / 0.65))
+        drop-shadow(0 0 14px oklch(0.98 0.02 95 / 0.35))
+        drop-shadow(0 0 12px oklch(0.75 0.2 48 / 0.5))
         drop-shadow(0 0 36px oklch(0.7 0.2 48 / 0.32))
         drop-shadow(0 0 56px oklch(0.68 0.18 48 / 0.18));
     }
     50% {
-      filter: drop-shadow(0 0 18px oklch(0.78 0.2 48 / 0.65))
+      filter: drop-shadow(0 0 8px oklch(0.99 0.015 95 / 0.85))
+        drop-shadow(0 0 22px oklch(0.98 0.02 95 / 0.48))
+        drop-shadow(0 0 18px oklch(0.78 0.2 48 / 0.65))
         drop-shadow(0 0 44px oklch(0.72 0.2 48 / 0.42))
         drop-shadow(0 0 72px oklch(0.68 0.18 48 / 0.28));
     }
@@ -376,7 +358,6 @@
     .hud-splash-grid-animate,
     .hud-splash-scan-animate,
     .hud-splash-cyan-animate,
-    .hud-splash-bracket-animate,
     .hud-splash-frame-outer-animate,
     .hud-splash-rail-animate,
     .hud-cursor-blink,
@@ -399,7 +380,9 @@
     }
 
     .hud-splash-logo-animate {
-      filter: drop-shadow(0 0 12px oklch(0.75 0.2 48 / 0.55))
+      filter: drop-shadow(0 0 6px oklch(0.99 0.01 95 / 0.7))
+        drop-shadow(0 0 16px oklch(0.98 0.02 95 / 0.38))
+        drop-shadow(0 0 12px oklch(0.75 0.2 48 / 0.55))
         drop-shadow(0 0 36px oklch(0.7 0.2 48 / 0.35))
         drop-shadow(0 0 56px oklch(0.68 0.18 48 / 0.2));
     }

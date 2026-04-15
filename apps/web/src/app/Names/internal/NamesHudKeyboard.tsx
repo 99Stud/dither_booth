@@ -66,7 +66,7 @@ export const NamesHudKeyboard: FC<{
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/55 to-transparent"
       />
-      <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-2 px-3 py-3 sm:gap-3 sm:px-5 sm:py-4 [@media(max-height:720px)]:gap-1.5 [@media(max-height:720px)]:py-2.5">
+      <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-2 px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3 [@media(max-height:720px)]:gap-1.5 [@media(max-height:720px)]:py-2">
         <div className="flex items-center justify-between gap-3 font-mono text-[10px] uppercase sm:text-xs [@media(max-height:720px)]:text-[9px]">
           <span className="hud-text-glow-orange tracking-[0.22em] text-primary">
             Clavier
