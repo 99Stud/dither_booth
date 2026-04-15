@@ -63,9 +63,11 @@ export const Booth: FC = () => {
     }
 
     setPhase("flash");
-    await new Promise((r) => setTimeout(r, 200));
-
-    setPhase("processing");
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
 
     try {
       const squarePhoto = await takeSquarePhoto(BOOTH_LOG_SOURCE, async () => {
@@ -74,6 +76,8 @@ export const Booth: FC = () => {
         }
         return await webcamRef.current.takePhoto();
       });
+
+      setPhase("processing");
 
       const photoDataUrl = await blobToDataUrl(squarePhoto);
 
