@@ -2,6 +2,13 @@ import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 
 import { printConfigTable } from "./internal/db.schema";
+import {
+  lotteryConfigTable,
+  lotteryEventTable,
+  lotteryLotTable,
+  lotteryPresetTable,
+  lotterySessionTable,
+} from "#domains/lottery/internal/lottery.schema.ts";
 
 const dbFileName = process.env.DB_FILE_NAME;
 
@@ -12,4 +19,14 @@ if (!dbFileName) {
 }
 
 export const sqlite = new Database(dbFileName);
-export const db = drizzle({ client: sqlite, schema: { printConfigTable } });
+export const db = drizzle({
+  client: sqlite,
+  schema: {
+    printConfigTable,
+    lotteryConfigTable,
+    lotteryLotTable,
+    lotteryEventTable,
+    lotterySessionTable,
+    lotteryPresetTable,
+  },
+});

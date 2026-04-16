@@ -1,6 +1,7 @@
 import {
   Field,
   FieldContent,
+  FieldDescription,
   FieldLabel,
 } from "#components/ui/field.tsx";
 import { DEFAULT_BOOTH_TICKET_DISPLAY_NAMES } from "#lib/ticket-names.ts";
@@ -17,12 +18,11 @@ export const NamesEntryEnabledControl: FC<{
   return (
     <Field orientation="responsive">
       <FieldContent className="gap-1.5">
-        <FieldLabel htmlFor={inputId}>Saisie des prénoms</FieldLabel>
-        <p className="text-xs text-muted-foreground leading-snug">
-          Si désactivé, l’accueil envoie directement vers la cabine avec les
-          étiquettes par défaut (
+        <FieldLabel htmlFor={inputId}>Name entry</FieldLabel>
+        <FieldDescription>
+          When off, check-in sends guests straight to the booth with default ticket labels (
           {DEFAULT_BOOTH_TICKET_DISPLAY_NAMES.join(", ")}).
-        </p>
+        </FieldDescription>
       </FieldContent>
       <div className="flex items-center pt-1">
         <input

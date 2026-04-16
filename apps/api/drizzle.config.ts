@@ -1,4 +1,4 @@
-^import { defineConfig } from "drizzle-kit";
+import { defineConfig } from "drizzle-kit";
 
 const dbFileName = process.env.DB_FILE_NAME;
 
@@ -10,7 +10,10 @@ if (!dbFileName) {
 
 export default defineConfig({
   out: "./drizzle",
-  schema: "./src/db/internal/db.schema.ts",
+  schema: [
+    "./src/db/internal/db.schema.ts",
+    "./src/domains/lottery/internal/lottery.schema.ts",
+  ],
   dialect: "sqlite",
   dbCredentials: {
     url: dbFileName,

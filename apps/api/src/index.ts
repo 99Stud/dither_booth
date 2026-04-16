@@ -4,10 +4,7 @@ import type { Page } from "puppeteer";
 import { apiRouter } from "#internal/router.ts";
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
-import {
-  API_SERVER_HOSTNAME,
-  API_SERVER_LOG_SOURCE,
-} from "#lib/server/server.constants.ts";
+import { API_SERVER_HOSTNAME, API_SERVER_LOG_SOURCE } from "#lib/server/server.constants.ts";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { getPort } from "@dither-booth/ports";
 import USB from "@node-escpos/usb-adapter";
@@ -60,20 +57,14 @@ const trpcHandler = createHTTPHandler({
         type,
         url: req.url,
       },
-      error: getKioskErrorDiagnostics(
-        error,
-        error.message || "API request failed.",
-      ),
+      error: getKioskErrorDiagnostics(error, error.message || "API request failed."),
     });
   },
 });
 
 const server = http.createServer((req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS, PUT, PATCH, DELETE",
-  );
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
   res.setHeader(
     "Access-Control-Allow-Headers",
     req.headers["access-control-request-headers"] ?? "Content-Type",

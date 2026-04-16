@@ -350,14 +350,14 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
                 );
               }}
             >
-              Aperçu
+              Preview
             </Button>
             <Button
               type="submit"
               disabled={isPersistingDitherConfiguration}
               size="default"
             >
-              Enregistrer
+              Save
             </Button>
           </div>
         </form>

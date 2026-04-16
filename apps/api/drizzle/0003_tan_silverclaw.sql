@@ -1,0 +1,1 @@
+ALTER TABLE `lottery_config` DROP COLUMN `lookback_minutes`;

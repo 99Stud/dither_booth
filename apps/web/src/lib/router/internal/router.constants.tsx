@@ -1,5 +1,7 @@
+import { AdminLottery } from "#app/AdminLottery/index.tsx";
 import { AdminPrint } from "#app/AdminPrint/index.tsx";
 import { Booth } from "#app/Booth/index.tsx";
+import { LotteryTicketViewer } from "#app/LotteryTicketViewer/index.tsx";
 import { Names } from "#app/Names/index.tsx";
 import { PrintConfiguration } from "#app/PrintConfiguration/index.tsx";
 import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
@@ -25,8 +27,16 @@ export const ROUTES_CONFIG = [
     component: ReceiptViewer,
   },
   {
+    path: "/lottery-ticket-viewer",
+    component: LotteryTicketViewer,
+  },
+  {
     path: "/admin/print",
     component: AdminPrint,
+  },
+  {
+    path: "/admin/lottery",
+    component: AdminLottery,
   },
   {
     path: "/sandbox",

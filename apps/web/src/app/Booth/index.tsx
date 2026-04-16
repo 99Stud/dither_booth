@@ -35,8 +35,12 @@ export const Booth: FC = () => {
 
   const trpc = useTRPC();
   const { data: printConfig } = useQuery(trpc.getDitherConfiguration.queryOptions());
+  const { data: lotteryConfig } = useQuery(trpc.getLotteryConfig.queryOptions());
   const generateReceipt = useMutation(trpc.generateReceipt.mutationOptions());
   const printReceipt = useMutation(trpc.print.mutationOptions());
+  const lotteryDrawMutation = useMutation(trpc.lotteryDraw.mutationOptions());
+  const generateLotteryTicketMutation = useMutation(trpc.generateLotteryTicket.mutationOptions());
+  const printTicketSequenceMutation = useMutation(trpc.printTicketSequence.mutationOptions());
 
   const showTicketNameHeader =
     printConfig?.namesEntryEnabled === true && ticketNames.length > 0 && phase === "idle";
@@ -70,6 +74,8 @@ export const Booth: FC = () => {
     });
 
     try {
+      const captureStart = Date.now();
+
       const squarePhoto = await takeSquarePhoto(BOOTH_LOG_SOURCE, async () => {
         if (!webcamRef.current) {
           throw new Error("Camera is not available.");
@@ -86,9 +92,32 @@ export const Booth: FC = () => {
         names: ticketNames.length > 0 ? ticketNames : undefined,
       });
 
-      const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
+      const isLotteryLive =
+        lotteryConfig?.enabled === true &&
+        lotteryConfig?.sessionActive === true &&
+        lotteryConfig?.currentSessionId != null;
 
-      await printReceipt.mutateAsync(blob);
+      if (isLotteryLive) {
+        const captureToDrawMs = Date.now() - captureStart;
+
+        const drawResult = await lotteryDrawMutation.mutateAsync({
+          captureToDrawMs,
+        });
+
+        const lotteryTicket = await generateLotteryTicketMutation.mutateAsync({
+          outcome: drawResult.outcome === "win" ? "win" : "loss",
+          lotLabel: drawResult.lotLabel,
+          lotRarity: drawResult.lotRarity,
+        });
+
+        await printTicketSequenceMutation.mutateAsync({
+          receiptImage: screenshot.data,
+          lotteryTicketImage: lotteryTicket.data,
+        });
+      } else {
+        const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
+        await printReceipt.mutateAsync(blob);
+      }
 
       setPhase("thank-you");
 
@@ -104,7 +133,16 @@ export const Booth: FC = () => {
       setError(msg);
       setPhase("idle");
     }
-  }, [ticketNames, generateReceipt, printReceipt, goToSplash]);
+  }, [
+    ticketNames,
+    lotteryConfig,
+    generateReceipt,
+    printReceipt,
+    lotteryDrawMutation,
+    generateLotteryTicketMutation,
+    printTicketSequenceMutation,
+    goToSplash,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

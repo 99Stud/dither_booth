@@ -1,0 +1,391 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "ecc7abc6-21be-4948-a418-9f49a809e74d",
+  "prevId": "9b85f613-56f9-4f94-a350-c8b3e09d4425",
+  "tables": {
+    "print_debug_config": {
+      "name": "print_debug_config",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "dither_mode_code": {
+          "name": "dither_mode_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 2
+        },
+        "brightness": {
+          "name": "brightness",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "contrast": {
+          "name": "contrast",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "gamma": {
+          "name": "gamma",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "threshold": {
+          "name": "threshold",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 128
+        },
+        "names_entry_enabled": {
+          "name": "names_entry_enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "print_debug_config_singleton_check": {
+          "name": "print_debug_config_singleton_check",
+          "value": "\"print_debug_config\".\"id\" = 1"
+        },
+        "print_debug_config_dither_mode_code_check": {
+          "name": "print_debug_config_dither_mode_code_check",
+          "value": "\"print_debug_config\".\"dither_mode_code\" between 0 and 8"
+        },
+        "print_debug_config_brightness_step_check": {
+          "name": "print_debug_config_brightness_step_check",
+          "value": "\"print_debug_config\".\"brightness\" between 0 and 3"
+        },
+        "print_debug_config_contrast_step_check": {
+          "name": "print_debug_config_contrast_step_check",
+          "value": "\"print_debug_config\".\"contrast\" between 0 and 3"
+        },
+        "print_debug_config_gamma_step_check": {
+          "name": "print_debug_config_gamma_step_check",
+          "value": "\"print_debug_config\".\"gamma\" between 1 and 3"
+        },
+        "print_debug_config_threshold_check": {
+          "name": "print_debug_config_threshold_check",
+          "value": "\"print_debug_config\".\"threshold\" between 0 and 255"
+        }
+      }
+    },
+    "lottery_config": {
+      "name": "lottery_config",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'16:00'"
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'21:00'"
+        },
+        "base_win_pressure": {
+          "name": "base_win_pressure",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0.15
+        },
+        "max_boost": {
+          "name": "max_boost",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 3
+        },
+        "abuse_window_seconds": {
+          "name": "abuse_window_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 60
+        },
+        "abuse_max_attempts": {
+          "name": "abuse_max_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 5
+        },
+        "abuse_min_interval_seconds": {
+          "name": "abuse_min_interval_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 10
+        },
+        "abuse_cooldown_seconds": {
+          "name": "abuse_cooldown_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 120
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "lottery_config_singleton_check": {
+          "name": "lottery_config_singleton_check",
+          "value": "\"lottery_config\".\"id\" = 1"
+        },
+        "lottery_config_base_win_pressure_check": {
+          "name": "lottery_config_base_win_pressure_check",
+          "value": "\"lottery_config\".\"base_win_pressure\" between 0 and 1"
+        },
+        "lottery_config_max_boost_check": {
+          "name": "lottery_config_max_boost_check",
+          "value": "\"lottery_config\".\"max_boost\" between 1 and 10"
+        }
+      }
+    },
+    "lottery_event": {
+      "name": "lottery_event",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(datetime('now'))"
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lot_id": {
+          "name": "lot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "abuse_detected": {
+          "name": "abuse_detected",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "computed_pressure": {
+          "name": "computed_pressure",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "computed_win_probability": {
+          "name": "computed_win_probability",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "remaining_stock": {
+          "name": "remaining_stock",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "elapsed_window_ratio": {
+          "name": "elapsed_window_ratio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "capture_to_draw_ms": {
+          "name": "capture_to_draw_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lottery_event_lot_id_lottery_lot_id_fk": {
+          "name": "lottery_event_lot_id_lottery_lot_id_fk",
+          "tableFrom": "lottery_event",
+          "tableTo": "lottery_lot",
+          "columnsFrom": [
+            "lot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "lottery_lot": {
+      "name": "lottery_lot",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stock_total": {
+          "name": "stock_total",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stock_remaining": {
+          "name": "stock_remaining",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "base_weight": {
+          "name": "base_weight",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "rarity": {
+          "name": "rarity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'common'"
+        },
+        "active": {
+          "name": "active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "lottery_lot_stock_remaining_check": {
+          "name": "lottery_lot_stock_remaining_check",
+          "value": "\"lottery_lot\".\"stock_remaining\" >= 0"
+        },
+        "lottery_lot_stock_total_check": {
+          "name": "lottery_lot_stock_total_check",
+          "value": "\"lottery_lot\".\"stock_total\" >= 1"
+        },
+        "lottery_lot_base_weight_check": {
+          "name": "lottery_lot_base_weight_check",
+          "value": "\"lottery_lot\".\"base_weight\" > 0"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
