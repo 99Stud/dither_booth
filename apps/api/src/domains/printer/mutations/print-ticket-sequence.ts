@@ -1,6 +1,8 @@
 import { db } from "#db/index.ts";
 import { printImageSequenceToDevice } from "#domains/printer/internal/printer.utils.ts";
 import { publicProcedure } from "#internal/trpc.ts";
+import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -45,6 +47,9 @@ export const printTicketSequence = publicProcedure
         { buffer: lotteryBuffer, ditherConfiguration },
       ]);
     } catch (error) {
+      logKioskEvent("error", API_PRINTER_LOG_SOURCE, "print-ticket-sequence-failed", {
+        error: getKioskErrorDiagnostics(error, "Failed to print ticket sequence."),
+      });
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to print ticket sequence.",

@@ -1,6 +1,8 @@
 import { db } from "#db/index.ts";
 import { printImageToDevice } from "#domains/printer/internal/printer.utils.ts";
 import { publicProcedure } from "#internal/trpc.ts";
+import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
@@ -37,6 +39,9 @@ export const print = publicProcedure
     try {
       await printImageToDevice(device, inputBuffer, ditherConfiguration);
     } catch (error) {
+      logKioskEvent("error", API_PRINTER_LOG_SOURCE, "print-photo-failed", {
+        error: getKioskErrorDiagnostics(error, "Failed to print photo."),
+      });
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to print photo.",
