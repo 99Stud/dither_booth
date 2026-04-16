@@ -4,13 +4,15 @@ import {
   renderDitheredToPng,
 } from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
 import { publicProcedure } from "#internal/trpc.ts";
+import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
 import { API_REPO_ROOT } from "#lib/constants.ts";
 import { serializeTicketSearch } from "#lib/ticket-names-url.ts";
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import {
+  assertTicketNames,
   MAX_TICKET_NAME_LENGTH,
   MAX_TICKET_NAMES,
   TicketNameModerationError,
-  assertTicketNames,
 } from "@dither-booth/moderation";
 import { getWebOrigin } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
@@ -18,9 +20,7 @@ import { z } from "zod";
 
 const DATA_URL_REGEX = /^data:([^;]+);base64,(.+)$/;
 
-const parseReceiptImageDataUrl = (
-  dataUrl: string,
-): { buffer: Buffer } => {
+const parseReceiptImageDataUrl = (dataUrl: string): { buffer: Buffer } => {
   const m = DATA_URL_REGEX.exec(dataUrl.trim());
   if (!m) {
     throw new TRPCError({
@@ -57,7 +57,10 @@ export const generateReceipt = publicProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const names =
-      input.names?.map((n) => n.trim()).filter(Boolean).slice(0, MAX_TICKET_NAMES) ?? [];
+      input.names
+        ?.map((n) => n.trim())
+        .filter(Boolean)
+        .slice(0, MAX_TICKET_NAMES) ?? [];
 
     try {
       assertTicketNames(names);
@@ -83,7 +86,15 @@ export const generateReceipt = publicProcedure
       const dithered = await ditherImage(
         inputBuffer as Parameters<typeof ditherImage>[0],
         ditherConfiguration,
-      ).catch(
+      ).catch((error) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to process photo.",
+          cause: error,
+        });
+      });
+
+      const ditheredPng = await renderDitheredToPng(dithered, ditherConfiguration.threshold).catch(
         (error) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -92,17 +103,6 @@ export const generateReceipt = publicProcedure
           });
         },
       );
-
-      const ditheredPng = await renderDitheredToPng(
-        dithered,
-        ditherConfiguration.threshold,
-      ).catch((error) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to process photo.",
-          cause: error,
-        });
-      });
 
       if (!ctx.page) {
         throw new TRPCError({
@@ -123,7 +123,10 @@ export const generateReceipt = publicProcedure
         return url.toString();
       })();
 
-      await ctx.page.goto(receiptViewerUrl);
+      await ctx.page.goto(receiptViewerUrl, {
+        waitUntil: "load",
+        timeout: 120_000,
+      });
 
       const imageElement = await ctx.page.waitForSelector("img#booth-photo");
 
@@ -199,6 +202,10 @@ export const generateReceipt = publicProcedure
       if (error instanceof TRPCError) {
         throw error;
       }
+
+      logKioskEvent("error", API_BROWSER_LOG_SOURCE, "generate-receipt-failed", {
+        error: getKioskErrorDiagnostics(error, RECEIPT_GENERATION_FAILED_MESSAGE),
+      });
 
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
