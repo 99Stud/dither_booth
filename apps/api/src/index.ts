@@ -4,7 +4,11 @@ import type { Page } from "puppeteer";
 import { apiRouter } from "#internal/router.ts";
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
-import { API_SERVER_HOSTNAME, API_SERVER_LOG_SOURCE } from "#lib/server/server.constants.ts";
+import {
+  API_SERVER_BIND_HOST,
+  API_SERVER_LOG_SOURCE,
+  API_SERVER_ORIGIN,
+} from "#lib/server/server.constants.ts";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { getPort } from "@dither-booth/ports";
 import USB from "@node-escpos/usb-adapter";
@@ -79,7 +83,7 @@ const server = http.createServer((req, res) => {
   trpcHandler(req, res);
 });
 
-server.listen(getPort("API_PORT"), API_SERVER_HOSTNAME);
+server.listen(getPort("API_PORT"), API_SERVER_BIND_HOST);
 
 const address = server.address();
 
@@ -87,7 +91,8 @@ if (address && typeof address !== "string") {
   logKioskEvent("info", API_SERVER_LOG_SOURCE, "server-started", {
     details: {
       environment: process.env.NODE_ENV,
-      url: `http://${address.address}:${address.port}`,
+      boundAddress: `${address.address}:${address.port}`,
+      url: API_SERVER_ORIGIN,
     },
   });
 }

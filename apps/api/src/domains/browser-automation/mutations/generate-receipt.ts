@@ -4,6 +4,7 @@ import {
   renderDitheredToPng,
 } from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
 import { publicProcedure } from "#internal/trpc.ts";
+import { API_REPO_ROOT } from "#lib/constants.ts";
 import { serializeTicketSearch } from "#lib/ticket-names-url.ts";
 import {
   MAX_TICKET_NAME_LENGTH,
@@ -11,7 +12,7 @@ import {
   TicketNameModerationError,
   assertTicketNames,
 } from "@dither-booth/moderation";
-import { getPort } from "@dither-booth/ports";
+import { getWebOrigin } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -46,11 +47,6 @@ const parseReceiptImageDataUrl = (
 };
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
-
-const receiptViewerBaseUrl = new URL(
-  "/receipt-viewer",
-  `http://localhost:${getPort("WEB_PORT")}`,
-);
 
 export const generateReceipt = publicProcedure
   .input(
@@ -114,6 +110,9 @@ export const generateReceipt = publicProcedure
           message: "Receipt page is not initialized.",
         });
       }
+
+      const webOrigin = getWebOrigin({ repoRoot: API_REPO_ROOT });
+      const receiptViewerBaseUrl = new URL("/receipt-viewer", webOrigin);
 
       const receiptViewerUrl = (() => {
         if (names.length === 0) {
