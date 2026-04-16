@@ -37,8 +37,19 @@ export const mmToPx = (mm: number) => {
   return ((mm / INCH_TO_MM) * MBP_2018_13_DPI) / window.devicePixelRatio;
 };
 
+/** Decodes JPEG/WEBP EXIF orientation (critical for iOS/iPadOS camera stills). */
+export const createOrientedImageBitmap = async (
+  blob: Blob,
+): Promise<ImageBitmap> => {
+  try {
+    return await createImageBitmap(blob, { imageOrientation: "from-image" });
+  } catch {
+    return createImageBitmap(blob);
+  }
+};
+
 export const getBlobDimensions = async (blob: Blob) => {
-  const imageBitmap = await createImageBitmap(blob);
+  const imageBitmap = await createOrientedImageBitmap(blob);
 
   try {
     return {

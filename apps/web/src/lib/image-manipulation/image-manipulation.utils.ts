@@ -1,4 +1,7 @@
-import { getBlobDimensions } from "#lib/utils.ts";
+import {
+  createOrientedImageBitmap,
+  getBlobDimensions,
+} from "#lib/utils.ts";
 import { logKioskEvent } from "@dither-booth/logging";
 
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";
@@ -16,7 +19,7 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
     throw new Error("Photo input was empty.");
   }
 
-  const imageBitmap = await createImageBitmap(blob);
+  const imageBitmap = await createOrientedImageBitmap(blob);
 
   try {
     const { width, height } = imageBitmap;
@@ -82,11 +85,9 @@ export const takeSquarePhoto = async (
     },
   });
 
-  if (width === height) {
-    return photo;
+  if (width !== height) {
+    logKioskEvent("info", source, "client-square-resize-requested");
   }
-
-  logKioskEvent("info", source, "client-square-resize-requested");
 
   return await resizeBlobToSquare(photo);
 };
