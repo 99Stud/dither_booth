@@ -69,6 +69,7 @@ export const ditherImage = async (
   ditherConfiguration: PrintConfigRow,
 ) => {
   const { data, info } = await sharp(buffer, { failOn: "error" })
+    .autoOrient()
     .flatten({ background: { r: 255, g: 255, b: 255 } })
     .greyscale()
     .gamma(ditherConfiguration.gamma)
