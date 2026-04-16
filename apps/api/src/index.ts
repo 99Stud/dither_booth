@@ -30,7 +30,13 @@ try {
 }
 
 try {
-  const browser = await puppeteer.launch();
+  const puppeteerExecutablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
+  const launchOptions: Parameters<typeof puppeteer.launch>[0] = {};
+  if (puppeteerExecutablePath) {
+    launchOptions.executablePath = puppeteerExecutablePath;
+    launchOptions.args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"];
+  }
+  const browser = await puppeteer.launch(launchOptions);
   page = await browser.newPage();
   page.setViewport({
     deviceScaleFactor: 2,
