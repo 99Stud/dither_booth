@@ -32,6 +32,8 @@ if (!existsSync(tlsCertPath) || !existsSync(tlsKeyPath)) {
   );
 }
 
+const isWebDevServer = process.env.NODE_ENV === "development";
+
 async function proxyApiRequest(req: Request) {
   const url = new URL(req.url);
   const upstreamPath = url.pathname.startsWith(`${TRPC_PROXY_PATH}/`)
@@ -94,13 +96,14 @@ serve({
     "/*": index,
   },
 
-  development: {
-    // Enable browser hot reloading in development
-    hmr: process.env.NODE_ENV !== "production",
-
-    // Echo console logs from the browser to the server
-    console: true,
-  },
+  ...(isWebDevServer
+    ? {
+        development: {
+          hmr: true,
+          console: true,
+        },
+      }
+    : {}),
 });
 
 logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-started", {

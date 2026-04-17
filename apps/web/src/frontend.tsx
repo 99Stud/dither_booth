@@ -13,13 +13,18 @@ import { TRPCProvider } from "#lib/trpc/trpc.utils.ts";
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
-const isDevelopment = process.env.NODE_ENV !== "production";
+const TanStackRouterDevtoolsLazy = lazy(() =>
+  import("@tanstack/react-router-devtools").then((m) => ({
+    default: m.TanStackRouterDevtools,
+  })),
+);
+
+const showRouterDevtools = process.env.NODE_ENV === "development";
 
 const WEB_APP_MANIFEST_HREF = "/manifest.webmanifest";
 
@@ -62,7 +67,11 @@ const app = (
             <NuqsAdapter>
               <RouterProvider router={router} />
             </NuqsAdapter>
-            {isDevelopment && <TanStackRouterDevtools router={router} />}
+            {showRouterDevtools && (
+              <Suspense fallback={null}>
+                <TanStackRouterDevtoolsLazy router={router} />
+              </Suspense>
+            )}
           </TRPCProvider>
         </QueryClientProvider>
       </RootErrorBoundary>
