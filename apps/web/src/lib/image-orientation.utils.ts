@@ -59,11 +59,19 @@ export const getJpegImageMetadata = (
 };
 
 export const getJpegImageMetadataFromBlob = async (blob: Blob) => {
-  if (blob.type !== "image/jpeg") {
+  if (blob.type !== "image/jpeg" && blob.type !== "image/jpg") {
     return {};
   }
 
   return getJpegImageMetadata(await blob.arrayBuffer());
+};
+
+export const shouldForceManualOrientation = (jpegMetadata: {
+  orientation?: number;
+}) => {
+  return (
+    jpegMetadata.orientation !== undefined && jpegMetadata.orientation !== 1
+  );
 };
 
 export const shouldManuallyOrientBitmap = (input: {

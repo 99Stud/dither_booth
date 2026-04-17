@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   getJpegImageMetadata,
+  shouldForceManualOrientation,
   shouldManuallyOrientBitmap,
 } from "./image-orientation.utils.ts";
 
@@ -62,6 +63,28 @@ describe("shouldManuallyOrientBitmap", () => {
           orientation: 6,
           width: 2,
         },
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("shouldForceManualOrientation", () => {
+  it("forces manual orientation for EXIF-tagged square JPEGs", () => {
+    expect(
+      shouldForceManualOrientation({
+        height: 1536,
+        orientation: 6,
+        width: 1536,
+      }),
+    ).toBe(true);
+  });
+
+  it("skips manual orientation when EXIF orientation is normal", () => {
+    expect(
+      shouldForceManualOrientation({
+        height: 1536,
+        orientation: 1,
+        width: 1536,
       }),
     ).toBe(false);
   });

@@ -1,6 +1,7 @@
 import {
   getJpegImageMetadataFromBlob,
   manuallyOrientImageBitmap,
+  shouldForceManualOrientation,
   shouldManuallyOrientBitmap,
 } from "#lib/image-orientation.utils.ts";
 import { INCH_TO_MM, MBP_2018_13_DPI } from "#lib/constants.ts";
@@ -47,6 +48,44 @@ export const createOrientedImageBitmap = async (
   blob: Blob,
 ): Promise<ImageBitmap> => {
   const jpegMetadata = await getJpegImageMetadataFromBlob(blob);
+
+  if (shouldForceManualOrientation(jpegMetadata)) {
+    try {
+      const rawImageBitmap = await createImageBitmap(blob, {
+        imageOrientation: "none",
+      });
+
+      try {
+        return await manuallyOrientImageBitmap(
+          rawImageBitmap,
+          jpegMetadata.orientation ?? 1,
+        );
+      } finally {
+        rawImageBitmap.close();
+      }
+    } catch {
+      const imageBitmap = await createImageBitmap(blob);
+
+      if (
+        !shouldManuallyOrientBitmap({
+          bitmapHeight: imageBitmap.height,
+          bitmapWidth: imageBitmap.width,
+          jpegMetadata,
+        })
+      ) {
+        return imageBitmap;
+      }
+
+      try {
+        return await manuallyOrientImageBitmap(
+          imageBitmap,
+          jpegMetadata.orientation ?? 1,
+        );
+      } finally {
+        imageBitmap.close();
+      }
+    }
+  }
 
   try {
     const imageBitmap = await createImageBitmap(blob, {

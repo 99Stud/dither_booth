@@ -2,7 +2,10 @@ import {
   createOrientedImageBitmap,
   getBlobDimensions,
 } from "#lib/utils.ts";
-import { getJpegImageMetadataFromBlob } from "#lib/image-orientation.utils.ts";
+import {
+  getJpegImageMetadataFromBlob,
+  shouldForceManualOrientation,
+} from "#lib/image-orientation.utils.ts";
 import { logKioskEvent } from "@dither-booth/logging";
 
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";
@@ -84,6 +87,7 @@ export const takeSquarePhoto = async (
     details: {
       exifOrientation: jpegMetadata.orientation,
       height,
+      manualOrientationForced: shouldForceManualOrientation(jpegMetadata),
       mimeType: photo.type || "unknown",
       rawHeight: jpegMetadata.height,
       rawWidth: jpegMetadata.width,
