@@ -13,7 +13,7 @@ const GOTO_OPTIONS = {
 
 export function isTransientPuppeteerError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
-  return /detached|Target closed|Session closed|Protocol error|LifecycleWatcher|crashed|Renderer/i.test(
+  return /detached|Target closed|Session closed|Connection closed|Protocol error|LifecycleWatcher|crashed|Renderer/i.test(
     msg,
   );
 }

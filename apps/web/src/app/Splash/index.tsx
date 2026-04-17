@@ -5,6 +5,7 @@ import { buttonVariants } from "#components/ui/button.tsx";
 import { requestKioskFullscreen } from "#lib/kiosk-fullscreen.ts";
 import {
   DEFAULT_BOOTH_TICKET_DISPLAY_NAMES,
+  normalizeTicketNames,
   ticketNamesToBoothSearchRecord,
 } from "#lib/ticket-names.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
@@ -25,7 +26,7 @@ export const Splash: FC = () => {
   useEffect(() => {
     if (isLoadingPrintConfig) return;
     primeReceiptMutation.mutate({
-      names: [...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES],
+      names: normalizeTicketNames([...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES]),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoadingPrintConfig]);
