@@ -10,27 +10,45 @@ import { LOTTERY_OUTCOME } from "#domains/lottery/internal/lottery.constants.ts"
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { API_LOTTERY_LOG_SOURCE } from "#domains/lottery/internal/lottery.constants.ts";
+import { logKioskEvent } from "@dither-booth/logging";
+
 export const lotteryDraw = publicProcedure
   .input(
     z
       .object({
         captureToDrawMs: z.number().int().optional(),
+        clientFlowId: z.string().uuid().optional(),
       })
       .optional(),
   )
   .mutation(async ({ input }) => {
+    const drawStartedAt = performance.now();
     const now = new Date();
 
     const config = await db.query.lotteryConfigTable.findFirst();
-    if (!config) {
-      const [created] = await db
-        .insert(lotteryConfigTable)
-        .values({})
-        .returning();
-      return performDraw(now, created!, input?.captureToDrawMs);
-    }
 
-    return performDraw(now, config, input?.captureToDrawMs);
+    const result = await (async () => {
+      if (!config) {
+        const [created] = await db
+          .insert(lotteryConfigTable)
+          .values({})
+          .returning();
+        return performDraw(now, created!, input?.captureToDrawMs);
+      }
+      return performDraw(now, config, input?.captureToDrawMs);
+    })();
+
+    logKioskEvent("info", API_LOTTERY_LOG_SOURCE, "lottery-draw-metrics", {
+      details: {
+        totalMs: Math.round((performance.now() - drawStartedAt) * 100) / 100,
+        ...(input?.clientFlowId ? { clientFlowId: input.clientFlowId } : {}),
+        outcome: result.outcome,
+        eventId: result.eventId,
+      },
+    });
+
+    return result;
   });
 
 async function loadRecentEventsForSession(sessionId: number) {

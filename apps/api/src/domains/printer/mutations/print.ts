@@ -6,10 +6,16 @@ import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
+const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
+
 export const print = publicProcedure
   .input(octetInputParser)
   .mutation(async ({ ctx, input }) => {
+    const mutationStartedAt = performance.now();
+
+    const readStartedAt = performance.now();
     const inputBuffer = Buffer.from(await new Response(input).arrayBuffer());
+    const readBodyMs = roundMs(readStartedAt);
 
     if (inputBuffer.byteLength === 0) {
       throw new TRPCError({
@@ -18,7 +24,9 @@ export const print = publicProcedure
       });
     }
 
+    const dbStartedAt = performance.now();
     const ditherConfiguration = await db.query.printConfigTable.findFirst();
+    const loadPrintConfigMs = roundMs(dbStartedAt);
 
     if (!ditherConfiguration) {
       throw new TRPCError({
@@ -37,7 +45,17 @@ export const print = publicProcedure
     }
 
     try {
+      const printStartedAt = performance.now();
       await printImageToDevice(device, inputBuffer, ditherConfiguration);
+      logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-mutation-metrics", {
+        details: {
+          totalMs: roundMs(mutationStartedAt),
+          readBodyMs,
+          loadPrintConfigMs,
+          printPipelineMs: roundMs(printStartedAt),
+          inputBytes: inputBuffer.byteLength,
+        },
+      });
     } catch (error) {
       logKioskEvent("error", API_PRINTER_LOG_SOURCE, "print-photo-failed", {
         error: getKioskErrorDiagnostics(error, "Failed to print photo."),

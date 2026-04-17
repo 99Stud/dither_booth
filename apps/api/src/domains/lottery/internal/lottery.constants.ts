@@ -1,5 +1,7 @@
 import z from "zod";
 
+export const API_LOTTERY_LOG_SOURCE = "api.lottery";
+
 export const LOTTERY_CONFIG_SINGLETON_ID = 1;
 
 export const LOTTERY_OUTCOME = {

@@ -48,11 +48,14 @@ const parseReceiptImageDataUrl = (dataUrl: string): { buffer: Buffer } => {
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 
+const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
+
 export const generateReceipt = publicProcedure
   .input(
     z.object({
       image: z.string().min(1, "Receipt image is required."),
       names: z.array(z.string().max(MAX_TICKET_NAME_LENGTH)).max(MAX_TICKET_NAMES).optional(),
+      clientFlowId: z.uuid().optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -62,10 +65,14 @@ export const generateReceipt = publicProcedure
         .filter(Boolean)
         .slice(0, MAX_TICKET_NAMES) ?? [];
 
+    const mutationStartedAt = performance.now();
+
     try {
       assertTicketNames(names);
 
+      const parseStartedAt = performance.now();
       const { buffer: inputBuffer } = parseReceiptImageDataUrl(input.image);
+      const parseDataUrlMs = roundMs(parseStartedAt);
 
       if (inputBuffer.byteLength === 0) {
         throw new TRPCError({
@@ -74,7 +81,9 @@ export const generateReceipt = publicProcedure
         });
       }
 
+      const dbStartedAt = performance.now();
       const ditherConfiguration = await db.query.printConfigTable.findFirst();
+      const loadPrintConfigMs = roundMs(dbStartedAt);
 
       if (!ditherConfiguration) {
         throw new TRPCError({
@@ -83,6 +92,7 @@ export const generateReceipt = publicProcedure
         });
       }
 
+      const ditherStartedAt = performance.now();
       const dithered = await ditherImage(
         inputBuffer as Parameters<typeof ditherImage>[0],
         ditherConfiguration,
@@ -93,7 +103,9 @@ export const generateReceipt = publicProcedure
           cause: error,
         });
       });
+      const ditherMs = roundMs(ditherStartedAt);
 
+      const pngStartedAt = performance.now();
       const ditheredPng = await renderDitheredToPng(dithered, ditherConfiguration.threshold).catch(
         (error) => {
           throw new TRPCError({
@@ -103,6 +115,7 @@ export const generateReceipt = publicProcedure
           });
         },
       );
+      const renderPngMs = roundMs(pngStartedAt);
 
       if (!ctx.page) {
         throw new TRPCError({
@@ -123,12 +136,16 @@ export const generateReceipt = publicProcedure
         return url.toString();
       })();
 
+      const gotoStartedAt = performance.now();
       await ctx.page.goto(receiptViewerUrl, {
         waitUntil: "load",
         timeout: 120_000,
       });
+      const puppeteerGotoMs = roundMs(gotoStartedAt);
 
+      const waitImgStartedAt = performance.now();
       const imageElement = await ctx.page.waitForSelector("img#booth-photo");
+      const waitReceiptImageSelectorMs = roundMs(waitImgStartedAt);
 
       if (!imageElement) {
         throw new TRPCError({
@@ -137,6 +154,7 @@ export const generateReceipt = publicProcedure
         });
       }
 
+      const decodeStartedAt = performance.now();
       await imageElement.evaluate(async (element, image) => {
         // INFO: do not extract this function, puppeteer needs this to be created on runtime
         const isImageElement = (
@@ -162,8 +180,11 @@ export const generateReceipt = publicProcedure
         element.src = `data:${image.mimeType};base64,${image.data}`;
         await element.decode();
       }, ditheredPng);
+      const receiptImageDecodeMs = roundMs(decodeStartedAt);
 
+      const waitReceiptStartedAt = performance.now();
       const handle = await ctx.page.locator("div#receipt").waitHandle();
+      const waitReceiptLocatorMs = roundMs(waitReceiptStartedAt);
 
       if (!handle) {
         throw new TRPCError({
@@ -172,12 +193,14 @@ export const generateReceipt = publicProcedure
         });
       }
 
+      const screenshotStartedAt = performance.now();
       const receiptScreenshot = await handle.screenshot({
         type: "webp",
         quality: 100,
         optimizeForSpeed: true,
         encoding: "base64",
       });
+      const receiptScreenshotMs = roundMs(screenshotStartedAt);
 
       if (!receiptScreenshot) {
         throw new TRPCError({
@@ -185,6 +208,24 @@ export const generateReceipt = publicProcedure
           message: RECEIPT_GENERATION_FAILED_MESSAGE,
         });
       }
+
+      logKioskEvent("info", API_BROWSER_LOG_SOURCE, "generate-receipt-metrics", {
+        details: {
+          totalMs: roundMs(mutationStartedAt),
+          inputBytes: inputBuffer.byteLength,
+          nameCount: names.length,
+          parseDataUrlMs,
+          loadPrintConfigMs,
+          ditherMs,
+          renderPngMs,
+          puppeteerGotoMs,
+          waitReceiptImageSelectorMs,
+          receiptImageDecodeMs,
+          waitReceiptLocatorMs,
+          receiptScreenshotMs,
+          ...(input.clientFlowId ? { clientFlowId: input.clientFlowId } : {}),
+        },
+      });
 
       return {
         data: receiptScreenshot,

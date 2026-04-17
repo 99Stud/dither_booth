@@ -6,15 +6,22 @@ import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
+
 export const printTicketSequence = publicProcedure
   .input(
     z.object({
       receiptImage: z.string().min(1),
       lotteryTicketImage: z.string().min(1),
+      clientFlowId: z.string().uuid().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const mutationStartedAt = performance.now();
+
+    const dbStartedAt = performance.now();
     const ditherConfiguration = await db.query.printConfigTable.findFirst();
+    const loadPrintConfigMs = roundMs(dbStartedAt);
 
     if (!ditherConfiguration) {
       throw new TRPCError({
@@ -31,8 +38,10 @@ export const printTicketSequence = publicProcedure
       });
     }
 
+    const decodeStartedAt = performance.now();
     const receiptBuffer = Buffer.from(input.receiptImage, "base64");
     const lotteryBuffer = Buffer.from(input.lotteryTicketImage, "base64");
+    const decodeBase64Ms = roundMs(decodeStartedAt);
 
     if (receiptBuffer.byteLength === 0 || lotteryBuffer.byteLength === 0) {
       throw new TRPCError({
@@ -42,10 +51,22 @@ export const printTicketSequence = publicProcedure
     }
 
     try {
+      const printStartedAt = performance.now();
       await printImageSequenceToDevice(device, [
         { buffer: receiptBuffer, ditherConfiguration },
         { buffer: lotteryBuffer, ditherConfiguration },
       ]);
+      logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-ticket-sequence-metrics", {
+        details: {
+          totalMs: roundMs(mutationStartedAt),
+          loadPrintConfigMs,
+          decodeBase64Ms,
+          printPipelineMs: roundMs(printStartedAt),
+          receiptBytes: receiptBuffer.byteLength,
+          lotteryBytes: lotteryBuffer.byteLength,
+          ...(input.clientFlowId ? { clientFlowId: input.clientFlowId } : {}),
+        },
+      });
     } catch (error) {
       logKioskEvent("error", API_PRINTER_LOG_SOURCE, "print-ticket-sequence-failed", {
         error: getKioskErrorDiagnostics(error, "Failed to print ticket sequence."),

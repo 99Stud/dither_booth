@@ -7,6 +7,7 @@ import { normalizeTicketNames, ticketNamesParser } from "#lib/ticket-names.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, cn } from "#lib/utils.ts";
 import { validateTicketNames } from "@dither-booth/moderation";
+import { logKioskEvent } from "@dither-booth/logging";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryState } from "nuqs";
@@ -18,6 +19,8 @@ type BoothPhase = "idle" | "countdown" | "flash" | "processing" | "thank-you";
 
 const COUNTDOWN_SECONDS = 4;
 const THANK_YOU_DURATION_MS = 6_000;
+
+const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
 
 export const Booth: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);
@@ -74,7 +77,13 @@ export const Booth: FC = () => {
     });
 
     try {
+      const clientFlowId = crypto.randomUUID();
+      logKioskEvent("info", BOOTH_LOG_SOURCE, "booth-print-flow-start", {
+        details: { clientFlowId },
+      });
+
       const captureStart = Date.now();
+      const photoStartedAt = performance.now();
 
       const squarePhoto = await takeSquarePhoto(BOOTH_LOG_SOURCE, async () => {
         if (!webcamRef.current) {
@@ -83,14 +92,21 @@ export const Booth: FC = () => {
         return await webcamRef.current.takePhoto();
       });
 
+      const photoCaptureMs = roundMs(photoStartedAt);
+
       setPhase("processing");
 
+      const dataUrlStartedAt = performance.now();
       const photoDataUrl = await blobToDataUrl(squarePhoto);
+      const dataUrlMs = roundMs(dataUrlStartedAt);
 
+      const receiptStartedAt = performance.now();
       const screenshot = await generateReceipt.mutateAsync({
         image: photoDataUrl,
         names: ticketNames.length > 0 ? ticketNames : undefined,
+        clientFlowId,
       });
+      const generateReceiptMs = roundMs(receiptStartedAt);
 
       const isLotteryLive =
         lotteryConfig?.enabled === true &&
@@ -100,23 +116,60 @@ export const Booth: FC = () => {
       if (isLotteryLive) {
         const captureToDrawMs = Date.now() - captureStart;
 
+        const drawStartedAt = performance.now();
         const drawResult = await lotteryDrawMutation.mutateAsync({
           captureToDrawMs,
+          clientFlowId,
         });
+        const lotteryDrawMs = roundMs(drawStartedAt);
 
+        const ticketStartedAt = performance.now();
         const lotteryTicket = await generateLotteryTicketMutation.mutateAsync({
           outcome: drawResult.outcome === "win" ? "win" : "loss",
           lotLabel: drawResult.lotLabel,
           lotRarity: drawResult.lotRarity,
+          clientFlowId,
         });
+        const generateLotteryTicketMs = roundMs(ticketStartedAt);
 
+        const printSeqStartedAt = performance.now();
         await printTicketSequenceMutation.mutateAsync({
           receiptImage: screenshot.data,
           lotteryTicketImage: lotteryTicket.data,
+          clientFlowId,
+        });
+        const printTicketSequenceMs = roundMs(printSeqStartedAt);
+
+        logKioskEvent("info", BOOTH_LOG_SOURCE, "booth-print-flow-metrics", {
+          details: {
+            clientFlowId,
+            path: "lottery",
+            photoCaptureMs,
+            dataUrlMs,
+            generateReceiptMs,
+            lotteryDrawMs,
+            generateLotteryTicketMs,
+            printTicketSequenceMs,
+            totalClientMs: roundMs(photoStartedAt),
+          },
         });
       } else {
+        const printStartedAt = performance.now();
         const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
         await printReceipt.mutateAsync(blob);
+        const printMs = roundMs(printStartedAt);
+
+        logKioskEvent("info", BOOTH_LOG_SOURCE, "booth-print-flow-metrics", {
+          details: {
+            clientFlowId,
+            path: "simple",
+            photoCaptureMs,
+            dataUrlMs,
+            generateReceiptMs,
+            printMs,
+            totalClientMs: roundMs(photoStartedAt),
+          },
+        });
       }
 
       setPhase("thank-you");

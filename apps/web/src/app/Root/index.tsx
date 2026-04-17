@@ -6,6 +6,7 @@ import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.util
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
+import { logKioskEvent } from "@dither-booth/logging";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, useRef } from "react";
 
@@ -21,6 +22,9 @@ export const Root: FC = () => {
 
   const downloadReceipt = async () => {
     try {
+      const clientFlowId = crypto.randomUUID();
+      const flowStartedAt = performance.now();
+
       const squarePhoto = await takeSquarePhoto(ROOT_LOG_SOURCE, async () => {
         if (!webcamRef.current) {
           throw new Error("Camera is not available.");
@@ -33,10 +37,27 @@ export const Root: FC = () => {
         return;
       }
 
-      const photoDataUrl = await blobToDataUrl(squarePhoto);
+      const photoMs = Math.round((performance.now() - flowStartedAt) * 100) / 100;
 
+      const dataUrlStartedAt = performance.now();
+      const photoDataUrl = await blobToDataUrl(squarePhoto);
+      const dataUrlMs = Math.round((performance.now() - dataUrlStartedAt) * 100) / 100;
+
+      const receiptStartedAt = performance.now();
       const receipt = await generateReceipt.mutateAsync({
         image: photoDataUrl,
+        clientFlowId,
+      });
+      const generateReceiptMs = Math.round((performance.now() - receiptStartedAt) * 100) / 100;
+
+      logKioskEvent("info", ROOT_LOG_SOURCE, "root-download-receipt-metrics", {
+        details: {
+          clientFlowId,
+          photoMs,
+          dataUrlMs,
+          generateReceiptMs,
+          totalMs: Math.round((performance.now() - flowStartedAt) * 100) / 100,
+        },
       });
 
       const blob = base64ToBlob(receipt.data, receipt.mimeType);

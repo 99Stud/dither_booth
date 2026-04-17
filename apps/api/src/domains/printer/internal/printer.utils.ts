@@ -21,16 +21,18 @@ export const printImageToDevice = async (
 ): Promise<void> => {
   const totalStart = performance.now();
   const { metrics, rasterCmd } = await imageToRasterCommand(input, ditherConfiguration);
-  const usbStart = performance.now();
+  const usbOpenCallAt = performance.now();
 
   await new Promise<void>((resolve, reject) => {
     device.open((err) => {
+      const usbOpenMs = roundDuration(performance.now() - usbOpenCallAt);
       if (err) {
         reject(err);
         return;
       }
 
       void (async () => {
+        const usbOpsStart = performance.now();
         const printer = new Printer(device, {
           encoding: "US-ASCII",
         });
@@ -45,7 +47,8 @@ export const printImageToDevice = async (
             details: {
               ...metrics,
               totalMs: roundDuration(performance.now() - totalStart),
-              usbWriteMs: roundDuration(performance.now() - usbStart),
+              usbOpenMs,
+              usbPrintOpsMs: roundDuration(performance.now() - usbOpsStart),
             },
           });
           resolve();
@@ -88,16 +91,18 @@ export const printImageSequenceToDevice = async (
       return result.rasterCmd;
     }),
   );
-  const usbStart = performance.now();
+  const usbOpenCallAt = performance.now();
 
   await new Promise<void>((resolve, reject) => {
     device.open((err) => {
+      const usbOpenMs = roundDuration(performance.now() - usbOpenCallAt);
       if (err) {
         reject(err);
         return;
       }
 
       void (async () => {
+        const usbOpsStart = performance.now();
         const printer = new Printer(device, {
           encoding: "US-ASCII",
         });
@@ -114,7 +119,8 @@ export const printImageSequenceToDevice = async (
             details: {
               imageCount: rasterCommands.length,
               totalMs: roundDuration(performance.now() - totalStart),
-              usbWriteMs: roundDuration(performance.now() - usbStart),
+              usbOpenMs,
+              usbPrintOpsMs: roundDuration(performance.now() - usbOpsStart),
             },
           });
           resolve();
