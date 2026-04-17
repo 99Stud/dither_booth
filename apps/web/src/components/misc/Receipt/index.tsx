@@ -2,7 +2,6 @@ import type { FC } from "react";
 import { useMemo } from "react";
 
 import { RECEIPT_BOOTH_OVERLAY_LOGO_IMG } from "#components/misc/Receipt/internal/Receipt.booth-logos.ts";
-import { BOOTH_PHOTO_PLACEHOLDER_SRC } from "#components/misc/Receipt/internal/Receipt.placeholder.ts";
 import { NinetyNineStudLogo } from "#components/svg/99StudLogo/index.tsx";
 import { NinetyNineStudQR } from "#components/svg/99studQR/index.tsx";
 import { DitherBoothLogotypeMark } from "#components/svg/DitherBoothLogotypeMark/index.tsx";
@@ -69,7 +68,7 @@ export const Receipt: FC<ReceiptProps> = (props) => {
           <img
             id="booth-photo"
             className={clsx("relative z-0 h-full w-full object-cover")}
-            src={BOOTH_PHOTO_PLACEHOLDER_SRC}
+            src="https://picsum.photos/200"
             alt="booth photo"
           />
           <div

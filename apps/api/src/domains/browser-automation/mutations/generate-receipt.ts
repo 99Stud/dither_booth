@@ -138,16 +138,13 @@ export const generateReceipt = publicProcedure
 
       const gotoStartedAt = performance.now();
       await ctx.page.goto(receiptViewerUrl, {
-        waitUntil: "domcontentloaded",
+        waitUntil: "load",
         timeout: 120_000,
       });
       const puppeteerGotoMs = roundMs(gotoStartedAt);
 
       const waitImgStartedAt = performance.now();
-      const imageElement = await ctx.page.waitForSelector("img#booth-photo", {
-        timeout: 120_000,
-        visible: false,
-      });
+      const imageElement = await ctx.page.waitForSelector("img#booth-photo");
       const waitReceiptImageSelectorMs = roundMs(waitImgStartedAt);
 
       if (!imageElement) {
