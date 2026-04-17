@@ -134,13 +134,13 @@ export const manuallyOrientImageBitmap = async (
       context.transform(0, 1, 1, 0, 0, 0);
       break;
     case 6:
-      context.transform(0, 1, -1, 0, height, 0);
+      context.transform(0, -1, 1, 0, 0, width);
       break;
     case 7:
       context.transform(0, -1, -1, 0, height, width);
       break;
     case 8:
-      context.transform(0, -1, 1, 0, 0, width);
+      context.transform(0, 1, -1, 0, height, 0);
       break;
     default:
       break;
