@@ -18,6 +18,14 @@ export function isTransientPuppeteerError(error: unknown): boolean {
   );
 }
 
+/** CDP socket dead: retrying on the same Browser instance will not recover. */
+export function isBrowserProcessDeadError(error: unknown): boolean {
+  const name = error instanceof Error ? error.constructor.name : "";
+  if (name === "ConnectionClosedError") return true;
+  const msg = error instanceof Error ? error.message : String(error);
+  return /Connection closed|Browser has disconnected|WebSocket is not open|net::ERR_/i.test(msg);
+}
+
 /**
  * One fresh page per automation run. A shared page often ends up with "frame detached"
  * on low-memory / kiosk setups after Chromium hiccups; isolating each job fixes that.
@@ -44,14 +52,22 @@ export async function gotoAutomation(page: Page, url: string): Promise<void> {
 export async function runWithAutomationRetry<T>(
   browser: Browser,
   run: (page: Page) => Promise<T>,
+  options?: {
+    relaunchBrowser?: () => Promise<Browser | undefined>;
+  },
 ): Promise<T> {
   try {
     return await withAutomationPage(browser, run);
   } catch (error) {
-    if (isTransientPuppeteerError(error)) {
-      return await withAutomationPage(browser, run);
+    if (!isTransientPuppeteerError(error)) throw error;
+
+    let nextBrowser = browser;
+    if (isBrowserProcessDeadError(error) && options?.relaunchBrowser) {
+      const fresh = await options.relaunchBrowser();
+      if (fresh) nextBrowser = fresh;
     }
-    throw error;
+
+    return await withAutomationPage(nextBrowser, run);
   }
 }
 

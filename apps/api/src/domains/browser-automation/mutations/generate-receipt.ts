@@ -121,7 +121,13 @@ export const generateReceipt = publicProcedure
       );
       const renderPngMs = roundMs(pngStartedAt);
 
-      if (!ctx.browser) {
+      const getBrowser = () => ctx.getPuppeteerBrowser?.() ?? ctx.browser;
+      const getSlot = () => ctx.getReceiptPageSlot?.() ?? ctx.receiptPageSlot;
+      const retryOpts = ctx.relaunchPuppeteerBrowser
+        ? { relaunchBrowser: ctx.relaunchPuppeteerBrowser }
+        : undefined;
+
+      if (!getBrowser()) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Browser is not initialized.",
@@ -210,7 +216,7 @@ export const generateReceipt = publicProcedure
       let puppeteerGotoMs = 0;
       let capture: Awaited<ReturnType<typeof captureOnPage>>;
 
-      const slot = ctx.receiptPageSlot;
+      const slot = getSlot();
 
       if (slot) {
         let warmPage: Page | undefined;
@@ -228,26 +234,34 @@ export const generateReceipt = publicProcedure
             throw error;
           }
 
-          capture = await runWithAutomationRetry(ctx.browser, async (page) => {
-            const gotoStartedAt = performance.now();
-            await gotoAutomation(page, receiptViewerUrl);
-            puppeteerGotoMs = roundMs(gotoStartedAt);
+          capture = await runWithAutomationRetry(
+            getBrowser()!,
+            async (page) => {
+              const gotoStartedAt = performance.now();
+              await gotoAutomation(page, receiptViewerUrl);
+              puppeteerGotoMs = roundMs(gotoStartedAt);
 
-            return await captureOnPage(page);
-          });
+              return await captureOnPage(page);
+            },
+            retryOpts,
+          );
         } finally {
           if (prewarmHit) {
             slot.returnPage(warmPage!, receiptViewerUrl);
           }
         }
       } else {
-        capture = await runWithAutomationRetry(ctx.browser, async (page) => {
-          const gotoStartedAt = performance.now();
-          await gotoAutomation(page, receiptViewerUrl);
-          puppeteerGotoMs = roundMs(gotoStartedAt);
+        capture = await runWithAutomationRetry(
+          getBrowser()!,
+          async (page) => {
+            const gotoStartedAt = performance.now();
+            await gotoAutomation(page, receiptViewerUrl);
+            puppeteerGotoMs = roundMs(gotoStartedAt);
 
-          return await captureOnPage(page);
-        });
+            return await captureOnPage(page);
+          },
+          retryOpts,
+        );
       }
 
       logKioskEvent("info", API_BROWSER_LOG_SOURCE, "generate-receipt-metrics", {

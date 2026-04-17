@@ -28,7 +28,12 @@ export const generateLotteryTicket = publicProcedure
   .mutation(async ({ input, ctx }) => {
     const mutationStartedAt = performance.now();
 
-    if (!ctx.browser) {
+    const getBrowser = () => ctx.getPuppeteerBrowser?.() ?? ctx.browser;
+    const retryOpts = ctx.relaunchPuppeteerBrowser
+      ? { relaunchBrowser: ctx.relaunchPuppeteerBrowser }
+      : undefined;
+
+    if (!getBrowser()) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Browser is not initialized.",
@@ -42,7 +47,7 @@ export const generateLotteryTicket = publicProcedure
 
     const ticketUrl = url.toString();
 
-    const capture = await runWithAutomationRetry(ctx.browser, async (page) => {
+    const capture = await runWithAutomationRetry(getBrowser()!, async (page) => {
       const gotoStartedAt = performance.now();
       await gotoAutomation(page, ticketUrl);
       const puppeteerGotoMs = roundMs(gotoStartedAt);
@@ -75,7 +80,7 @@ export const generateLotteryTicket = publicProcedure
       }
 
       return { ticketScreenshot, puppeteerGotoMs, waitTicketLocatorMs, ticketScreenshotMs };
-    });
+    }, retryOpts);
 
     logKioskEvent("info", API_LOTTERY_LOG_SOURCE, "generate-lottery-ticket-metrics", {
       details: {

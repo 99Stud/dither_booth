@@ -8,4 +8,9 @@ export type TRPCContext = {
   printerDevice?: USB;
   browser?: Browser;
   receiptPageSlot?: ReceiptPageSlot;
+  /** Live Puppeteer browser (survives relaunch mid-request). Prefer over `browser`. */
+  getPuppeteerBrowser?: () => Browser | undefined;
+  getReceiptPageSlot?: () => ReceiptPageSlot | undefined;
+  /** Dispose slot, close Chromium, launch a new browser + receipt slot. */
+  relaunchPuppeteerBrowser?: () => Promise<Browser | undefined>;
 };

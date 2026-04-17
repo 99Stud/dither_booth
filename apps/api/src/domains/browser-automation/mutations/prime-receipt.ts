@@ -27,7 +27,8 @@ export const primeReceipt = publicProcedure
 
     assertTicketNames(names);
 
-    if (!ctx.receiptPageSlot) {
+    const slot = ctx.getReceiptPageSlot?.() ?? ctx.receiptPageSlot;
+    if (!slot) {
       return { warm: false } as const;
     }
 
@@ -35,7 +36,7 @@ export const primeReceipt = publicProcedure
 
     try {
       await Promise.race([
-        ctx.receiptPageSlot.prime(url),
+        slot.prime(url),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("prime timeout")), PRIME_TIMEOUT_MS),
         ),

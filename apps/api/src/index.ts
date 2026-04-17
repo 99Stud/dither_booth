@@ -5,6 +5,7 @@ import type { Browser } from "puppeteer";
 import { createReceiptPageSlot } from "#domains/browser-automation/internal/puppeteer-automation.ts";
 import { apiRouter } from "#internal/router.ts";
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
+import { getPuppeteerLaunchOptions } from "#lib/browser/puppeteer-launch-options.ts";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
 import {
   API_SERVER_BIND_HOST,
@@ -24,6 +25,50 @@ let printerDevice: USB | undefined;
 let browser: Browser | undefined;
 let receiptPageSlot: ReceiptPageSlot | undefined;
 
+const launchOptions = getPuppeteerLaunchOptions();
+
+let relaunchPuppeteerInFlight: Promise<Browser | undefined> | undefined;
+
+const relaunchPuppeteerBrowser = async (): Promise<Browser | undefined> => {
+  if (relaunchPuppeteerInFlight) {
+    return relaunchPuppeteerInFlight;
+  }
+
+  relaunchPuppeteerInFlight = (async () => {
+    try {
+      await receiptPageSlot?.dispose();
+    } catch {
+      /* ignore */
+    }
+    receiptPageSlot = undefined;
+
+    try {
+      await browser?.close();
+    } catch {
+      /* ignore */
+    }
+    browser = undefined;
+
+    try {
+      browser = await puppeteer.launch(launchOptions);
+      receiptPageSlot = createReceiptPageSlot(browser);
+      logKioskEvent("warn", API_BROWSER_LOG_SOURCE, "browser-relaunched", {
+        details: {},
+      });
+      return browser;
+    } catch (error) {
+      logKioskEvent("error", API_BROWSER_LOG_SOURCE, "browser-relaunch-failed", {
+        error: getKioskErrorDiagnostics(error, "Browser relaunch failed."),
+      });
+      return undefined;
+    } finally {
+      relaunchPuppeteerInFlight = undefined;
+    }
+  })();
+
+  return relaunchPuppeteerInFlight;
+};
+
 try {
   printerDevice = new USB();
 } catch (error) {
@@ -33,19 +78,6 @@ try {
 }
 
 try {
-  const puppeteerExecutablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
-  const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
-    args: [
-      "--ignore-certificate-errors",
-      "--allow-insecure-localhost",
-      ...(puppeteerExecutablePath
-        ? ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
-        : []),
-    ],
-  };
-  if (puppeteerExecutablePath) {
-    launchOptions.executablePath = puppeteerExecutablePath;
-  }
   browser = await puppeteer.launch(launchOptions);
   receiptPageSlot = createReceiptPageSlot(browser);
 } catch (error) {
@@ -58,6 +90,9 @@ const createContext = (): TRPCContext => ({
   printerDevice,
   browser,
   receiptPageSlot,
+  getPuppeteerBrowser: () => browser,
+  getReceiptPageSlot: () => receiptPageSlot,
+  relaunchPuppeteerBrowser,
   db,
 });
 
