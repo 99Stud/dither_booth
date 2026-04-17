@@ -9,20 +9,27 @@ import {
 import { logKioskEvent } from "@dither-booth/logging";
 
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";
+const MAX_PHOTO_SIDE_PX = 1024;
+const JPEG_ENCODE_QUALITY = 0.9;
 
 const canvasToBlob = (
   canvas: HTMLCanvasElement,
   type: string,
+  quality?: number,
 ): Promise<Blob | null> =>
   new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), type);
+    canvas.toBlob((blob) => resolve(blob), type, quality);
   });
 
-export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
+export const resizeBlobToSquare = async (
+  blob: Blob,
+  options?: { maxSide?: number },
+): Promise<Blob> => {
   if (blob.size === 0) {
     throw new Error("Photo input was empty.");
   }
 
+  const maxSide = options?.maxSide ?? MAX_PHOTO_SIDE_PX;
   const imageBitmap = await createOrientedImageBitmap(blob);
 
   try {
@@ -32,13 +39,14 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
       throw new Error("Could not determine photo dimensions.");
     }
 
-    const side = Math.min(width, height);
-    const sourceX = (width - side) / 2;
-    const sourceY = (height - side) / 2;
+    const sourceSide = Math.min(width, height);
+    const sourceX = (width - sourceSide) / 2;
+    const sourceY = (height - sourceSide) / 2;
+    const targetSide = Math.min(sourceSide, maxSide);
     const canvas = document.createElement("canvas");
 
-    canvas.width = side;
-    canvas.height = side;
+    canvas.width = targetSide;
+    canvas.height = targetSide;
 
     const context = canvas.getContext("2d");
 
@@ -50,20 +58,18 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
       imageBitmap,
       sourceX,
       sourceY,
-      side,
-      side,
+      sourceSide,
+      sourceSide,
       0,
       0,
-      side,
-      side,
+      targetSide,
+      targetSide,
     );
 
-    const preferredMimeType = blob.type || FALLBACK_IMAGE_MIME_TYPE;
+    // JPEG keeps the payload small for the API upload + dither pipeline.
     const resizedBlob =
-      (await canvasToBlob(canvas, preferredMimeType)) ??
-      (preferredMimeType === FALLBACK_IMAGE_MIME_TYPE
-        ? null
-        : await canvasToBlob(canvas, FALLBACK_IMAGE_MIME_TYPE));
+      (await canvasToBlob(canvas, "image/jpeg", JPEG_ENCODE_QUALITY)) ??
+      (await canvasToBlob(canvas, FALLBACK_IMAGE_MIME_TYPE));
 
     if (!resizedBlob) {
       throw new Error("Failed to encode resized photo.");

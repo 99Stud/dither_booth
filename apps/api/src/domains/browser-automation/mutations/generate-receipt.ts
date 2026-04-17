@@ -195,9 +195,9 @@ export const generateReceipt = publicProcedure
 
       const screenshotStartedAt = performance.now();
       const receiptScreenshot = await handle.screenshot({
-        type: "webp",
-        quality: 100,
-        optimizeForSpeed: true,
+        type: "jpeg",
+        quality: 85,
+        captureBeyondViewport: false,
         encoding: "base64",
       });
       const receiptScreenshotMs = roundMs(screenshotStartedAt);
@@ -229,7 +229,7 @@ export const generateReceipt = publicProcedure
 
       return {
         data: receiptScreenshot,
-        mimeType: "image/webp",
+        mimeType: "image/jpeg",
       };
     } catch (error) {
       if (error instanceof TicketNameModerationError) {

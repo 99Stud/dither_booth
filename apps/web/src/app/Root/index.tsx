@@ -62,7 +62,8 @@ export const Root: FC = () => {
 
       const blob = base64ToBlob(receipt.data, receipt.mimeType);
 
-      downloadBlob(blob, "screenshot.webp");
+      const extension = receipt.mimeType === "image/jpeg" ? "jpg" : "bin";
+      downloadBlob(blob, `screenshot.${extension}`);
     } catch (e) {
       reportKioskError(e, {
         event: "generate-receipt-failed",

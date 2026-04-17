@@ -19,6 +19,7 @@ type BoothPhase = "idle" | "countdown" | "flash" | "processing" | "thank-you";
 
 const COUNTDOWN_SECONDS = 4;
 const THANK_YOU_DURATION_MS = 6_000;
+const FLASH_HOLD_MS = 140;
 
 const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
 
@@ -85,16 +86,21 @@ export const Booth: FC = () => {
       const captureStart = Date.now();
       const photoStartedAt = performance.now();
 
-      const squarePhoto = await takeSquarePhoto(BOOTH_LOG_SOURCE, async () => {
+      const photoPromise = takeSquarePhoto(BOOTH_LOG_SOURCE, async () => {
         if (!webcamRef.current) {
           throw new Error("Camera is not available.");
         }
         return await webcamRef.current.takePhoto();
       });
 
-      const photoCaptureMs = roundMs(photoStartedAt);
-
+      // Keep the white flash visible for a short, fixed duration regardless of
+      // how long the actual photo capture takes, then swap to the processing
+      // overlay while the photo resolves in the background.
+      await new Promise<void>((resolve) => setTimeout(resolve, FLASH_HOLD_MS));
       setPhase("processing");
+
+      const squarePhoto = await photoPromise;
+      const photoCaptureMs = roundMs(photoStartedAt);
 
       const dataUrlStartedAt = performance.now();
       const photoDataUrl = await blobToDataUrl(squarePhoto);
@@ -318,7 +324,7 @@ export const Booth: FC = () => {
       {phase === "flash" && (
         <div
           className="fixed inset-0 z-40 animate-out fade-out bg-white pointer-events-none"
-          style={{ animationDuration: "200ms" }}
+          style={{ animationDuration: `${FLASH_HOLD_MS}ms`, animationFillMode: "forwards" }}
         />
       )}
 

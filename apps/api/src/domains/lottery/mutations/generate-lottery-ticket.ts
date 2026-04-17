@@ -56,9 +56,9 @@ export const generateLotteryTicket = publicProcedure
 
     const screenshotStartedAt = performance.now();
     const ticketScreenshot = await handle.screenshot({
-      type: "webp",
-      quality: 100,
-      optimizeForSpeed: true,
+      type: "jpeg",
+      quality: 85,
+      captureBeyondViewport: false,
       encoding: "base64",
     });
     const ticketScreenshotMs = roundMs(screenshotStartedAt);
@@ -83,6 +83,6 @@ export const generateLotteryTicket = publicProcedure
 
     return {
       data: ticketScreenshot,
-      mimeType: "image/webp",
+      mimeType: "image/jpeg",
     };
   });

@@ -49,8 +49,8 @@ try {
   page.setDefaultTimeout(120_000);
   page.setViewport({
     deviceScaleFactor: 2,
-    width: 1440,
-    height: 900,
+    width: 440,
+    height: 1600,
   });
 } catch (error) {
   logKioskEvent("error", API_BROWSER_LOG_SOURCE, "browser-init-failed", {
