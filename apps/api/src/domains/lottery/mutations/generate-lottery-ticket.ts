@@ -38,7 +38,7 @@ export const generateLotteryTicket = publicProcedure
 
     const gotoStartedAt = performance.now();
     await ctx.page.goto(url.toString(), {
-      waitUntil: "load",
+      waitUntil: "domcontentloaded",
       timeout: 120_000,
     });
     const puppeteerGotoMs = roundMs(gotoStartedAt);
