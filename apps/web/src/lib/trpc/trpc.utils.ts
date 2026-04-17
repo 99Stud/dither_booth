@@ -20,21 +20,27 @@ export type PrintTicketSequenceProgress = {
     | "printing_lottery";
 };
 
+/**
+ * SSE subscriptions send `input` in the URL; large base64 payloads must not be passed here.
+ * Call `registerPrintTicketSequence` (POST) first, then subscribe with `{ jobId }` only.
+ */
 export const subscribePrintTicketSequence = (
   client: TRPCClient<ApiRouter>,
-  input: {
-    receiptImage: string;
-    lotteryTicketImage: string;
-    clientFlowId?: string;
-  },
+  input: { jobId: string },
   onProgress: (value: PrintTicketSequenceProgress) => void,
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
-    const sub = client.onPrintTicketSequence.subscribe(input, {
+    let settled = false;
+    client.onPrintTicketSequence.subscribe(input, {
       onData: onProgress,
-      onError: reject,
+      onError: (err) => {
+        if (settled) return;
+        settled = true;
+        reject(err);
+      },
       onComplete: () => {
-        sub.unsubscribe();
+        if (settled) return;
+        settled = true;
         resolve();
       },
     });

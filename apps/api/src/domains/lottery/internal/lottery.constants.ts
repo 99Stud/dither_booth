@@ -62,6 +62,8 @@ export const CREATE_LOT_SCHEMA = z.object({
   stockTotal: z.number().int().min(1),
   baseWeight: z.number().min(0.01).max(100).default(1),
   rarity: z.enum(["common", "medium", "rare", "very_rare"]).default("common"),
+  description: z.string().max(2000).optional().nullable(),
+  instructions: z.string().max(2000).optional().nullable(),
   active: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
 });
@@ -73,6 +75,8 @@ export const UPDATE_LOT_SCHEMA = z.object({
   stockRemaining: z.number().int().min(0).optional(),
   baseWeight: z.number().min(0.01).max(100).optional(),
   rarity: z.enum(["common", "medium", "rare", "very_rare"]).optional(),
+  description: z.string().max(2000).optional().nullable(),
+  instructions: z.string().max(2000).optional().nullable(),
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });

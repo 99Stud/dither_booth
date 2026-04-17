@@ -78,6 +78,10 @@ export const lotteryLotTable = sqliteTable(
     stockRemaining: integer("stock_remaining").notNull(),
     baseWeight: real("base_weight").notNull().default(1),
     rarity: text("rarity").notNull().default("common"),
+    /** Optional copy shown on the printed ticket (e.g. prize details). */
+    description: text("description"),
+    /** Shown after a win (e.g. where to redeem). Empty/null uses default kiosk copy. */
+    instructions: text("instructions"),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
   },

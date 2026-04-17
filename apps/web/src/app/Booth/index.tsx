@@ -1,6 +1,6 @@
+import { BoothDitherLottie } from "#components/misc/BoothDitherLottie/index.tsx";
 import { type CameraState, Webcam, type WebcamHandle } from "#components/misc/Webcam/index.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
-import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { normalizeTicketNames, ticketNamesParser } from "#lib/ticket-names.ts";
@@ -62,6 +62,9 @@ export const Booth: FC = () => {
   const printReceipt = useMutation(trpc.print.mutationOptions());
   const lotteryDrawMutation = useMutation(trpc.lotteryDraw.mutationOptions());
   const generateLotteryTicketMutation = useMutation(trpc.generateLotteryTicket.mutationOptions());
+  const registerPrintTicketSequence = useMutation(
+    trpc.registerPrintTicketSequence.mutationOptions(),
+  );
 
   const showTicketNameHeader =
     printConfig?.namesEntryEnabled === true && ticketNames.length > 0 && phase === "idle";
@@ -150,6 +153,8 @@ export const Booth: FC = () => {
         const ticketStartedAt = performance.now();
         const lotteryTicket = await generateLotteryTicketMutation.mutateAsync({
           outcome: drawResult.outcome === "win" ? "win" : "loss",
+          lotId:
+            drawResult.outcome === "win" && drawResult.lotId != null ? drawResult.lotId : undefined,
           lotLabel: drawResult.lotLabel,
           lotRarity: drawResult.lotRarity,
           clientFlowId,
@@ -157,17 +162,14 @@ export const Booth: FC = () => {
         const generateLotteryTicketMs = roundMs(ticketStartedAt);
 
         const printSeqStartedAt = performance.now();
-        await subscribePrintTicketSequence(
-          trpcClient,
-          {
-            receiptImage: screenshot.data,
-            lotteryTicketImage: lotteryTicket.data,
-            clientFlowId,
-          },
-          (value) => {
-            setProcessingStatus(PRINT_TICKET_PROGRESS_LABELS[value.step]);
-          },
-        );
+        const { jobId } = await registerPrintTicketSequence.mutateAsync({
+          receiptImage: screenshot.data,
+          lotteryTicketImage: lotteryTicket.data,
+          clientFlowId,
+        });
+        await subscribePrintTicketSequence(trpcClient, { jobId }, (value) => {
+          setProcessingStatus(PRINT_TICKET_PROGRESS_LABELS[value.step]);
+        });
         const printTicketSequenceMs = roundMs(printSeqStartedAt);
 
         logKioskEvent("info", BOOTH_LOG_SOURCE, "booth-print-flow-metrics", {
@@ -224,6 +226,7 @@ export const Booth: FC = () => {
     printReceipt,
     lotteryDrawMutation,
     generateLotteryTicketMutation,
+    registerPrintTicketSequence,
     trpcClient,
     goToSplash,
   ]);
@@ -306,8 +309,8 @@ export const Booth: FC = () => {
                 cameraReady ? "pointer-events-none opacity-0" : "opacity-100",
               )}
             >
-              <Spinner className="size-8 text-primary motion-reduce:opacity-90" />
-              <p className="font-mono text-xs tracking-[0.25em] text-primary/70 uppercase">
+              <BoothDitherLottie className="h-40 w-40 max-h-[min(45vw,220px)] max-w-[min(45vw,220px)] shrink-0 sm:h-48 sm:w-48" />
+              <p className="font-bit text-2xl tracking-[0.25em] text-white uppercase font-bold">
                 Initialisation caméra…
               </p>
             </div>
@@ -362,39 +365,28 @@ export const Booth: FC = () => {
         />
       )}
 
-      {/* Processing overlay — Splash-style terminal + PP Neue Bit */}
+      {/* Processing overlay — same frosted stack as camera loading */}
       {phase === "processing" && (
-        <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-background/70 px-4 backdrop-blur-sm">
-          <Spinner className="size-10 text-primary" />
-          <div
-            className="w-full max-w-[min(92vw,28rem)] border border-primary/40 px-3 py-3 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm"
-            role="status"
-            aria-live="polite"
-          >
-            <div className="mb-2 flex items-center justify-between gap-3 border-b border-primary/25 pb-2 font-bit text-[9px] uppercase sm:text-[10px]">
-              <span className="hud-text-glow-orange tracking-[0.22em]">print_stream</span>
-              <span className="hud-text-glow-orange-soft tracking-[0.2em]">
-                Busy
-                <span aria-hidden className="hud-cursor-blink ml-1 inline-block">
-                  *
-                </span>
-              </span>
-            </div>
-            <p className="wrap-break-word text-center font-bit text-sm leading-relaxed tracking-[0.06em] text-muted-foreground hud-text-glow-orange-soft sm:text-base">
-              {processingStatus}
-            </p>
-          </div>
+        <div
+          className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-background/60 px-4 backdrop-blur-[2px]"
+          role="status"
+          aria-live="polite"
+        >
+          <BoothDitherLottie className="h-40 w-40 max-h-[min(45vw,220px)] max-w-[min(45vw,220px)] shrink-0 sm:h-48 sm:w-48" />
+          <p className="wrap-break-word max-w-[min(92vw,32rem)] text-center font-bit text-2xl leading-relaxed tracking-[0.2em] text-white font-bold">
+            {processingStatus}
+          </p>
         </div>
       )}
 
       {/* Thank you overlay */}
       {phase === "thank-you" && (
         <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-background/90 px-4 backdrop-blur-sm">
-          <p className="hud-text-glow-orange font-bit text-2xl tracking-[0.14em] text-primary uppercase sm:text-3xl">
+          <p className="hud-text-glow-orange font-bit tracking-[0.14em] text-white uppercase text-3xl">
             Merci !
           </p>
-          <p className="max-w-[min(92vw,24rem)] text-center font-bit text-sm leading-relaxed tracking-[0.08em] text-primary/70 uppercase sm:text-base">
-            Récupérez votre ticket
+          <p className="max-w-[min(92vw,24rem)] text-center font-bit text-2xl leading-relaxed tracking-[0.08em] text-white font-bold uppercase">
+            Récupérez vos tickets
           </p>
         </div>
       )}

@@ -14,6 +14,8 @@ export const createLotteryLot = publicProcedure
         stockRemaining: input.stockTotal,
         baseWeight: input.baseWeight,
         rarity: input.rarity,
+        description: input.description ?? null,
+        instructions: input.instructions ?? null,
         active: input.active,
         sortOrder: input.sortOrder,
       })

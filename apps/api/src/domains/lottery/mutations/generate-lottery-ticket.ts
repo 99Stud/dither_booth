@@ -1,3 +1,4 @@
+import { buildLotteryTicketViewerUrl } from "#domains/browser-automation/internal/lottery-ticket-viewer-url.ts";
 import {
   gotoAutomation,
   runWithAutomationRetry,
@@ -5,14 +6,8 @@ import {
 import { API_LOTTERY_LOG_SOURCE } from "#domains/lottery/internal/lottery.constants.ts";
 import { publicProcedure } from "#internal/trpc.ts";
 import { logKioskEvent } from "@dither-booth/logging";
-import { getPort } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-const lotteryTicketViewerBaseUrl = new URL(
-  "/lottery-ticket-viewer",
-  `http://localhost:${getPort("WEB_PORT")}`,
-);
 
 const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
 
@@ -20,6 +15,7 @@ export const generateLotteryTicket = publicProcedure
   .input(
     z.object({
       outcome: z.enum(["win", "loss"]),
+      lotId: z.number().int().positive().optional(),
       lotLabel: z.string().nullable().optional(),
       lotRarity: z.string().nullable().optional(),
       clientFlowId: z.string().uuid().optional(),
@@ -40,12 +36,14 @@ export const generateLotteryTicket = publicProcedure
       });
     }
 
-    const url = new URL(lotteryTicketViewerBaseUrl.href);
-    url.searchParams.set("outcome", input.outcome);
-    if (input.lotLabel) url.searchParams.set("lotLabel", input.lotLabel);
-    if (input.lotRarity) url.searchParams.set("lotRarity", input.lotRarity);
-
-    const ticketUrl = url.toString();
+    const ticketUrl = buildLotteryTicketViewerUrl({
+      outcome: input.outcome,
+      lotId: input.outcome === "win" ? input.lotId : undefined,
+      lotLabel:
+        input.outcome === "win" && input.lotId == null ? input.lotLabel : undefined,
+      lotRarity:
+        input.outcome === "win" && input.lotId == null ? input.lotRarity : undefined,
+    });
 
     const capture = await runWithAutomationRetry(getBrowser()!, async (page) => {
       const gotoStartedAt = performance.now();
@@ -53,6 +51,9 @@ export const generateLotteryTicket = publicProcedure
       const puppeteerGotoMs = roundMs(gotoStartedAt);
 
       const waitStartedAt = performance.now();
+      await page.waitForSelector('#lottery-ticket[data-ticket-ready="true"]', {
+        timeout: 120_000,
+      });
       const handle = await page.locator("div#lottery-ticket").waitHandle();
       const waitTicketLocatorMs = roundMs(waitStartedAt);
 

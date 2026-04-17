@@ -23,6 +23,7 @@
     "@dither-booth/logging": "workspace:*",
     "@dither-booth/moderation": "workspace:*",
     "@dither-booth/ports": "workspace:*",
+    "@lottiefiles/dotlottie-react": "^0.19.0",
     "@radix-ui/react-progress": "^1.1.8",
     "@tanstack/react-form": "1.29.0",
     "@tanstack/react-pacer": "0.21.1",

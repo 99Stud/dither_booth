@@ -13,6 +13,7 @@ import { updateLotteryLot } from "./mutations/update-lottery-lot";
 import { getLotteryAnalytics } from "./queries/get-lottery-analytics";
 import { getLotteryConfig } from "./queries/get-lottery-config";
 import { getLotteryEvents } from "./queries/get-lottery-events";
+import { getLotteryLotForTicket } from "./queries/get-lottery-lot-for-ticket";
 import { getLotteryLots } from "./queries/get-lottery-lots";
 import { getLotteryPresets } from "./queries/get-lottery-presets";
 import { getLotterySessions } from "./queries/get-lottery-sessions";
@@ -23,6 +24,7 @@ export const lottery = {
   startLotterySession,
   finishLotterySession,
   getLotteryLots,
+  getLotteryLotForTicket,
   createLotteryLot,
   updateLotteryLot,
   deleteLotteryLot,

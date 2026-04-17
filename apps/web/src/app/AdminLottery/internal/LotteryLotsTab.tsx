@@ -16,9 +16,10 @@ import {
   TableRow,
 } from "#components/ui/table.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
+import { cn } from "#lib/utils.ts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
-import { type FC, useCallback, useState } from "react";
+import { type FC, Fragment, useCallback, useState } from "react";
 
 const lotSelectClassName =
   "h-8 w-full min-w-[7.5rem] border border-input bg-background px-2 text-xs";
@@ -32,10 +33,13 @@ const RARITY_OPTIONS = [
 
 type EditableLotFields = {
   id: number;
+  label: string;
   stockTotal: number;
   stockRemaining: number;
   baseWeight: number;
   rarity: string;
+  description: string | null;
+  instructions: string | null;
 };
 
 export const LotteryLotsTab: FC = () => {
@@ -56,6 +60,8 @@ export const LotteryLotsTab: FC = () => {
     stockTotal: 1,
     baseWeight: 1,
     rarity: "common" as string,
+    description: "",
+    instructions: "",
   });
   const [presetName, setPresetName] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState<number | "">("");
@@ -86,8 +92,17 @@ export const LotteryLotsTab: FC = () => {
       stockTotal: newLot.stockTotal,
       baseWeight: newLot.baseWeight,
       rarity: newLot.rarity as "common" | "medium" | "rare" | "very_rare",
+      description: newLot.description.trim() || null,
+      instructions: newLot.instructions.trim() || null,
     });
-    setNewLot({ label: "", stockTotal: 1, baseWeight: 1, rarity: "common" });
+    setNewLot({
+      label: "",
+      stockTotal: 1,
+      baseWeight: 1,
+      rarity: "common",
+      description: "",
+      instructions: "",
+    });
     await invalidateLots();
   }, [newLot, createLot, invalidateLots]);
 
@@ -115,10 +130,13 @@ export const LotteryLotsTab: FC = () => {
     async (
       lot: EditableLotFields,
       patch: {
+        label?: string;
         stockTotal?: number;
         stockRemaining?: number;
         baseWeight?: number;
         rarity?: "common" | "medium" | "rare" | "very_rare";
+        description?: string | null;
+        instructions?: string | null;
       },
     ) => {
       await patchLot.mutateAsync({ id: lot.id, ...patch });
@@ -178,8 +196,27 @@ export const LotteryLotsTab: FC = () => {
                 </TableRow>
               )}
               {lots?.map((lot) => (
-                <TableRow key={lot.id}>
-                  <TableCell className="font-medium">{lot.label}</TableCell>
+                <Fragment key={lot.id}>
+                  <TableRow>
+                  <TableCell className="min-w-40 max-w-64">
+                    <Input
+                      className="h-8 w-full min-w-0 font-medium"
+                      defaultValue={lot.label}
+                      disabled={patchLot.isPending}
+                      key={`name-${lot.id}-${lot.label}`}
+                      maxLength={100}
+                      onBlur={(e) => {
+                        const raw = e.target.value.trim();
+                        if (raw === "") {
+                          e.target.value = lot.label;
+                          return;
+                        }
+                        if (raw === lot.label) return;
+                        void handlePatchLot(lot, { label: raw });
+                      }}
+                      aria-label={`Name for prize pool ${lot.id}`}
+                    />
+                  </TableCell>
                   <TableCell className="min-w-34">
                     <select
                       className={lotSelectClassName}
@@ -310,6 +347,67 @@ export const LotteryLotsTab: FC = () => {
                     </div>
                   </TableCell>
                 </TableRow>
+                  <TableRow className="border-0 hover:bg-transparent">
+                    <TableCell className="bg-muted/20 pb-4 pt-0" colSpan={6}>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field>
+                          <FieldLabel htmlFor={`lot-${lot.id}-description`}>
+                            Description (ticket)
+                          </FieldLabel>
+                          <FieldDescription>Optional text on the printed ticket.</FieldDescription>
+                          <textarea
+                            id={`lot-${lot.id}-description`}
+                            className={cn(
+                              "flex min-h-[52px] w-full rounded-none border border-input bg-transparent px-3 py-2 text-xs transition-colors",
+                              "placeholder:text-muted-foreground",
+                              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                              "disabled:cursor-not-allowed disabled:opacity-50",
+                            )}
+                            defaultValue={lot.description ?? ""}
+                            disabled={patchLot.isPending}
+                            key={`ld-${lot.id}-${lot.description ?? ""}`}
+                            onBlur={(e) => {
+                              const t = e.target.value.trim();
+                              const next = t.length > 0 ? t : null;
+                              if (next === (lot.description ?? null)) return;
+                              void handlePatchLot(lot, { description: next });
+                            }}
+                            placeholder="e.g. prize details"
+                            rows={2}
+                          />
+                        </Field>
+                        <Field>
+                          <FieldLabel htmlFor={`lot-${lot.id}-instructions`}>
+                            Instructions (after win)
+                          </FieldLabel>
+                          <FieldDescription>
+                            Redemption message. Leave empty for the default line (present at bar).
+                          </FieldDescription>
+                          <textarea
+                            id={`lot-${lot.id}-instructions`}
+                            className={cn(
+                              "flex min-h-[52px] w-full rounded-none border border-input bg-transparent px-3 py-2 text-xs transition-colors",
+                              "placeholder:text-muted-foreground",
+                              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                              "disabled:cursor-not-allowed disabled:opacity-50",
+                            )}
+                            defaultValue={lot.instructions ?? ""}
+                            disabled={patchLot.isPending}
+                            key={`li-${lot.id}-${lot.instructions ?? ""}`}
+                            onBlur={(e) => {
+                              const t = e.target.value.trim();
+                              const next = t.length > 0 ? t : null;
+                              if (next === (lot.instructions ?? null)) return;
+                              void handlePatchLot(lot, { instructions: next });
+                            }}
+                            placeholder="e.g. Présentez ce ticket au stand merch"
+                            rows={2}
+                          />
+                        </Field>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </Fragment>
               ))}
             </TableBody>
           </Table>
@@ -389,6 +487,46 @@ export const LotteryLotsTab: FC = () => {
                   </option>
                 ))}
               </select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="new-lot-description">Description (optional)</FieldLabel>
+              <FieldDescription>Optional copy on the printed ticket.</FieldDescription>
+              <textarea
+                id="new-lot-description"
+                className={cn(
+                  "flex min-h-[52px] w-full rounded-none border border-input bg-transparent px-3 py-2 text-xs transition-colors",
+                  "placeholder:text-muted-foreground",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                )}
+                value={newLot.description}
+                onChange={(e) =>
+                  setNewLot((f) => ({ ...f, description: e.target.value }))
+                }
+                placeholder="Shown on the ticket under the prize name"
+                rows={2}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="new-lot-instructions">Instructions (optional)</FieldLabel>
+              <FieldDescription>
+                Shown after a win. Empty uses the default kiosk message.
+              </FieldDescription>
+              <textarea
+                id="new-lot-instructions"
+                className={cn(
+                  "flex min-h-[52px] w-full rounded-none border border-input bg-transparent px-3 py-2 text-xs transition-colors",
+                  "placeholder:text-muted-foreground",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                )}
+                value={newLot.instructions}
+                onChange={(e) =>
+                  setNewLot((f) => ({ ...f, instructions: e.target.value }))
+                }
+                placeholder="Default: Présentez ce ticket au bar"
+                rows={2}
+              />
             </Field>
           </div>
           <Button

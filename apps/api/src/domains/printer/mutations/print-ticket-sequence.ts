@@ -1,5 +1,9 @@
 import { db } from "#db/index.ts";
 import {
+  registerPrintTicketSequenceJob,
+  takePrintTicketSequenceJob,
+} from "#domains/printer/internal/print-ticket-sequence-job-store.ts";
+import {
   streamPrintImageSequence,
   type PrintSequenceStreamEvent,
 } from "#domains/printer/internal/printer.utils.ts";
@@ -120,10 +124,32 @@ export const printTicketSequence = publicProcedure
     }
   });
 
-export const onPrintTicketSequence = publicProcedure
+/**
+ * POST body can carry large base64 images. The client then opens an SSE subscription with only
+ * `{ jobId }` — httpSubscriptionLink puts input in the URL, which cannot fit image payloads.
+ */
+export const registerPrintTicketSequence = publicProcedure
   .input(printTicketSequenceInputSchema)
+  .mutation(({ input }) => {
+    return { jobId: registerPrintTicketSequenceJob(input) };
+  });
+
+const printTicketSequenceSubscriptionInputSchema = z.object({
+  jobId: z.string().uuid(),
+});
+
+export const onPrintTicketSequence = publicProcedure
+  .input(printTicketSequenceSubscriptionInputSchema)
   .subscription(async function* ({ ctx, input, signal }) {
-    for await (const ev of runPrintTicketSequence({ ctx }, input)) {
+    const payload = takePrintTicketSequenceJob(input.jobId);
+    if (!payload) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Print job expired, invalid, or already consumed.",
+      });
+    }
+
+    for await (const ev of runPrintTicketSequence({ ctx }, payload)) {
       if (signal?.aborted) {
         return;
       }

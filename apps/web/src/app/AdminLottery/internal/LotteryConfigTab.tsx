@@ -95,6 +95,12 @@ export const LotteryConfigTab: FC = () => {
           <CardTitle className="text-sm">Session</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <FieldDescription>
+            The booth only prints the lottery ticket when a session is active{" "}
+            <strong>and</strong> lottery is enabled. Starting a session here turns{" "}
+            <strong>Lottery enabled</strong> on automatically so you don&apos;t need a separate
+            save.
+          </FieldDescription>
           <Field>
             <FieldLabel htmlFor="session-title">Title (optional)</FieldLabel>
             <Input

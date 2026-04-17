@@ -12,14 +12,30 @@ import { cn, mmToPx } from "#lib/utils.ts";
 import clsx from "clsx";
 import { format } from "date-fns";
 
-const RANDOM_99_EUR_AMOUNTS = [0.99, 1.99, 9.9, 9.99, 19.99, 99.99, 99, 1999] as const;
+const RECEIPT_TOTAL_EUR = 1999;
 
 const formatReceiptEuro = (amount: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(amount);
 
-const pickRandom99EuroAmount = (): number => {
-  const i = Math.floor(Math.random() * RANDOM_99_EUR_AMOUNTS.length);
-  return RANDOM_99_EUR_AMOUNTS[i] ?? 99.99;
+/** Random positive amounts (cent precision) that sum to `totalEur`. */
+const randomPartitionEur = (totalEur: number, parts: number): number[] => {
+  const totalCents = Math.round(totalEur * 100);
+  if (parts <= 0) return [];
+  if (parts === 1) return [totalEur];
+  if (totalCents < parts) {
+    const each = totalEur / parts;
+    return Array.from({ length: parts }, () => each);
+  }
+  const cuts = new Set<number>();
+  while (cuts.size < parts - 1) {
+    cuts.add(Math.floor(Math.random() * (totalCents - 1)) + 1);
+  }
+  const sorted = [0, ...Array.from(cuts).sort((a, b) => a - b), totalCents];
+  const amounts: number[] = [];
+  for (let i = 0; i < parts; i++) {
+    amounts.push((sorted[i + 1]! - sorted[i]!) / 100);
+  }
+  return amounts;
 };
 
 interface ReceiptProps {
@@ -41,13 +57,12 @@ export const Receipt: FC<ReceiptProps> = (props) => {
             { qty: "1x" as const, label: "El Tony Mate" },
             { qty: "1x" as const, label: "Ginette" },
           ];
-    let totalEur = 0;
-    const lineItems = rows.map((row) => {
-      const amountEur = pickRandom99EuroAmount();
-      totalEur += amountEur;
-      return { ...row, price: formatReceiptEuro(amountEur) };
-    });
-    return { lineItems, totalPrice: formatReceiptEuro(totalEur) };
+    const amountsEur = randomPartitionEur(RECEIPT_TOTAL_EUR, rows.length);
+    const lineItems = rows.map((row, i) => ({
+      ...row,
+      price: formatReceiptEuro(amountsEur[i] ?? 0),
+    }));
+    return { lineItems, totalPrice: formatReceiptEuro(RECEIPT_TOTAL_EUR) };
   }, [names]);
 
   return (

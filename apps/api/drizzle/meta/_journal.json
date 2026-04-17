@@ -43,6 +43,13 @@
       "when": 1776331220027,
       "tag": "0005_dizzy_wolfpack",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1776439620756,
+      "tag": "0006_light_leper_queen",
+      "breakpoints": true
     }
   ]
 }

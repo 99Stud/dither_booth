@@ -38,6 +38,7 @@ export const startLotterySession = publicProcedure
       const [row] = await db
         .insert(lotteryConfigTable)
         .values({
+          enabled: true,
           currentSessionId: session.id,
           sessionActive: true,
           sessionStartedAt: now,
@@ -49,6 +50,7 @@ export const startLotterySession = publicProcedure
     const [row] = await db
       .update(lotteryConfigTable)
       .set({
+        enabled: true,
         currentSessionId: session.id,
         sessionActive: true,
         sessionStartedAt: now,

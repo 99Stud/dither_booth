@@ -10,6 +10,8 @@ type PresetLine = {
   baseWeight: number;
   rarity: string;
   sortOrder: number;
+  description: string | null;
+  instructions: string | null;
 };
 
 export const saveLotteryPreset = publicProcedure
@@ -27,6 +29,8 @@ export const saveLotteryPreset = publicProcedure
       baseWeight: l.baseWeight,
       rarity: l.rarity,
       sortOrder: l.sortOrder,
+      description: l.description ?? null,
+      instructions: l.instructions ?? null,
     }));
 
     const [row] = await db

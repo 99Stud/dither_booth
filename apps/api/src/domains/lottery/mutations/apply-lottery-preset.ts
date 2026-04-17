@@ -11,6 +11,8 @@ type PresetLine = {
   baseWeight: number;
   rarity: string;
   sortOrder: number;
+  description?: string | null;
+  instructions?: string | null;
 };
 
 export const applyLotteryPreset = publicProcedure
@@ -59,6 +61,8 @@ export const applyLotteryPreset = publicProcedure
               | "medium"
               | "rare"
               | "very_rare",
+            description: line.description ?? null,
+            instructions: line.instructions ?? null,
             sortOrder: line.sortOrder,
             active: true,
           })
