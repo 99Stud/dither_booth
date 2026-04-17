@@ -1,12 +1,16 @@
 import { db } from "#db/index.ts";
 import {
+  gotoAutomation,
+  isTransientPuppeteerError,
+  runWithAutomationRetry,
+} from "#domains/browser-automation/internal/puppeteer-automation.ts";
+import { buildReceiptViewerUrl } from "#domains/browser-automation/internal/receipt-viewer-url.ts";
+import {
   ditherImage,
   renderDitheredToPng,
 } from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
 import { publicProcedure } from "#internal/trpc.ts";
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
-import { API_REPO_ROOT } from "#lib/constants.ts";
-import { serializeTicketSearch } from "#lib/ticket-names-url.ts";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import {
   assertTicketNames,
@@ -14,8 +18,8 @@ import {
   MAX_TICKET_NAMES,
   TicketNameModerationError,
 } from "@dither-booth/moderation";
-import { getWebOrigin } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
+import type { Page } from "puppeteer";
 import { z } from "zod";
 
 const DATA_URL_REGEX = /^data:([^;]+);base64,(.+)$/;
@@ -117,95 +121,132 @@ export const generateReceipt = publicProcedure
       );
       const renderPngMs = roundMs(pngStartedAt);
 
-      if (!ctx.page) {
+      if (!ctx.browser) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Receipt page is not initialized.",
+          message: "Browser is not initialized.",
         });
       }
 
-      const webOrigin = getWebOrigin({ repoRoot: API_REPO_ROOT });
-      const receiptViewerBaseUrl = new URL("/receipt-viewer", webOrigin);
+      const receiptViewerUrl = buildReceiptViewerUrl(names);
 
-      const receiptViewerUrl = (() => {
-        if (names.length === 0) {
-          return receiptViewerBaseUrl.toString();
+      const captureOnPage = async (page: Page) => {
+        const waitImgStartedAt = performance.now();
+        const imageElement = await page.waitForSelector("img#booth-photo");
+        const waitReceiptImageSelectorMs = roundMs(waitImgStartedAt);
+
+        if (!imageElement) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Receipt photo element was not found.",
+          });
         }
-        const url = new URL(receiptViewerBaseUrl.href);
-        url.search = serializeTicketSearch({ ticket: names });
-        return url.toString();
-      })();
 
-      const gotoStartedAt = performance.now();
-      await ctx.page.goto(receiptViewerUrl, {
-        waitUntil: "load",
-        timeout: 120_000,
-      });
-      const puppeteerGotoMs = roundMs(gotoStartedAt);
+        const decodeStartedAt = performance.now();
+        await imageElement.evaluate(async (element, image) => {
+          // INFO: do not extract this function, puppeteer needs this to be created on runtime
+          const isImageElement = (
+            element: unknown,
+          ): element is {
+            src: string;
+            decode: () => Promise<undefined>;
+          } => {
+            return (
+              element !== null &&
+              typeof element === "object" &&
+              "src" in element &&
+              typeof element.src === "string" &&
+              "decode" in element &&
+              typeof element.decode === "function"
+            );
+          };
 
-      const waitImgStartedAt = performance.now();
-      const imageElement = await ctx.page.waitForSelector("img#booth-photo");
-      const waitReceiptImageSelectorMs = roundMs(waitImgStartedAt);
+          if (!isImageElement(element)) {
+            throw new Error("Receipt photo element is not an image.");
+          }
 
-      if (!imageElement) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Receipt photo element was not found.",
+          element.src = `data:${image.mimeType};base64,${image.data}`;
+          await element.decode();
+        }, ditheredPng);
+        const receiptImageDecodeMs = roundMs(decodeStartedAt);
+
+        const waitReceiptStartedAt = performance.now();
+        const handle = await page.locator("div#receipt").waitHandle();
+        const waitReceiptLocatorMs = roundMs(waitReceiptStartedAt);
+
+        if (!handle) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Receipt element was not found.",
+          });
+        }
+
+        const screenshotStartedAt = performance.now();
+        const receiptScreenshot = await handle.screenshot({
+          type: "jpeg",
+          quality: 85,
+          captureBeyondViewport: false,
+          encoding: "base64",
         });
-      }
+        const receiptScreenshotMs = roundMs(screenshotStartedAt);
 
-      const decodeStartedAt = performance.now();
-      await imageElement.evaluate(async (element, image) => {
-        // INFO: do not extract this function, puppeteer needs this to be created on runtime
-        const isImageElement = (
-          element: unknown,
-        ): element is {
-          src: string;
-          decode: () => Promise<undefined>;
-        } => {
-          return (
-            element !== null &&
-            typeof element === "object" &&
-            "src" in element &&
-            typeof element.src === "string" &&
-            "decode" in element &&
-            typeof element.decode === "function"
-          );
+        if (!receiptScreenshot) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: RECEIPT_GENERATION_FAILED_MESSAGE,
+          });
+        }
+
+        return {
+          receiptScreenshot,
+          receiptImageDecodeMs,
+          waitReceiptImageSelectorMs,
+          waitReceiptLocatorMs,
+          receiptScreenshotMs,
         };
+      };
 
-        if (!isImageElement(element)) {
-          throw new Error("Receipt photo element is not an image.");
+      let prewarmHit = false;
+      let puppeteerGotoMs = 0;
+      let capture: Awaited<ReturnType<typeof captureOnPage>>;
+
+      const slot = ctx.receiptPageSlot;
+
+      if (slot) {
+        let warmPage: Page | undefined;
+        try {
+          warmPage = await slot.takeReadyPage(receiptViewerUrl);
+          prewarmHit = true;
+          capture = await captureOnPage(warmPage);
+        } catch (error) {
+          prewarmHit = false;
+          if (warmPage && !warmPage.isClosed()) {
+            warmPage.close().catch(() => undefined);
+          }
+
+          if (!isTransientPuppeteerError(error) && error instanceof TRPCError) {
+            throw error;
+          }
+
+          capture = await runWithAutomationRetry(ctx.browser, async (page) => {
+            const gotoStartedAt = performance.now();
+            await gotoAutomation(page, receiptViewerUrl);
+            puppeteerGotoMs = roundMs(gotoStartedAt);
+
+            return await captureOnPage(page);
+          });
+        } finally {
+          if (prewarmHit) {
+            slot.returnPage(warmPage!, receiptViewerUrl);
+          }
         }
+      } else {
+        capture = await runWithAutomationRetry(ctx.browser, async (page) => {
+          const gotoStartedAt = performance.now();
+          await gotoAutomation(page, receiptViewerUrl);
+          puppeteerGotoMs = roundMs(gotoStartedAt);
 
-        element.src = `data:${image.mimeType};base64,${image.data}`;
-        await element.decode();
-      }, ditheredPng);
-      const receiptImageDecodeMs = roundMs(decodeStartedAt);
-
-      const waitReceiptStartedAt = performance.now();
-      const handle = await ctx.page.locator("div#receipt").waitHandle();
-      const waitReceiptLocatorMs = roundMs(waitReceiptStartedAt);
-
-      if (!handle) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Receipt element was not found.",
-        });
-      }
-
-      const screenshotStartedAt = performance.now();
-      const receiptScreenshot = await handle.screenshot({
-        type: "jpeg",
-        quality: 85,
-        captureBeyondViewport: false,
-        encoding: "base64",
-      });
-      const receiptScreenshotMs = roundMs(screenshotStartedAt);
-
-      if (!receiptScreenshot) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: RECEIPT_GENERATION_FAILED_MESSAGE,
+          return await captureOnPage(page);
         });
       }
 
@@ -214,21 +255,22 @@ export const generateReceipt = publicProcedure
           totalMs: roundMs(mutationStartedAt),
           inputBytes: inputBuffer.byteLength,
           nameCount: names.length,
+          prewarmHit,
           parseDataUrlMs,
           loadPrintConfigMs,
           ditherMs,
           renderPngMs,
           puppeteerGotoMs,
-          waitReceiptImageSelectorMs,
-          receiptImageDecodeMs,
-          waitReceiptLocatorMs,
-          receiptScreenshotMs,
+          waitReceiptImageSelectorMs: capture.waitReceiptImageSelectorMs,
+          receiptImageDecodeMs: capture.receiptImageDecodeMs,
+          waitReceiptLocatorMs: capture.waitReceiptLocatorMs,
+          receiptScreenshotMs: capture.receiptScreenshotMs,
           ...(input.clientFlowId ? { clientFlowId: input.clientFlowId } : {}),
         },
       });
 
       return {
-        data: receiptScreenshot,
+        data: capture.receiptScreenshot,
         mimeType: "image/jpeg",
       };
     } catch (error) {

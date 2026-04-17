@@ -9,7 +9,7 @@ import {
 } from "#lib/ticket-names.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn } from "#lib/utils.ts";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type FC, useCallback, useEffect, useState } from "react";
 
@@ -19,6 +19,16 @@ export const Splash: FC = () => {
   const { data: printConfig, isLoading: isLoadingPrintConfig } = useQuery(
     trpc.getDitherConfiguration.queryOptions(),
   );
+
+  const primeReceiptMutation = useMutation(trpc.primeReceipt.mutationOptions());
+
+  useEffect(() => {
+    if (isLoadingPrintConfig) return;
+    primeReceiptMutation.mutate({
+      names: [...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES],
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingPrintConfig]);
 
   const goToExperience = useCallback(async () => {
     await requestKioskFullscreen();

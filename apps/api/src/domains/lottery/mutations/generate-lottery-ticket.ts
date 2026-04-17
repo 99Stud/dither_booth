@@ -1,3 +1,7 @@
+import {
+  gotoAutomation,
+  runWithAutomationRetry,
+} from "#domains/browser-automation/internal/puppeteer-automation.ts";
 import { API_LOTTERY_LOG_SOURCE } from "#domains/lottery/internal/lottery.constants.ts";
 import { publicProcedure } from "#internal/trpc.ts";
 import { logKioskEvent } from "@dither-booth/logging";
@@ -24,10 +28,10 @@ export const generateLotteryTicket = publicProcedure
   .mutation(async ({ input, ctx }) => {
     const mutationStartedAt = performance.now();
 
-    if (!ctx.page) {
+    if (!ctx.browser) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Receipt page is not initialized.",
+        message: "Browser is not initialized.",
       });
     }
 
@@ -36,53 +40,56 @@ export const generateLotteryTicket = publicProcedure
     if (input.lotLabel) url.searchParams.set("lotLabel", input.lotLabel);
     if (input.lotRarity) url.searchParams.set("lotRarity", input.lotRarity);
 
-    const gotoStartedAt = performance.now();
-    await ctx.page.goto(url.toString(), {
-      waitUntil: "load",
-      timeout: 120_000,
-    });
-    const puppeteerGotoMs = roundMs(gotoStartedAt);
+    const ticketUrl = url.toString();
 
-    const waitStartedAt = performance.now();
-    const handle = await ctx.page.locator("div#lottery-ticket").waitHandle();
-    const waitTicketLocatorMs = roundMs(waitStartedAt);
+    const capture = await runWithAutomationRetry(ctx.browser, async (page) => {
+      const gotoStartedAt = performance.now();
+      await gotoAutomation(page, ticketUrl);
+      const puppeteerGotoMs = roundMs(gotoStartedAt);
 
-    if (!handle) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Lottery ticket element was not found.",
+      const waitStartedAt = performance.now();
+      const handle = await page.locator("div#lottery-ticket").waitHandle();
+      const waitTicketLocatorMs = roundMs(waitStartedAt);
+
+      if (!handle) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lottery ticket element was not found.",
+        });
+      }
+
+      const screenshotStartedAt = performance.now();
+      const ticketScreenshot = await handle.screenshot({
+        type: "jpeg",
+        quality: 85,
+        captureBeyondViewport: false,
+        encoding: "base64",
       });
-    }
+      const ticketScreenshotMs = roundMs(screenshotStartedAt);
 
-    const screenshotStartedAt = performance.now();
-    const ticketScreenshot = await handle.screenshot({
-      type: "jpeg",
-      quality: 85,
-      captureBeyondViewport: false,
-      encoding: "base64",
+      if (!ticketScreenshot) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to generate lottery ticket.",
+        });
+      }
+
+      return { ticketScreenshot, puppeteerGotoMs, waitTicketLocatorMs, ticketScreenshotMs };
     });
-    const ticketScreenshotMs = roundMs(screenshotStartedAt);
-
-    if (!ticketScreenshot) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to generate lottery ticket.",
-      });
-    }
 
     logKioskEvent("info", API_LOTTERY_LOG_SOURCE, "generate-lottery-ticket-metrics", {
       details: {
         totalMs: roundMs(mutationStartedAt),
-        puppeteerGotoMs,
-        waitTicketLocatorMs,
-        ticketScreenshotMs,
+        puppeteerGotoMs: capture.puppeteerGotoMs,
+        waitTicketLocatorMs: capture.waitTicketLocatorMs,
+        ticketScreenshotMs: capture.ticketScreenshotMs,
         outcome: input.outcome,
         ...(input.clientFlowId ? { clientFlowId: input.clientFlowId } : {}),
       },
     });
 
     return {
-      data: ticketScreenshot,
+      data: capture.ticketScreenshot,
       mimeType: "image/jpeg",
     };
   });

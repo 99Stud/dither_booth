@@ -1,6 +1,8 @@
+import type { ReceiptPageSlot } from "#domains/browser-automation/internal/puppeteer-automation.ts";
 import type { TRPCContext } from "#lib/trpc/trpc.types.ts";
-import type { Page } from "puppeteer";
+import type { Browser } from "puppeteer";
 
+import { createReceiptPageSlot } from "#domains/browser-automation/internal/puppeteer-automation.ts";
 import { apiRouter } from "#internal/router.ts";
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
@@ -19,7 +21,8 @@ import puppeteer from "puppeteer";
 import { db } from "./db";
 
 let printerDevice: USB | undefined;
-let page: Page | undefined;
+let browser: Browser | undefined;
+let receiptPageSlot: ReceiptPageSlot | undefined;
 
 try {
   printerDevice = new USB();
@@ -43,15 +46,8 @@ try {
   if (puppeteerExecutablePath) {
     launchOptions.executablePath = puppeteerExecutablePath;
   }
-  const browser = await puppeteer.launch(launchOptions);
-  page = await browser.newPage();
-  page.setDefaultNavigationTimeout(120_000);
-  page.setDefaultTimeout(120_000);
-  page.setViewport({
-    deviceScaleFactor: 2,
-    width: 440,
-    height: 1600,
-  });
+  browser = await puppeteer.launch(launchOptions);
+  receiptPageSlot = createReceiptPageSlot(browser);
 } catch (error) {
   logKioskEvent("error", API_BROWSER_LOG_SOURCE, "browser-init-failed", {
     error: getKioskErrorDiagnostics(error, "Browser initialization failed."),
@@ -60,7 +56,8 @@ try {
 
 const createContext = (): TRPCContext => ({
   printerDevice,
-  page,
+  browser,
+  receiptPageSlot,
   db,
 });
 

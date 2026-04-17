@@ -41,6 +41,7 @@ export const Booth: FC = () => {
   const { data: printConfig } = useQuery(trpc.getDitherConfiguration.queryOptions());
   const { data: lotteryConfig } = useQuery(trpc.getLotteryConfig.queryOptions());
   const generateReceipt = useMutation(trpc.generateReceipt.mutationOptions());
+  const primeReceiptMutation = useMutation(trpc.primeReceipt.mutationOptions());
   const printReceipt = useMutation(trpc.print.mutationOptions());
   const lotteryDrawMutation = useMutation(trpc.lotteryDraw.mutationOptions());
   const generateLotteryTicketMutation = useMutation(trpc.generateLotteryTicket.mutationOptions());
@@ -202,6 +203,15 @@ export const Booth: FC = () => {
     printTicketSequenceMutation,
     goToSplash,
   ]);
+
+  const namesKey = ticketNames.join("\0");
+  useEffect(() => {
+    if (!canUseTicketNames) return;
+    primeReceiptMutation.mutate({
+      names: ticketNames.length > 0 ? ticketNames : undefined,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canUseTicketNames, namesKey]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

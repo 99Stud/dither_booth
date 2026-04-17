@@ -11,7 +11,7 @@ const VALID_PNG_DATA_URL =
 const createCaller = () => {
   return router({ generateReceipt }).createCaller({
     db: undefined as never,
-    page: undefined,
+    browser: undefined,
   });
 };
 
@@ -28,7 +28,7 @@ describe("generateReceipt", () => {
     });
   });
 
-  it("still requires an initialized page for allowed names", async () => {
+  it("still requires an initialized browser for allowed names", async () => {
     await expect(
       createCaller().generateReceipt({
         image: VALID_PNG_DATA_URL,
@@ -36,7 +36,7 @@ describe("generateReceipt", () => {
       }),
     ).rejects.toMatchObject({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Receipt page is not initialized.",
+      message: "Browser is not initialized.",
     });
   });
 });
