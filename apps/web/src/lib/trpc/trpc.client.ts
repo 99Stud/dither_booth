@@ -5,6 +5,7 @@ import {
   createTRPCClient,
   httpBatchLink,
   httpLink,
+  httpSubscriptionLink,
   isNonJsonSerializable,
   splitLink,
 } from "@trpc/client";
@@ -27,12 +28,18 @@ export const queryClient = new QueryClient({
 export const trpcClient = createTRPCClient<ApiRouter>({
   links: [
     splitLink({
-      condition: (op) => isNonJsonSerializable(op.input),
-      true: httpLink({
+      condition: (op) => op.type === "subscription",
+      true: httpSubscriptionLink({
         url: TRPC_PROXY_PATH,
       }),
-      false: httpBatchLink({
-        url: TRPC_PROXY_PATH,
+      false: splitLink({
+        condition: (op) => isNonJsonSerializable(op.input),
+        true: httpLink({
+          url: TRPC_PROXY_PATH,
+        }),
+        false: httpBatchLink({
+          url: TRPC_PROXY_PATH,
+        }),
       }),
     }),
   ],

@@ -65,6 +65,84 @@ export const printImageToDevice = async (
   });
 };
 
+const openUsbDevice = (device: USB) =>
+  new Promise<void>((resolve, reject) => {
+    device.open((err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
+    });
+  });
+
+export type PrintSequenceStreamEvent =
+  | { type: "prepare"; index: number }
+  | { type: "print"; index: number };
+
+/**
+ * Print multiple images in sequence, cutting between each.
+ * Yields before each rasterization pass and before each USB print so callers can report progress.
+ */
+export async function* streamPrintImageSequence(
+  device: USB,
+  images: Array<{ buffer: Buffer<ArrayBuffer>; ditherConfiguration: PrintConfigRow }>,
+): AsyncGenerator<PrintSequenceStreamEvent, void, undefined> {
+  const totalStart = performance.now();
+  const rasterCommands: Buffer[] = [];
+
+  for (let index = 0; index < images.length; index++) {
+    const image = images[index]!;
+    yield { type: "prepare", index };
+    const result = await imageToRasterCommand(image.buffer, image.ditherConfiguration);
+
+    logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-sequence-raster-command-built", {
+      details: {
+        imageIndex: index,
+        ...result.metrics,
+      },
+    });
+
+    rasterCommands.push(result.rasterCmd);
+  }
+
+  const usbOpenCallAt = performance.now();
+  await openUsbDevice(device);
+  const usbOpenMs = roundDuration(performance.now() - usbOpenCallAt);
+
+  const printer = new Printer(device, {
+    encoding: "US-ASCII",
+  });
+
+  try {
+    const usbOpsStart = performance.now();
+    for (let i = 0; i < rasterCommands.length; i++) {
+      const rasterCmd = rasterCommands[i]!;
+      yield { type: "print", index: i };
+      printer.align("ct");
+      printer.raw(rasterCmd);
+      printer.feed(2);
+      printer.cut();
+    }
+    await printer.close();
+    logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-sequence-complete", {
+      details: {
+        imageCount: rasterCommands.length,
+        totalMs: roundDuration(performance.now() - totalStart),
+        usbOpenMs,
+        usbPrintOpsMs: roundDuration(performance.now() - usbOpsStart),
+      },
+    });
+  } catch (e) {
+    try {
+      await printer.close();
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  }
+}
+
 /**
  * Print multiple images in sequence, cutting between each.
  * Used for classic receipt + lottery outcome ticket.
@@ -73,68 +151,9 @@ export const printImageSequenceToDevice = async (
   device: USB,
   images: Array<{ buffer: Buffer<ArrayBuffer>; ditherConfiguration: PrintConfigRow }>,
 ): Promise<void> => {
-  const totalStart = performance.now();
-  const rasterCommands = await Promise.all(
-    images.map(async (img, index) => {
-      const result = await imageToRasterCommand(
-        img.buffer,
-        img.ditherConfiguration,
-      );
-
-      logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-sequence-raster-command-built", {
-        details: {
-          imageIndex: index,
-          ...result.metrics,
-        },
-      });
-
-      return result.rasterCmd;
-    }),
-  );
-  const usbOpenCallAt = performance.now();
-
-  await new Promise<void>((resolve, reject) => {
-    device.open((err) => {
-      const usbOpenMs = roundDuration(performance.now() - usbOpenCallAt);
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      void (async () => {
-        const usbOpsStart = performance.now();
-        const printer = new Printer(device, {
-          encoding: "US-ASCII",
-        });
-
-        try {
-          for (const rasterCmd of rasterCommands) {
-            printer.align("ct");
-            printer.raw(rasterCmd);
-            printer.feed(2);
-            printer.cut();
-          }
-          await printer.close();
-          logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-sequence-complete", {
-            details: {
-              imageCount: rasterCommands.length,
-              totalMs: roundDuration(performance.now() - totalStart),
-              usbOpenMs,
-              usbPrintOpsMs: roundDuration(performance.now() - usbOpsStart),
-            },
-          });
-          resolve();
-        } catch (e) {
-          try {
-            await printer.close();
-          } catch {
-            /* ignore */
-          }
-          reject(e);
-        }
-      })();
-    });
-  });
+  for await (const _ of streamPrintImageSequence(device, images)) {
+    /* progress discarded */
+  }
 };
 
 const imageToRasterCommand = async (

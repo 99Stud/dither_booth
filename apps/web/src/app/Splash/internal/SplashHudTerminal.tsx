@@ -34,7 +34,7 @@ export const SplashHudTerminal: FC<{ reduceMotion: boolean }> = (props) => {
       aria-hidden="true"
       className="border border-primary/40 px-3 py-3 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm"
     >
-      <div className="mb-2 flex items-center justify-between gap-3 border-b border-primary/25 pb-2 font-mono text-[9px] uppercase">
+      <div className="mb-2 flex items-center justify-between gap-3 border-b border-primary/25 pb-2 font-bit text-[9px] uppercase">
         <span className="hud-text-glow-orange tracking-[0.22em]">99_stud feed</span>
         <span className="hud-text-glow-orange-soft tracking-[0.2em]">
           Active
@@ -44,7 +44,7 @@ export const SplashHudTerminal: FC<{ reduceMotion: boolean }> = (props) => {
         </span>
       </div>
 
-      <div className="space-y-1 font-mono text-[9px] leading-relaxed text-muted-foreground sm:text-[10px]">
+      <div className="space-y-1 font-bit text-[9px] leading-relaxed text-muted-foreground sm:text-[10px]">
         {lines.map((line, index) => (
           <p key={`${index}-${line}`} className="hud-text-glow-orange-soft wrap-break-word">
             {line}

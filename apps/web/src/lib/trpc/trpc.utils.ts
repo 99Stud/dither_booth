@@ -7,8 +7,39 @@ export const base64ToBlob = (base64: string, mimeType: string) => {
 
 import type { ApiRouter } from "@dither-booth/api/router.types";
 
-import { TRPCClientError } from "@trpc/client";
+import { TRPCClientError, type TRPCClient } from "@trpc/client";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
+
+export type PrintTicketSequenceProgress = {
+  step:
+    | "load_config"
+    | "decode"
+    | "prepare_receipt"
+    | "prepare_lottery"
+    | "printing_receipt"
+    | "printing_lottery";
+};
+
+export const subscribePrintTicketSequence = (
+  client: TRPCClient<ApiRouter>,
+  input: {
+    receiptImage: string;
+    lotteryTicketImage: string;
+    clientFlowId?: string;
+  },
+  onProgress: (value: PrintTicketSequenceProgress) => void,
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const sub = client.onPrintTicketSequence.subscribe(input, {
+      onData: onProgress,
+      onError: reject,
+      onComplete: () => {
+        sub.unsubscribe();
+        resolve();
+      },
+    });
+  });
+};
 
 export function isTRPCClientError(
   cause: unknown,

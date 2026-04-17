@@ -4,10 +4,16 @@ import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { normalizeTicketNames, ticketNamesParser } from "#lib/ticket-names.ts";
-import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
+import {
+  base64ToBlob,
+  type PrintTicketSequenceProgress,
+  subscribePrintTicketSequence,
+  useTRPC,
+  useTRPCClient,
+} from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, cn } from "#lib/utils.ts";
-import { validateTicketNames } from "@dither-booth/moderation";
 import { logKioskEvent } from "@dither-booth/logging";
+import { validateTicketNames } from "@dither-booth/moderation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryState } from "nuqs";
@@ -21,6 +27,15 @@ const COUNTDOWN_SECONDS = 4;
 const THANK_YOU_DURATION_MS = 6_000;
 const FLASH_HOLD_MS = 140;
 
+const PRINT_TICKET_PROGRESS_LABELS: Record<PrintTicketSequenceProgress["step"], string> = {
+  load_config: "__CONFIG_LOADING__",
+  decode: "Decoding image…",
+  prepare_receipt: "Preparing receipt…",
+  prepare_lottery: "Preparing lottery ticket…",
+  printing_receipt: "First output: your ticket…",
+  printing_lottery: "Last output: your lottery ticket…",
+};
+
 const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
 
 export const Booth: FC = () => {
@@ -31,6 +46,7 @@ export const Booth: FC = () => {
   const [phase, setPhase] = useState<BoothPhase>("idle");
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
   const [error, setError] = useState<string | null>(null);
+  const [processingStatus, setProcessingStatus] = useState("Preparing your ticket…");
 
   const [ticketRaw] = useQueryState("ticket", ticketNamesParser);
   const ticketNames = normalizeTicketNames(ticketRaw ?? []);
@@ -38,6 +54,7 @@ export const Booth: FC = () => {
   const canUseTicketNames = ticketNamesValidation.ok;
 
   const trpc = useTRPC();
+  const trpcClient = useTRPCClient();
   const { data: printConfig } = useQuery(trpc.getDitherConfiguration.queryOptions());
   const { data: lotteryConfig } = useQuery(trpc.getLotteryConfig.queryOptions());
   const generateReceipt = useMutation(trpc.generateReceipt.mutationOptions());
@@ -45,7 +62,6 @@ export const Booth: FC = () => {
   const printReceipt = useMutation(trpc.print.mutationOptions());
   const lotteryDrawMutation = useMutation(trpc.lotteryDraw.mutationOptions());
   const generateLotteryTicketMutation = useMutation(trpc.generateLotteryTicket.mutationOptions());
-  const printTicketSequenceMutation = useMutation(trpc.printTicketSequence.mutationOptions());
 
   const showTicketNameHeader =
     printConfig?.namesEntryEnabled === true && ticketNames.length > 0 && phase === "idle";
@@ -98,6 +114,7 @@ export const Booth: FC = () => {
       // how long the actual photo capture takes, then swap to the processing
       // overlay while the photo resolves in the background.
       await new Promise<void>((resolve) => setTimeout(resolve, FLASH_HOLD_MS));
+      setProcessingStatus("Preparing your ticket…");
       setPhase("processing");
 
       const squarePhoto = await photoPromise;
@@ -140,11 +157,17 @@ export const Booth: FC = () => {
         const generateLotteryTicketMs = roundMs(ticketStartedAt);
 
         const printSeqStartedAt = performance.now();
-        await printTicketSequenceMutation.mutateAsync({
-          receiptImage: screenshot.data,
-          lotteryTicketImage: lotteryTicket.data,
-          clientFlowId,
-        });
+        await subscribePrintTicketSequence(
+          trpcClient,
+          {
+            receiptImage: screenshot.data,
+            lotteryTicketImage: lotteryTicket.data,
+            clientFlowId,
+          },
+          (value) => {
+            setProcessingStatus(PRINT_TICKET_PROGRESS_LABELS[value.step]);
+          },
+        );
         const printTicketSequenceMs = roundMs(printSeqStartedAt);
 
         logKioskEvent("info", BOOTH_LOG_SOURCE, "booth-print-flow-metrics", {
@@ -162,6 +185,7 @@ export const Booth: FC = () => {
         });
       } else {
         const printStartedAt = performance.now();
+        setProcessingStatus("Your ticket is being printed…");
         const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
         await printReceipt.mutateAsync(blob);
         const printMs = roundMs(printStartedAt);
@@ -200,7 +224,7 @@ export const Booth: FC = () => {
     printReceipt,
     lotteryDrawMutation,
     generateLotteryTicketMutation,
-    printTicketSequenceMutation,
+    trpcClient,
     goToSplash,
   ]);
 
@@ -338,23 +362,38 @@ export const Booth: FC = () => {
         />
       )}
 
-      {/* Processing overlay */}
+      {/* Processing overlay — Splash-style terminal + PP Neue Bit */}
       {phase === "processing" && (
-        <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-background/70 backdrop-blur-sm">
-          <Spinner className="size-10 text-white" />
-          <p className="font-bit text-lg tracking-[0.2em] text-white uppercase">
-            Impression en cours…
-          </p>
+        <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-background/70 px-4 backdrop-blur-sm">
+          <Spinner className="size-10 text-primary" />
+          <div
+            className="w-full max-w-[min(92vw,28rem)] border border-primary/40 px-3 py-3 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="mb-2 flex items-center justify-between gap-3 border-b border-primary/25 pb-2 font-bit text-[9px] uppercase sm:text-[10px]">
+              <span className="hud-text-glow-orange tracking-[0.22em]">print_stream</span>
+              <span className="hud-text-glow-orange-soft tracking-[0.2em]">
+                Busy
+                <span aria-hidden className="hud-cursor-blink ml-1 inline-block">
+                  *
+                </span>
+              </span>
+            </div>
+            <p className="wrap-break-word text-center font-bit text-sm leading-relaxed tracking-[0.06em] text-muted-foreground hud-text-glow-orange-soft sm:text-base">
+              {processingStatus}
+            </p>
+          </div>
         </div>
       )}
 
       {/* Thank you overlay */}
       {phase === "thank-you" && (
-        <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-background/90 backdrop-blur-sm">
-          <p className="hud-text-glow-orange font-mono text-2xl tracking-[0.18em] text-primary uppercase sm:text-3xl">
+        <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-background/90 px-4 backdrop-blur-sm">
+          <p className="hud-text-glow-orange font-bit text-2xl tracking-[0.14em] text-primary uppercase sm:text-3xl">
             Merci !
           </p>
-          <p className="font-mono text-sm tracking-[0.15em] text-primary/70 uppercase sm:text-base">
+          <p className="max-w-[min(92vw,24rem)] text-center font-bit text-sm leading-relaxed tracking-[0.08em] text-primary/70 uppercase sm:text-base">
             Récupérez votre ticket
           </p>
         </div>
