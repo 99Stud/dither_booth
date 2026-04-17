@@ -127,28 +127,39 @@ export const Booth: FC = () => {
       const photoDataUrl = await blobToDataUrl(squarePhoto);
       const dataUrlMs = roundMs(dataUrlStartedAt);
 
-      const receiptStartedAt = performance.now();
-      const screenshot = await generateReceipt.mutateAsync({
-        image: photoDataUrl,
-        names: ticketNames.length > 0 ? ticketNames : undefined,
-        clientFlowId,
-      });
-      const generateReceiptMs = roundMs(receiptStartedAt);
-
       const isLotteryLive =
         lotteryConfig?.enabled === true &&
         lotteryConfig?.sessionActive === true &&
         lotteryConfig?.currentSessionId != null;
 
+      let screenshot: Awaited<ReturnType<typeof generateReceipt.mutateAsync>>;
+      let generateReceiptMs: number;
+
       if (isLotteryLive) {
         const captureToDrawMs = Date.now() - captureStart;
-
-        const drawStartedAt = performance.now();
-        const drawResult = await lotteryDrawMutation.mutateAsync({
-          captureToDrawMs,
-          clientFlowId,
-        });
-        const lotteryDrawMs = roundMs(drawStartedAt);
+        const [receiptOutcome, drawOutcome] = await Promise.all([
+          (async () => {
+            const t0 = performance.now();
+            const result = await generateReceipt.mutateAsync({
+              image: photoDataUrl,
+              names: ticketNames.length > 0 ? ticketNames : undefined,
+              clientFlowId,
+            });
+            return { result, ms: roundMs(t0) };
+          })(),
+          (async () => {
+            const t0 = performance.now();
+            const result = await lotteryDrawMutation.mutateAsync({
+              captureToDrawMs,
+              clientFlowId,
+            });
+            return { result, ms: roundMs(t0) };
+          })(),
+        ]);
+        screenshot = receiptOutcome.result;
+        generateReceiptMs = receiptOutcome.ms;
+        const lotteryDrawMs = drawOutcome.ms;
+        const drawResult = drawOutcome.result;
 
         const ticketStartedAt = performance.now();
         const lotteryTicket = await generateLotteryTicketMutation.mutateAsync({
@@ -186,6 +197,14 @@ export const Booth: FC = () => {
           },
         });
       } else {
+        const receiptStartedAt = performance.now();
+        screenshot = await generateReceipt.mutateAsync({
+          image: photoDataUrl,
+          names: ticketNames.length > 0 ? ticketNames : undefined,
+          clientFlowId,
+        });
+        generateReceiptMs = roundMs(receiptStartedAt);
+
         const printStartedAt = performance.now();
         setProcessingStatus("Your ticket is being printed…");
         const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
