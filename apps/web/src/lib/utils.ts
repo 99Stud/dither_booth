@@ -1,3 +1,8 @@
+import {
+  getJpegImageMetadataFromBlob,
+  manuallyOrientImageBitmap,
+  shouldManuallyOrientBitmap,
+} from "#lib/image-orientation.utils.ts";
 import { INCH_TO_MM, MBP_2018_13_DPI } from "#lib/constants.ts";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -41,10 +46,52 @@ export const mmToPx = (mm: number) => {
 export const createOrientedImageBitmap = async (
   blob: Blob,
 ): Promise<ImageBitmap> => {
+  const jpegMetadata = await getJpegImageMetadataFromBlob(blob);
+
   try {
-    return await createImageBitmap(blob, { imageOrientation: "from-image" });
+    const imageBitmap = await createImageBitmap(blob, {
+      imageOrientation: "from-image",
+    });
+
+    if (
+      !shouldManuallyOrientBitmap({
+        bitmapHeight: imageBitmap.height,
+        bitmapWidth: imageBitmap.width,
+        jpegMetadata,
+      })
+    ) {
+      return imageBitmap;
+    }
+
+    try {
+      return await manuallyOrientImageBitmap(
+        imageBitmap,
+        jpegMetadata.orientation ?? 1,
+      );
+    } finally {
+      imageBitmap.close();
+    }
   } catch {
-    return createImageBitmap(blob);
+    const imageBitmap = await createImageBitmap(blob);
+
+    if (
+      !shouldManuallyOrientBitmap({
+        bitmapHeight: imageBitmap.height,
+        bitmapWidth: imageBitmap.width,
+        jpegMetadata,
+      })
+    ) {
+      return imageBitmap;
+    }
+
+    try {
+      return await manuallyOrientImageBitmap(
+        imageBitmap,
+        jpegMetadata.orientation ?? 1,
+      );
+    } finally {
+      imageBitmap.close();
+    }
   }
 };
 

@@ -2,6 +2,7 @@ import {
   createOrientedImageBitmap,
   getBlobDimensions,
 } from "#lib/utils.ts";
+import { getJpegImageMetadataFromBlob } from "#lib/image-orientation.utils.ts";
 import { logKioskEvent } from "@dither-booth/logging";
 
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";
@@ -76,11 +77,17 @@ export const takeSquarePhoto = async (
   takePhoto: () => Promise<Blob>,
 ) => {
   const photo = await takePhoto();
+  const jpegMetadata = await getJpegImageMetadataFromBlob(photo);
   const { width, height } = await getBlobDimensions(photo);
 
   logKioskEvent("info", source, "photo-captured", {
     details: {
+      exifOrientation: jpegMetadata.orientation,
       height,
+      mimeType: photo.type || "unknown",
+      rawHeight: jpegMetadata.height,
+      rawWidth: jpegMetadata.width,
+      sizeBytes: photo.size,
       width,
     },
   });
@@ -89,5 +96,17 @@ export const takeSquarePhoto = async (
     logKioskEvent("info", source, "client-square-resize-requested");
   }
 
-  return await resizeBlobToSquare(photo);
+  const squarePhoto = await resizeBlobToSquare(photo);
+  const resizedDimensions = await getBlobDimensions(squarePhoto);
+
+  logKioskEvent("info", source, "photo-square-resized", {
+    details: {
+      height: resizedDimensions.height,
+      mimeType: squarePhoto.type || "unknown",
+      sizeBytes: squarePhoto.size,
+      width: resizedDimensions.width,
+    },
+  });
+
+  return squarePhoto;
 };

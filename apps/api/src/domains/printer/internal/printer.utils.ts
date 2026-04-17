@@ -6,6 +6,8 @@ import {
   ditherImage,
 } from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
 import { PRINT_WIDTH_PX } from "#domains/image-manipulation/internal/image-manipulation.constants.ts";
+import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
+import { logKioskEvent } from "@dither-booth/logging";
 import { Printer } from "@node-escpos/core";
 import sharp from "sharp";
 
@@ -17,7 +19,9 @@ export const printImageToDevice = async (
   input: Buffer<ArrayBuffer>,
   ditherConfiguration: PrintConfigRow,
 ): Promise<void> => {
-  const rasterCmd = await imageToRasterCommand(input, ditherConfiguration);
+  const totalStart = performance.now();
+  const { metrics, rasterCmd } = await imageToRasterCommand(input, ditherConfiguration);
+  const usbStart = performance.now();
 
   await new Promise<void>((resolve, reject) => {
     device.open((err) => {
@@ -37,6 +41,13 @@ export const printImageToDevice = async (
           printer.feed(2);
           printer.cut();
           await printer.close();
+          logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-image-complete", {
+            details: {
+              ...metrics,
+              totalMs: roundDuration(performance.now() - totalStart),
+              usbWriteMs: roundDuration(performance.now() - usbStart),
+            },
+          });
           resolve();
         } catch (e) {
           try {
@@ -59,11 +70,25 @@ export const printImageSequenceToDevice = async (
   device: USB,
   images: Array<{ buffer: Buffer<ArrayBuffer>; ditherConfiguration: PrintConfigRow }>,
 ): Promise<void> => {
+  const totalStart = performance.now();
   const rasterCommands = await Promise.all(
-    images.map((img) =>
-      imageToRasterCommand(img.buffer, img.ditherConfiguration),
-    ),
+    images.map(async (img, index) => {
+      const result = await imageToRasterCommand(
+        img.buffer,
+        img.ditherConfiguration,
+      );
+
+      logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-sequence-raster-command-built", {
+        details: {
+          imageIndex: index,
+          ...result.metrics,
+        },
+      });
+
+      return result.rasterCmd;
+    }),
   );
+  const usbStart = performance.now();
 
   await new Promise<void>((resolve, reject) => {
     device.open((err) => {
@@ -85,6 +110,13 @@ export const printImageSequenceToDevice = async (
             printer.cut();
           }
           await printer.close();
+          logKioskEvent("info", API_PRINTER_LOG_SOURCE, "print-sequence-complete", {
+            details: {
+              imageCount: rasterCommands.length,
+              totalMs: roundDuration(performance.now() - totalStart),
+              usbWriteMs: roundDuration(performance.now() - usbStart),
+            },
+          });
           resolve();
         } catch (e) {
           try {
@@ -102,18 +134,57 @@ export const printImageSequenceToDevice = async (
 const imageToRasterCommand = async (
   input: Buffer<ArrayBuffer>,
   ditherConfiguration: PrintConfigRow,
-): Promise<Buffer> => {
+): Promise<{
+  metrics: {
+    ditherHeight: number;
+    ditherMs: number;
+    ditherWidth: number;
+    inputBytes: number;
+    rasterBytes: number;
+    rasterizeMs: number;
+    resizeMs: number;
+    resizedBytes: number;
+    totalMs: number;
+  };
+  rasterCmd: Buffer;
+}> => {
+  const totalStart = performance.now();
+  const resizeStart = performance.now();
   const sizedForRoll = await sharp(input)
     .resize({
       width: PRINT_WIDTH_PX,
       withoutEnlargement: true,
     })
     .toBuffer();
+  const resizeMs = performance.now() - resizeStart;
 
+  const ditherStart = performance.now();
   const dithered = await ditherImage(
     sizedForRoll as Parameters<typeof ditherImage>[0],
     ditherConfiguration,
   );
+  const ditherMs = performance.now() - ditherStart;
 
-  return buildGsV0RasterCommand(dithered, ditherConfiguration.threshold);
+  const rasterizeStart = performance.now();
+  const rasterCmd = buildGsV0RasterCommand(dithered, ditherConfiguration.threshold);
+  const rasterizeMs = performance.now() - rasterizeStart;
+
+  return {
+    metrics: {
+      ditherHeight: dithered.height,
+      ditherMs: roundDuration(ditherMs),
+      ditherWidth: dithered.width,
+      inputBytes: input.byteLength,
+      rasterBytes: rasterCmd.byteLength,
+      rasterizeMs: roundDuration(rasterizeMs),
+      resizeMs: roundDuration(resizeMs),
+      resizedBytes: sizedForRoll.byteLength,
+      totalMs: roundDuration(performance.now() - totalStart),
+    },
+    rasterCmd,
+  };
+};
+
+const roundDuration = (value: number) => {
+  return Math.round(value * 100) / 100;
 };
