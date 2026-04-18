@@ -1,4 +1,7 @@
-import type { WebcamHandle } from "#components/misc/Webcam/index.tsx";
+import type {
+  CameraStatus,
+  WebcamHandle,
+} from "#components/misc/Webcam/index.tsx";
 
 import { SelectField } from "#components/fields/SelectField/index.tsx";
 import { Button } from "#components/ui/button.tsx";
@@ -57,25 +60,38 @@ const getSliderValue = (value: number | ReadonlyArray<number>) => {
 
 const previewDisplayWrapperClassName = clsx(
   "relative",
+  "mx-auto",
   "aspect-square",
+  "h-auto",
+  "w-full",
+  "max-h-[min(420px,42dvh)]",
+  "max-w-[min(100%,min(420px,42dvh))]",
+  "shrink-0",
   "overflow-hidden",
   "flex items-center justify-center",
   "bg-black",
 );
 
 interface PrintConfigurationPanelProps {
+  cameraStatus: CameraStatus;
   className?: string;
   onClose: () => void;
   webcamRef: RefObject<WebcamHandle | null>;
 }
 
+const MAX_AUTO_PREVIEW_ATTEMPTS = 12;
+
 export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
+  cameraStatus,
   className,
   onClose,
   webcamRef,
 }) => {
   const [previewSrc, setPreviewSrc] = useState<string>();
-  const hasTriggeredInitialPreviewRef = useRef(false);
+  const [autoPreviewRetryGate, setAutoPreviewRetryGate] = useState(0);
+  const initialAutoPreviewSucceededRef = useRef(false);
+  const autoPreviewAttemptCountRef = useRef(0);
+  const autoPreviewInFlightRef = useRef(false);
 
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -146,12 +162,16 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   );
 
   const refreshPreview = useCallback(
-    async (configuration: PrintConfigurationFormValues) => {
+    async (
+      configuration: PrintConfigurationFormValues,
+    ): Promise<string | undefined> => {
       const previewDataUrl = await generatePreviewDataUrl(configuration);
 
       if (previewDataUrl) {
         setPreviewSrc(previewDataUrl);
       }
+
+      return previewDataUrl;
     },
     [generatePreviewDataUrl],
   );
@@ -218,19 +238,63 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   });
 
   useEffect(() => {
-    if (hasTriggeredInitialPreviewRef.current || isLoadingDitherConfiguration) {
+    if (
+      previewSrc ||
+      initialAutoPreviewSucceededRef.current ||
+      isLoadingDitherConfiguration
+    ) {
       return;
     }
 
-    hasTriggeredInitialPreviewRef.current = true;
+    const cameraOk =
+      cameraStatus === "ready" ||
+      webcamRef.current?.cameraState.status === "ready";
 
-    void refreshPreview(getPrintConfigurationFormValues(ditherConfiguration));
-  }, [ditherConfiguration, isLoadingDitherConfiguration, refreshPreview]);
+    if (!cameraOk) {
+      return;
+    }
+
+    if (isDithering || autoPreviewInFlightRef.current) {
+      return;
+    }
+
+    if (autoPreviewAttemptCountRef.current >= MAX_AUTO_PREVIEW_ATTEMPTS) {
+      return;
+    }
+
+    autoPreviewInFlightRef.current = true;
+    autoPreviewAttemptCountRef.current += 1;
+
+    const configuration = getPrintConfigurationFormValues(ditherConfiguration);
+
+    void (async () => {
+      try {
+        const url = await refreshPreview(configuration);
+
+        if (url) {
+          initialAutoPreviewSucceededRef.current = true;
+        } else if (autoPreviewAttemptCountRef.current < MAX_AUTO_PREVIEW_ATTEMPTS) {
+          setAutoPreviewRetryGate((g) => g + 1);
+        }
+      } finally {
+        autoPreviewInFlightRef.current = false;
+      }
+    })();
+  }, [
+    autoPreviewRetryGate,
+    cameraStatus,
+    ditherConfiguration,
+    isDithering,
+    isLoadingDitherConfiguration,
+    previewSrc,
+    refreshPreview,
+  ]);
 
   return (
     <Card
       className={cn(
-        "h-[calc(100dvh-4rem)] bg-card/95 backdrop-blur-sm",
+        "flex min-h-0 max-h-full flex-col overflow-y-auto overflow-x-hidden",
+        "bg-card/95 backdrop-blur-sm",
         className,
       )}
     >
@@ -254,27 +318,38 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
       </CardHeader>
       <CardContent
         className={clsx(
-          "h-[calc(100%-57.5px)]",
-          "grid grid-rows-[auto_min-content] gap-4",
+          "flex min-h-0 flex-col gap-4",
+          "border-t-0 pt-0",
         )}
       >
-        <Dialog>
-          <DialogTrigger
-            className={clsx(previewDisplayWrapperClassName, "cursor-pointer")}
-          >
-            <PreviewDisplay isDithering={isDithering} previewSrc={previewSrc} />
-          </DialogTrigger>
-          <DialogContent className={clsx("max-w-[calc(100dvh-2rem)]!")}>
-            <div className={previewDisplayWrapperClassName}>
+        <div className="flex w-full shrink-0 justify-center">
+          <Dialog>
+            <DialogTrigger
+              className={clsx(
+                previewDisplayWrapperClassName,
+                "block cursor-pointer",
+              )}
+            >
               <PreviewDisplay
                 isDithering={isDithering}
                 previewSrc={previewSrc}
               />
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className={clsx("max-w-[calc(100dvh-2rem)]!")}>
+              <div className={previewDisplayWrapperClassName}>
+                <PreviewDisplay
+                  isDithering={isDithering}
+                  previewSrc={previewSrc}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
         <form
-          className={clsx("flex flex-col gap-4")}
+          className={clsx(
+            "relative z-10 flex flex-col gap-4",
+            "bg-card",
+          )}
           onSubmit={(e) => {
             e.preventDefault();
             form.handleSubmit();
@@ -341,7 +416,11 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
           <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
             <Button
               type="button"
-              disabled={isLoadingDitherConfiguration || isDithering}
+              disabled={
+                isLoadingDitherConfiguration ||
+                isDithering ||
+                cameraStatus !== "ready"
+              }
               variant="outline"
               size="default"
               onClick={() => {
@@ -386,7 +465,11 @@ const PreviewDisplay: FC<PreviewDisplayProps> = ({
         )}
       />
       {isDithering && <Spinner className="absolute z-10" />}
-      <img src={previewSrc} alt="Preview" className="h-full w-full" />
+      <img
+        src={previewSrc}
+        alt="Preview"
+        className="h-full w-full object-contain"
+      />
     </>
   ) : (
     <Spinner className="text-white" />
