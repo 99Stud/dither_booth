@@ -23,7 +23,6 @@ export const HudBackground: FC = () => {
   const reduceMotion = useReducedMotion();
   const [canvasFailed, setCanvasFailed] = useState(false);
   const showCanvas = !reduceMotion && !canvasFailed;
-  const showCssBg = reduceMotion || canvasFailed;
 
   useEffect(() => {
     if (reduceMotion) {
@@ -40,22 +39,6 @@ export const HudBackground: FC = () => {
   return (
     <>
       {showCanvas && <HudBackgroundCanvas onFallback={handleFallback} />}
-
-      {showCssBg && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed top-0 left-0 z-0 h-lvh w-lvw max-h-none max-w-none hud-grid-bg hud-splash-grid-animate"
-        />
-      )}
-
-      <div
-        aria-hidden
-        className="pointer-events-none fixed top-0 left-0 z-0 h-lvh w-lvw max-h-none max-w-none hud-cyan-columns hud-splash-cyan-animate"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed top-0 left-0 z-0 h-lvh w-lvw max-h-none max-w-none hud-scanlines hud-splash-scan-animate"
-      />
 
       <div
         aria-hidden

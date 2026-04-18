@@ -126,8 +126,9 @@ export const Splash: FC = () => {
             disabled={isLoadingPrintConfig}
             className={cn(
               buttonVariants({ variant: "hud", size: "touch" }),
-              "hud-cta-pulse min-h-24 w-full max-w-sm justify-center py-4 font-bit font-bold text-white text-2xl px-56",
+              "hud-cta-pulse min-h-24 w-full border max-w-sm justify-center py-4 font-bit font-bold text-white text-2xl px-56 border-white bg-black/60",
               isLoadingPrintConfig && "pointer-events-none opacity-50",
+              "backdrop-blur-sm",
             )}
             onClick={goToExperience}
           >

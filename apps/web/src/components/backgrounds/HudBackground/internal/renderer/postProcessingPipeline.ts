@@ -6,7 +6,6 @@ import { RenderPipeline } from "three/webgpu";
 import { asciiNode } from "./asciiNode.ts";
 import { bloomNode } from "./bloomNode.ts";
 import { filmNode } from "./filmNode.ts";
-import { scanlinesNode } from "./scanLines.ts";
 import { FILM } from "../hudBackground.config.ts";
 
 export class PostProcessingPipeline {
@@ -40,8 +39,6 @@ export class PostProcessingPipeline {
     if (FILM.strength > 0) {
       color = filmNode(color, screenUV);
     }
-
-    color = scanlinesNode(color);
 
     this.postProcessing.outputNode = acesFilmicToneMapping(color, float(1.0));
   }

@@ -4,10 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { USER_MEDIA_LOG_SOURCE } from "./internal/user-media.constants.ts";
 
-export type CapturePhotoOptions = Omit<
-  PhotoSettings,
-  "imageWidth" | "imageHeight"
->;
+export type CapturePhotoOptions = Omit<PhotoSettings, "imageWidth" | "imageHeight">;
 
 type PhotoDimensionRange = {
   min: number;
@@ -49,9 +46,7 @@ const normalizeCapabilityValue = (value?: number) => {
   return Math.max(1, Math.round(value));
 };
 
-const getPhotoDimensionRange = (
-  range?: MediaSettingsRange,
-): PhotoDimensionRange | undefined => {
+const getPhotoDimensionRange = (range?: MediaSettingsRange): PhotoDimensionRange | undefined => {
   const min = normalizeCapabilityValue(range?.min);
   const max = normalizeCapabilityValue(range?.max);
 
@@ -70,9 +65,7 @@ const getPositiveModulo = (value: number, divisor: number) => {
   return ((value % divisor) + divisor) % divisor;
 };
 
-const getFallbackPhotoSettings = (
-  preferredSide?: number,
-): PreferredPhotoSettings | undefined => {
+const getFallbackPhotoSettings = (preferredSide?: number): PreferredPhotoSettings | undefined => {
   if (preferredSide === undefined) {
     return undefined;
   }
@@ -151,10 +144,7 @@ const getLargestSharedDimension = (
     return undefined;
   }
 
-  const greatestCommonDivisor = getGreatestCommonDivisor(
-    widthRange.step,
-    heightRange.step,
-  );
+  const greatestCommonDivisor = getGreatestCommonDivisor(widthRange.step, heightRange.step);
   const dimensionOffset = heightRange.min - widthRange.min;
 
   if (dimensionOffset % greatestCommonDivisor !== 0) {
@@ -174,16 +164,12 @@ const getLargestSharedDimension = (
     reducedHeightStep,
   );
   const firstSharedDimension = widthRange.min + widthRange.step * sharedOffset;
-  const sharedDimensionStep = getLeastCommonMultiple(
-    widthRange.step,
-    heightRange.step,
-  );
+  const sharedDimensionStep = getLeastCommonMultiple(widthRange.step, heightRange.step);
   const firstSharedDimensionInRange =
     firstSharedDimension >= lowerBound
       ? firstSharedDimension
       : firstSharedDimension +
-        Math.ceil((lowerBound - firstSharedDimension) / sharedDimensionStep) *
-          sharedDimensionStep;
+        Math.ceil((lowerBound - firstSharedDimension) / sharedDimensionStep) * sharedDimensionStep;
 
   if (firstSharedDimensionInRange > upperBound) {
     return undefined;
@@ -191,17 +177,12 @@ const getLargestSharedDimension = (
 
   return (
     firstSharedDimensionInRange +
-    Math.floor(
-      (upperBound - firstSharedDimensionInRange) / sharedDimensionStep,
-    ) *
+    Math.floor((upperBound - firstSharedDimensionInRange) / sharedDimensionStep) *
       sharedDimensionStep
   );
 };
 
-const getPreferredPhotoSettings = async (
-  imageCapture: ImageCapture,
-  preferredSide?: number,
-) => {
+const getPreferredPhotoSettings = async (imageCapture: ImageCapture, preferredSide?: number) => {
   const normalizedPreferredSide = normalizeCapabilityValue(preferredSide);
 
   try {
@@ -228,10 +209,7 @@ const getPreferredPhotoSettings = async (
   }
 };
 
-const applySquareConstraints = async (
-  track: MediaStreamTrack,
-  maxSquareSide?: number,
-) => {
+const applySquareConstraints = async (track: MediaStreamTrack, maxSquareSide?: number) => {
   const exactConstraints: MediaTrackConstraints = {
     aspectRatio: {
       exact: 1,
@@ -270,22 +248,16 @@ const applySquareConstraints = async (
   }
 };
 
-const createCameraState = (
-  status: CameraStatus,
-  error: string | null = null,
-): CameraState => {
+const createCameraState = (status: CameraStatus, error: string | null = null): CameraState => {
   return {
     error,
-    isSecureContext:
-      typeof window === "undefined" ? true : window.isSecureContext,
+    isSecureContext: typeof window === "undefined" ? true : window.isSecureContext,
     lastUpdatedAt: Date.now(),
     status,
   };
 };
 
-export const useUserMedia = (params: {
-  onStream: (stream: MediaStream) => void;
-}) => {
+export const useUserMedia = (params: { onStream: (stream: MediaStream) => void }) => {
   const { onStream } = params;
 
   const [cameraState, setCameraState] = useState<CameraState>(() =>
@@ -296,18 +268,14 @@ export const useUserMedia = (params: {
   const onStreamRef = useRef(onStream);
   const captureInitializationRef = useRef<Promise<void> | undefined>(undefined);
   const captureInitializationErrorRef = useRef<unknown>(undefined);
-  const takePhotoRef = useRef<
-    ((photoSettings?: CapturePhotoOptions) => Promise<Blob>) | undefined
-  >(undefined);
+  const takePhotoRef = useRef<((photoSettings?: CapturePhotoOptions) => Promise<Blob>) | undefined>(
+    undefined,
+  );
 
   onStreamRef.current = onStream;
 
   const updateCameraState = useCallback(
-    (
-      status: CameraStatus,
-      error: string | null = null,
-      diagnosticError?: unknown,
-    ) => {
+    (status: CameraStatus, error: string | null = null, diagnosticError?: unknown) => {
       cameraStateDiagnosticErrorRef.current = diagnosticError;
       const nextCameraState = createCameraState(status, error);
       setCameraState(nextCameraState);
@@ -322,9 +290,7 @@ export const useUserMedia = (params: {
   }, []);
 
   useEffect(() => {
-    const nextLogKey = [cameraState.status, cameraState.error ?? "none"].join(
-      ":",
-    );
+    const nextLogKey = [cameraState.status, cameraState.error ?? "none"].join(":");
 
     if (lastLoggedCameraStateRef.current === nextLogKey) {
       return;
@@ -332,8 +298,7 @@ export const useUserMedia = (params: {
 
     lastLoggedCameraStateRef.current = nextLogKey;
 
-    const isCameraFailure =
-      cameraState.status === "error" || cameraState.status === "unsupported";
+    const isCameraFailure = cameraState.status === "error" || cameraState.status === "unsupported";
 
     if (isCameraFailure) {
       const userMessage =
@@ -392,28 +357,19 @@ export const useUserMedia = (params: {
 
     if (!window.isSecureContext) {
       clearTakePhoto();
-      updateCameraState(
-        "unsupported",
-        "Camera access requires HTTPS or localhost.",
-      );
+      updateCameraState("unsupported", "Camera access requires HTTPS or localhost.");
       return;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
       clearTakePhoto();
-      updateCameraState(
-        "unsupported",
-        "This browser does not support camera capture.",
-      );
+      updateCameraState("unsupported", "This browser does not support camera capture.");
       return;
     }
 
     if (typeof ImageCapture === "undefined") {
       clearTakePhoto();
-      updateCameraState(
-        "unsupported",
-        "This browser does not support still photo capture.",
-      );
+      updateCameraState("unsupported", "This browser does not support still photo capture.");
       return;
     }
 
@@ -435,26 +391,14 @@ export const useUserMedia = (params: {
             await applySquareConstraints(track, maxSquareSide);
           } catch (e) {
             captureInitializationErrorRef.current = e;
-            logKioskEvent(
-              "warn",
-              USER_MEDIA_LOG_SOURCE,
-              "constraint-fallback-failed",
-              {
-                error: getKioskErrorDiagnostics(
-                  e,
-                  "Camera constraint fallback failed.",
-                ),
-              },
-            );
+            logKioskEvent("warn", USER_MEDIA_LOG_SOURCE, "constraint-fallback-failed", {
+              error: getKioskErrorDiagnostics(e, "Camera constraint fallback failed."),
+            });
           }
 
           if (!cancelled) {
             captureInitializationRef.current = (async () => {
               const imageCapture = new ImageCapture(track);
-              const preferredPhotoSettings = await getPreferredPhotoSettings(
-                imageCapture,
-                maxSquareSide,
-              );
 
               if (cancelled || track.readyState !== "live") {
                 return;
@@ -462,31 +406,41 @@ export const useUserMedia = (params: {
 
               captureInitializationErrorRef.current = undefined;
               updateCameraState("ready");
-              takePhotoRef.current = async (
-                photoSettings?: CapturePhotoOptions,
-              ) => {
+              takePhotoRef.current = async (photoSettings?: CapturePhotoOptions) => {
                 if (cancelled || track.readyState !== "live") {
-                  throw new DOMException(
-                    "Video track is no longer live.",
-                    "InvalidStateError",
-                  );
+                  throw new DOMException("Video track is no longer live.", "InvalidStateError");
                 }
 
-                const nextPhotoSettings =
-                  preferredPhotoSettings === undefined
-                    ? photoSettings
-                    : {
-                        ...photoSettings,
-                        ...preferredPhotoSettings,
-                      };
-
+                // imageCapture.takePhoto() with a forced high-res square photo
+                // resolution triggers a sensor reconfigure on UVC webcams that
+                // can take several seconds, making the real shutter fire long
+                // after the white flash overlay is gone. grabFrame() reads the
+                // current live preview frame with no reconfigure, so the
+                // capture is locked to the flash moment. The preview stream is
+                // already constrained to the largest square side, so no
+                // resolution is lost vs. takePhoto().
                 try {
-                  return await imageCapture.takePhoto(nextPhotoSettings);
-                } catch (error) {
-                  if (preferredPhotoSettings === undefined) {
-                    throw error;
+                  const bitmap = await imageCapture.grabFrame();
+                  try {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = bitmap.width;
+                    canvas.height = bitmap.height;
+                    const context = canvas.getContext("2d");
+                    if (!context) {
+                      throw new Error("Could not create canvas context.");
+                    }
+                    context.drawImage(bitmap, 0, 0);
+                    const blob = await new Promise<Blob | null>((resolve) => {
+                      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92);
+                    });
+                    if (!blob) {
+                      throw new Error("Failed to encode grabbed frame as JPEG.");
+                    }
+                    return blob;
+                  } finally {
+                    bitmap.close();
                   }
-
+                } catch {
                   return imageCapture.takePhoto(photoSettings);
                 }
               };
@@ -497,11 +451,7 @@ export const useUserMedia = (params: {
 
               takePhotoRef.current = undefined;
               captureInitializationErrorRef.current = error;
-              updateCameraState(
-                "error",
-                "Camera initialization failed.",
-                error,
-              );
+              updateCameraState("error", "Camera initialization failed.", error);
             });
 
             onStreamRef.current(next);

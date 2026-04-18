@@ -34,10 +34,6 @@ const reportRootError = (
 const RootScreen = ({ description, details, title }: RootScreenProps) => {
   return (
     <div className="relative flex min-h-dvh items-center justify-center bg-background p-4 text-foreground">
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 hud-grid-bg opacity-40"
-      />
       <div className="relative z-10 flex max-w-sm flex-col items-center gap-4 text-center">
         <div className="flex flex-col gap-1 font-mono">
           <h1 className="hud-text-glow-title text-lg tracking-wide">{title}</h1>
@@ -67,27 +63,14 @@ const RootErrorScreen = ({ error }: { error: unknown }) => {
     reportRootError(error, "root-route-render-failed", "This screen failed.");
   }, [error]);
 
-  return (
-    <RootScreen
-      title="Something went wrong"
-      description="This screen failed to load."
-    />
-  );
+  return <RootScreen title="Something went wrong" description="This screen failed to load." />;
 };
 
 export const RootNotFoundScreen = () => {
-  return (
-    <RootScreen
-      title="Page not found"
-      description="This page does not exist."
-    />
-  );
+  return <RootScreen title="Page not found" description="This page does not exist." />;
 };
 
-export class RootErrorBoundary extends Component<
-  RootErrorBoundaryProps,
-  RootErrorBoundaryState
-> {
+export class RootErrorBoundary extends Component<RootErrorBoundaryProps, RootErrorBoundaryState> {
   override state: RootErrorBoundaryState = {
     error: null,
   };
@@ -97,14 +80,9 @@ export class RootErrorBoundary extends Component<
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    reportRootError(
-      error,
-      "root-app-render-failed",
-      "The app failed to load.",
-      {
-        componentStack: errorInfo.componentStack,
-      },
-    );
+    reportRootError(error, "root-app-render-failed", "The app failed to load.", {
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   override render() {

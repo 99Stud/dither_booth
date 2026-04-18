@@ -61,16 +61,13 @@ export const NamesHudKeyboard: FC<{
       className="fixed right-0 bottom-0 left-0 z-20 border-t border-primary/45 bg-background/70 shadow-[0_-20px_60px_oklch(0_0_0/0.4)] backdrop-blur-sm"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div aria-hidden className="pointer-events-none absolute inset-0 hud-grid-bg opacity-20" />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/55 to-transparent"
       />
       <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-2 px-2.5 py-2.5 sm:gap-3 sm:px-4 sm:py-3 [@media(max-height:720px)]:gap-1.5 [@media(max-height:720px)]:py-2">
         <div className="flex items-center justify-between gap-3 font-mono text-[10px] uppercase sm:text-xs [@media(max-height:720px)]:text-[9px]">
-          <span className="hud-text-glow-orange tracking-[0.22em] text-primary">
-            Clavier
-          </span>
+          <span className="hud-text-glow-orange tracking-[0.22em] text-primary">Clavier</span>
           <span className="hud-text-glow-orange-soft tracking-[0.18em] text-muted-foreground">
             {activeFieldLabel}
           </span>

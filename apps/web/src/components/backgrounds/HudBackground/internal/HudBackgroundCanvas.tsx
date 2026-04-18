@@ -39,7 +39,9 @@ async function probeWebGPU(): Promise<WebGPUProbe> {
 export const HudBackgroundCanvas: FC<{ onFallback: () => void }> = (props) => {
   const { onFallback } = props;
   const containerRef = useRef<HTMLDivElement>(null);
-  const envRef = useRef<import("./renderer/backgroundEnvironment.ts").BackgroundEnvironment | null>(null);
+  const envRef = useRef<import("./renderer/backgroundEnvironment.ts").BackgroundEnvironment | null>(
+    null,
+  );
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {

@@ -28,7 +28,7 @@
   --font-mono:
     "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
     monospace;
-  --font-heading: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Orbitron", ui-sans-serif, system-ui, sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -141,25 +141,6 @@
 }
 
 @layer utilities {
-  .hud-grid-bg {
-    background-color: var(--background);
-    background-image:
-      linear-gradient(oklch(0.7 0.2 48 / 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(0.7 0.2 48 / 0.06) 1px, transparent 1px);
-    background-size: 28px 28px;
-  }
-
-  .hud-scanlines {
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      oklch(0 0 0 / 0.12) 2px,
-      oklch(0 0 0 / 0.12) 3px
-    );
-    opacity: 0.35;
-  }
-
   .hud-glow-orange {
     box-shadow:
       0 0 40px oklch(0.7 0.2 48 / 0.15),
@@ -171,31 +152,18 @@
     0%,
     100% {
       box-shadow:
-        0 0 20px oklch(0.7 0.2 48 / 0.35),
-        0 0 0 1px oklch(0.7 0.2 48 / 0.5);
+        0 0 20px oklch(1 0 0 / 0.35),
+        0 0 0 1px oklch(1 0 0 / 0.5);
     }
     50% {
       box-shadow:
-        0 0 36px oklch(0.7 0.2 48 / 0.55),
-        0 0 0 1px oklch(0.7 0.2 48 / 0.65);
+        0 0 36px oklch(1 0 0 / 0.55),
+        0 0 0 1px oklch(1 0 0 / 0.65);
     }
   }
 
   .hud-cta-pulse {
     animation: hud-cta-pulse 2.8s ease-in-out infinite;
-  }
-
-  @keyframes progress-indeterminate {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(400%);
-    }
-  }
-
-  .progress-indeterminate-bar {
-    animation: progress-indeterminate 1.2s ease-in-out infinite;
   }
 
   .hud-text-glow-orange {
@@ -220,80 +188,8 @@
       0 0 22px oklch(0.72 0.18 48 / 0.35);
   }
 
-  .hud-cyan-columns {
-    background-image: repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 72px,
-      oklch(0.78 0.11 195 / 0.14) 73px,
-      oklch(0.78 0.11 195 / 0.14) 74px
-    );
-  }
-
   .hud-corner-bracket-glow {
     filter: drop-shadow(0 0 5px oklch(0.7 0.2 48 / 0.55));
-  }
-
-  @keyframes hud-crt-grid-flicker {
-    0%,
-    100% {
-      opacity: 0.9;
-    }
-    4% {
-      opacity: 0.78;
-    }
-    6% {
-      opacity: 0.9;
-    }
-    48% {
-      opacity: 0.88;
-    }
-    50% {
-      opacity: 0.72;
-    }
-    52% {
-      opacity: 0.9;
-    }
-    88% {
-      opacity: 0.86;
-    }
-    91% {
-      opacity: 0.68;
-    }
-    93% {
-      opacity: 0.88;
-    }
-  }
-
-  .hud-splash-grid-animate {
-    animation: hud-crt-grid-flicker 4.2s ease-in-out infinite;
-  }
-
-  @keyframes hud-scanline-drift {
-    from {
-      background-position: 0 0;
-    }
-    to {
-      background-position: 0 12px;
-    }
-  }
-
-  .hud-splash-scan-animate {
-    animation: hud-scanline-drift 5.5s linear infinite;
-  }
-
-  @keyframes hud-cyan-pulse {
-    0%,
-    100% {
-      opacity: 0.55;
-    }
-    50% {
-      opacity: 0.82;
-    }
-  }
-
-  .hud-splash-cyan-animate {
-    animation: hud-cyan-pulse 3.8s ease-in-out infinite;
   }
 
   @keyframes hud-frame-power {
@@ -348,18 +244,14 @@
   @keyframes hud-logo-breathe {
     0%,
     100% {
-      filter: drop-shadow(0 0 4px oklch(0.99 0.01 95 / 0.65))
-        drop-shadow(0 0 14px oklch(0.98 0.02 95 / 0.35))
-        drop-shadow(0 0 12px oklch(0.75 0.2 48 / 0.5))
-        drop-shadow(0 0 36px oklch(0.7 0.2 48 / 0.32))
-        drop-shadow(0 0 56px oklch(0.68 0.18 48 / 0.18));
+      filter: drop-shadow(0 0 3px oklch(1 0 0 / 0.38)) drop-shadow(0 0 10px oklch(1 0 0 / 0.2))
+        drop-shadow(0 0 10px oklch(1 0 0 / 0.28)) drop-shadow(0 0 26px oklch(1 0 0 / 0.17))
+        drop-shadow(0 0 40px oklch(1 0 0 / 0.09));
     }
     50% {
-      filter: drop-shadow(0 0 8px oklch(0.99 0.015 95 / 0.85))
-        drop-shadow(0 0 22px oklch(0.98 0.02 95 / 0.48))
-        drop-shadow(0 0 18px oklch(0.78 0.2 48 / 0.65))
-        drop-shadow(0 0 44px oklch(0.72 0.2 48 / 0.42))
-        drop-shadow(0 0 72px oklch(0.68 0.18 48 / 0.28));
+      filter: drop-shadow(0 0 5px oklch(1 0 0 / 0.52)) drop-shadow(0 0 16px oklch(1 0 0 / 0.28))
+        drop-shadow(0 0 14px oklch(1 0 0 / 0.38)) drop-shadow(0 0 32px oklch(1 0 0 / 0.24))
+        drop-shadow(0 0 52px oklch(1 0 0 / 0.14));
     }
   }
 
@@ -368,29 +260,12 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hud-splash-grid-animate,
-    .hud-splash-scan-animate,
-    .hud-splash-cyan-animate,
     .hud-splash-frame-outer-animate,
     .hud-splash-rail-animate,
     .hud-cursor-blink,
     .hud-splash-logo-animate,
     .hud-cta-pulse {
       animation: none !important;
-    }
-
-    .progress-indeterminate-bar {
-      animation: none !important;
-      transform: translateX(0);
-    }
-
-    .hud-splash-scan-animate {
-      background-position: 0 0;
-    }
-
-    .hud-splash-grid-animate,
-    .hud-splash-cyan-animate {
-      opacity: 0.88;
     }
 
     .hud-splash-rail-animate {

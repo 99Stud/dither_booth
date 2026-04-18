@@ -351,8 +351,8 @@ export const Booth: FC = () => {
                 disabled={!canStart}
                 className={cn(
                   buttonVariants({ variant: "hud", size: "touch" }),
-                  "hud-cta-pulse pointer-events-auto min-h-24 w-full max-w-sm translate-y-1/2 justify-center py-4 font-bit font-bold text-2xl text-white shadow-[0_8px_32px_-4px_oklch(0_0_0/0.55)]",
-                  !canStart && "pointer-events-none opacity-40",
+                  "hud-cta-pulse pointer-events-auto min-h-24 w-full max-w-sm translate-y-1/2 justify-center py-4 font-bit font-bold text-2xl text-white shadow-[0_8px_32px_-4px_oklch(0_0_0/0.55)] border-white border backdrop-blur-sm bg-black/60",
+                  !canStart && "pointer-events-none opacity-40 ",
                 )}
                 onClick={startSequence}
               >
