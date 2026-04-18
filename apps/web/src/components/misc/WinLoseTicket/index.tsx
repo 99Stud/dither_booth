@@ -153,7 +153,7 @@ export const WinLoseTicket: FC<{
           {description ? (
             <div
               className={clsx(
-                "w-full px-1 text-center text-[12px] font-normal leading-snug whitespace-pre-wrap",
+                "w-full px-1 text-center text-[13px] font-normal font-mono leading-snug whitespace-pre-wrap",
               )}
             >
               {description}
