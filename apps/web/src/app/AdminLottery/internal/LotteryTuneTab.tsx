@@ -28,6 +28,11 @@ import {
   TableRow,
 } from "#components/ui/table.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
+import {
+  TUNE_LOTTERY_MAX_ATTEMPTS,
+  TUNE_LOTTERY_MAX_PRODUCT,
+  TUNE_LOTTERY_MAX_SAMPLES,
+} from "@dither-booth/api/lottery-constants";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2 } from "lucide-react";
 import { type FC, useCallback, useState } from "react";
@@ -128,13 +133,14 @@ export const LotteryTuneTab: FC = () => {
               <FieldLabel htmlFor="tune-samples">Samples</FieldLabel>
               <FieldDescription>
                 How many random candidate configs to try. Each sample picks random base pressure,
-                max boost, and rarity weights, then scores the result.
+                max boost, and rarity weights, then scores the result. Product (samples × attempts
+                per simulation) cannot exceed {TUNE_LOTTERY_MAX_PRODUCT.toLocaleString("en-US")}.
               </FieldDescription>
               <Input
                 id="tune-samples"
                 type="number"
                 min={1}
-                max={25_000}
+                max={TUNE_LOTTERY_MAX_SAMPLES}
                 value={samples}
                 onChange={(e) => setSamples(Number(e.target.value))}
               />
@@ -143,13 +149,13 @@ export const LotteryTuneTab: FC = () => {
               <FieldLabel htmlFor="tune-attempts">Attempts per simulation</FieldLabel>
               <FieldDescription>
                 Length of each offline simulation run used to score a candidate (same engine as the
-                Simulation tab, "normal" traffic).
+                Simulation tab, "normal" traffic). Subject to same product cap as samples.
               </FieldDescription>
               <Input
                 id="tune-attempts"
                 type="number"
                 min={10}
-                max={10_000}
+                max={TUNE_LOTTERY_MAX_ATTEMPTS}
                 value={attempts}
                 onChange={(e) => setAttempts(Number(e.target.value))}
               />
@@ -209,7 +215,8 @@ export const LotteryTuneTab: FC = () => {
                 <CardTitle>Best candidate</CardTitle>
                 <CardDescription>
                   Rank #1 out of {result?.samples ?? 0} samples — score{" "}
-                  {best.score.toFixed(0)}
+                  {best.score.toFixed(0)}. Dispersion metrics from same offline run as score
+                  (tanh curve + soft ceiling in engine).
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -304,6 +311,28 @@ export const LotteryTuneTab: FC = () => {
                 muted={!best.allLotsDistributed}
               />
             </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat
+                label="Peak P(win)"
+                value={best.peakWinProbability.toFixed(3)}
+                muted={best.peakWinProbability > 0.7}
+              />
+              <Stat
+                label="Avg P(win) eligible"
+                value={best.avgWinProbability.toFixed(3)}
+                muted={best.avgWinProbability > 0.4}
+              />
+              <Stat
+                label="P≥99% share"
+                value={`${(best.saturatedShare * 100).toFixed(1)}%`}
+                muted={best.saturatedShare > 0.05}
+              />
+              <Stat
+                label="Max win streak"
+                value={String(best.maxConsecutiveWins)}
+                muted={best.maxConsecutiveWins > 6}
+              />
+            </div>
 
             <div>
               <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -377,6 +406,10 @@ export const LotteryTuneTab: FC = () => {
                   <TableHead className="text-right">Pressure</TableHead>
                   <TableHead className="text-right">Boost</TableHead>
                   <TableHead className="text-right">Rate σ</TableHead>
+                  <TableHead className="text-right">Peak P</TableHead>
+                  <TableHead className="text-right">Avg P</TableHead>
+                  <TableHead className="text-right">P≥99%</TableHead>
+                  <TableHead className="text-right">Streak</TableHead>
                   <TableHead>Stock</TableHead>
                 </TableRow>
               </TableHeader>
@@ -395,6 +428,18 @@ export const LotteryTuneTab: FC = () => {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {row.hourlyWinRateStd.toFixed(3)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-xs">
+                      {row.peakWinProbability.toFixed(3)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-xs">
+                      {row.avgWinProbability.toFixed(3)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-xs">
+                      {(row.saturatedShare * 100).toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-xs">
+                      {row.maxConsecutiveWins}
                     </TableCell>
                     <TableCell className="text-xs">
                       {row.allLotsDistributed ? (

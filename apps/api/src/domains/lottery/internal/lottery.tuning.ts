@@ -66,32 +66,48 @@ const stdDev = (values: number[]): number => {
   return Math.sqrt(variance);
 };
 
+/**
+ * Tuner objective. Balances:
+ *   - depletion (consume stock before window closes)
+ *   - dispersion (no long win streaks, no saturated P regime)
+ *   - abuse friendliness (fewer forced losses)
+ *   - time uniformity (low hourly jitter)
+ *
+ * No hard cliff: every signal contributes continuously so the optimizer
+ * converges on parameters that are "good enough" on every axis rather than
+ * maxing out one at the expense of others.
+ */
 const scoreRun = (
   result: ReturnType<typeof simulateLotteryRun>,
-  baseWinPressure: number,
 ): number => {
   const hourlyWinRates = result.hourly
     .filter((h) => h.attempts > 0)
     .map((h) => h.winRate);
   const winRateJitter = stdDev(hourlyWinRates);
 
-  if (!result.invariants.allLotsDistributed) {
-    const minLotRate = Math.min(
-      ...result.perLot.map((l) => l.distributionRate),
-    );
-    return (
-      -1_000_000 -
-      result.totalRemainingStock * 10_000 -
-      minLotRate * 1000
-    );
-  }
+  const remainingShare =
+    result.totalInitialStock > 0
+      ? result.totalRemainingStock / result.totalInitialStock
+      : 0;
+  const minLotDistribution = result.perLot.length
+    ? Math.min(...result.perLot.map((l) => l.distributionRate))
+    : 0;
 
-  return (
-    500_000 -
-    result.forcedLosses * 2000 -
-    winRateJitter * 15_000 -
-    baseWinPressure * 800
-  );
+  let score = 1_000_000;
+
+  score -= remainingShare ** 2 * 800_000;
+  score -= (1 - minLotDistribution) * 50_000;
+
+  score -= result.forcedLosses * 1500;
+  score -= winRateJitter * 30_000;
+
+  score -= Math.max(0, result.peakWinProbability - 0.7) * 400_000;
+  score -= Math.max(0, result.avgWinProbability - 0.4) * 250_000;
+  score -= result.saturatedShare * 600_000;
+
+  score -= Math.max(0, result.maxConsecutiveWins - 6) * 6_000;
+
+  return score;
 };
 
 export type LotteryTuneWeights = {
@@ -113,6 +129,14 @@ export type LotteryTuneCandidateSummary = {
   allLotsDistributed: boolean;
   totalRemainingStock: number;
   hourlyWinRateStd: number;
+  /** Highest P(win) observed in the simulation run (0–1). */
+  peakWinProbability: number;
+  /** Mean P(win) across eligible draws (0–1). */
+  avgWinProbability: number;
+  /** Share of eligible draws where P(win) ≥ 0.99. */
+  saturatedShare: number;
+  /** Longest consecutive WIN streak in the run. */
+  maxConsecutiveWins: number;
   perLot: Array<{
     label: string;
     distributed: number;
@@ -175,6 +199,10 @@ const summarizeCandidate = (
     allLotsDistributed: result.invariants.allLotsDistributed,
     totalRemainingStock: result.totalRemainingStock,
     hourlyWinRateStd: stdDev(hourlyWinRates),
+    peakWinProbability: result.peakWinProbability,
+    avgWinProbability: result.avgWinProbability,
+    saturatedShare: result.saturatedShare,
+    maxConsecutiveWins: result.maxConsecutiveWins,
     perLot: result.perLot.map((l) => ({
       label: l.label,
       distributed: l.distributed,
@@ -219,7 +247,7 @@ export const runLotteryTuneSearch = (input: {
 
   for (let i = 0; i < samples; i++) {
     const baseWinPressure = randRange(rng, 0.08, 0.22);
-    const maxBoost = randRange(rng, 2, 6);
+    const maxBoost = randRange(rng, 2, 5);
     const wCommon = randRange(rng, 1.2, 4);
     const wRare = randRange(rng, 0.22, 0.85);
     const wVeryRare = randRange(rng, 0.03, 0.22);
@@ -252,7 +280,7 @@ export const runLotteryTuneSearch = (input: {
       lots,
     });
 
-    const score = scoreRun(result, baseWinPressure);
+    const score = scoreRun(result);
     candidates.push({
       score,
       baseWinPressure,

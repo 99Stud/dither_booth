@@ -118,6 +118,9 @@ const run = async () => {
       `  wins=${r.wins} losses=${r.losses} forced=${r.forcedLosses} allDistributed=${r.allLotsDistributed} remainingStock=${r.totalRemainingStock}`,
     );
     console.log(`  hourly win-rate stdev≈${r.hourlyWinRateStd.toFixed(3)}`);
+    console.log(
+      `  peakP=${r.peakWinProbability.toFixed(3)} avgP=${r.avgWinProbability.toFixed(3)} sat≥99%=${(r.saturatedShare * 100).toFixed(1)}% maxStreak=${r.maxConsecutiveWins}`,
+    );
     if (c.rank === 1) {
       console.log("  per-lot:");
       for (const lot of r.perLot) {

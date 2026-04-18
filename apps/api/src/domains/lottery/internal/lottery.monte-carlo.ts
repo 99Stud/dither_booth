@@ -27,6 +27,8 @@ export type LotteryMonteCarloResult = {
   effectiveWinRate: MonteCarloSummary;
   avgWinProbability: MonteCarloSummary;
   peakWinProbability: MonteCarloSummary;
+  maxConsecutiveWins: MonteCarloSummary;
+  saturatedShare: MonteCarloSummary;
   totalDistributedStock: MonteCarloSummary;
   totalRemainingStock: MonteCarloSummary;
   fullDepletionRate: number;
@@ -119,6 +121,8 @@ export const aggregateSimulationRuns = (
       effectiveWinRate: summarize([]),
       avgWinProbability: summarize([]),
       peakWinProbability: summarize([]),
+      maxConsecutiveWins: summarize([]),
+      saturatedShare: summarize([]),
       totalDistributedStock: summarize([]),
       totalRemainingStock: summarize([]),
       fullDepletionRate: 0,
@@ -194,6 +198,8 @@ export const aggregateSimulationRuns = (
     effectiveWinRate: summarize(runs.map((run) => run.effectiveWinRate)),
     avgWinProbability: summarize(runs.map((run) => run.avgWinProbability)),
     peakWinProbability: summarize(runs.map((run) => run.peakWinProbability)),
+    maxConsecutiveWins: summarize(runs.map((run) => run.maxConsecutiveWins)),
+    saturatedShare: summarize(runs.map((run) => run.saturatedShare)),
     totalDistributedStock: summarize(
       runs.map((run) => run.totalDistributedStock),
     ),

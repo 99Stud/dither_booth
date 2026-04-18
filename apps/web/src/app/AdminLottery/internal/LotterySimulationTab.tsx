@@ -17,6 +17,11 @@ import {
 import { Field, FieldDescription, FieldLabel } from "#components/ui/field.tsx";
 import { Input } from "#components/ui/input.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
+import {
+  SIMULATE_LOTTERY_MAX_ATTEMPTS,
+  SIMULATE_LOTTERY_MAX_PRODUCT,
+  SIMULATE_LOTTERY_MAX_SAMPLES,
+} from "@dither-booth/api/lottery-constants";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, type ReactNode, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
@@ -125,13 +130,15 @@ export const LotterySimulationTab: FC = () => {
             <Field>
               <FieldLabel htmlFor="simulation-attempts">Attempts</FieldLabel>
               <FieldDescription>
-                How many synthetic draws to run inside the configured daily window.
+                How many synthetic draws to run inside the configured daily window. Product
+                (samples × attempts) cannot exceed{" "}
+                {SIMULATE_LOTTERY_MAX_PRODUCT.toLocaleString("en-US")}.
               </FieldDescription>
               <Input
                 id="simulation-attempts"
                 type="number"
                 min="10"
-                max="20000"
+                max={SIMULATE_LOTTERY_MAX_ATTEMPTS}
                 value={attempts}
                 onChange={(event) => setAttempts(Number(event.target.value))}
               />
@@ -139,13 +146,14 @@ export const LotterySimulationTab: FC = () => {
             <Field>
               <FieldLabel htmlFor="simulation-samples">Samples</FieldLabel>
               <FieldDescription>
-                Number of full runs to aggregate. Higher values reduce noise.
+                Number of full runs to aggregate. Higher values reduce noise. Same product cap
+                as attempts.
               </FieldDescription>
               <Input
                 id="simulation-samples"
                 type="number"
                 min="1"
-                max="200"
+                max={SIMULATE_LOTTERY_MAX_SAMPLES}
                 value={samples}
                 onChange={(event) => setSamples(Number(event.target.value))}
               />

@@ -52,6 +52,13 @@ export const getElapsedWindowRatio = (
   return Math.max(0, Math.min(1, (current - start) / windowLength));
 };
 
+/**
+ * Detect abusive request rate. Only considers organic attempts that actually
+ * reached the draw stage — i.e. events with `outcome != FORCED_LOSS`. This
+ * prevents a feedback loop where cascade rejections themselves count toward
+ * the abuse threshold and keep the kiosk locked indefinitely under sustained
+ * traffic.
+ */
 export const detectAbuse = (
   now: Date,
   config: LotteryConfigRow,
@@ -61,7 +68,9 @@ export const detectAbuse = (
   const cutoff = new Date(now.getTime() - windowMs);
 
   const windowEvents = recentEvents.filter(
-    (e) => new Date(e.timestamp) >= cutoff,
+    (e) =>
+      e.outcome !== LOTTERY_OUTCOME.FORCED_LOSS &&
+      new Date(e.timestamp) >= cutoff,
   );
 
   if (windowEvents.length >= config.abuseMaxAttempts) {
@@ -98,8 +107,20 @@ export const isInCooldown = (
 };
 
 /**
+ * Hard ceiling the adaptive curve can never exceed regardless of admin config.
+ * Keeps win streaks short and prevents the "every eligible draw wins" regime
+ * even when `baseWinPressure * maxBoost > 1`.
+ */
+export const WIN_PROBABILITY_HARD_CEILING = 0.75;
+
+/**
  * Compute the adaptive win probability from remaining stock vs elapsed time
  * in the event window (catch-up / dampening). Does not use rolling event counts.
+ *
+ * Catch-up uses a `tanh` saturator so P asymptotes toward a soft ceiling
+ * (`min(base * maxBoost, HARD_CEILING)`) instead of crashing into 1.0.
+ * This preserves "consume stock before window ends" behavior while giving
+ * wins natural spacing (no deterministic win streaks).
  */
 export const computeWinProbability = (
   config: LotteryConfigRow,
@@ -110,28 +131,30 @@ export const computeWinProbability = (
   if (totalRemainingStock <= 0 || totalInitialStock <= 0) return 0;
 
   const stockRemainingRatio = totalRemainingStock / totalInitialStock;
-
-  const expectedDepletionRatio = elapsedRatio;
   const actualDepletionRatio = 1 - stockRemainingRatio;
+  const behindRatio = elapsedRatio - actualDepletionRatio;
 
-  // How far behind schedule we are: positive means under-distributed
-  const behindRatio = expectedDepletionRatio - actualDepletionRatio;
-
-  // Base probability adjusted by catch-up pressure
-  let probability = config.baseWinPressure;
+  const base = config.baseWinPressure;
+  const softCeiling = Math.min(
+    base * config.maxBoost,
+    WIN_PROBABILITY_HARD_CEILING,
+  );
 
   if (behindRatio > 0) {
-    // Scale boost by how far behind we are (0 to 1 range) and the remaining time pressure
     const timeUrgency = Math.max(0.1, 1 - elapsedRatio);
-    const boostFactor = 1 + (behindRatio / timeUrgency) * (config.maxBoost - 1);
-    probability *= Math.min(boostFactor, config.maxBoost);
-  } else if (behindRatio < 0) {
-    // Ahead of schedule: reduce win probability to avoid early depletion
-    const aheadDampening = Math.max(0.3, 1 + behindRatio);
-    probability *= aheadDampening;
+    const pressure = behindRatio / timeUrgency;
+    const saturation = Math.tanh(pressure * 1.5);
+    const probability = base + (softCeiling - base) * saturation;
+    return Math.max(0, Math.min(1, probability));
   }
 
-  return Math.max(0, Math.min(1, probability));
+  if (behindRatio < 0) {
+    const aheadness = -behindRatio;
+    const damp = Math.max(0.3, 1 - aheadness * 2);
+    return Math.max(0, Math.min(1, base * damp));
+  }
+
+  return Math.max(0, Math.min(1, base));
 };
 
 /**
@@ -192,12 +215,15 @@ export const executeDraw = (ctx: DrawContext): DrawResult => {
     return { ...baseResult, outcome: LOTTERY_OUTCOME.LOSS, abuseDetected: false };
   }
 
-  const abuseDetected =
-    detectAbuse(now, config, recentEvents) ||
-    isInCooldown(now, config, recentEvents);
+  const isAbuseNow = detectAbuse(now, config, recentEvents);
+  const inCooldown = isInCooldown(now, config, recentEvents);
 
-  if (abuseDetected) {
-    return { ...baseResult, outcome: LOTTERY_OUTCOME.FORCED_LOSS, abuseDetected: true };
+  if (isAbuseNow || inCooldown) {
+    return {
+      ...baseResult,
+      outcome: LOTTERY_OUTCOME.FORCED_LOSS,
+      abuseDetected: isAbuseNow,
+    };
   }
 
   const winProbability = computeWinProbability(

@@ -66,6 +66,10 @@ export type LotterySimulationResult = {
   avgWinProbability: number;
   /** Highest P(win) observed during the run (0–1). */
   peakWinProbability: number;
+  /** Longest streak of back-to-back WIN outcomes in this run. */
+  maxConsecutiveWins: number;
+  /** Fraction of eligible draws with P(win) ≥ 0.99 — saturation signal. */
+  saturatedShare: number;
   totalInitialStock: number;
   totalRemainingStock: number;
   totalDistributedStock: number;
@@ -145,6 +149,9 @@ export const simulateLotteryRun = ({
   let sumWinProbability = 0;
   let eligibleProbCount = 0;
   let peakWinProbability = 0;
+  let currentWinStreak = 0;
+  let maxConsecutiveWins = 0;
+  let saturatedCount = 0;
 
   const totalInitialStock = workingLots.reduce((s, l) => s + l.stockTotal, 0);
 
@@ -188,13 +195,18 @@ export const simulateLotteryRun = ({
 
     if (result.outcome === LOTTERY_OUTCOME.WIN) {
       wins += 1;
+      currentWinStreak += 1;
+      if (currentWinStreak > maxConsecutiveWins) {
+        maxConsecutiveWins = currentWinStreak;
+      }
     } else if (result.outcome === LOTTERY_OUTCOME.FORCED_LOSS) {
       forcedLosses += 1;
+      currentWinStreak = 0;
     } else {
       losses += 1;
+      currentWinStreak = 0;
     }
 
-    // Track eligible draws (not blocked by anti-abuse) and their probabilities.
     if (result.outcome !== LOTTERY_OUTCOME.FORCED_LOSS) {
       eligibleAttempts += 1;
       if (result.computedWinProbability > 0) {
@@ -202,6 +214,9 @@ export const simulateLotteryRun = ({
         eligibleProbCount += 1;
         if (result.computedWinProbability > peakWinProbability) {
           peakWinProbability = result.computedWinProbability;
+        }
+        if (result.computedWinProbability >= 0.99) {
+          saturatedCount += 1;
         }
       }
     }
@@ -303,6 +318,9 @@ export const simulateLotteryRun = ({
     effectiveWinRate: eligibleAttempts > 0 ? wins / eligibleAttempts : 0,
     avgWinProbability: eligibleProbCount > 0 ? sumWinProbability / eligibleProbCount : 0,
     peakWinProbability,
+    maxConsecutiveWins,
+    saturatedShare:
+      eligibleProbCount > 0 ? saturatedCount / eligibleProbCount : 0,
     totalInitialStock,
     totalRemainingStock,
     totalDistributedStock,

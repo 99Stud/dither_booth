@@ -40,21 +40,21 @@ export const CONFIGURE_LOTTERY_SCHEMA = z.object({
   baseWinPressure: z.number().min(0).max(1).optional().default(0.15),
   maxBoost: z.number().min(1).max(10).optional().default(3),
   abuseWindowSeconds: z.number().int().min(5).max(300).optional().default(60),
-  abuseMaxAttempts: z.number().int().min(2).max(50).optional().default(5),
+  abuseMaxAttempts: z.number().int().min(2).max(200).optional().default(20),
   abuseMinIntervalSeconds: z
     .number()
     .int()
     .min(1)
     .max(60)
     .optional()
-    .default(10),
+    .default(4),
   abuseCooldownSeconds: z
     .number()
     .int()
     .min(10)
     .max(600)
     .optional()
-    .default(120),
+    .default(60),
 });
 
 export const CREATE_LOT_SCHEMA = z.object({
@@ -91,17 +91,72 @@ export type LotterySimulationProfile = z.infer<
   typeof LOTTERY_SIMULATION_PROFILE_SCHEMA
 >;
 
-export const SIMULATE_LOTTERY_SCHEMA = z.object({
-  attempts: z.number().int().min(10).max(20_000).default(500),
-  samples: z.number().int().min(1).max(200).default(50),
-  profile: LOTTERY_SIMULATION_PROFILE_SCHEMA.default("normal"),
-});
+/** Admin Monte Carlo simulation: max attempts per inner run. */
+export const SIMULATE_LOTTERY_MAX_ATTEMPTS = 100_000;
+/** Admin Monte Carlo simulation: max independent outer samples. */
+export const SIMULATE_LOTTERY_MAX_SAMPLES = 5_000;
+/** Hard cap on total synthetic draws: samples × attempts (prevents accidental billion-scale runs). */
+export const SIMULATE_LOTTERY_MAX_PRODUCT = 100_000_000;
 
-export const TUNE_LOTTERY_SCHEMA = z.object({
-  samples: z.number().int().min(1).max(25_000).default(4000),
-  attempts: z.number().int().min(10).max(10_000).default(1000),
-  seed: z.number().int().default(42),
-});
+/** Random-search tuner: max candidates. */
+export const TUNE_LOTTERY_MAX_SAMPLES = 100_000;
+/** Random-search tuner: max attempts per candidate simulation. */
+export const TUNE_LOTTERY_MAX_ATTEMPTS = 50_000;
+export const TUNE_LOTTERY_MAX_PRODUCT = 500_000_000;
+
+export const SIMULATE_LOTTERY_SCHEMA = z
+  .object({
+    attempts: z
+      .number()
+      .int()
+      .min(10)
+      .max(SIMULATE_LOTTERY_MAX_ATTEMPTS)
+      .default(500),
+    samples: z
+      .number()
+      .int()
+      .min(1)
+      .max(SIMULATE_LOTTERY_MAX_SAMPLES)
+      .default(50),
+    profile: LOTTERY_SIMULATION_PROFILE_SCHEMA.default("normal"),
+  })
+  .superRefine((data, ctx) => {
+    const product = data.samples * data.attempts;
+    if (product > SIMULATE_LOTTERY_MAX_PRODUCT) {
+      ctx.addIssue({
+        code: "custom",
+        message: `samples × attempts must be ≤ ${SIMULATE_LOTTERY_MAX_PRODUCT.toLocaleString("en-US")} (got ${product.toLocaleString("en-US")})`,
+        path: ["samples"],
+      });
+    }
+  });
+
+export const TUNE_LOTTERY_SCHEMA = z
+  .object({
+    samples: z
+      .number()
+      .int()
+      .min(1)
+      .max(TUNE_LOTTERY_MAX_SAMPLES)
+      .default(4000),
+    attempts: z
+      .number()
+      .int()
+      .min(10)
+      .max(TUNE_LOTTERY_MAX_ATTEMPTS)
+      .default(1000),
+    seed: z.number().int().default(42),
+  })
+  .superRefine((data, ctx) => {
+    const product = data.samples * data.attempts;
+    if (product > TUNE_LOTTERY_MAX_PRODUCT) {
+      ctx.addIssue({
+        code: "custom",
+        message: `samples × attempts must be ≤ ${TUNE_LOTTERY_MAX_PRODUCT.toLocaleString("en-US")} (got ${product.toLocaleString("en-US")})`,
+        path: ["samples"],
+      });
+    }
+  });
 
 export const SAVE_LOTTERY_PRESET_SCHEMA = z.object({
   name: z.string().min(1).max(80),
