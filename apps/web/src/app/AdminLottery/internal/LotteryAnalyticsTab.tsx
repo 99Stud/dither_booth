@@ -1,10 +1,21 @@
 import { Badge } from "#components/ui/badge.tsx";
+import { Button } from "#components/ui/button.tsx";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "#components/ui/card.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "#components/ui/dialog.tsx";
+import { Spinner } from "#components/ui/spinner.tsx";
 import {
   Table,
   TableBody,
@@ -14,11 +25,15 @@ import {
   TableRow,
 } from "#components/ui/table.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { useQuery } from "@tanstack/react-query";
-import { type FC, type ReactNode } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type FC, type ReactNode, useState } from "react";
 
 export const LotteryAnalyticsTab: FC = () => {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const [resetOpen, setResetOpen] = useState(false);
+
+  const resetAnalytics = useMutation(trpc.resetLotteryAnalytics.mutationOptions());
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery(
     trpc.getLotteryAnalytics.queryOptions(),
@@ -29,6 +44,15 @@ export const LotteryAnalyticsTab: FC = () => {
   const { data: lots } = useQuery(trpc.getLotteryLots.queryOptions());
 
   const isLoading = analyticsLoading || trialsLoading;
+
+  const handleConfirmReset = async () => {
+    await resetAnalytics.mutateAsync();
+    setResetOpen(false);
+    await queryClient.invalidateQueries(trpc.getLotteryAnalytics.queryOptions());
+    await queryClient.invalidateQueries(
+      trpc.getLotteryEvents.queryOptions({ limit: 300 }),
+    );
+  };
 
   if (isLoading && !analytics) {
     return <p className="p-4 text-xs text-muted-foreground">Loading…</p>;
@@ -45,6 +69,48 @@ export const LotteryAnalyticsTab: FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+          <DialogTrigger
+            render={
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={analytics.totalAttempts === 0 || resetAnalytics.isPending}
+              />
+            }
+          >
+            Reset analytics
+          </DialogTrigger>
+          <DialogContent showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Reset analytics?</DialogTitle>
+              <DialogDescription>
+                This permanently deletes all recorded lottery draws from the database. Summary
+                stats and the draw log will be cleared. Pool stock and configuration are not
+                changed.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter showCloseButton>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmReset}
+                disabled={resetAnalytics.isPending}
+              >
+                {resetAnalytics.isPending ? (
+                  <>
+                    <Spinner className="mr-2" />
+                    Resetting…
+                  </>
+                ) : (
+                  "Confirm reset"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Attempts" value={analytics.totalAttempts} />
         <StatCard

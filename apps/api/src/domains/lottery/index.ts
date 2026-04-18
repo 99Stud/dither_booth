@@ -7,6 +7,7 @@ import { saveLotteryPreset } from "./mutations/save-lottery-preset";
 import { simulateLottery } from "./mutations/simulate-lottery";
 import { tuneLottery } from "./mutations/tune-lottery";
 import { updateLotteryConfig } from "./mutations/update-lottery-config";
+import { resetLotteryAnalytics } from "./mutations/reset-lottery-analytics";
 import { updateLotteryLot } from "./mutations/update-lottery-lot";
 import { getLotteryAnalytics } from "./queries/get-lottery-analytics";
 import { getLotteryConfig } from "./queries/get-lottery-config";
@@ -24,6 +25,7 @@ export const lottery = {
   updateLotteryLot,
   deleteLotteryLot,
   getLotteryAnalytics,
+  resetLotteryAnalytics,
   getLotteryEvents,
   getLotteryPresets,
   saveLotteryPreset,
