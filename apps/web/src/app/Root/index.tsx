@@ -23,6 +23,9 @@ export const Root: FC = () => {
   const downloadReceipt = async () => {
     try {
       const clientFlowId = crypto.randomUUID();
+      const ticketRef = Math.floor(Math.random() * 1_000_000)
+        .toString()
+        .padStart(6, "0");
       const flowStartedAt = performance.now();
 
       const squarePhoto = await takeSquarePhoto(ROOT_LOG_SOURCE, async () => {
@@ -46,6 +49,7 @@ export const Root: FC = () => {
       const receiptStartedAt = performance.now();
       const receipt = await generateReceipt.mutateAsync({
         image: photoDataUrl,
+        ticketRef,
         clientFlowId,
       });
       const generateReceiptMs = Math.round((performance.now() - receiptStartedAt) * 100) / 100;

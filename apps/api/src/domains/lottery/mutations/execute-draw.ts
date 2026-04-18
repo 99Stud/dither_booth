@@ -6,11 +6,12 @@ import {
   lotteryLotTable,
 } from "#domains/lottery/internal/lottery.schema.ts";
 import { executeDraw } from "#domains/lottery/internal/lottery.engine.ts";
-import { LOTTERY_OUTCOME } from "#domains/lottery/internal/lottery.constants.ts";
+import {
+  API_LOTTERY_LOG_SOURCE,
+  LOTTERY_OUTCOME,
+} from "#domains/lottery/internal/lottery.constants.ts";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-
-import { API_LOTTERY_LOG_SOURCE } from "#domains/lottery/internal/lottery.constants.ts";
 import { logKioskEvent } from "@dither-booth/logging";
 
 export const lotteryDraw = publicProcedure
@@ -74,6 +75,7 @@ async function performDraw(
       lotLabel: null,
       lotRarity: null,
       eventId: null,
+      wonAt: null,
     };
   }
 
@@ -116,6 +118,7 @@ async function performDraw(
           lotLabel: null,
           lotRarity: null,
           eventId: event!.id,
+          wonAt: null,
         };
       }
     }
@@ -147,6 +150,7 @@ async function performDraw(
       lotLabel: wonLot?.label ?? null,
       lotRarity: wonLot?.rarity ?? null,
       eventId: event!.id,
+      wonAt: result.outcome === LOTTERY_OUTCOME.WIN ? now.toISOString() : null,
     };
   })();
 

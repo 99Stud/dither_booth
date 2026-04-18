@@ -8,6 +8,7 @@ import { DitherBoothLogotypeMark } from "#components/svg/DitherBoothLogotypeMark
 import { ElectroniquesLogo } from "#components/svg/ElectroniquesLogo/index.tsx";
 import { ElTonyMateLogo } from "#components/svg/ElTonyMateLogo/index.tsx";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index.tsx";
+import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
 import clsx from "clsx";
 import { format } from "date-fns";
@@ -42,11 +43,22 @@ interface ReceiptProps {
   className?: string;
   /** Printed on the ticket line items; falls back to placeholder copy when empty. */
   names?: string[];
+  /** Six-digit serial; must match lottery ticket when both are printed. */
+  ticketRef?: string;
 }
 
 export const Receipt: FC<ReceiptProps> = (props) => {
-  const { className, names } = props;
+  const { className, names, ticketRef } = props;
   const today = new Date();
+
+  const ticketNumber = useMemo(() => {
+    if (ticketRef && /^\d{6}$/.test(ticketRef)) return formatBoothTicketNumber(ticketRef);
+    return formatBoothTicketNumber(
+      Math.floor(Math.random() * 1_000_000)
+        .toString()
+        .padStart(6, "0"),
+    );
+  }, [ticketRef]);
 
   const { lineItems, totalPrice } = useMemo(() => {
     const rows =
@@ -173,9 +185,7 @@ export const Receipt: FC<ReceiptProps> = (props) => {
           "flex items-center justify-center gap-2 w-full font-mono text-sm font-light text-center",
         )}
       >
-        <span>{`STUD_DITHERBOOTH_${Math.floor(Math.random() * 1000000)
-          .toString()
-          .padStart(6, "0")}`}</span>
+        <span>{ticketNumber}</span>
       </div>
     </div>
   );

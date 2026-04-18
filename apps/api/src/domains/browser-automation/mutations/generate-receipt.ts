@@ -59,6 +59,8 @@ export const generateReceipt = publicProcedure
     z.object({
       image: z.string().min(1, "Receipt image is required."),
       names: z.array(z.string().max(MAX_TICKET_NAME_LENGTH)).max(MAX_TICKET_NAMES).optional(),
+      /** Six-digit serial; must match lottery ticket when both are printed. */
+      ticketRef: z.string().regex(/^\d{6}$/).optional(),
       clientFlowId: z.uuid().optional(),
     }),
   )
@@ -134,7 +136,9 @@ export const generateReceipt = publicProcedure
         });
       }
 
-      const receiptViewerUrl = buildReceiptViewerUrl(names);
+      const receiptViewerUrl = buildReceiptViewerUrl(names, {
+        ticketRef: input.ticketRef,
+      });
 
       const captureOnPage = async (page: Page) => {
         const waitImgStartedAt = performance.now();

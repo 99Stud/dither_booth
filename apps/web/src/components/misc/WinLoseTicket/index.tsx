@@ -1,9 +1,16 @@
-import type { FC } from "react";
+import { type FC, useMemo } from "react";
 
 import { LoserMark } from "#components/svg/LoserMark/index.tsx";
 import { WinnerMark } from "#components/svg/WinnerMark/index.tsx";
+import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
 import clsx from "clsx";
+
+function formatWonAtDisplay(iso: string): string | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "medium" });
+}
 
 const RARITY_UI: Record<
   string,
@@ -89,13 +96,35 @@ export const WinLoseTicket: FC<{
   lotLabel?: string | null;
   lotRarity?: string | null;
   description?: string | null;
+  /** ISO 8601 instant; shown above instructions on wins. */
+  wonAtIso?: string | null;
   instructionsLine?: string;
+  /** Six-digit serial; must match receipt footer when set (booth flow). */
+  ticketRef?: string;
   ticketReady?: boolean;
 }> = (props) => {
-  const { className, outcome, lotLabel, lotRarity, description, instructionsLine, ticketReady } =
-    props;
+  const {
+    className,
+    outcome,
+    lotLabel,
+    lotRarity,
+    description,
+    wonAtIso,
+    instructionsLine,
+    ticketRef,
+    ticketReady,
+  } = props;
 
   const ready = ticketReady ?? true;
+  const wonAtDisplay = wonAtIso ? formatWonAtDisplay(wonAtIso) : null;
+  const ticketNumber = useMemo(() => {
+    if (ticketRef && /^\d{6}$/.test(ticketRef)) return formatBoothTicketNumber(ticketRef);
+    return formatBoothTicketNumber(
+      Math.floor(Math.random() * 1_000_000)
+        .toString()
+        .padStart(6, "0"),
+    );
+  }, [ticketRef]);
 
   return (
     <div
@@ -130,6 +159,15 @@ export const WinLoseTicket: FC<{
               {description}
             </div>
           ) : null}
+          {wonAtDisplay ? (
+            <div
+              className={clsx(
+                "mt-1 text-center font-mono text-sm tabular-nums leading-snug text-black",
+              )}
+            >
+              {wonAtDisplay}
+            </div>
+          ) : null}
           {instructionsLine ? (
             <div className={clsx("mt-1 text-center font-mono text-base whitespace-pre-wrap")}>
               {instructionsLine}
@@ -146,11 +184,7 @@ export const WinLoseTicket: FC<{
 
       <div className={clsx("w-full border border-dashed border-black")} />
 
-      <div className={clsx("text-center font-bold text-xl uppercase")}>
-        {`LOTTERY_${Math.floor(Math.random() * 1000000)
-          .toString()
-          .padStart(6, "0")}`}
-      </div>
+      <div className={clsx("text-center font-bold text-xl uppercase")}>{ticketNumber}</div>
     </div>
   );
 };

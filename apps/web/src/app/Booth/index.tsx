@@ -99,6 +99,9 @@ export const Booth: FC = () => {
 
     try {
       const clientFlowId = crypto.randomUUID();
+      const ticketRef = Math.floor(Math.random() * 1_000_000)
+        .toString()
+        .padStart(6, "0");
       logKioskEvent("info", BOOTH_LOG_SOURCE, "booth-print-flow-start", {
         details: { clientFlowId },
       });
@@ -140,6 +143,7 @@ export const Booth: FC = () => {
             const result = await generateReceipt.mutateAsync({
               image: photoDataUrl,
               names: ticketNames.length > 0 ? ticketNames : undefined,
+              ticketRef,
               clientFlowId,
             });
             return { result, ms: roundMs(t0) };
@@ -165,6 +169,8 @@ export const Booth: FC = () => {
             drawResult.outcome === "win" && drawResult.lotId != null ? drawResult.lotId : undefined,
           lotLabel: drawResult.lotLabel,
           lotRarity: drawResult.lotRarity,
+          wonAt: drawResult.wonAt ?? undefined,
+          ticketRef,
           clientFlowId,
         });
         const generateLotteryTicketMs = roundMs(ticketStartedAt);
@@ -198,6 +204,7 @@ export const Booth: FC = () => {
         screenshot = await generateReceipt.mutateAsync({
           image: photoDataUrl,
           names: ticketNames.length > 0 ? ticketNames : undefined,
+          ticketRef,
           clientFlowId,
         });
         generateReceiptMs = roundMs(receiptStartedAt);

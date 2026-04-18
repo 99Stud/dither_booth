@@ -18,6 +18,8 @@ export const generateLotteryTicket = publicProcedure
       lotId: z.number().int().positive().optional(),
       lotLabel: z.string().nullable().optional(),
       lotRarity: z.string().nullable().optional(),
+      wonAt: z.string().optional(),
+      ticketRef: z.string().regex(/^\d{6}$/).optional(),
       clientFlowId: z.string().uuid().optional(),
     }),
   )
@@ -43,6 +45,8 @@ export const generateLotteryTicket = publicProcedure
         input.outcome === "win" && input.lotId == null ? input.lotLabel : undefined,
       lotRarity:
         input.outcome === "win" && input.lotId == null ? input.lotRarity : undefined,
+      wonAt: input.outcome === "win" ? input.wonAt : undefined,
+      ticketRef: input.ticketRef,
     });
 
     const capture = await runWithAutomationRetry(getBrowser()!, async (page) => {

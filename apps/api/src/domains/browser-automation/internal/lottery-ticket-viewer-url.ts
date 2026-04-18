@@ -8,10 +8,15 @@ export function buildLotteryTicketViewerUrl(params: {
   /** Fallback when `lotId` is not set (legacy URLs). */
   lotLabel?: string | null;
   lotRarity?: string | null;
+  /** ISO 8601 instant when the draw was recorded (wins only). */
+  wonAt?: string | null;
+  /** Six digits; matches receipt footer when set (booth flow). */
+  ticketRef?: string | null;
 }): string {
   const webOrigin = getWebOrigin({ repoRoot: API_REPO_ROOT });
   const url = new URL("/lottery-ticket-viewer", webOrigin);
   url.searchParams.set("outcome", params.outcome);
+  if (params.ticketRef) url.searchParams.set("ticketRef", params.ticketRef);
   if (params.outcome === "win") {
     if (params.lotId != null) {
       url.searchParams.set("lotId", String(params.lotId));
@@ -19,6 +24,7 @@ export function buildLotteryTicketViewerUrl(params: {
       if (params.lotLabel) url.searchParams.set("lotLabel", params.lotLabel);
       if (params.lotRarity) url.searchParams.set("lotRarity", params.lotRarity);
     }
+    if (params.wonAt) url.searchParams.set("wonAt", params.wonAt);
   }
   return url.toString();
 }
