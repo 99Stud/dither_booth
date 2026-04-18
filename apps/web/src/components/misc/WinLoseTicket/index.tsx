@@ -96,7 +96,7 @@ export const WinLoseTicket: FC<{
   lotLabel?: string | null;
   lotRarity?: string | null;
   description?: string | null;
-  /** ISO 8601 instant; shown above instructions on wins. */
+  /** ISO 8601 instant; shown below the ticket ref on wins. */
   wonAtIso?: string | null;
   instructionsLine?: string;
   /** Six-digit serial; must match receipt footer when set (booth flow). */
@@ -159,15 +159,6 @@ export const WinLoseTicket: FC<{
               {description}
             </div>
           ) : null}
-          {wonAtDisplay ? (
-            <div
-              className={clsx(
-                "mt-1 text-center font-mono text-sm tabular-nums leading-snug text-black",
-              )}
-            >
-              {wonAtDisplay}
-            </div>
-          ) : null}
           {instructionsLine ? (
             <div className={clsx("mt-1 text-center font-mono text-base whitespace-pre-wrap")}>
               {instructionsLine}
@@ -184,7 +175,18 @@ export const WinLoseTicket: FC<{
 
       <div className={clsx("w-full border border-dashed border-black")} />
 
-      <div className={clsx("text-center font-bold text-xl uppercase")}>{ticketNumber}</div>
+      <div className={clsx("flex flex-col items-center gap-1")}>
+        <div className={clsx("text-center font-bold text-xl uppercase")}>{ticketNumber}</div>
+        {outcome === "win" && wonAtDisplay ? (
+          <div
+            className={clsx(
+              "text-center font-mono text-sm tabular-nums leading-snug text-black/80",
+            )}
+          >
+            {wonAtDisplay}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };
