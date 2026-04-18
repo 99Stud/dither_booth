@@ -127,10 +127,7 @@ export const Booth: FC = () => {
       const photoDataUrl = await blobToDataUrl(squarePhoto);
       const dataUrlMs = roundMs(dataUrlStartedAt);
 
-      const isLotteryLive =
-        lotteryConfig?.enabled === true &&
-        lotteryConfig?.sessionActive === true &&
-        lotteryConfig?.currentSessionId != null;
+      const isLotteryLive = lotteryConfig?.enabled === true;
 
       let screenshot: Awaited<ReturnType<typeof generateReceipt.mutateAsync>>;
       let generateReceiptMs: number;

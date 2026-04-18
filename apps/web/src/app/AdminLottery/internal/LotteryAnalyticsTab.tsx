@@ -1,12 +1,10 @@
 import { Badge } from "#components/ui/badge.tsx";
-import { Button } from "#components/ui/button.tsx";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "#components/ui/card.tsx";
-import { Field, FieldLabel } from "#components/ui/field.tsx";
 import {
   Table,
   TableBody,
@@ -17,34 +15,16 @@ import {
 } from "#components/ui/table.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { useQuery } from "@tanstack/react-query";
-import { type FC, type ReactNode, useMemo, useState } from "react";
+import { type FC, type ReactNode } from "react";
 
 export const LotteryAnalyticsTab: FC = () => {
   const trpc = useTRPC();
-  const [sessionFilter, setSessionFilter] = useState<number | "all">("all");
 
-  const analyticsInput = useMemo(
-    () =>
-      sessionFilter === "all"
-        ? {}
-        : { sessionId: sessionFilter },
-    [sessionFilter],
-  );
-
-  const eventsInput = useMemo(
-    () => ({
-      limit: 300 as const,
-      ...(sessionFilter === "all" ? {} : { sessionId: sessionFilter }),
-    }),
-    [sessionFilter],
-  );
-
-  const { data: sessions } = useQuery(trpc.getLotterySessions.queryOptions());
   const { data: analytics, isLoading: analyticsLoading } = useQuery(
-    trpc.getLotteryAnalytics.queryOptions(analyticsInput),
+    trpc.getLotteryAnalytics.queryOptions(),
   );
   const { data: trials, isLoading: trialsLoading } = useQuery(
-    trpc.getLotteryEvents.queryOptions(eventsInput),
+    trpc.getLotteryEvents.queryOptions({ limit: 300 }),
   );
   const { data: lots } = useQuery(trpc.getLotteryLots.queryOptions());
 
@@ -65,43 +45,6 @@ export const LotteryAnalyticsTab: FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Session filter</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-end gap-3">
-          <Field className="min-w-[200px] flex-1">
-            <FieldLabel htmlFor="analytics-session">Session</FieldLabel>
-            <select
-              id="analytics-session"
-              className="h-9 w-full border border-input bg-transparent px-2 text-xs"
-              value={sessionFilter === "all" ? "all" : String(sessionFilter)}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSessionFilter(v === "all" ? "all" : Number(v));
-              }}
-            >
-              <option value="all">All sessions</option>
-              {sessions?.map((s) => (
-                <option key={s.id} value={s.id}>
-                  #{s.id}
-                  {s.title ? ` — ${s.title}` : ""}{" "}
-                  {s.startedAt ? `(${s.startedAt.slice(0, 16)})` : ""}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => setSessionFilter("all")}
-          >
-            Show all
-          </Button>
-        </CardContent>
-      </Card>
-
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Attempts" value={analytics.totalAttempts} />
         <StatCard
@@ -227,7 +170,6 @@ export const LotteryAnalyticsTab: FC = () => {
               <TableRow>
                 <TableHead className="w-14">#</TableHead>
                 <TableHead>Time</TableHead>
-                <TableHead>Session</TableHead>
                 <TableHead>Outcome</TableHead>
                 <TableHead>Pool</TableHead>
                 <TableHead className="text-right">P(win)</TableHead>
@@ -238,10 +180,10 @@ export const LotteryAnalyticsTab: FC = () => {
               {trials && trials.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={6}
                     className="py-6 text-center text-muted-foreground"
                   >
-                    No draws for this filter.
+                    No draws yet.
                   </TableCell>
                 </TableRow>
               )}
@@ -252,9 +194,6 @@ export const LotteryAnalyticsTab: FC = () => {
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate font-mono text-[11px]">
                     {t.timestamp}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {t.sessionId ?? "—"}
                   </TableCell>
                   <TableCell>
                     <span

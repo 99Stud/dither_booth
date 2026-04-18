@@ -7,7 +7,6 @@ import {
   lotteryEventTable,
   lotteryLotTable,
   lotteryPresetTable,
-  lotterySessionTable,
 } from "#domains/lottery/internal/lottery.schema.ts";
 
 const dbFileName = process.env.DB_FILE_NAME;
@@ -26,7 +25,6 @@ export const db = drizzle({
     lotteryConfigTable,
     lotteryLotTable,
     lotteryEventTable,
-    lotterySessionTable,
     lotteryPresetTable,
   },
 });

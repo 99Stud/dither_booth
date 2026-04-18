@@ -175,7 +175,6 @@ export const simulateLotteryRun = ({
 
     events.push({
       id: i + 1,
-      sessionId: null,
       timestamp: now.toISOString(),
       outcome: result.outcome,
       lotId: result.lotId,

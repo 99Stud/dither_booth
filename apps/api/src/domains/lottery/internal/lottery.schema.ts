@@ -9,15 +9,6 @@ import {
 
 import { LOTTERY_CONFIG_SINGLETON_ID } from "./lottery.constants";
 
-export const lotterySessionTable = sqliteTable("lottery_session", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title"),
-  startedAt: text("started_at")
-    .notNull()
-    .default(sql`(datetime('now'))`),
-  endedAt: text("ended_at"),
-});
-
 export const lotteryPresetTable = sqliteTable("lottery_preset", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -34,9 +25,6 @@ export const lotteryConfigTable = sqliteTable(
       .primaryKey()
       .notNull()
       .default(LOTTERY_CONFIG_SINGLETON_ID),
-    currentSessionId: integer("current_session_id").references(
-      () => lotterySessionTable.id,
-    ),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
     startTime: text("start_time").notNull().default("16:00"),
     endTime: text("end_time").notNull().default("21:00"),
@@ -50,11 +38,6 @@ export const lotteryConfigTable = sqliteTable(
     abuseCooldownSeconds: integer("abuse_cooldown_seconds")
       .notNull()
       .default(120),
-    sessionActive: integer("session_active", { mode: "boolean" })
-      .notNull()
-      .default(false),
-    sessionStartedAt: text("session_started_at"),
-    lastSessionEndedAt: text("last_session_ended_at"),
   },
   (table) => [
     check("lottery_config_singleton_check", sql`${table.id} = 1`),
@@ -103,7 +86,6 @@ export const lotteryLotTable = sqliteTable(
 
 export const lotteryEventTable = sqliteTable("lottery_event", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  sessionId: integer("session_id").references(() => lotterySessionTable.id),
   timestamp: text("timestamp")
     .notNull()
     .default(sql`(datetime('now'))`),

@@ -45,10 +45,6 @@ const defaultConfig: LotteryConfigRow = {
   abuseMaxAttempts: 5,
   abuseMinIntervalSeconds: 10,
   abuseCooldownSeconds: 120,
-  sessionActive: true,
-  sessionStartedAt: null,
-  lastSessionEndedAt: null,
-  currentSessionId: null,
 };
 
 const defaultLots: LotteryLotRow[] = [

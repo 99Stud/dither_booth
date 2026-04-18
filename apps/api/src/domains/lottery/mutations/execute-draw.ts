@@ -51,11 +51,10 @@ export const lotteryDraw = publicProcedure
     return result;
   });
 
-async function loadRecentEventsForSession(sessionId: number) {
+async function loadRecentEvents() {
   const rows = await db
     .select()
     .from(lotteryEventTable)
-    .where(eq(lotteryEventTable.sessionId, sessionId))
     .orderBy(desc(lotteryEventTable.id))
     .limit(400)
     .all();
@@ -68,12 +67,7 @@ async function performDraw(
   config: NonNullable<Awaited<ReturnType<typeof db.query.lotteryConfigTable.findFirst>>>,
   captureToDrawMs?: number,
 ) {
-  const sessionId = config.currentSessionId;
-  if (
-    !config.enabled ||
-    !config.sessionActive ||
-    sessionId == null
-  ) {
+  if (!config.enabled) {
     return {
       outcome: "loss" as const,
       lotId: null,
@@ -84,7 +78,7 @@ async function performDraw(
   }
 
   const lots = await db.select().from(lotteryLotTable).orderBy(asc(lotteryLotTable.sortOrder));
-  const recentEvents = await loadRecentEventsForSession(sessionId);
+  const recentEvents = await loadRecentEvents();
 
   const result = executeDraw({ now, config, lots, recentEvents });
 
@@ -103,7 +97,6 @@ async function performDraw(
         const [event] = db
           .insert(lotteryEventTable)
           .values({
-            sessionId,
             timestamp: now.toISOString(),
             outcome: LOTTERY_OUTCOME.LOSS,
             lotId: null,
@@ -130,7 +123,6 @@ async function performDraw(
     const [event] = db
       .insert(lotteryEventTable)
       .values({
-        sessionId,
         timestamp: now.toISOString(),
         outcome: result.outcome,
         lotId: result.lotId,

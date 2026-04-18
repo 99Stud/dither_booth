@@ -12,12 +12,6 @@ export const LotteryConfigTab: FC = () => {
   const queryClient = useQueryClient();
   const { data: config, isLoading } = useQuery(trpc.getLotteryConfig.queryOptions());
   const updateConfig = useMutation(trpc.updateLotteryConfig.mutationOptions());
-  const startSession = useMutation(trpc.startLotterySession.mutationOptions());
-  const finishSession = useMutation(trpc.finishLotterySession.mutationOptions());
-
-  const [sessionTitle, setSessionTitle] = useState("");
-  const [resetStockOnFinish, setResetStockOnFinish] = useState(true);
-  const [resetProbabilitiesOnFinish, setResetProbabilitiesOnFinish] = useState(false);
 
   const [form, setForm] = useState({
     enabled: false,
@@ -50,145 +44,14 @@ export const LotteryConfigTab: FC = () => {
   const handleSave = useCallback(async () => {
     await updateConfig.mutateAsync(form);
     await queryClient.invalidateQueries(trpc.getLotteryConfig.queryOptions());
-    await queryClient.invalidateQueries(trpc.getLotterySessions.queryOptions());
   }, [form, updateConfig, queryClient, trpc]);
-
-  const invalidateLotteryQueries = useCallback(async () => {
-    await queryClient.invalidateQueries(trpc.getLotteryConfig.queryOptions());
-    await queryClient.invalidateQueries(trpc.getLotterySessions.queryOptions());
-    await queryClient.invalidateQueries(trpc.getLotteryAnalytics.queryFilter());
-    await queryClient.invalidateQueries(trpc.getLotteryEvents.queryFilter());
-    await queryClient.invalidateQueries(trpc.getLotteryLots.queryOptions());
-  }, [queryClient, trpc]);
-
-  const handleStartSession = useCallback(async () => {
-    const title = sessionTitle.trim();
-    await startSession.mutateAsync(
-      title.length > 0 ? { title } : undefined,
-    );
-    await invalidateLotteryQueries();
-  }, [invalidateLotteryQueries, sessionTitle, startSession]);
-
-  const handleFinishSession = useCallback(async () => {
-    await finishSession.mutateAsync({
-      resetStock: resetStockOnFinish,
-      resetProbabilities: resetProbabilitiesOnFinish,
-    });
-    await invalidateLotteryQueries();
-  }, [
-    finishSession,
-    invalidateLotteryQueries,
-    resetProbabilitiesOnFinish,
-    resetStockOnFinish,
-  ]);
 
   if (isLoading) {
     return <p className="p-4 text-xs text-muted-foreground">Loading…</p>;
   }
 
-  const activeSession = config?.activeSession;
-
   return (
     <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Session</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <FieldDescription>
-            The booth only prints the lottery ticket when a session is active{" "}
-            <strong>and</strong> lottery is enabled. Starting a session here turns{" "}
-            <strong>Lottery enabled</strong> on automatically so you don&apos;t need a separate
-            save.
-          </FieldDescription>
-          <Field>
-            <FieldLabel htmlFor="session-title">Title (optional)</FieldLabel>
-            <Input
-              id="session-title"
-              value={sessionTitle}
-              onChange={(e) => setSessionTitle(e.target.value)}
-              placeholder="Launch night"
-              disabled={config?.sessionActive === true}
-            />
-          </Field>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              onClick={handleStartSession}
-              disabled={
-                startSession.isPending ||
-                finishSession.isPending ||
-                config?.sessionActive === true
-              }
-            >
-              {startSession.isPending ? "…" : "Start session"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleFinishSession}
-              disabled={
-                startSession.isPending ||
-                finishSession.isPending ||
-                config?.sessionActive !== true
-              }
-            >
-              {finishSession.isPending ? "…" : "End session"}
-            </Button>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field>
-              <div className="flex items-center justify-between gap-3">
-                <FieldLabel>Refill stock on end</FieldLabel>
-                <Switch
-                  checked={resetStockOnFinish}
-                  onCheckedChange={setResetStockOnFinish}
-                />
-              </div>
-              <FieldDescription>
-                When ending the session, set each lot&apos;s remaining stock back to its total.
-              </FieldDescription>
-            </Field>
-            <Field>
-              <div className="flex items-center justify-between gap-3">
-                <FieldLabel>Reset win pressure &amp; boost</FieldLabel>
-                <Switch
-                  checked={resetProbabilitiesOnFinish}
-                  onCheckedChange={setResetProbabilitiesOnFinish}
-                />
-              </div>
-              <FieldDescription>
-                After the session, restore base win pressure and max boost to their default values
-                (0.15 and 3).
-              </FieldDescription>
-            </Field>
-          </div>
-          {config?.sessionActive === true && config.sessionStartedAt ? (
-            <p className="text-xs text-muted-foreground">
-              Session #
-              <span className="font-mono text-foreground">
-                {config.currentSessionId ?? activeSession?.id ?? "—"}
-              </span>
-              {activeSession?.title ? (
-                <>
-                  {" "}
-                  — <span className="text-foreground">{activeSession.title}</span>
-                </>
-              ) : null}
-              {" · "}
-              started{" "}
-              <span className="font-mono text-foreground">{config.sessionStartedAt}</span>
-            </p>
-          ) : null}
-          {!config?.sessionActive && config?.lastSessionEndedAt ? (
-            <p className="text-xs text-muted-foreground">
-              Last ended:{" "}
-              <span className="font-mono text-foreground">{config.lastSessionEndedAt}</span>
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">General</CardTitle>
@@ -202,6 +65,10 @@ export const LotteryConfigTab: FC = () => {
                 onCheckedChange={(v) => setForm((f) => ({ ...f, enabled: v }))}
               />
             </div>
+            <FieldDescription>
+              When on, draws happen only inside the daily time window below. Turn off to
+              disable the lottery entirely.
+            </FieldDescription>
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field>
@@ -284,9 +151,9 @@ export const LotteryConfigTab: FC = () => {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <FieldDescription className="-mt-1">
-            Recent draw attempts in the current session are checked. Too many attempts in a short
-            window, or attempts closer than the minimum interval, yield a forced loss. After an
-            abuse-related forced loss, further wins are blocked until the cooldown elapses.
+            Recent draw attempts are checked. Too many attempts in a short window, or attempts
+            closer than the minimum interval, yield a forced loss. After an abuse-related forced
+            loss, further wins are blocked until the cooldown elapses.
           </FieldDescription>
           <div className="grid grid-cols-2 gap-3">
             <Field>

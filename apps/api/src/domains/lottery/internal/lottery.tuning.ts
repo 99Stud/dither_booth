@@ -35,10 +35,6 @@ const baseConfigTemplate: Omit<LotteryConfigRow, "id"> = {
   abuseMaxAttempts: 5,
   abuseMinIntervalSeconds: 10,
   abuseCooldownSeconds: 120,
-  sessionActive: true,
-  sessionStartedAt: null,
-  lastSessionEndedAt: null,
-  currentSessionId: null,
 };
 
 const cloneLotsWithRarityWeights = (

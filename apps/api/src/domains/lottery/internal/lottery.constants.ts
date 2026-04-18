@@ -103,15 +103,6 @@ export const TUNE_LOTTERY_SCHEMA = z.object({
   seed: z.number().int().default(42),
 });
 
-export const START_LOTTERY_SESSION_SCHEMA = z.object({
-  title: z.string().max(120).optional(),
-});
-
-export const FINISH_LOTTERY_SESSION_SCHEMA = z.object({
-  resetStock: z.boolean().optional().default(true),
-  resetProbabilities: z.boolean().optional().default(false),
-});
-
 export const SAVE_LOTTERY_PRESET_SCHEMA = z.object({
   name: z.string().min(1).max(80),
 });
@@ -121,10 +112,5 @@ export const APPLY_LOTTERY_PRESET_SCHEMA = z.object({
 });
 
 export const GET_LOTTERY_EVENTS_SCHEMA = z.object({
-  sessionId: z.number().int().optional(),
   limit: z.number().int().min(1).max(500).default(200),
-});
-
-export const GET_LOTTERY_ANALYTICS_SCHEMA = z.object({
-  sessionId: z.number().int().optional(),
 });

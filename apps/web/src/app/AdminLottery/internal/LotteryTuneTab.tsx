@@ -232,8 +232,7 @@ export const LotteryTuneTab: FC = () => {
                       <DialogTitle>Apply recommended config?</DialogTitle>
                       <DialogDescription>
                         This will overwrite the live lottery&apos;s win pressure, max boost, and
-                        all lot weights. Active sessions are not interrupted, but the next draw
-                        will use the new values.
+                        all lot weights. The next draw will use the new values.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-2 rounded-none border bg-muted/40 p-3 text-xs">

@@ -50,6 +50,13 @@
       "when": 1776439620756,
       "tag": "0006_light_leper_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1776511858642,
+      "tag": "0007_drop_lottery_session",
+      "breakpoints": true
     }
   ]
 }
