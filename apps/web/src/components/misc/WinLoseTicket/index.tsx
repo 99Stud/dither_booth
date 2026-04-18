@@ -72,8 +72,8 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
       <div className="relative flex items-center justify-between gap-2">
         <span className="text-[10px] font-bold tabular-nums opacity-80">{cfg.tier}</span>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5 text-center">
-          <span className="text-[9px] tracking-[0.35em] opacity-70">Rareté</span>
-          <span className="truncate text-xs font-bold tracking-[0.12em]">{cfg.label}</span>
+          <span className="text-[12px] tracking-[0.35em] opacity-70">Rareté</span>
+          <span className="truncate text-[15px] font-bold tracking-[0.12em]">{cfg.label}</span>
         </div>
         <span className="text-sm tabular-nums leading-none" aria-hidden>
           {cfg.accent}
@@ -92,15 +92,8 @@ export const WinLoseTicket: FC<{
   instructionsLine?: string;
   ticketReady?: boolean;
 }> = (props) => {
-  const {
-    className,
-    outcome,
-    lotLabel,
-    lotRarity,
-    description,
-    instructionsLine,
-    ticketReady,
-  } = props;
+  const { className, outcome, lotLabel, lotRarity, description, instructionsLine, ticketReady } =
+    props;
 
   const ready = ticketReady ?? true;
 
@@ -131,16 +124,14 @@ export const WinLoseTicket: FC<{
           {description ? (
             <div
               className={clsx(
-                "w-full px-1 text-center text-sm font-normal leading-snug whitespace-pre-wrap",
+                "w-full px-1 text-center text-[12px] font-normal leading-snug whitespace-pre-wrap",
               )}
             >
               {description}
             </div>
           ) : null}
           {instructionsLine ? (
-            <div
-              className={clsx("mt-1 text-center font-mono text-base whitespace-pre-wrap")}
-            >
+            <div className={clsx("mt-1 text-center font-mono text-base whitespace-pre-wrap")}>
               {instructionsLine}
             </div>
           ) : null}
