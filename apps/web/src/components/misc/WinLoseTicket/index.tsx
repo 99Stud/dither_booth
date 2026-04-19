@@ -147,7 +147,7 @@ export const WinLoseTicket: FC<{
             <WinnerMark className="h-auto w-full max-w-full max-h-22" />
           </div>
           {lotLabel ? (
-            <div className={clsx("text-2xl font-bold text-center leading-tight")}>{lotLabel}</div>
+            <div className={clsx("text-3xl font-bold text-center leading-tight")}>{lotLabel}</div>
           ) : null}
           {lotRarity ? <LotteryRarityStrip lotRarity={lotRarity} /> : null}
           {description ? (
