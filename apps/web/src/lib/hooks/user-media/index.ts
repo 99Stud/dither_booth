@@ -9,17 +9,6 @@ export type CapturePhotoOptions = Omit<
   "imageWidth" | "imageHeight"
 >;
 
-type PhotoDimensionRange = {
-  min: number;
-  max: number;
-  step: number;
-};
-
-type PreferredPhotoSettings = {
-  imageWidth: number;
-  imageHeight: number;
-};
-
 export type CameraStatus = "error" | "initializing" | "ready" | "unsupported";
 
 export interface CameraState {
@@ -39,193 +28,6 @@ const getMaxSquareSide = (track: MediaStreamTrack) => {
   }
 
   return Math.floor(Math.min(maxWidth, maxHeight));
-};
-
-const normalizeCapabilityValue = (value?: number) => {
-  if (value === undefined || !Number.isFinite(value)) {
-    return undefined;
-  }
-
-  return Math.max(1, Math.round(value));
-};
-
-const getPhotoDimensionRange = (
-  range?: MediaSettingsRange,
-): PhotoDimensionRange | undefined => {
-  const min = normalizeCapabilityValue(range?.min);
-  const max = normalizeCapabilityValue(range?.max);
-
-  if (min === undefined || max === undefined || min > max) {
-    return undefined;
-  }
-
-  return {
-    min,
-    max,
-    step: normalizeCapabilityValue(range?.step) ?? 1,
-  };
-};
-
-const getPositiveModulo = (value: number, divisor: number) => {
-  return ((value % divisor) + divisor) % divisor;
-};
-
-const getFallbackPhotoSettings = (
-  preferredSide?: number,
-): PreferredPhotoSettings | undefined => {
-  if (preferredSide === undefined) {
-    return undefined;
-  }
-
-  return {
-    imageWidth: preferredSide,
-    imageHeight: preferredSide,
-  };
-};
-
-const getGreatestCommonDivisor = (a: number, b: number) => {
-  let nextA = Math.abs(a);
-  let nextB = Math.abs(b);
-
-  while (nextB !== 0) {
-    const remainder = nextA % nextB;
-    nextA = nextB;
-    nextB = remainder;
-  }
-
-  return nextA;
-};
-
-const getExtendedGreatestCommonDivisor = (
-  a: number,
-  b: number,
-): {
-  gcd: number;
-  x: number;
-  y: number;
-} => {
-  if (b === 0) {
-    return {
-      gcd: a,
-      x: 1,
-      y: 0,
-    };
-  }
-
-  const next = getExtendedGreatestCommonDivisor(b, a % b);
-
-  return {
-    gcd: next.gcd,
-    x: next.y,
-    y: next.x - Math.floor(a / b) * next.y,
-  };
-};
-
-const getModularInverse = (value: number, modulus: number) => {
-  if (modulus === 1) {
-    return 0;
-  }
-
-  const { gcd, x } = getExtendedGreatestCommonDivisor(value, modulus);
-
-  if (Math.abs(gcd) !== 1) {
-    return undefined;
-  }
-
-  return getPositiveModulo(x, modulus);
-};
-
-const getLeastCommonMultiple = (a: number, b: number) => {
-  return (a / getGreatestCommonDivisor(a, b)) * b;
-};
-
-// Width and height capabilities form arithmetic progressions; intersect them directly.
-const getLargestSharedDimension = (
-  widthRange: PhotoDimensionRange,
-  heightRange: PhotoDimensionRange,
-) => {
-  const lowerBound = Math.max(widthRange.min, heightRange.min);
-  const upperBound = Math.min(widthRange.max, heightRange.max);
-
-  if (lowerBound > upperBound) {
-    return undefined;
-  }
-
-  const greatestCommonDivisor = getGreatestCommonDivisor(
-    widthRange.step,
-    heightRange.step,
-  );
-  const dimensionOffset = heightRange.min - widthRange.min;
-
-  if (dimensionOffset % greatestCommonDivisor !== 0) {
-    return undefined;
-  }
-
-  const reducedWidthStep = widthRange.step / greatestCommonDivisor;
-  const reducedHeightStep = heightRange.step / greatestCommonDivisor;
-  const modularInverse = getModularInverse(reducedWidthStep, reducedHeightStep);
-
-  if (modularInverse === undefined) {
-    return undefined;
-  }
-
-  const sharedOffset = getPositiveModulo(
-    (dimensionOffset / greatestCommonDivisor) * modularInverse,
-    reducedHeightStep,
-  );
-  const firstSharedDimension = widthRange.min + widthRange.step * sharedOffset;
-  const sharedDimensionStep = getLeastCommonMultiple(
-    widthRange.step,
-    heightRange.step,
-  );
-  const firstSharedDimensionInRange =
-    firstSharedDimension >= lowerBound
-      ? firstSharedDimension
-      : firstSharedDimension +
-        Math.ceil((lowerBound - firstSharedDimension) / sharedDimensionStep) *
-          sharedDimensionStep;
-
-  if (firstSharedDimensionInRange > upperBound) {
-    return undefined;
-  }
-
-  return (
-    firstSharedDimensionInRange +
-    Math.floor(
-      (upperBound - firstSharedDimensionInRange) / sharedDimensionStep,
-    ) *
-      sharedDimensionStep
-  );
-};
-
-const getPreferredPhotoSettings = async (
-  imageCapture: ImageCapture,
-  preferredSide?: number,
-) => {
-  const normalizedPreferredSide = normalizeCapabilityValue(preferredSide);
-
-  try {
-    const photoCapabilities = await imageCapture.getPhotoCapabilities();
-    const widthRange = getPhotoDimensionRange(photoCapabilities.imageWidth);
-    const heightRange = getPhotoDimensionRange(photoCapabilities.imageHeight);
-
-    if (widthRange === undefined || heightRange === undefined) {
-      return getFallbackPhotoSettings(normalizedPreferredSide);
-    }
-
-    const squareSide = getLargestSharedDimension(widthRange, heightRange);
-
-    if (squareSide === undefined) {
-      return getFallbackPhotoSettings(normalizedPreferredSide);
-    }
-
-    return {
-      imageWidth: squareSide,
-      imageHeight: squareSide,
-    };
-  } catch {
-    return getFallbackPhotoSettings(normalizedPreferredSide);
-  }
 };
 
 const applySquareConstraints = async (
@@ -451,10 +253,6 @@ export const useUserMedia = (params: {
           if (!cancelled) {
             captureInitializationRef.current = (async () => {
               const imageCapture = new ImageCapture(track);
-              const preferredPhotoSettings = await getPreferredPhotoSettings(
-                imageCapture,
-                maxSquareSide,
-              );
 
               if (cancelled || track.readyState !== "live") {
                 return;
@@ -472,23 +270,7 @@ export const useUserMedia = (params: {
                   );
                 }
 
-                const nextPhotoSettings =
-                  preferredPhotoSettings === undefined
-                    ? photoSettings
-                    : {
-                        ...photoSettings,
-                        ...preferredPhotoSettings,
-                      };
-
-                try {
-                  return await imageCapture.takePhoto(nextPhotoSettings);
-                } catch (error) {
-                  if (preferredPhotoSettings === undefined) {
-                    throw error;
-                  }
-
-                  return imageCapture.takePhoto(photoSettings);
-                }
+                return await imageCapture.takePhoto(photoSettings);
               };
             })().catch((error) => {
               if (cancelled) {

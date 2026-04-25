@@ -2,7 +2,7 @@ import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types
 
 import { Webcam } from "#components/misc/Webcam/index.tsx";
 import { Button } from "#components/ui/button.tsx";
-import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
+import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { downloadBlob } from "#lib/utils.ts";
@@ -21,13 +21,16 @@ export const Root: FC = () => {
 
   const downloadReceipt = async () => {
     try {
-      const squarePhoto = await takeSquarePhoto(ROOT_LOG_SOURCE, async () => {
-        if (!webcamRef.current) {
-          throw new Error("Camera is not available.");
-        }
+      const squarePhoto = await takeSquarePhotoAndFlipHorizontally(
+        ROOT_LOG_SOURCE,
+        async () => {
+          if (!webcamRef.current) {
+            throw new Error("Camera is not available.");
+          }
 
-        return await webcamRef.current.takePhoto();
-      });
+          return await webcamRef.current.takePhoto();
+        },
+      );
 
       if (!squarePhoto) {
         return;
@@ -47,6 +50,33 @@ export const Root: FC = () => {
     }
   };
 
+  const downloadRawSquarePhoto = async () => {
+    try {
+      const squarePhoto = await takeSquarePhotoAndFlipHorizontally(
+        ROOT_LOG_SOURCE,
+        async () => {
+          if (!webcamRef.current) {
+            throw new Error("Camera is not available.");
+          }
+
+          return await webcamRef.current.takePhoto();
+        },
+      );
+
+      if (!squarePhoto) {
+        return;
+      }
+
+      downloadBlob(squarePhoto, "raw-square-photo.webp");
+    } catch (e) {
+      reportKioskError(e, {
+        event: "download-raw-square-photo-failed",
+        source: ROOT_LOG_SOURCE,
+        userMessage: "Download raw square photo failed.",
+      });
+    }
+  };
+
   return (
     <div className="relative h-dvh bg-black">
       <div className="flex h-full items-center justify-center p-4">
@@ -55,6 +85,9 @@ export const Root: FC = () => {
       <div className="fixed top-8 left-8 flex flex-col gap-2">
         <Button disabled={isGeneratingReceipt} onClick={downloadReceipt}>
           {isGeneratingReceipt ? "Generating receipt..." : "Download Receipt"}
+        </Button>
+        <Button onClick={downloadRawSquarePhoto}>
+          Download Raw Square Photo
         </Button>
       </div>
     </div>

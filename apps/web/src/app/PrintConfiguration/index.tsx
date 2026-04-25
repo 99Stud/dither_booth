@@ -5,7 +5,7 @@ import { SliderField } from "#components/fields/SliderField/index.tsx";
 import { Webcam } from "#components/misc/Webcam/index.tsx";
 import { Button } from "#components/ui/button.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
-import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
+import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -63,7 +63,7 @@ export const PrintConfiguration = () => {
   const { isPending: isDithering } = ditherer;
 
   const generatePreviewDataUrl = useCallback(async () => {
-    const image = await takeSquarePhoto(
+    const image = await takeSquarePhotoAndFlipHorizontally(
       PRINT_CONFIGURATION_LOG_SOURCE,
       async () => {
         if (!webcamRef.current) {

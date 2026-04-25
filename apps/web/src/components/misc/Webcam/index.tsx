@@ -39,7 +39,7 @@ export const Webcam: FC<WebcamProps> = ({
   return (
     <>
       {showDebugInfo && (
-        <div className="fixed top-8 right-8 flex flex-col gap-1 text-sm text-white">
+        <div className="fixed top-8 right-8 z-10 flex flex-col gap-1 text-sm text-white">
           Camera status: {cameraState.status}
           {cameraState.error && <p>Error: {cameraState.error}</p>}
           <p>Is secure context: {String(cameraState.isSecureContext)}</p>

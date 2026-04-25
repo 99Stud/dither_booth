@@ -68,7 +68,7 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
   }
 };
 
-export const takeSquarePhoto = async (
+export const takeSquarePhotoAndFlipHorizontally = async (
   source: string,
   takePhoto: () => Promise<Blob>,
 ) => {
@@ -83,10 +83,32 @@ export const takeSquarePhoto = async (
   });
 
   if (width === height) {
-    return photo;
+    return await flipBlobHorizontally(photo);
   }
 
   logKioskEvent("info", source, "client-square-resize-requested");
 
-  return await resizeBlobToSquare(photo);
+  return await flipBlobHorizontally(await resizeBlobToSquare(photo));
+};
+
+export const flipBlobHorizontally = async (blob: Blob): Promise<Blob> => {
+  const imageBitmap = await createImageBitmap(blob);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = imageBitmap.width;
+    canvas.height = imageBitmap.height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Could not create canvas context.");
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(imageBitmap, 0, 0);
+    const flippedBlob = await canvasToBlob(
+      canvas,
+      blob.type || FALLBACK_IMAGE_MIME_TYPE,
+    );
+    if (!flippedBlob) throw new Error("Failed to encode flipped photo.");
+    return flippedBlob;
+  } finally {
+    imageBitmap.close();
+  }
 };
