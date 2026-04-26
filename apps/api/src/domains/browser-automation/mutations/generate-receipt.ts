@@ -14,7 +14,7 @@ const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 export const generateReceipt = publicProcedure
   .input(octetInputParser)
   .mutation(async ({ ctx, input }) => {
-    const webOrigin = getWebOrigin({ repoRoot: API_REPO_ROOT });
+    const webOrigin = await getWebOrigin({ repoRoot: API_REPO_ROOT });
 
     if (!webOrigin) {
       throw new TRPCError({

@@ -9,7 +9,6 @@
         "API_BIND_HOST",
         "NODE_ENV",
         "WEB_BIND_HOST",
-        "WEB_PUBLIC_IP",
         "WEB_TLS_CERT_PATH",
         "WEB_TLS_KEY_PATH"
       ]
@@ -27,7 +26,6 @@
         "API_BIND_HOST",
         "NODE_ENV",
         "WEB_BIND_HOST",
-        "WEB_PUBLIC_IP",
         "WEB_TLS_CERT_PATH",
         "WEB_TLS_KEY_PATH"
       ]

@@ -105,4 +105,4 @@ Defaults live in:
 - `apps/web/.env.example`
 - `apps/api/.env.example`
 
-Most setups can keep defaults. Override only if you need different ports, bind hosts, or TLS file paths. `WEB_PUBLIC_IP` is optional and can temporarily override value stored in `.local/tls/booth-manifest.json`.
+Most setups can keep defaults. Override only if you need different ports, bind hosts, or TLS file paths. Web public IP is read from `.local/tls/booth-manifest.json`; regenerate certificates when LAN IP changes.

@@ -1,9 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
-import { isIP } from "node:net";
-import path from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { z } from "zod";
 
+import type { RepoPathOptions } from "./internal/ports.types";
+
 import {
+  CERT_GENERATE_COMMAND,
   DEFAULT_API_BIND_HOST,
   DEFAULT_API_PORT,
   DEFAULT_WEB_BIND_HOST,
@@ -11,92 +12,46 @@ import {
   DEFAULT_WEB_TLS_CERT_PATH,
   DEFAULT_WEB_TLS_KEY_PATH,
   DEFAULT_WEB_TLS_MANIFEST_FILE_NAME,
-  WEB_PUBLIC_IP_ENV_NAME,
-} from "./constants";
-const CERT_GENERATE_COMMAND =
-  "bun run --filter @dither-booth/api cert:generate <LAN_IP>";
-const PORT_SCHEMA = z
-  .string()
-  .trim()
-  .regex(/^\d+$/, "must be a whole number")
-  .transform((value) => Number(value))
-  .pipe(
-    z
-      .number()
-      .int("must be an integer")
-      .min(1, "must be between 1 and 65535")
-      .max(65_535, "must be between 1 and 65535"),
-  );
-
-type WebTlsManifest = {
-  publicIp: string;
-  generatedAt: string;
-  certPath: string;
-  keyPath: string;
-};
-
-type RepoPathOptions = {
-  repoRoot: string;
-};
-
-function getOptionalStringEnv(name: string) {
-  const value = process.env[name]?.trim();
-
-  return value && value.length > 0 ? value : undefined;
-}
-
-function getStringEnv(name: string, fallback: string) {
-  return getOptionalStringEnv(name) ?? fallback;
-}
+  PORT_SCHEMA,
+  WEB_TLS_MANIFEST_SCHEMA,
+} from "./internal/ports.constants";
+import { getStringEnv } from "./internal/ports.utils";
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
-  return path.isAbsolute(filePath)
-    ? filePath
-    : path.resolve(repoRoot, filePath);
+  return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);
 }
 
 function formatOrigin(protocol: "http" | "https", host: string, port: number) {
-  const formattedHost = isIP(host) === 6 ? `[${host}]` : host;
+  const ipv6 = z.ipv6().safeParse(host);
+
+  const formattedHost = ipv6.success ? `[${ipv6.data}]` : host;
 
   return `${protocol}://${formattedHost}:${port}`;
 }
 
-function requireIpAddress(value: string, label: string) {
-  if (isIP(value) === 0) {
-    throw new Error(
-      `Invalid ${label}: ${value}. Expected IPv4 or IPv6 address.`,
-    );
-  }
-
-  return value;
-}
-
 function getWebTlsManifestError(manifestPath: string) {
-  return `Run "${CERT_GENERATE_COMMAND}" to create ${manifestPath}, or set ${WEB_PUBLIC_IP_ENV_NAME}.`;
+  return `Run "${CERT_GENERATE_COMMAND}" to create ${manifestPath}.`;
 }
 
-function readWebTlsManifest(options: RepoPathOptions) {
+async function readWebTlsManifest(options: RepoPathOptions) {
   const manifestPath = getWebTlsManifestPath(options);
+  const manifestFile = Bun.file(manifestPath);
 
-  if (!existsSync(manifestPath)) {
+  if (!(await manifestFile.exists())) {
     return undefined;
   }
 
-  let rawManifest: string;
-
-  try {
-    rawManifest = readFileSync(manifestPath, "utf8");
-  } catch (error) {
+  const rawManifest = await manifestFile.text().catch((error) => {
     throw new Error(
       `Failed to read TLS manifest at ${manifestPath}. ${getWebTlsManifestError(manifestPath)}`,
       { cause: error },
     );
-  }
+  });
 
-  let manifest: Partial<WebTlsManifest>;
+  let rawParsedManifest: unknown;
 
   try {
-    manifest = JSON.parse(rawManifest) as Partial<WebTlsManifest>;
+    rawParsedManifest = JSON.parse(rawManifest);
   } catch (error) {
     throw new Error(
       `Failed to parse TLS manifest at ${manifestPath}. ${getWebTlsManifestError(manifestPath)}`,
@@ -104,26 +59,21 @@ function readWebTlsManifest(options: RepoPathOptions) {
     );
   }
 
-  if (
-    typeof manifest.publicIp !== "string" ||
-    typeof manifest.generatedAt !== "string" ||
-    typeof manifest.certPath !== "string" ||
-    typeof manifest.keyPath !== "string"
-  ) {
+  const manifest = WEB_TLS_MANIFEST_SCHEMA.safeParse(rawParsedManifest);
+
+  if (!manifest.success) {
     throw new Error(
-      `Invalid TLS manifest at ${manifestPath}. ${getWebTlsManifestError(manifestPath)}`,
+      `Failed to parse TLS manifest at ${manifestPath}. ${getWebTlsManifestError(manifestPath)}`,
+      { cause: manifest.error },
     );
   }
 
   return {
-    publicIp: requireIpAddress(
-      manifest.publicIp.trim(),
-      `publicIp in ${manifestPath}`,
-    ),
-    generatedAt: manifest.generatedAt,
-    certPath: manifest.certPath,
-    keyPath: manifest.keyPath,
-  } satisfies WebTlsManifest;
+    publicIp: manifest.data.publicIp,
+    generatedAt: manifest.data.generatedAt,
+    certPath: manifest.data.certPath,
+    keyPath: manifest.data.keyPath,
+  };
 }
 
 function getConnectableHost(bindHost: string) {
@@ -173,15 +123,9 @@ export function getWebBindHost() {
   return getStringEnv("WEB_BIND_HOST", DEFAULT_WEB_BIND_HOST);
 }
 
-export function getWebPublicIp(options: RepoPathOptions) {
-  const envValue = getOptionalStringEnv(WEB_PUBLIC_IP_ENV_NAME);
-
-  if (envValue) {
-    return requireIpAddress(envValue, WEB_PUBLIC_IP_ENV_NAME);
-  }
-
+export async function getWebPublicIp(options: RepoPathOptions) {
   const manifestPath = getWebTlsManifestPath(options);
-  const manifest = readWebTlsManifest(options);
+  const manifest = await readWebTlsManifest(options);
 
   if (!manifest) {
     throw new Error(
@@ -192,8 +136,12 @@ export function getWebPublicIp(options: RepoPathOptions) {
   return manifest.publicIp;
 }
 
-export function getWebOrigin(options: RepoPathOptions) {
-  return formatOrigin("https", getWebPublicIp(options), getPort("WEB_PORT"));
+export async function getWebOrigin(options: RepoPathOptions) {
+  return formatOrigin(
+    "https",
+    await getWebPublicIp(options),
+    getPort("WEB_PORT"),
+  );
 }
 
 export function getWebTlsCertPath({ repoRoot }: RepoPathOptions) {
@@ -211,8 +159,8 @@ export function getWebTlsKeyPath({ repoRoot }: RepoPathOptions) {
 }
 
 export function getWebTlsManifestPath({ repoRoot }: RepoPathOptions) {
-  return path.resolve(
-    path.dirname(getWebTlsCertPath({ repoRoot })),
+  return resolve(
+    dirname(getWebTlsCertPath({ repoRoot })),
     DEFAULT_WEB_TLS_MANIFEST_FILE_NAME,
   );
 }

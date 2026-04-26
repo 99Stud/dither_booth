@@ -1,7 +1,6 @@
 import { API_REPO_ROOT } from "#lib/constants";
 import {
   getWebOrigin,
-  getWebPublicIp,
   getWebTlsCertPath,
   getWebTlsKeyPath,
   getWebTlsManifestPath,
@@ -14,8 +13,7 @@ import { dirname } from "node:path";
 const certPath = getWebTlsCertPath({ repoRoot: API_REPO_ROOT });
 const keyPath = getWebTlsKeyPath({ repoRoot: API_REPO_ROOT });
 const manifestPath = getWebTlsManifestPath({ repoRoot: API_REPO_ROOT });
-const requestedPublicIp =
-  process.argv[2]?.trim() || process.env.WEB_PUBLIC_IP?.trim();
+const requestedPublicIp = process.argv[2]?.trim();
 const CERT_GENERATE_COMMAND =
   "bun run --filter @dither-booth/api cert:generate <LAN_IP>";
 const CERT_CAROOT_COMMAND = "bun run --filter @dither-booth/api cert:caroot";
@@ -35,9 +33,7 @@ if (isIP(requestedPublicIp) === 0) {
   );
 }
 
-process.env.WEB_PUBLIC_IP = requestedPublicIp;
-
-const publicIp = getWebPublicIp({ repoRoot: API_REPO_ROOT });
+const publicIp = requestedPublicIp;
 const certificateNames = [
   ...new Set([publicIp, "localhost", "127.0.0.1", "::1"]),
 ];
@@ -93,7 +89,7 @@ writeFileSync(
 console.log(`Certificate written to ${certPath}`);
 console.log(`Private key written to ${keyPath}`);
 console.log(`Manifest written to ${manifestPath}`);
-console.log(`Open ${getWebOrigin({ repoRoot: API_REPO_ROOT })}`);
+console.log(`Open ${await getWebOrigin({ repoRoot: API_REPO_ROOT })}`);
 console.log(
   `If another device needs to trust this certificate, use "${CERT_CAROOT_COMMAND}" to locate mkcert root CA.`,
 );

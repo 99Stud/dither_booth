@@ -21,7 +21,7 @@ const publicDirectory = new URL("../public/", import.meta.url);
 const PUBLIC_ROUTE_PREFIX = "/public/";
 const tlsCertPath = getWebTlsCertPath({ repoRoot: WEB_REPO_ROOT });
 const tlsKeyPath = getWebTlsKeyPath({ repoRoot: WEB_REPO_ROOT });
-const webOrigin = getWebOrigin({ repoRoot: WEB_REPO_ROOT });
+const webOrigin = await getWebOrigin({ repoRoot: WEB_REPO_ROOT });
 
 if (!existsSync(tlsCertPath) || !existsSync(tlsKeyPath)) {
   throw new Error(
