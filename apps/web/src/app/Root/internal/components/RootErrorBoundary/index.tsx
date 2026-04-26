@@ -1,6 +1,6 @@
-import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants.ts";
-import { Button, buttonVariants } from "#components/ui/button.tsx";
-import { reportKioskError } from "#lib/logging/logging.utils.ts";
+import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants";
+import { Button, buttonVariants } from "#components/ui/button";
+import { reportKioskError } from "#lib/logging/logging.utils";
 import { getKioskErrorDiagnostics } from "@dither-booth/logging";
 import { Component, type ErrorInfo, useEffect } from "react";
 

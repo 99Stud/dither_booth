@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "#components/ui/button.tsx";
-import { cn } from "#lib/utils.ts";
+import { Button } from "#components/ui/button";
+import { cn } from "#lib/utils";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";
 import * as React from "react";

@@ -1,7 +1,7 @@
-import { PrintConfiguration } from "#app/PrintConfiguration/index.tsx";
-import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
-import { Root } from "#app/Root/index.tsx";
-import { Sandbox } from "#app/Sandbox/index.tsx";
+import { PrintConfiguration } from "#app/PrintConfiguration/index";
+import { ReceiptViewer } from "#app/ReceiptViewer/index";
+import { Root } from "#app/Root/index";
+import { Sandbox } from "#app/Sandbox/index";
 
 export const ROUTES_CONFIG = [
   {

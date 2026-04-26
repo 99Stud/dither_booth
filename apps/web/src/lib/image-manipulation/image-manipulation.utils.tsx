@@ -1,4 +1,4 @@
-import { getBlobDimensions } from "#lib/utils.ts";
+import { getBlobDimensions } from "#lib/utils";
 import { logKioskEvent } from "@dither-booth/logging";
 
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";

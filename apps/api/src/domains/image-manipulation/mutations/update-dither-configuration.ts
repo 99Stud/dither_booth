@@ -1,7 +1,7 @@
-import { PRINT_CONFIG_SINGLETON_ID } from "#db/internal/db.constants.ts";
-import { printConfigTable } from "#db/internal/db.schema.ts";
-import { CONFIGURE_DITHER_SCHEMA } from "#domains/image-manipulation/internal/image-manipulation.constants.ts";
-import { publicProcedure } from "#internal/trpc.ts";
+import { PRINT_CONFIG_SINGLETON_ID } from "#db/internal/db.constants";
+import { printConfigTable } from "#db/internal/db.schema";
+import { CONFIGURE_DITHER_SCHEMA } from "#domains/image-manipulation/internal/image-manipulation.constants";
+import { publicProcedure } from "#internal/trpc";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 

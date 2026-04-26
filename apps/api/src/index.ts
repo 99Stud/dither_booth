@@ -1,14 +1,14 @@
-import type { TRPCContext } from "#lib/trpc/trpc.types.ts";
+import type { TRPCContext } from "#lib/trpc/trpc.types";
 import type { Page } from "puppeteer";
 
-import { apiRouter } from "#internal/router.ts";
-import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
-import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants.ts";
+import { apiRouter } from "#internal/router";
+import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
+import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import {
   API_SERVER_BIND_HOST,
   API_SERVER_LOG_SOURCE,
   API_SERVER_ORIGIN,
-} from "#lib/server/server.constants.ts";
+} from "#lib/server/server.constants";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { getPort } from "@dither-booth/ports";
 import USB from "@node-escpos/usb-adapter";

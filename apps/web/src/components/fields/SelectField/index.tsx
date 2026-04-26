@@ -12,14 +12,14 @@ import {
   FieldContent,
   FieldError,
   FieldLabel,
-} from "#components/ui/field.tsx";
+} from "#components/ui/field";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "#components/ui/select.tsx";
+} from "#components/ui/select";
 import clsx from "clsx";
 
 import type { SelectFieldOption } from "./internal/SelectField.types";
@@ -73,7 +73,7 @@ type SelectProps<
   options: Array<SelectFieldOption<SelectFieldValue<TFormData, TName>>>;
 } & Omit<
   ComponentProps<typeof Select>,
-  "id" | "name" | "value" | "onValueChange"
+  "id" | "name" | "value" | "onValueChange" | "form"
 >;
 
 export const SelectField = <

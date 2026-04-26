@@ -1,12 +1,12 @@
-import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types.ts";
+import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types";
 
-import { SelectField } from "#components/fields/SelectField/index.tsx";
-import { SliderField } from "#components/fields/SliderField/index.tsx";
-import { Webcam } from "#components/misc/Webcam/index.tsx";
-import { Button } from "#components/ui/button.tsx";
-import { Spinner } from "#components/ui/spinner.tsx";
-import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils.ts";
-import { useTRPC } from "#lib/trpc/trpc.utils.ts";
+import { SelectField } from "#components/fields/SelectField/index";
+import { SliderField } from "#components/fields/SliderField/index";
+import { Webcam } from "#components/misc/Webcam/index";
+import { Button } from "#components/ui/button";
+import { Spinner } from "#components/ui/spinner";
+import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils";
+import { useTRPC } from "#lib/trpc/trpc.utils";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";

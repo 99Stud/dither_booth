@@ -1,6 +1,6 @@
 import type { FC } from "react";
 
-import { cn } from "#lib/utils.ts";
+import { cn } from "#lib/utils";
 
 interface DitherBoothLogoProps {
   className?: string;

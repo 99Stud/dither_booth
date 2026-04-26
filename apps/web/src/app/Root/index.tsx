@@ -1,11 +1,11 @@
-import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types.ts";
+import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types";
 
-import { Webcam } from "#components/misc/Webcam/index.tsx";
-import { Button } from "#components/ui/button.tsx";
-import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils.ts";
-import { reportKioskError } from "#lib/logging/logging.utils.ts";
-import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { downloadBlob } from "#lib/utils.ts";
+import { Webcam } from "#components/misc/Webcam/index";
+import { Button } from "#components/ui/button";
+import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils";
+import { reportKioskError } from "#lib/logging/logging.utils";
+import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils";
+import { downloadBlob } from "#lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, useRef } from "react";
 

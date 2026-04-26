@@ -1,9 +1,9 @@
-import { db } from "#db/index.ts";
+import { db } from "#db/index";
 import {
   ditherImage,
   renderDitheredToPng,
-} from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
-import { publicProcedure } from "#internal/trpc.ts";
+} from "#domains/image-manipulation/internal/image-manipulation.utils";
+import { publicProcedure } from "#internal/trpc";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 

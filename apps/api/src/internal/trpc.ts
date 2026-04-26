@@ -1,4 +1,4 @@
-import type { TRPCContext } from "#lib/trpc/trpc.types.ts";
+import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { initTRPC } from "@trpc/server";
 

@@ -1,10 +1,10 @@
-import { db } from "#db/index.ts";
+import { db } from "#db/index";
 import {
   ditherImage,
   renderDitheredToPng,
-} from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
-import { publicProcedure } from "#internal/trpc.ts";
-import { API_REPO_ROOT } from "#lib/constants.ts";
+} from "#domains/image-manipulation/internal/image-manipulation.utils";
+import { publicProcedure } from "#internal/trpc";
+import { API_REPO_ROOT } from "#lib/constants";
 import { getWebOrigin } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";

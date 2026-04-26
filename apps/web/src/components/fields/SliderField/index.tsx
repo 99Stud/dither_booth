@@ -5,8 +5,8 @@ import {
   FieldContent,
   FieldError,
   FieldLabel,
-} from "#components/ui/field.tsx";
-import { Slider } from "#components/ui/slider.tsx";
+} from "#components/ui/field";
+import { Slider } from "#components/ui/slider";
 import {
   type DeepKeys,
   type DeepValue,
@@ -64,7 +64,7 @@ type SliderFieldProps<
   formatValue: (value: SliderFieldValue<TFormData, TName>) => string;
 } & Omit<
   ComponentProps<typeof Slider>,
-  "id" | "name" | "value" | "onValueChange"
+  "id" | "name" | "value" | "onValueChange" | "form"
 >;
 
 export const SliderField = <

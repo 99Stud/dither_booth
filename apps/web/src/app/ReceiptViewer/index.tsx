@@ -1,6 +1,6 @@
 import type { FC } from "react";
 
-import { Receipt } from "#components/misc/Receipt/index.tsx";
+import { Receipt } from "#components/misc/Receipt/index";
 
 export const ReceiptViewer: FC = () => {
   return (

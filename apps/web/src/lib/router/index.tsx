@@ -1,7 +1,7 @@
 import {
   RootErrorScreen,
   RootNotFoundScreen,
-} from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
+} from "#app/Root/internal/components/RootErrorBoundary/index";
 import {
   createRootRoute,
   createRoute,

@@ -1,6 +1,6 @@
-import { WEB_SERVER_LOG_SOURCE } from "#lib/constants.ts";
-import { WEB_REPO_ROOT } from "#lib/server-constants.ts";
-import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants.ts";
+import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
+import { WEB_REPO_ROOT } from "#lib/server-constants";
+import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
 import { logKioskEvent } from "@dither-booth/logging";
 import {
   getApiInternalOrigin,

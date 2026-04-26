@@ -3,7 +3,7 @@ export const PRINT_CONFIGURATION_LOG_SOURCE = "web.print-configuration";
 import type {
   SelectFieldOption,
   SelectFieldValue,
-} from "#components/fields/SelectField/internal/SelectField.types.ts";
+} from "#components/fields/SelectField/internal/SelectField.types";
 
 import z from "zod";
 

@@ -1,10 +1,10 @@
-import type { PrintConfigRow } from "#domains/image-manipulation/internal/image-manipulation.types.ts";
+import type { PrintConfigRow } from "#domains/image-manipulation/internal/image-manipulation.types";
 import type USB from "@node-escpos/usb-adapter";
 
 import {
   buildGsV0RasterCommand,
   ditherImage,
-} from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
+} from "#domains/image-manipulation/internal/image-manipulation.utils";
 import { Printer } from "@node-escpos/core";
 
 /**

@@ -5,11 +5,11 @@
  * It is included in `src/index.html`.
  */
 
-import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
-import { Toaster } from "#components/ui/sonner.tsx";
-import { router } from "#lib/router/index.tsx";
-import { queryClient, trpcClient } from "#lib/trpc/trpc.client.ts";
-import { TRPCProvider } from "#lib/trpc/trpc.utils.ts";
+import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
+import { Toaster } from "#components/ui/sonner";
+import { router } from "#lib/router/index";
+import { queryClient, trpcClient } from "#lib/trpc/trpc.client";
+import { TRPCProvider } from "#lib/trpc/trpc.utils";
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";

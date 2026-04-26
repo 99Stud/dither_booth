@@ -1,5 +1,5 @@
-import { useUserMedia } from "#lib/hooks/user-media/index.ts";
-import { cn } from "#lib/utils.ts";
+import { useUserMedia } from "#lib/hooks/user-media/index";
+import { cn } from "#lib/utils";
 import { format } from "date-fns";
 import { type FC, type Ref, useImperativeHandle, useRef } from "react";
 

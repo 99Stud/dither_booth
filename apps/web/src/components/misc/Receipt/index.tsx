@@ -1,10 +1,10 @@
 import type { FC } from "react";
 
-import { NinetyNineStudLogo } from "#components/svg/99StudLogo/index.tsx";
-import { NinetyNineStudQR } from "#components/svg/99studQR/index.tsx";
-import { DitherBoothLogo } from "#components/svg/DitherBoothLogo/index.tsx";
-import { ElTonyMateLogo } from "#components/svg/ElTonyMateLogo/index.tsx";
-import { cn, mmToPx } from "#lib/utils.ts";
+import { NinetyNineStudLogo } from "#components/svg/99StudLogo/index";
+import { NinetyNineStudQR } from "#components/svg/99studQR/index";
+import { DitherBoothLogo } from "#components/svg/DitherBoothLogo/index";
+import { ElTonyMateLogo } from "#components/svg/ElTonyMateLogo/index";
+import { cn, mmToPx } from "#lib/utils";
 import clsx from "clsx";
 import { format } from "date-fns";
 

@@ -1,4 +1,4 @@
-import { API_REPO_ROOT } from "#lib/constants.ts";
+import { API_REPO_ROOT } from "#lib/constants";
 import {
   getWebOrigin,
   getWebPublicIp,

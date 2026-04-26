@@ -1,4 +1,4 @@
-import { reportKioskError } from "#lib/logging/logging.utils.ts";
+import { reportKioskError } from "#lib/logging/logging.utils";
 
 import { PRINT_CONFIGURATION_LOG_SOURCE } from "./PrintConfiguration.constants";
 
