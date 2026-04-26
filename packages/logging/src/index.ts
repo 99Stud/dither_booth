@@ -4,7 +4,7 @@ import type {
   KioskLogContext,
   KioskLogDetails,
   KioskLogLevel,
-} from "./types";
+} from "./internal/logging.types";
 
 const getConsoleMethod = (level: KioskLogLevel) => {
   if (level === "error") {
@@ -99,4 +99,4 @@ export type {
   KioskLogDetails,
   KioskLogLevel,
   ReportKioskErrorOptions,
-} from "./types";
+} from "./internal/logging.types";

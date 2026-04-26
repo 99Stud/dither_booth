@@ -1,13 +1,17 @@
-import type { BrowserKioskLoggingState, KioskLogDetails } from "./types";
+import {
+  getKioskErrorDiagnostics,
+  logKioskEvent,
+  type BrowserKioskLoggingState,
+  type KioskLogDetails,
+} from "#index";
 
 import {
   DEVICE_ID_STORAGE_KEY,
   GLOBAL_BROWSER_LOG_SOURCE,
   RUN_ID_STORAGE_KEY,
-} from "./constants";
-import { getKioskErrorDiagnostics, logKioskEvent } from "./index";
+} from "./browser.constants";
 
-const getBrowserLoggingState = () => {
+export const getBrowserLoggingState = () => {
   if (typeof window === "undefined") {
     return null;
   }
@@ -24,7 +28,7 @@ const getBrowserLoggingState = () => {
   return browserWindow.__ditherBoothKioskLoggingState;
 };
 
-const getStoredValue = (key: string) => {
+export const getStoredValue = (key: string) => {
   if (typeof window === "undefined") {
     return null;
   }
@@ -36,7 +40,7 @@ const getStoredValue = (key: string) => {
   }
 };
 
-const setStoredValue = (key: string, value: string) => {
+export const setStoredValue = (key: string, value: string) => {
   if (typeof window === "undefined") {
     return;
   }
@@ -48,7 +52,7 @@ const setStoredValue = (key: string, value: string) => {
   }
 };
 
-const createDeviceId = () => {
+export const createDeviceId = () => {
   if (
     typeof crypto !== "undefined" &&
     typeof crypto.randomUUID === "function"
@@ -59,7 +63,7 @@ const createDeviceId = () => {
   return `device-${Math.random().toString(36).slice(2, 10)}`;
 };
 
-const getOrCreateDeviceId = () => {
+export const getOrCreateDeviceId = () => {
   const storedDeviceId = getStoredValue(DEVICE_ID_STORAGE_KEY);
   if (storedDeviceId) {
     return storedDeviceId;
@@ -70,7 +74,7 @@ const getOrCreateDeviceId = () => {
   return deviceId;
 };
 
-const getNextRunId = () => {
+export const getNextRunId = () => {
   const storedRunId = getStoredValue(RUN_ID_STORAGE_KEY);
   const previousRunId = storedRunId ? Number.parseInt(storedRunId, 10) : 0;
   const runId =
@@ -82,7 +86,7 @@ const getNextRunId = () => {
   return runId;
 };
 
-const getValueType = (value: unknown) => {
+export const getValueType = (value: unknown) => {
   if (value === null) {
     return "null";
   }
@@ -98,7 +102,9 @@ const getValueType = (value: unknown) => {
   return typeof value;
 };
 
-const getWindowErrorDetails = (errorEvent: ErrorEvent): KioskLogDetails => {
+export const getWindowErrorDetails = (
+  errorEvent: ErrorEvent,
+): KioskLogDetails => {
   const details: KioskLogDetails = {};
 
   if (errorEvent.filename) {
@@ -116,7 +122,7 @@ const getWindowErrorDetails = (errorEvent: ErrorEvent): KioskLogDetails => {
   return details;
 };
 
-const registerGlobalBrowserFailureHandlers = () => {
+export const registerGlobalBrowserFailureHandlers = () => {
   if (typeof window === "undefined") {
     return;
   }
@@ -147,26 +153,4 @@ const registerGlobalBrowserFailureHandlers = () => {
       },
     );
   });
-};
-
-export const initializeBrowserLogging = () => {
-  const browserLoggingState = getBrowserLoggingState();
-
-  if (!browserLoggingState) {
-    return null;
-  }
-
-  if (!browserLoggingState.context) {
-    browserLoggingState.context = {
-      deviceId: getOrCreateDeviceId(),
-      runId: getNextRunId(),
-    };
-  }
-
-  if (!browserLoggingState.listenersRegistered) {
-    registerGlobalBrowserFailureHandlers();
-    browserLoggingState.listenersRegistered = true;
-  }
-
-  return browserLoggingState.context;
 };

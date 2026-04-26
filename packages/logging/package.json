@@ -2,9 +2,12 @@
   "name": "@dither-booth/logging",
   "private": true,
   "type": "module",
+  "imports": {
+    "#*": "./src/*.ts"
+  },
   "exports": {
     ".": "./src/index.ts",
-    "./browser": "./src/browser.ts"
+    "./browser": "./src/browser/index.ts"
   },
   "scripts": {
     "lint": "oxlint",
@@ -12,9 +15,5 @@
     "format": "oxfmt --check",
     "format:fix": "oxfmt .",
     "check-types": "tsc --noEmit -p tsconfig.json"
-  },
-  "devDependencies": {
-    "@types/node": "latest",
-    "typescript": "6.0.2"
   }
 }
