@@ -24,7 +24,12 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+
+    // TO REMOVE WHEN SHADCN SUPPORTS SUBPATHS IMPORT
+    "paths": {
+      "#*": ["./src/*"]
+    }
   },
 
   "exclude": ["dist", "node_modules"]
