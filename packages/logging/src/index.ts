@@ -1,9 +1,9 @@
 import type {
-  BrowserKioskLoggingState,
   KioskErrorDiagnostics,
   KioskLogContext,
   KioskLogDetails,
   KioskLogLevel,
+  ReportKioskErrorOptions,
 } from "./internal/logging.types";
 
 const getConsoleMethod = (level: KioskLogLevel) => {
@@ -35,13 +35,11 @@ const getErrorCauseMessage = (cause: unknown) => {
 };
 
 const getBrowserLoggingContext = () => {
-  return (
-    (
-      globalThis as typeof globalThis & {
-        __ditherBoothKioskLoggingState?: BrowserKioskLoggingState;
-      }
-    ).__ditherBoothKioskLoggingState?.context ?? null
-  );
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.__ditherBoothKioskLoggingState?.context ?? null;
 };
 
 export const getKioskErrorDiagnostics = (
@@ -91,12 +89,4 @@ export const logKioskEvent = (
   });
 };
 
-export type {
-  BrowserKioskLogContext,
-  BrowserKioskLoggingState,
-  KioskErrorDiagnostics,
-  KioskLogContext,
-  KioskLogDetails,
-  KioskLogLevel,
-  ReportKioskErrorOptions,
-} from "./internal/logging.types";
+export type { ReportKioskErrorOptions };

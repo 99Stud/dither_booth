@@ -1,9 +1,6 @@
-import {
-  getKioskErrorDiagnostics,
-  logKioskEvent,
-  type BrowserKioskLoggingState,
-  type KioskLogDetails,
-} from "#index";
+import type { KioskLogDetails } from "#internal/logging.types";
+
+import { getKioskErrorDiagnostics, logKioskEvent } from "#index";
 
 import {
   DEVICE_ID_STORAGE_KEY,
@@ -16,16 +13,12 @@ export const getBrowserLoggingState = () => {
     return null;
   }
 
-  const browserWindow = window as Window & {
-    __ditherBoothKioskLoggingState?: BrowserKioskLoggingState;
-  };
-
-  browserWindow.__ditherBoothKioskLoggingState ??= {
+  window.__ditherBoothKioskLoggingState ??= {
     context: null,
     listenersRegistered: false,
   };
 
-  return browserWindow.__ditherBoothKioskLoggingState;
+  return window.__ditherBoothKioskLoggingState;
 };
 
 export const getStoredValue = (key: string) => {
