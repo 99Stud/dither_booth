@@ -29,7 +29,7 @@
     "@node-escpos/core": "0.6.0",
     "@node-escpos/usb-adapter": "0.3.1",
     "@opendisplay/epaper-dithering": "2.2.1",
-    "@trpc/server": "11.16.0",
+    "@trpc/server": "11.17.0",
     "drizzle-orm": "0.45.2",
     "puppeteer": "24.42.0",
     "sharp": "0.34.5",

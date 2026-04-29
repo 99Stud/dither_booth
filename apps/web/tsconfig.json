@@ -26,9 +26,12 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
 
-    // TO REMOVE WHEN SHADCN SUPPORTS SUBPATHS IMPORT
+    // HACK TO REMOVE WHEN SHADCN SUPPORTS SUBPATHS IMPORT
     "paths": {
-      "#*": ["./src/*"]
+      "#components/*": ["./src/components/*"],
+      "#lib/utils": ["./src/lib/utils.tsx"],
+      "#ui/*": ["./src/components/ui/*"],
+      "#hooks/*": ["./src/hooks/*"]
     }
   },
 
