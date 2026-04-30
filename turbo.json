@@ -11,6 +11,8 @@
       "cache": false,
       "persistent": true,
       "passThroughEnv": [
+        "ADMIN_BIND_HOST",
+        "ADMIN_PORT",
         "API_BIND_HOST",
         "API_PORT",
         "DB_FILE_NAME",
@@ -31,6 +33,8 @@
       "cache": false,
       "persistent": true,
       "passThroughEnv": [
+        "ADMIN_BIND_HOST",
+        "ADMIN_PORT",
         "API_BIND_HOST",
         "API_PORT",
         "DB_FILE_NAME",

@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
+  getAdminBindHost,
+  getAdminOrigin,
   getApiInternalOrigin,
   getPort,
   getWebBindHost,
@@ -13,6 +15,8 @@ import {
 } from "../index";
 
 const ENV_NAMES = [
+  "ADMIN_BIND_HOST",
+  "ADMIN_PORT",
   "API_BIND_HOST",
   "API_PORT",
   "WEB_BIND_HOST",
@@ -101,6 +105,14 @@ describe("@dither-booth/ports", () => {
     expect(getWebBindHost()).toBe("0.0.0.0");
   });
 
+  it("uses fallback for blank admin bind host values", () => {
+    process.env.ADMIN_BIND_HOST = "";
+    expect(getAdminBindHost()).toBe("0.0.0.0");
+
+    process.env.ADMIN_BIND_HOST = "   ";
+    expect(getAdminBindHost()).toBe("0.0.0.0");
+  });
+
   it("reads web public IP from TLS manifest", async () => {
     const { manifestPath, repoPathOptions } = createTempTlsPaths();
 
@@ -110,6 +122,17 @@ describe("@dither-booth/ports", () => {
     expect(await getWebPublicIp(repoPathOptions)).toBe("192.168.1.42");
     expect(await getWebOrigin(repoPathOptions)).toBe(
       "https://192.168.1.42:3443",
+    );
+  });
+
+  it("reads admin origin from the shared TLS manifest", async () => {
+    const { manifestPath, repoPathOptions } = createTempTlsPaths();
+
+    process.env.ADMIN_PORT = "3444";
+    await writeManifest(manifestPath, "192.168.1.43");
+
+    expect(await getAdminOrigin(repoPathOptions)).toBe(
+      "https://192.168.1.43:3444",
     );
   });
 

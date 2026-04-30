@@ -35,5 +35,11 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/server.ts",
+    "src/server-utils.ts",
+    "src/server-utils.test.ts",
+    "src/lib/server-constants.tsx"
+  ]
 }

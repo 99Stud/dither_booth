@@ -1,24 +1,55 @@
-# React + TypeScript + Vite
+# Dither Booth Admin
 
-This template provides a minimal setup to get React working in Vite with HMR and oxlint.
+Dither Booth Admin is the operator-facing browser app used to configure and manage the kiosk experience. It runs as a Vite React app in development and builds to static assets for production serving.
 
-Currently, two official plugins are available:
+Production uses a small Bun HTTPS server so the admin app keeps the same local TLS certificate, `/api/trpc` proxy, and SPA fallback behavior as the web app. Vite handles the browser bundle, React Fast Refresh, React Compiler, Tailwind CSS, and production assets.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Development
 
-## React Compiler
+Run package commands from `apps/admin` unless a step says to run from repo root.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Install dependencies
 
-## Linting
+Run this from repo root:
 
-This app uses oxlint for JavaScript, TypeScript, and React checks. The configuration lives in `oxlint.config.ts`.
+```bash
+bun install
+```
 
-Run `bun run lint` to check the app and `bun run lint:fix` to apply safe fixes.
+### 2. Start admin app
 
-## Formatting
+Development:
 
-Formatting uses oxfmt. Shared options live in the repository root `oxfmt.config.ts`.
+```bash
+bun run dev
+```
 
-Run `bun run format` to verify formatting and `bun run format:fix` to apply it.
+Production:
+
+```bash
+bun run build
+bun run start
+```
+
+The production server serves the built client over HTTPS and proxies `/api/trpc` to the API over loopback.
+
+### 3. Build client bundle
+
+```bash
+bun run build
+```
+
+### 4. Check code quality
+
+```bash
+bun run lint
+bun run format
+bun run check-types
+```
+
+Use safe fix commands when formatting or lint rules can be applied automatically:
+
+```bash
+bun run lint:fix
+bun run format:fix
+```

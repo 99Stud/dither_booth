@@ -5,6 +5,8 @@ import type { RepoPathOptions } from "./internal/ports.types";
 
 import {
   CERT_GENERATE_COMMAND,
+  DEFAULT_ADMIN_BIND_HOST,
+  DEFAULT_ADMIN_PORT,
   DEFAULT_API_BIND_HOST,
   DEFAULT_API_PORT,
   DEFAULT_WEB_BIND_HOST,
@@ -88,11 +90,18 @@ function getConnectableHost(bindHost: string) {
   return bindHost;
 }
 
-export function getPort(name: "API_PORT" | "WEB_PORT") {
+export function getPort(name: "API_PORT" | "WEB_PORT" | "ADMIN_PORT") {
   const value = process.env[name];
 
   if (!value) {
-    return name === "API_PORT" ? DEFAULT_API_PORT : DEFAULT_WEB_PORT;
+    switch (name) {
+      case "ADMIN_PORT":
+        return DEFAULT_ADMIN_PORT;
+      case "API_PORT":
+        return DEFAULT_API_PORT;
+      case "WEB_PORT":
+        return DEFAULT_WEB_PORT;
+    }
   }
 
   const result = PORT_SCHEMA.safeParse(value);
@@ -123,6 +132,10 @@ export function getWebBindHost() {
   return getStringEnv("WEB_BIND_HOST", DEFAULT_WEB_BIND_HOST);
 }
 
+export function getAdminBindHost() {
+  return getStringEnv("ADMIN_BIND_HOST", DEFAULT_ADMIN_BIND_HOST);
+}
+
 export async function getWebPublicIp(options: RepoPathOptions) {
   const manifestPath = getWebTlsManifestPath(options);
   const manifest = await readWebTlsManifest(options);
@@ -141,6 +154,14 @@ export async function getWebOrigin(options: RepoPathOptions) {
     "https",
     await getWebPublicIp(options),
     getPort("WEB_PORT"),
+  );
+}
+
+export async function getAdminOrigin(options: RepoPathOptions) {
+  return formatOrigin(
+    "https",
+    await getWebPublicIp(options),
+    getPort("ADMIN_PORT"),
   );
 }
 

@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "bunx --bun vite",
-    "preview": "bunx --bun vite preview",
     "build": "tsc -b && bunx --bun vite build",
+    "start": "bun src/server.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",
@@ -17,14 +17,23 @@
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@dither-booth/logging": "workspace:*",
+    "@dither-booth/ports": "workspace:*",
     "react": "19.2.5",
-    "react-dom": "19.2.5"
+    "react-dom": "19.2.5",
+    "tailwindcss": "4.2.4"
   },
   "devDependencies": {
+    "@babel/core": "7.29.0",
+    "@rolldown/plugin-babel": "0.2.3",
+    "@tailwindcss/vite": "4.2.4",
+    "@types/babel__core": "7.20.5",
+    "@types/bun": "1.3.13",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@vitejs/devtools": "0.1.16",
     "@vitejs/plugin-react": "6.0.1",
-    "typescript": "~6.0.2",
+    "babel-plugin-react-compiler": "1.0.0",
     "vite": "8.0.10"
   }
 }

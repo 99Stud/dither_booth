@@ -6,6 +6,7 @@
     "target": "ESNext",
     "module": "esnext",
     "types": ["bun"],
+    "jsx": "react-jsx",
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -21,18 +22,16 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
 
-    // HACK TO REMOVE WHEN SHADCN SUPPORTS SUBPATHS IMPORT
-    "paths": {
-      "#components/*": ["./src/components/*"],
-      "#lib/utils": ["./src/lib/utils.tsx"],
-      "#ui/*": ["./src/components/ui/*"],
-      "#hooks/*": ["./src/hooks/*"]
-    },
-
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["vite.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "src/server.ts",
+    "src/server-utils.ts",
+    "src/server-utils.test.ts",
+    "src/lib/server-constants.tsx"
+  ]
 }
