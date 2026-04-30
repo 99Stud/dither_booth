@@ -2,7 +2,7 @@
  * This file is the entry point for the React app, it sets up the root
  * element and renders the App component to the DOM.
  *
- * It is included in `src/index.html`.
+ * It is included in `index.html`.
  */
 
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
@@ -17,7 +17,9 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-const isDevelopment = process.env.NODE_ENV !== "production";
+import "./styles/globals.css";
+
+const isDevelopment = import.meta.env.DEV;
 
 initializeBrowserLogging();
 
@@ -33,7 +35,7 @@ if (!elem) {
   throw new Error('Could not find the app root element with id "root".');
 }
 
-const app = (
+createRoot(elem).render(
   <StrictMode>
     <RootErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -44,14 +46,5 @@ const app = (
         </TRPCProvider>
       </QueryClientProvider>
     </RootErrorBoundary>
-  </StrictMode>
+  </StrictMode>,
 );
-
-if (import.meta.hot) {
-  // With hot module reloading, `import.meta.hot.data` is persisted.
-  const root = (import.meta.hot.data.root ??= createRoot(elem));
-  root.render(app);
-} else {
-  // The hot module reloading API is not available in production.
-  createRoot(elem).render(app);
-}

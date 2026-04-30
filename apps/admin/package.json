@@ -11,9 +11,9 @@
     "preview": "bunx --bun vite preview",
     "build": "tsc -b && bunx --bun vite build",
     "lint": "oxlint",
-    "lint:fix": "oxlint --fix .",
+    "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",
-    "format:fix": "oxfmt .",
+    "format:fix": "oxfmt",
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
@@ -21,7 +21,6 @@
     "react-dom": "19.2.5"
   },
   "devDependencies": {
-    "@types/node": "24.12.2",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.1",

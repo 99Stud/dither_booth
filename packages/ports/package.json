@@ -10,10 +10,10 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",
-    "format:fix": "oxfmt .",
+    "format:fix": "oxfmt",
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "zod": "4.3.6"
+    "zod": "4.4.1"
   }
 }

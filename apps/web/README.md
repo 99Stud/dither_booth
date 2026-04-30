@@ -1,4 +1,10 @@
-# bun-react-template
+# Dither Booth Web
+
+The web app is a Vite React app. Vite handles the browser bundle, React Fast
+Refresh, Tailwind CSS, and production assets. Production still uses a small Bun
+server so the kiosk keeps the same HTTPS, `/api/trpc` proxy, and SPA fallback
+behavior. Static files in `public` are served from root URLs by Vite in dev and
+copied into `dist` for production.
 
 To install dependencies:
 
@@ -6,16 +12,21 @@ To install dependencies:
 bun install
 ```
 
-To start a development server:
+To start the Vite development server:
 
 ```bash
-bun dev
+bun run dev
 ```
 
-To run for production:
+To build the client bundle:
 
 ```bash
-bun start
+bun run build
 ```
 
-This project was created using `bun init` in bun v1.3.11. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+To run the production server:
+
+```bash
+bun run build
+bun run start
+```

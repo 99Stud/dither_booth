@@ -69,6 +69,7 @@ bun run dev
 Production:
 
 ```bash
+bun run build
 bun run start
 ```
 
@@ -81,6 +82,10 @@ Then open `https://<SERVER_LAN_IP>:3000` unless you changed `WEB_PORT`.
 - iPad should load same URL without hostname mapping.
 
 Receipt generation uses same HTTPS origin, so if browser can open app and certificate is trusted, receipt rendering path should match that setup.
+
+The web client is built with Vite. Production serving still uses the local Bun
+HTTPS server so browser traffic stays same-origin and `/api/trpc` continues to
+proxy to the API over loopback.
 
 ## Regenerate or clean up
 

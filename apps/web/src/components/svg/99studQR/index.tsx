@@ -225,7 +225,7 @@ export const NinetyNineStudQR: FC<NinetyNineStudQRProps> = ({ className }) => {
       <rect x="30" y="33" height="1" width="1" fill="#000" />
       <rect x="32" y="33" height="1" width="1" fill="#000" />
       <image
-        xlinkHref="/public/ressources/99stud-logo.svg"
+        xlinkHref="/ressources/99stud-logo.svg"
         x="14"
         y="14"
         width="7"

@@ -2,13 +2,21 @@
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
   "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["NODE_ENV"]
+    },
     "start": {
       "cache": false,
       "persistent": true,
       "passThroughEnv": [
         "API_BIND_HOST",
+        "API_PORT",
+        "DB_FILE_NAME",
         "NODE_ENV",
         "WEB_BIND_HOST",
+        "WEB_PORT",
         "WEB_TLS_CERT_PATH",
         "WEB_TLS_KEY_PATH"
       ]
@@ -24,8 +32,11 @@
       "persistent": true,
       "passThroughEnv": [
         "API_BIND_HOST",
+        "API_PORT",
+        "DB_FILE_NAME",
         "NODE_ENV",
         "WEB_BIND_HOST",
+        "WEB_PORT",
         "WEB_TLS_CERT_PATH",
         "WEB_TLS_KEY_PATH"
       ]
