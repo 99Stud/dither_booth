@@ -1,7 +1,7 @@
 import { getTrpcProxyUpstreamPath } from "#lib/trpc/trpc-proxy.utils";
 import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
 import {
-  getAdminBindHost,
+  ADMIN_BIND_HOST,
   getApiInternalOrigin,
   getPort,
   getWebTlsCertPath,
@@ -46,7 +46,7 @@ export default defineConfig(({ command }) => {
     ],
     server: isServeCommand
       ? {
-          host: getAdminBindHost(),
+          host: ADMIN_BIND_HOST,
           https: getHttpsOptions(),
           port: getPort("ADMIN_PORT"),
           strictPort: true,

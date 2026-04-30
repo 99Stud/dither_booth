@@ -4,7 +4,7 @@ import { getTrpcProxyUpstreamPath } from "#lib/trpc/trpc-proxy.utils";
 import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
 import { logKioskEvent } from "@dither-booth/logging";
 import {
-  getAdminBindHost,
+  ADMIN_BIND_HOST,
   getAdminOrigin,
   getApiInternalOrigin,
   getPort,
@@ -79,7 +79,7 @@ async function serveViteAssetOrSpaShell(req: Request) {
 }
 
 serve({
-  hostname: getAdminBindHost(),
+  hostname: ADMIN_BIND_HOST,
   port: getPort("ADMIN_PORT"),
   tls: {
     cert: Bun.file(tlsCertPath),

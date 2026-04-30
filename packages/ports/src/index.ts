@@ -4,20 +4,21 @@ import { z } from "zod";
 import type { RepoPathOptions } from "./internal/ports.types";
 
 import {
+  ADMIN_BIND_HOST,
+  API_BIND_HOST,
   CERT_GENERATE_COMMAND,
-  DEFAULT_ADMIN_BIND_HOST,
   DEFAULT_ADMIN_PORT,
-  DEFAULT_API_BIND_HOST,
   DEFAULT_API_PORT,
-  DEFAULT_WEB_BIND_HOST,
   DEFAULT_WEB_PORT,
-  DEFAULT_WEB_TLS_CERT_PATH,
-  DEFAULT_WEB_TLS_KEY_PATH,
   DEFAULT_WEB_TLS_MANIFEST_FILE_NAME,
   PORT_SCHEMA,
+  WEB_BIND_HOST,
+  WEB_TLS_CERT_PATH,
+  WEB_TLS_KEY_PATH,
   WEB_TLS_MANIFEST_SCHEMA,
 } from "./internal/ports.constants";
-import { getStringEnv } from "./internal/ports.utils";
+
+export { ADMIN_BIND_HOST, API_BIND_HOST, WEB_BIND_HOST };
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
   return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);
@@ -78,18 +79,6 @@ async function readWebTlsManifest(options: RepoPathOptions) {
   };
 }
 
-function getConnectableHost(bindHost: string) {
-  if (bindHost === "0.0.0.0") {
-    return "127.0.0.1";
-  }
-
-  if (bindHost === "::") {
-    return "::1";
-  }
-
-  return bindHost;
-}
-
 export function getPort(name: "API_PORT" | "WEB_PORT" | "ADMIN_PORT") {
   const value = process.env[name];
 
@@ -116,24 +105,8 @@ export function getPort(name: "API_PORT" | "WEB_PORT" | "ADMIN_PORT") {
   return result.data;
 }
 
-export function getApiBindHost() {
-  return getStringEnv("API_BIND_HOST", DEFAULT_API_BIND_HOST);
-}
-
 export function getApiInternalOrigin() {
-  return formatOrigin(
-    "http",
-    getConnectableHost(getApiBindHost()),
-    getPort("API_PORT"),
-  );
-}
-
-export function getWebBindHost() {
-  return getStringEnv("WEB_BIND_HOST", DEFAULT_WEB_BIND_HOST);
-}
-
-export function getAdminBindHost() {
-  return getStringEnv("ADMIN_BIND_HOST", DEFAULT_ADMIN_BIND_HOST);
+  return formatOrigin("http", API_BIND_HOST, getPort("API_PORT"));
 }
 
 export async function getWebPublicIp(options: RepoPathOptions) {
@@ -166,17 +139,11 @@ export async function getAdminOrigin(options: RepoPathOptions) {
 }
 
 export function getWebTlsCertPath({ repoRoot }: RepoPathOptions) {
-  return resolveRepoPath(
-    getStringEnv("WEB_TLS_CERT_PATH", DEFAULT_WEB_TLS_CERT_PATH),
-    repoRoot,
-  );
+  return resolveRepoPath(WEB_TLS_CERT_PATH, repoRoot);
 }
 
 export function getWebTlsKeyPath({ repoRoot }: RepoPathOptions) {
-  return resolveRepoPath(
-    getStringEnv("WEB_TLS_KEY_PATH", DEFAULT_WEB_TLS_KEY_PATH),
-    repoRoot,
-  );
+  return resolveRepoPath(WEB_TLS_KEY_PATH, repoRoot);
 }
 
 export function getWebTlsManifestPath({ repoRoot }: RepoPathOptions) {

@@ -4,26 +4,17 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
-  getAdminBindHost,
   getAdminOrigin,
   getApiInternalOrigin,
   getPort,
-  getWebBindHost,
   getWebOrigin,
   getWebPublicIp,
+  getWebTlsCertPath,
+  getWebTlsKeyPath,
   getWebTlsManifestPath,
 } from "../index";
 
-const ENV_NAMES = [
-  "ADMIN_BIND_HOST",
-  "ADMIN_PORT",
-  "API_BIND_HOST",
-  "API_PORT",
-  "WEB_BIND_HOST",
-  "WEB_PORT",
-  "WEB_TLS_CERT_PATH",
-  "WEB_TLS_KEY_PATH",
-] as const;
+const ENV_NAMES = ["ADMIN_PORT", "API_PORT", "WEB_PORT"] as const;
 
 const originalEnv = Object.fromEntries(
   ENV_NAMES.map((name) => [name, process.env[name]]),
@@ -47,13 +38,15 @@ function restoreEnvironment() {
 function createTempTlsPaths() {
   const directory = mkdtempSync(path.join(tmpdir(), "dither-booth-ports-"));
   const repoPathOptions = { repoRoot: directory };
+  const certPath = getWebTlsCertPath(repoPathOptions);
+  const keyPath = getWebTlsKeyPath(repoPathOptions);
 
   tempDirectories.push(directory);
-  process.env.WEB_TLS_CERT_PATH = path.join(directory, "booth-cert.pem");
-  process.env.WEB_TLS_KEY_PATH = path.join(directory, "booth-key.pem");
 
   return {
+    certPath,
     directory,
+    keyPath,
     repoPathOptions,
     manifestPath: getWebTlsManifestPath(repoPathOptions),
   };
@@ -65,14 +58,18 @@ async function writeRawManifest(manifestPath: string, manifest: string) {
   await Bun.write(manifestPath, manifest);
 }
 
-async function writeManifest(manifestPath: string, publicIp: string) {
+async function writeManifest(
+  manifestPath: string,
+  publicIp: string,
+  tlsPaths: { certPath: string; keyPath: string },
+) {
   await writeRawManifest(
     manifestPath,
     `${JSON.stringify(
       {
-        certPath: process.env.WEB_TLS_CERT_PATH,
+        certPath: tlsPaths.certPath,
         generatedAt: "2026-04-13T00:00:00.000Z",
-        keyPath: process.env.WEB_TLS_KEY_PATH,
+        keyPath: tlsPaths.keyPath,
         publicIp,
       },
       null,
@@ -90,34 +87,32 @@ afterEach(() => {
 });
 
 describe("@dither-booth/ports", () => {
-  it("uses loopback for API internal origin when bind host is wildcard", () => {
-    process.env.API_BIND_HOST = "0.0.0.0";
+  it("uses fixed loopback host for API internal origin", () => {
     process.env.API_PORT = "4010";
 
     expect(getApiInternalOrigin()).toBe("http://127.0.0.1:4010");
   });
 
-  it("uses fallback for blank web bind host values", () => {
-    process.env.WEB_BIND_HOST = "";
-    expect(getWebBindHost()).toBe("0.0.0.0");
+  it("uses fixed repo-local TLS paths", () => {
+    const { directory, repoPathOptions } = createTempTlsPaths();
 
-    process.env.WEB_BIND_HOST = "   ";
-    expect(getWebBindHost()).toBe("0.0.0.0");
-  });
-
-  it("uses fallback for blank admin bind host values", () => {
-    process.env.ADMIN_BIND_HOST = "";
-    expect(getAdminBindHost()).toBe("0.0.0.0");
-
-    process.env.ADMIN_BIND_HOST = "   ";
-    expect(getAdminBindHost()).toBe("0.0.0.0");
+    expect(getWebTlsCertPath(repoPathOptions)).toBe(
+      path.join(directory, ".local/tls/booth-cert.pem"),
+    );
+    expect(getWebTlsKeyPath(repoPathOptions)).toBe(
+      path.join(directory, ".local/tls/booth-key.pem"),
+    );
+    expect(getWebTlsManifestPath(repoPathOptions)).toBe(
+      path.join(directory, ".local/tls/booth-manifest.json"),
+    );
   });
 
   it("reads web public IP from TLS manifest", async () => {
-    const { manifestPath, repoPathOptions } = createTempTlsPaths();
+    const { certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
 
     process.env.WEB_PORT = "3443";
-    await writeManifest(manifestPath, "192.168.1.42");
+    await writeManifest(manifestPath, "192.168.1.42", { certPath, keyPath });
 
     expect(await getWebPublicIp(repoPathOptions)).toBe("192.168.1.42");
     expect(await getWebOrigin(repoPathOptions)).toBe(
@@ -126,10 +121,11 @@ describe("@dither-booth/ports", () => {
   });
 
   it("reads admin origin from the shared TLS manifest", async () => {
-    const { manifestPath, repoPathOptions } = createTempTlsPaths();
+    const { certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
 
     process.env.ADMIN_PORT = "3444";
-    await writeManifest(manifestPath, "192.168.1.43");
+    await writeManifest(manifestPath, "192.168.1.43", { certPath, keyPath });
 
     expect(await getAdminOrigin(repoPathOptions)).toBe(
       "https://192.168.1.43:3444",
@@ -137,10 +133,11 @@ describe("@dither-booth/ports", () => {
   });
 
   it("formats IPv6 web origins with brackets", async () => {
-    const { manifestPath, repoPathOptions } = createTempTlsPaths();
+    const { certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
 
     process.env.WEB_PORT = "3443";
-    await writeManifest(manifestPath, "fe80::1");
+    await writeManifest(manifestPath, "fe80::1", { certPath, keyPath });
 
     expect(await getWebOrigin(repoPathOptions)).toBe("https://[fe80::1]:3443");
   });
@@ -164,14 +161,15 @@ describe("@dither-booth/ports", () => {
   });
 
   it("throws clear error when TLS manifest schema is invalid", async () => {
-    const { manifestPath, repoPathOptions } = createTempTlsPaths();
+    const { certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
 
     await writeRawManifest(
       manifestPath,
       `${JSON.stringify({
-        certPath: process.env.WEB_TLS_CERT_PATH,
+        certPath,
         generatedAt: "2026-04-13T00:00:00.000Z",
-        keyPath: process.env.WEB_TLS_KEY_PATH,
+        keyPath,
         publicIp: "localhost",
       })}\n`,
     );

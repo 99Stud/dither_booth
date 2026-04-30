@@ -1,15 +1,14 @@
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
+import { mkdirSync } from "fs";
 
+import { API_DB_FILE_PATH } from "./internal/db.constants";
 import { printConfigTable } from "./internal/db.schema";
 
-const dbFileName = process.env.DB_FILE_NAME;
+const dbParentDir = Bun.fileURLToPath(
+  new URL(".", Bun.pathToFileURL(API_DB_FILE_PATH)),
+);
+mkdirSync(dbParentDir, { recursive: true });
 
-if (!dbFileName) {
-  throw new Error(
-    "DB_FILE_NAME is required to initialize the SQLite database.",
-  );
-}
-
-export const sqlite = new Database(dbFileName);
+export const sqlite = new Database(API_DB_FILE_PATH);
 export const db = drizzle({ client: sqlite, schema: { printConfigTable } });

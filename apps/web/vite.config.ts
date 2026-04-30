@@ -1,9 +1,9 @@
 import { getTrpcProxyUpstreamPath } from "#lib/trpc/trpc-proxy.utils";
 import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
 import {
+  WEB_BIND_HOST,
   getApiInternalOrigin,
   getPort,
-  getWebBindHost,
   getWebTlsCertPath,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
@@ -46,7 +46,7 @@ export default defineConfig(({ command }) => {
     ],
     server: isServeCommand
       ? {
-          host: getWebBindHost(),
+          host: WEB_BIND_HOST,
           https: getHttpsOptions(),
           port: getPort("WEB_PORT"),
           strictPort: true,

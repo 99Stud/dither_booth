@@ -123,6 +123,6 @@ Defaults live in:
 - `apps/admin/.env.example`
 - `apps/api/.env.example`
 
-Most setups can keep defaults. Override only if you need different ports, bind hosts, TLS file paths, or the API database path. Each app has its own env example with only the variables that app uses.
+Most setups can keep defaults. Override only if you need different ports. Each app has its own env example with only the variables that app uses.
 
-The browser public IP is read from `.local/tls/booth-manifest.json`; regenerate certificates when the LAN IP changes.
+Bind hosts, TLS file paths, and SQLite storage are fixed for the booth LAN topology. The browser public IP is read from `.local/tls/booth-manifest.json`; regenerate certificates when the LAN IP changes.

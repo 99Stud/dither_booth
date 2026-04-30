@@ -10,18 +10,7 @@
     "start": {
       "cache": false,
       "persistent": true,
-      "passThroughEnv": [
-        "ADMIN_BIND_HOST",
-        "ADMIN_PORT",
-        "API_BIND_HOST",
-        "API_PORT",
-        "DB_FILE_NAME",
-        "NODE_ENV",
-        "WEB_BIND_HOST",
-        "WEB_PORT",
-        "WEB_TLS_CERT_PATH",
-        "WEB_TLS_KEY_PATH"
-      ]
+      "passThroughEnv": ["ADMIN_PORT", "API_PORT", "NODE_ENV", "WEB_PORT"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -32,18 +21,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "passThroughEnv": [
-        "ADMIN_BIND_HOST",
-        "ADMIN_PORT",
-        "API_BIND_HOST",
-        "API_PORT",
-        "DB_FILE_NAME",
-        "NODE_ENV",
-        "WEB_BIND_HOST",
-        "WEB_PORT",
-        "WEB_TLS_CERT_PATH",
-        "WEB_TLS_KEY_PATH"
-      ]
+      "passThroughEnv": ["ADMIN_PORT", "API_PORT", "NODE_ENV", "WEB_PORT"]
     }
   }
 }
