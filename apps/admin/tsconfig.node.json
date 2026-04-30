@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
+    // Environment setup & latest features
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-    "target": "es2023",
-    "lib": ["ES2023"],
+    "lib": ["ESNext"],
+    "target": "ESNext",
     "module": "esnext",
     "types": ["node"],
     "skipLibCheck": true,
@@ -14,11 +15,24 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    // Best practices
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    // HACK TO REMOVE WHEN SHADCN SUPPORTS SUBPATHS IMPORT
+    "paths": {
+      "#components/*": ["./src/components/*"],
+      "#lib/utils": ["./src/lib/utils.tsx"],
+      "#ui/*": ["./src/components/ui/*"],
+      "#hooks/*": ["./src/hooks/*"]
+    },
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "erasableSyntaxOnly": true
   },
   "include": ["vite.config.ts"]
 }
