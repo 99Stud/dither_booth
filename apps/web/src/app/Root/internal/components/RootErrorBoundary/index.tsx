@@ -1,7 +1,7 @@
 import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants";
-import { Button, buttonVariants } from "#components/ui/button";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { getKioskErrorDiagnostics } from "@dither-booth/logging";
+import { Button, buttonVariants } from "@dither-booth/ui/components/ui/button";
 import { Component, type ErrorInfo, useEffect } from "react";
 
 import type {

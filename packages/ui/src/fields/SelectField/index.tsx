@@ -1,11 +1,9 @@
 import type {
-  DeepKeys,
-  DeepValue,
   FormAsyncValidateOrFn,
   FormValidateOrFn,
   ReactFormExtendedApi,
 } from "@tanstack/react-form";
-import type { ComponentProps, Key } from "react";
+import type { ComponentProps } from "react";
 
 import {
   Field,
@@ -22,21 +20,11 @@ import {
 } from "#components/ui/select";
 import clsx from "clsx";
 
-import type { SelectFieldOption } from "./internal/SelectField.types";
-
-type SelectFieldValue<TFormData, TName extends DeepKeys<TFormData>> = Extract<
-  DeepValue<TFormData, TName>,
-  Key
->;
-
-type SelectFieldName<TFormData> = {
-  [TName in DeepKeys<TFormData>]: SelectFieldValue<
-    TFormData,
-    TName
-  > extends never
-    ? never
-    : TName;
-}[DeepKeys<TFormData>];
+import type {
+  SelectFieldName,
+  SelectFieldOption,
+  SelectFieldValue,
+} from "./internal/SelectField.types";
 
 type SelectProps<
   TFormData,
@@ -153,3 +141,5 @@ export const SelectField = <
     />
   );
 };
+
+export type { SelectFieldName, SelectFieldOption, SelectFieldValue };

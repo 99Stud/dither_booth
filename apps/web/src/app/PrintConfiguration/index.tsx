@@ -1,12 +1,12 @@
 import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types";
 
-import { SelectField } from "#components/fields/SelectField/index";
-import { SliderField } from "#components/fields/SliderField/index";
 import { Webcam } from "#components/misc/Webcam/index";
-import { Button } from "#components/ui/button";
-import { Spinner } from "#components/ui/spinner";
 import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils";
 import { useTRPC } from "#lib/trpc/trpc.utils";
+import { Button } from "@dither-booth/ui/components/ui/button";
+import { Spinner } from "@dither-booth/ui/components/ui/spinner";
+import { SelectField } from "@dither-booth/ui/fields/SelectField";
+import { SliderField } from "@dither-booth/ui/fields/SliderField";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";

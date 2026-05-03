@@ -35,6 +35,7 @@ const getHttpsOptions = () => {
 
 export default defineConfig(({ command }) => {
   const isServeCommand = command === "serve";
+  const webPort = getPort("WEB_PORT");
 
   return {
     plugins: [
@@ -48,7 +49,7 @@ export default defineConfig(({ command }) => {
       ? {
           host: WEB_BIND_HOST,
           https: getHttpsOptions(),
-          port: getPort("WEB_PORT"),
+          port: webPort,
           strictPort: true,
           proxy: {
             [TRPC_PROXY_PATH]: {
