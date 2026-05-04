@@ -1,12 +1,15 @@
-import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types";
-
-import { Webcam } from "#components/misc/Webcam/index";
+import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils";
 import { useTRPC } from "#lib/trpc/trpc.utils";
+import {
+  Webcam,
+  type WebcamHandle,
+} from "@dither-booth/ui/components/misc/Webcam";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { SliderField } from "@dither-booth/ui/fields/SliderField";
+import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
@@ -24,6 +27,11 @@ import {
   SLIDER_FIELD_CONFIGS,
 } from "./internal/PrintConfiguration.constants";
 import { reportPrintConfigurationError } from "./internal/PrintConfiguration.utils";
+
+const {
+  reportUserMediaCameraStateChange,
+  reportUserMediaConstraintFallbackError,
+} = createUserMediaReporters({ source: WEB_CAMERA_LOG_SOURCE });
 
 export const PrintConfiguration = () => {
   const webcamRef = useRef<WebcamHandle>(null);
@@ -219,6 +227,8 @@ export const PrintConfiguration = () => {
         <Webcam
           ref={webcamRef}
           className={clsx("h-full")}
+          onCameraStateChange={reportUserMediaCameraStateChange}
+          onConstraintFallbackError={reportUserMediaConstraintFallbackError}
           showPreview={!previewSrc}
         />
         <Button

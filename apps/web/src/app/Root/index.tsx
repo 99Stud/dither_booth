@@ -1,15 +1,23 @@
-import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types";
-
-import { Webcam } from "#components/misc/Webcam/index";
+import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils";
 import { downloadBlob } from "#lib/utils";
+import {
+  Webcam,
+  type WebcamHandle,
+} from "@dither-booth/ui/components/misc/Webcam";
 import { Button } from "@dither-booth/ui/components/ui/button";
+import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, useRef } from "react";
 
 import { ROOT_LOG_SOURCE } from "./internal/Root.constants";
+
+const {
+  reportUserMediaCameraStateChange,
+  reportUserMediaConstraintFallbackError,
+} = createUserMediaReporters({ source: WEB_CAMERA_LOG_SOURCE });
 
 export const Root: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);
@@ -80,7 +88,14 @@ export const Root: FC = () => {
   return (
     <div className="relative h-dvh bg-black">
       <div className="flex h-full items-center justify-center p-4">
-        <Webcam showDebugInfo showPreview ref={webcamRef} className="h-full" />
+        <Webcam
+          showDebugInfo
+          showPreview
+          ref={webcamRef}
+          className="h-full"
+          onCameraStateChange={reportUserMediaCameraStateChange}
+          onConstraintFallbackError={reportUserMediaConstraintFallbackError}
+        />
       </div>
       <div className="fixed top-8 left-8 flex flex-col gap-2">
         <Button disabled={isGeneratingReceipt} onClick={downloadReceipt}>

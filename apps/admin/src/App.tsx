@@ -1,53 +1,28 @@
-import type { FC } from "react";
+import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
+import {
+  Webcam,
+  type WebcamHandle,
+} from "@dither-booth/ui/components/misc/Webcam";
+import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
+import { useRef, type FC } from "react";
 
-import { Button } from "@dither-booth/ui/components/ui/button";
-import { SelectField } from "@dither-booth/ui/fields/SelectField";
-import { SliderField } from "@dither-booth/ui/fields/SliderField";
-import { useForm } from "@tanstack/react-form";
-import z from "zod";
+const {
+  reportUserMediaCameraStateChange,
+  reportUserMediaConstraintFallbackError,
+} = createUserMediaReporters({ source: ADMIN_CAMERA_LOG_SOURCE });
 
 const App: FC = () => {
-  const form = useForm({
-    defaultValues: {
-      name: "",
-      age: 0,
-    },
-    validators: {
-      onChange: z.object({
-        name: z.string().min(1),
-        age: z.number().min(0).max(100),
-      }),
-    },
-    onSubmit: (values) => {
-      console.log(values);
-    },
-  });
+  const webcamRef = useRef<WebcamHandle>(null);
 
   return (
-    <form onSubmit={form.handleSubmit}>
-      <SelectField
-        form={form}
-        name="name"
-        label="Name"
-        placeholder="Select a name"
-        options={[
-          { label: "John", value: "john" },
-          { label: "Jane", value: "jane" },
-        ]}
-      />
-      <SliderField
-        form={form}
-        name="age"
-        label="Age"
-        min={0}
-        max={100}
-        step={1}
-        formatValue={(value) => String(value)}
-      />
-      <Button className="bg-red-500" type="submit">
-        Submit
-      </Button>
-    </form>
+    <Webcam
+      showDebugInfo
+      showPreview
+      ref={webcamRef}
+      className="h-full"
+      onCameraStateChange={reportUserMediaCameraStateChange}
+      onConstraintFallbackError={reportUserMediaConstraintFallbackError}
+    />
   );
 };
 

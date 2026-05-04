@@ -1,7 +1,4 @@
-import type {
-  CameraState,
-  CapturePhotoOptions,
-} from "#lib/hooks/user-media/index";
+import type { CameraState, CapturePhotoOptions } from "#hooks/user-media/index";
 
 export interface WebcamHandle {
   cameraState: CameraState;
