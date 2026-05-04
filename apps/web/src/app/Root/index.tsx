@@ -1,5 +1,4 @@
 import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
-import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils";
 import { downloadBlob } from "#lib/utils";
@@ -9,6 +8,7 @@ import {
 } from "@dither-booth/ui/components/misc/Webcam";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
+import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
 import { useMutation } from "@tanstack/react-query";
 import { type FC, useRef } from "react";
 

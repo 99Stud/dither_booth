@@ -11,7 +11,7 @@ const {
   reportUserMediaConstraintFallbackError,
 } = createUserMediaReporters({ source: ADMIN_CAMERA_LOG_SOURCE });
 
-const App: FC = () => {
+export const Root: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);
 
   return (
@@ -25,5 +25,3 @@ const App: FC = () => {
     />
   );
 };
-
-export default App;

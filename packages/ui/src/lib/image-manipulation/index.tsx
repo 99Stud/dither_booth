@@ -1,4 +1,3 @@
-import { getBlobDimensions } from "#lib/utils";
 import { logKioskEvent } from "@dither-booth/logging";
 
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";
@@ -10,6 +9,19 @@ const canvasToBlob = (
   new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), type);
   });
+
+export const getBlobDimensions = async (blob: Blob) => {
+  const imageBitmap = await createImageBitmap(blob);
+
+  try {
+    return {
+      width: imageBitmap.width,
+      height: imageBitmap.height,
+    };
+  } finally {
+    imageBitmap.close();
+  }
+};
 
 export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
   if (blob.size === 0) {
@@ -68,6 +80,39 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
   }
 };
 
+export const flipBlobHorizontally = async (blob: Blob): Promise<Blob> => {
+  const imageBitmap = await createImageBitmap(blob);
+
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = imageBitmap.width;
+    canvas.height = imageBitmap.height;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Could not create canvas context.");
+    }
+
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(imageBitmap, 0, 0);
+
+    const flippedBlob = await canvasToBlob(
+      canvas,
+      blob.type || FALLBACK_IMAGE_MIME_TYPE,
+    );
+
+    if (!flippedBlob) {
+      throw new Error("Failed to encode flipped photo.");
+    }
+
+    return flippedBlob;
+  } finally {
+    imageBitmap.close();
+  }
+};
+
 export const takeSquarePhotoAndFlipHorizontally = async (
   source: string,
   takePhoto: () => Promise<Blob>,
@@ -89,26 +134,4 @@ export const takeSquarePhotoAndFlipHorizontally = async (
   logKioskEvent("info", source, "client-square-resize-requested");
 
   return await flipBlobHorizontally(await resizeBlobToSquare(photo));
-};
-
-export const flipBlobHorizontally = async (blob: Blob): Promise<Blob> => {
-  const imageBitmap = await createImageBitmap(blob);
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = imageBitmap.width;
-    canvas.height = imageBitmap.height;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Could not create canvas context.");
-    context.translate(canvas.width, 0);
-    context.scale(-1, 1);
-    context.drawImage(imageBitmap, 0, 0);
-    const flippedBlob = await canvasToBlob(
-      canvas,
-      blob.type || FALLBACK_IMAGE_MIME_TYPE,
-    );
-    if (!flippedBlob) throw new Error("Failed to encode flipped photo.");
-    return flippedBlob;
-  } finally {
-    imageBitmap.close();
-  }
 };

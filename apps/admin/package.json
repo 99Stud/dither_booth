@@ -17,13 +17,22 @@
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@dither-booth/api": "workspace:*",
     "@dither-booth/browser-server": "workspace:*",
     "@dither-booth/logging": "workspace:*",
     "@dither-booth/ports": "workspace:*",
     "@dither-booth/ui": "workspace:*",
     "@tanstack/react-form": "1.29.1",
+    "@tanstack/react-query": "5.100.9",
+    "@tanstack/react-router": "1.169.1",
+    "@tanstack/react-router-devtools": "1.166.13",
+    "@trpc/client": "11.17.0",
+    "@trpc/tanstack-react-query": "11.17.0",
+    "clsx": "2.1.1",
+    "lucide-react": "1.14.0",
     "react": "19.2.5",
     "react-dom": "19.2.5",
+    "sonner": "2.0.7",
     "tailwindcss": "4.2.4",
     "zod": "4.4.3"
   },

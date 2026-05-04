@@ -1,5 +1,4 @@
-import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
-import { takeSquarePhotoAndFlipHorizontally } from "#lib/image-manipulation/image-manipulation.utils";
+import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { useTRPC } from "#lib/trpc/trpc.utils";
 import {
   Webcam,
@@ -9,6 +8,7 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { SliderField } from "@dither-booth/ui/fields/SliderField";
+import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,7 +16,7 @@ import clsx from "clsx";
 import { CameraIcon } from "lucide-react";
 import { useCallback, useMemo, useRef, useState, type FC } from "react";
 
-import type { PrintConfigurationFormValues } from "./internal/PrintConfiguratio.types";
+import type { PrintConfigurationFormValues } from "./internal/PrintConfiguration.types";
 
 import {
   PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS,
@@ -31,7 +31,7 @@ import { reportPrintConfigurationError } from "./internal/PrintConfiguration.uti
 const {
   reportUserMediaCameraStateChange,
   reportUserMediaConstraintFallbackError,
-} = createUserMediaReporters({ source: WEB_CAMERA_LOG_SOURCE });
+} = createUserMediaReporters({ source: ADMIN_CAMERA_LOG_SOURCE });
 
 export const PrintConfiguration = () => {
   const webcamRef = useRef<WebcamHandle>(null);
