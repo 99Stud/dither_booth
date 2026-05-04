@@ -1,46 +1,16 @@
 import type {
   KioskErrorDiagnostics,
   KioskLogContext,
-  KioskLogDetails,
   KioskLogLevel,
   ReportKioskErrorOptions,
 } from "./internal/logging.types";
 
-const getConsoleMethod = (level: KioskLogLevel) => {
-  if (level === "error") {
-    return console.error;
-  }
-
-  if (level === "warn") {
-    return console.warn;
-  }
-
-  return console.info;
-};
-
-const hasDetails = (details?: KioskLogDetails) => {
-  return details !== undefined && Object.keys(details).length > 0;
-};
-
-const getErrorCauseMessage = (cause: unknown) => {
-  if (cause instanceof Error) {
-    return cause.message || cause.name;
-  }
-
-  if (typeof cause === "string" && cause.length > 0) {
-    return cause;
-  }
-
-  return undefined;
-};
-
-const getBrowserLoggingContext = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return window.__ditherBoothKioskLoggingState?.context ?? null;
-};
+import {
+  getBrowserLoggingContext,
+  getConsoleMethod,
+  getErrorCauseMessage,
+  hasDetails,
+} from "./internal/logging.utils";
 
 export const getKioskErrorDiagnostics = (
   error: unknown,

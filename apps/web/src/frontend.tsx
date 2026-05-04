@@ -19,7 +19,8 @@ import { createRoot } from "react-dom/client";
 
 import "./styles/globals.css";
 
-const isDevelopment = import.meta.env.DEV;
+const isDevelopment =
+  typeof process !== "undefined" && process.env.NODE_ENV === "development";
 
 initializeBrowserLogging();
 

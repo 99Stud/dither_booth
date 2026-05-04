@@ -27,8 +27,11 @@ bun run dev
 Production:
 
 ```bash
+bun run build
 bun run start
 ```
+
+The production server runs `dist/server.js`, which starts the bundled API server from `dist/server-entry.js`. Native runtime dependencies such as Puppeteer, Sharp, and printer USB packages remain external, so production still needs workspace dependencies installed.
 
 ## Local HTTPS Helpers
 

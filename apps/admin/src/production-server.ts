@@ -1,4 +1,4 @@
 import index from "./index.html";
 import { runAdminServer } from "./server-app";
 
-await runAdminServer({ mode: "development", indexHtml: index });
+await runAdminServer({ mode: "production", indexHtml: index });

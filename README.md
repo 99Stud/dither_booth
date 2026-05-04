@@ -97,7 +97,7 @@ Then open:
 
 Receipt generation uses same HTTPS origin, so if browser can open app and certificate is trusted, receipt rendering path should match that setup.
 
-The web and admin clients are built with Vite. Production serving still uses local Bun HTTPS servers so browser traffic stays same-origin and `/api/trpc` continues to proxy to the API over loopback.
+The web and admin clients use Bun-native HTML imports through a shared browser-server helper. Development serves raw TypeScript entrypoints through Bun, while production builds a bundled server entry beside a small `dist/server.js` bootstrap. Each production server entry imports its HTML file directly, so Bun emits optimized HTML and hashed build assets into `dist`; production then serves those files through explicit manifest routes with cache headers. Browser traffic stays same-origin and both app servers proxy `/api/trpc` to the API over loopback.
 
 ## Regenerate Or Clean Up
 

@@ -19,14 +19,6 @@ export type BrowserKioskLoggingState = {
   listenersRegistered: boolean;
 };
 
-declare global {
-  interface Window {
-    __ditherBoothKioskLoggingState?: BrowserKioskLoggingState;
-  }
-
-  var window: Window & typeof globalThis;
-}
-
 export type KioskLogContext = {
   details?: KioskLogDetails;
   error?: KioskErrorDiagnostics;
@@ -38,3 +30,11 @@ export type ReportKioskErrorOptions = {
   source: string;
   userMessage: string;
 };
+
+declare global {
+  interface Window {
+    __ditherBoothKioskLoggingState?: BrowserKioskLoggingState;
+  }
+
+  var window: Window & typeof globalThis;
+}
