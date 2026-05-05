@@ -4,6 +4,12 @@ Dither Booth is a physical kiosk system composed of three primary hardware compo
 
 The software stack is also split into three main applications: a web app running on the iPad as the primary user-facing interface, an admin app used by operators to configure and manage the experience, and an API that mediates communication between the web and admin clients and the receipt printer.
 
+## Documentation
+
+- [Web app](apps/web/README.md): iPad-facing kiosk app commands and infrastructure notes.
+- [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
+- [API](apps/api/README.md): backend service, database management, and local HTTPS helper commands.
+
 ## Local HTTPS Setup
 
 This project serves the web and admin browser apps over HTTPS by default so camera access and same-origin API calls work from local network devices. No custom hostname, hosts file, or local DNS server is required.
@@ -21,11 +27,22 @@ Both apps use the same local TLS certificate and proxy `/api/trpc` to the API ov
 bun install
 ```
 
-### 2. Install mkcert
+### 2. Set up database
+
+From the repository root, generate migrations after schema changes and apply any pending migrations to the local SQLite database:
+
+```bash
+bun run --filter @dither-booth/api db:generate
+bun run --filter @dither-booth/api db:migrate
+```
+
+See the [API README](apps/api/README.md) for details about when to use each database command.
+
+### 3. Install mkcert
 
 Follow the [`mkcert` install instructions](https://github.com/FiloSottile/mkcert), then make sure `mkcert` is available in your shell.
 
-### 3. Find server LAN IP
+### 4. Find server LAN IP
 
 Use IP address that other devices on same Wi-Fi/LAN use to reach machine running app. On macOS, one quick option is:
 
@@ -41,7 +58,7 @@ hostname -I | awk '{print $1}'
 
 Use IPv4 address from your active network interface, for example `192.168.1.42`. Do not use `127.0.0.1` or `localhost`.
 
-### 4. Generate local certificate
+### 5. Generate local certificate
 
 Run this from repo root:
 
@@ -57,7 +74,7 @@ This writes:
 
 `booth-manifest.json` stores current public IP and becomes runtime source of truth for HTTPS origin.
 
-### 5. Trust mkcert root CA on client devices
+### 6. Trust mkcert root CA on client devices
 
 Run this on machine where certificate was generated:
 
@@ -69,7 +86,7 @@ Copy `rootCA.pem` from that directory to each client device and trust it in the 
 
 Browser traffic stays same-origin and both browser app servers proxy `/api/trpc` to the API over loopback, so client devices only need to trust the shared booth certificate.
 
-### 6. Start app
+### 7. Start app
 
 Development:
 
@@ -89,15 +106,13 @@ Then open:
 - Web: `https://<SERVER_LAN_IP>:3000` unless you changed `WEB_PORT`
 - Admin: `https://<SERVER_LAN_IP>:3002` unless you changed `ADMIN_PORT`
 
-### 7. Verify setup
+### 8. Verify setup
 
 - Startup logs should show the web and admin HTTPS origins you expect to open.
 - `.local/tls/booth-manifest.json` should show current `publicIp`.
 - iPad should load same URL without hostname mapping.
 
 Receipt generation uses same HTTPS origin, so if browser can open app and certificate is trusted, receipt rendering path should match that setup.
-
-The web and admin clients use Bun-native HTML imports through a shared browser-server helper. Development serves raw TypeScript entrypoints through Bun, while production builds a bundled server entry beside a small `dist/server.js` bootstrap. Each production server entry imports its HTML file directly, so Bun emits optimized HTML and hashed build assets into `dist`; production then serves those files through explicit manifest routes with cache headers. Browser traffic stays same-origin and both app servers proxy `/api/trpc` to the API over loopback.
 
 ## Regenerate Or Clean Up
 

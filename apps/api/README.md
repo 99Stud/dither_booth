@@ -6,17 +6,9 @@ The web and admin production servers proxy `/api/trpc` to this service over loop
 
 ## Development
 
-Run package commands from `apps/api` unless a step says to run from repo root.
+The API can be started independently from this directory. For the normal full-project workflow, launch the project from the repository root so Turbo can orchestrate all apps together.
 
-### 1. Install dependencies
-
-Run this from repo root:
-
-```bash
-bun install
-```
-
-### 2. Start API server
+### Start API server
 
 Development:
 
@@ -31,11 +23,32 @@ bun run build
 bun run start
 ```
 
-The production server runs `dist/server.js`, which starts the bundled API server from `dist/server-entry.js`. Native runtime dependencies such as Puppeteer, Sharp, and printer USB packages remain external, so production still needs workspace dependencies installed.
+### Check code quality
 
-## Database Tools
+```bash
+bun run lint
+bun run format
+bun run check-types
+```
 
-Run these from `apps/api`:
+Use safe fix commands when formatting or lint rules can be applied automatically:
+
+```bash
+bun run lint:fix
+bun run format:fix
+```
+
+## Infrastructure
+
+Development runs `src/server.ts` with Bun watch mode. Production first type-checks the API, bundles the server entry, and starts `dist/server.js`, which loads the bundled `dist/server-entry.js`.
+
+The API owns the local SQLite database at `data/dither-booth.sqlite` and applies SQL migrations from `drizzle`. It also owns the local HTTPS helper scripts that generate the certificate shared by the web and admin apps.
+
+Production keeps native runtime dependencies such as Puppeteer, Sharp, and printer USB packages external, so the workspace dependencies must remain installed wherever the production server runs.
+
+## Database Management
+
+Use these commands from `apps/api`:
 
 ```bash
 bun run db:generate
@@ -43,29 +56,15 @@ bun run db:migrate
 bun run db:studio
 ```
 
-From repo root, use:
-
-```bash
-bun run --filter @dither-booth/api db:generate
-bun run --filter @dither-booth/api db:migrate
-bun run --filter @dither-booth/api db:studio
-```
-
-`db:studio` starts Drizzle Studio for the local SQLite database on `https://local.drizzle.studio` using `127.0.0.1:4983`.
+- `db:generate` runs `drizzle-kit generate`. Use it after changing the Drizzle schema to create a SQL migration in `drizzle` from `drizzle.config.ts`.
+- `db:migrate` runs the internal migration script, applies pending migrations from `drizzle` to `data/dither-booth.sqlite`, logs success or failure, and closes the SQLite connection.
+- `db:studio` runs Drizzle Studio for inspecting or editing the local SQLite database during development.
 
 ## Local HTTPS Helpers
 
 The local certificate is generated from this package and shared by the web and admin HTTPS servers.
 
 ### 1. Generate local certificate
-
-Run this from repo root:
-
-```bash
-bun run --filter @dither-booth/api cert:generate 192.168.1.42
-```
-
-Or run this from `apps/api`:
 
 ```bash
 bun run cert:generate 192.168.1.42
@@ -94,12 +93,6 @@ Use this to locate `rootCA.pem` when another device needs to trust the locally g
 If LAN IP changes:
 
 ```bash
-bun run --filter @dither-booth/api cert:generate <NEW_LAN_IP>
-```
-
-From `apps/api`, use:
-
-```bash
 bun run cert:generate <NEW_LAN_IP>
 ```
 
@@ -107,12 +100,6 @@ If local TLS files get stale or you want to reset setup:
 
 ```bash
 bun run cert:clean
-```
-
-From repo root, use:
-
-```bash
-bun run --filter @dither-booth/api cert:clean
 ```
 
 `cert:clean` removes generated cert, key, and manifest. It does not remove mkcert root CA from your machine.
