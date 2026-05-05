@@ -33,6 +33,26 @@ bun run start
 
 The production server runs `dist/server.js`, which starts the bundled API server from `dist/server-entry.js`. Native runtime dependencies such as Puppeteer, Sharp, and printer USB packages remain external, so production still needs workspace dependencies installed.
 
+## Database Tools
+
+Run these from `apps/api`:
+
+```bash
+bun run db:generate
+bun run db:migrate
+bun run db:studio
+```
+
+From repo root, use:
+
+```bash
+bun run --filter @dither-booth/api db:generate
+bun run --filter @dither-booth/api db:migrate
+bun run --filter @dither-booth/api db:studio
+```
+
+`db:studio` starts Drizzle Studio for the local SQLite database on `https://local.drizzle.studio` using `127.0.0.1:4983`.
+
 ## Local HTTPS Helpers
 
 The local certificate is generated from this package and shared by the web and admin HTTPS servers.
