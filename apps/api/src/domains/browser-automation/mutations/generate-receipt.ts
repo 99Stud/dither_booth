@@ -1,8 +1,5 @@
 import { db } from "#db/index";
-import {
-  ditherImage,
-  renderDitheredToPng,
-} from "#domains/image-manipulation/internal/image-manipulation.utils";
+import { ditherImage } from "#domains/image-manipulation/internal/image-manipulation.utils";
 import { publicProcedure } from "#internal/trpc";
 import { API_REPO_ROOT } from "#lib/constants";
 import { getWebOrigin } from "@dither-booth/ports";
@@ -52,17 +49,6 @@ export const generateReceipt = publicProcedure
       },
     );
 
-    const ditheredPng = await renderDitheredToPng(
-      dithered,
-      ditherConfiguration.threshold,
-    ).catch((error) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to process photo.",
-        cause: error,
-      });
-    });
-
     if (!ctx.page) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -82,31 +68,37 @@ export const generateReceipt = publicProcedure
         });
       }
 
-      await imageElement.evaluate(async (element, image) => {
-        // INFO: do not extract this function, puppeteer needs this to be created on runtime
-        const isImageElement = (
-          element: unknown,
-        ): element is {
-          src: string;
-          decode: () => Promise<undefined>;
-        } => {
-          return (
-            element !== null &&
-            typeof element === "object" &&
-            "src" in element &&
-            typeof element.src === "string" &&
-            "decode" in element &&
-            typeof element.decode === "function"
-          );
-        };
+      await imageElement.evaluate(
+        async (element, image) => {
+          // INFO: do not extract this function, puppeteer needs this to be created on runtime
+          const isImageElement = (
+            element: unknown,
+          ): element is {
+            src: string;
+            decode: () => Promise<undefined>;
+          } => {
+            return (
+              element !== null &&
+              typeof element === "object" &&
+              "src" in element &&
+              typeof element.src === "string" &&
+              "decode" in element &&
+              typeof element.decode === "function"
+            );
+          };
 
-        if (!isImageElement(element)) {
-          throw new Error("Receipt photo element is not an image.");
-        }
+          if (!isImageElement(element)) {
+            throw new Error("Receipt photo element is not an image.");
+          }
 
-        element.src = `data:${image.mimeType};base64,${image.data}`;
-        await element.decode();
-      }, ditheredPng);
+          element.src = `data:${image.mimeType};base64,${image.data}`;
+          await element.decode();
+        },
+        {
+          data: (await dithered.png().toBuffer()).toBase64(),
+          mimeType: "image/png",
+        },
+      );
 
       const handle = await ctx.page.locator("div#receipt").waitHandle();
 

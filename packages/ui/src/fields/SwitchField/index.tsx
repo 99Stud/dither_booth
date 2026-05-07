@@ -1,3 +1,10 @@
+import type {
+  DeepKeys,
+  DeepValue,
+  FormAsyncValidateOrFn,
+  FormValidateOrFn,
+  ReactFormExtendedApi,
+} from "@tanstack/react-form";
 import type { ComponentProps } from "react";
 
 import {
@@ -6,33 +13,22 @@ import {
   FieldError,
   FieldLabel,
 } from "#components/ui/field";
-import { Slider } from "#components/ui/slider";
-import {
-  type DeepKeys,
-  type DeepValue,
-  type FormAsyncValidateOrFn,
-  type FormValidateOrFn,
-  type ReactFormExtendedApi,
-} from "@tanstack/react-form";
+import { Switch } from "#components/ui/switch";
 
-const getSliderValue = (value: number | ReadonlyArray<number>) => {
-  return Array.isArray(value) ? value[0] : value;
-};
-
-type SliderFieldValue<TFormData, TName extends DeepKeys<TFormData>> = Extract<
+type SwitchFieldValue<TFormData, TName extends DeepKeys<TFormData>> = Extract<
   DeepValue<TFormData, TName>,
-  number
+  boolean
 >;
 
-type SliderFieldName<TFormData> = {
-  [TName in DeepKeys<TFormData>]: DeepValue<TFormData, TName> extends number
+type SwitchFieldName<TFormData> = {
+  [TName in DeepKeys<TFormData>]: DeepValue<TFormData, TName> extends boolean
     ? TName
     : never;
 }[DeepKeys<TFormData>];
 
-type SliderFieldProps<
+type SwitchFieldProps<
   TFormData,
-  TName extends SliderFieldName<TFormData>,
+  TName extends SwitchFieldName<TFormData>,
   TOnMount extends undefined | FormValidateOrFn<TFormData>,
   TOnChange extends undefined | FormValidateOrFn<TFormData>,
   TOnChangeAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
@@ -61,17 +57,14 @@ type SliderFieldProps<
   >;
   name: TName;
   label: string;
-  formatValue: (value: SliderFieldValue<TFormData, TName>) => string;
-  sliderValueToValue?: (value: number) => SliderFieldValue<TFormData, TName>;
-  valueToSliderValue?: (value: SliderFieldValue<TFormData, TName>) => number;
 } & Omit<
-  ComponentProps<typeof Slider>,
-  "id" | "name" | "value" | "onValueChange" | "form"
+  ComponentProps<typeof Switch>,
+  "id" | "name" | "checked" | "onCheckedChange" | "form"
 >;
 
-export const SliderField = <
+export const SwitchField = <
   TFormData,
-  TName extends SliderFieldName<TFormData>,
+  TName extends SwitchFieldName<TFormData>,
   TOnMount extends undefined | FormValidateOrFn<TFormData>,
   TOnChange extends undefined | FormValidateOrFn<TFormData>,
   TOnChangeAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
@@ -84,7 +77,7 @@ export const SliderField = <
   TOnServer extends undefined | FormAsyncValidateOrFn<TFormData>,
   TSubmitMeta,
 >(
-  props: SliderFieldProps<
+  props: SwitchFieldProps<
     TFormData,
     TName,
     TOnMount,
@@ -100,55 +93,39 @@ export const SliderField = <
     TSubmitMeta
   >,
 ) => {
-  const {
-    form,
-    name,
-    label,
-    formatValue,
-    sliderValueToValue,
-    valueToSliderValue,
-    ...sliderProps
-  } = props;
+  const { form, name, label, ...switchProps } = props;
   return (
     <form.Field
       name={name}
       // oxlint-disable-next-line react/no-children-prop
       children={(field) => {
-        const fieldValue = field.state.value as SliderFieldValue<
+        const fieldValue = field.state.value as SwitchFieldValue<
           TFormData,
           TName
         >;
-        const sliderValue = valueToSliderValue
-          ? valueToSliderValue(fieldValue)
-          : fieldValue;
         const isInvalid =
           field.state.meta.isTouched && !field.state.meta.isValid;
-
         return (
-          <Field orientation="responsive" data-invalid={isInvalid}>
+          <Field
+            orientation="responsive"
+            data-disabled={switchProps.disabled}
+            data-invalid={isInvalid}
+          >
             <FieldContent>
               <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
               {isInvalid && <FieldError errors={field.state.meta.errors} />}
             </FieldContent>
-            <div className="flex items-center gap-2">
-              <Slider
-                {...sliderProps}
-                id={field.name}
-                name={field.name}
-                value={[sliderValue]}
-                onValueChange={(value) => {
-                  const nextSliderValue = getSliderValue(value);
-                  const nextFieldValue = sliderValueToValue
-                    ? sliderValueToValue(nextSliderValue)
-                    : (nextSliderValue as SliderFieldValue<TFormData, TName>);
-
-                  field.handleChange(nextFieldValue);
-                }}
-              />
-              <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
-                {formatValue(fieldValue)}
-              </span>
-            </div>
+            <Switch
+              {...switchProps}
+              id={field.name}
+              name={field.name}
+              checked={fieldValue}
+              onCheckedChange={(checked) => {
+                field.handleChange(
+                  checked as SwitchFieldValue<TFormData, TName>,
+                );
+              }}
+            />
           </Field>
         );
       }}

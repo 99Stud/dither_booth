@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ae1dc9ca-eba9-417c-880f-274579d11d57",
+  "id": "7c6a23fd-1bbe-490c-9e45-9a9bca856c95",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "print_debug_config": {
@@ -21,31 +21,55 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 2
+          "default": 1
         },
-        "brightness": {
-          "name": "brightness",
+        "color_scheme_code": {
+          "name": "color_scheme_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "serpentine": {
+          "name": "serpentine",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "exposure": {
+          "name": "exposure",
           "type": "real",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": 1
         },
-        "contrast": {
-          "name": "contrast",
+        "saturation": {
+          "name": "saturation",
           "type": "real",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": 1
         },
-        "gamma": {
-          "name": "gamma",
+        "shadows": {
+          "name": "shadows",
           "type": "real",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 1
+          "default": 0
+        },
+        "highlights": {
+          "name": "highlights",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "threshold": {
           "name": "threshold",
@@ -69,17 +93,29 @@
           "name": "print_debug_config_dither_mode_code_check",
           "value": "\"print_debug_config\".\"dither_mode_code\" between 0 and 8"
         },
-        "print_debug_config_brightness_step_check": {
-          "name": "print_debug_config_brightness_step_check",
-          "value": "\"print_debug_config\".\"brightness\" between 0 and 3"
+        "print_debug_config_color_scheme_code_check": {
+          "name": "print_debug_config_color_scheme_code_check",
+          "value": "\"print_debug_config\".\"color_scheme_code\" in (0, 5, 6, 7)"
         },
-        "print_debug_config_contrast_step_check": {
-          "name": "print_debug_config_contrast_step_check",
-          "value": "\"print_debug_config\".\"contrast\" between 0 and 3"
+        "print_debug_config_serpentine_check": {
+          "name": "print_debug_config_serpentine_check",
+          "value": "\"print_debug_config\".\"serpentine\" in (0, 1)"
         },
-        "print_debug_config_gamma_step_check": {
-          "name": "print_debug_config_gamma_step_check",
-          "value": "\"print_debug_config\".\"gamma\" between 1 and 3"
+        "print_debug_config_exposure_check": {
+          "name": "print_debug_config_exposure_check",
+          "value": "\"print_debug_config\".\"exposure\" > 0 and \"print_debug_config\".\"exposure\" <= 4"
+        },
+        "print_debug_config_saturation_check": {
+          "name": "print_debug_config_saturation_check",
+          "value": "\"print_debug_config\".\"saturation\" between 0 and 4"
+        },
+        "print_debug_config_shadows_check": {
+          "name": "print_debug_config_shadows_check",
+          "value": "\"print_debug_config\".\"shadows\" between 0 and 1"
+        },
+        "print_debug_config_highlights_check": {
+          "name": "print_debug_config_highlights_check",
+          "value": "\"print_debug_config\".\"highlights\" between 0 and 1"
         },
         "print_debug_config_threshold_check": {
           "name": "print_debug_config_threshold_check",

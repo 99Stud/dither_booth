@@ -1,6 +1,7 @@
 import {
-  ColorScheme,
   ditherImage as openDisplayDitherImage,
+  type ColorScheme,
+  type DitherMode,
   type PaletteImageBuffer,
 } from "@opendisplay/epaper-dithering";
 import sharp from "sharp";
@@ -68,66 +69,47 @@ export const ditherImage = async (
   buffer: Buffer<ArrayBuffer>,
   ditherConfiguration: PrintConfigRow,
 ) => {
-  const { data, info } = await sharp(buffer, { failOn: "error" })
-    .flatten({ background: { r: 255, g: 255, b: 255 } })
-    .greyscale()
-    .gamma(ditherConfiguration.gamma)
-    .linear(ditherConfiguration.contrast, ditherConfiguration.brightness)
+  const { data, info } = await sharp(buffer)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const rgba = Buffer.alloc(info.width * info.height * 4);
-
-  for (
-    let src = 0, dst = 0;
-    src < data.length;
-    src += info.channels, dst += 4
-  ) {
-    const r = data[src] ?? 0;
-    const g = info.channels >= 2 ? (data[src + 1] ?? r) : r;
-    const b = info.channels >= 3 ? (data[src + 2] ?? r) : r;
-    const a = info.channels >= 4 ? (data[src + 3] ?? 255) : 255;
-
-    rgba[dst] = r;
-    rgba[dst + 1] = g;
-    rgba[dst + 2] = b;
-    rgba[dst + 3] = a;
-  }
-
-  return openDisplayDitherImage(
+  const dithered = openDisplayDitherImage(
     {
       width: info.width,
       height: info.height,
-      data: new Uint8ClampedArray(rgba),
+      data: new Uint8ClampedArray(data),
     },
-    ColorScheme.MONO,
-    ditherConfiguration.ditherModeCode,
+    ditherConfiguration.colorSchemeCode as ColorScheme,
+    {
+      mode: ditherConfiguration.ditherModeCode as DitherMode,
+      serpentine: ditherConfiguration.serpentine,
+      exposure: ditherConfiguration.exposure,
+      saturation: ditherConfiguration.saturation,
+      shadows: ditherConfiguration.shadows,
+      highlights: ditherConfiguration.highlights,
+    },
   );
-};
 
-/**
- * Renders a dithered PaletteImageBuffer into a 1-bit PNG buffer suitable for
- * a preview response. Each pixel is either black (0,0,0) or white (255,255,255).
- */
-export const renderDitheredToPng = async (
-  dithered: PaletteImageBuffer,
-  threshold: number,
-) => {
-  const { width, height, indices, palette } = dithered;
-  const rgb = Buffer.alloc(width * height * 3);
+  const rgbaBuffer = Buffer.alloc(dithered.width * dithered.height * 4);
+  for (let i = 0; i < dithered.indices.length; i++) {
+    const index = dithered.indices[i];
 
-  for (let i = 0; i < indices.length; i++) {
-    const black = isPaletteBlack(palette, indices[i]!, threshold);
-    const v = black ? 0 : 255;
-    rgb[i * 3] = v;
-    rgb[i * 3 + 1] = v;
-    rgb[i * 3 + 2] = v;
+    if (index !== undefined) {
+      const c = dithered.palette[index];
+
+      if (c === undefined) {
+        continue;
+      }
+
+      rgbaBuffer[i * 4] = c.r;
+      rgbaBuffer[i * 4 + 1] = c.g;
+      rgbaBuffer[i * 4 + 2] = c.b;
+      rgbaBuffer[i * 4 + 3] = 255;
+    }
   }
 
-  const png = await sharp(rgb, { raw: { width, height, channels: 3 } })
-    .png()
-    .toBuffer();
-
-  return { data: png.toBase64(), mimeType: "image/png" };
+  return sharp(rgbaBuffer, {
+    raw: { width: dithered.width, height: dithered.height, channels: 4 },
+  });
 };

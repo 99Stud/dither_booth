@@ -1,5 +1,6 @@
 import type { PrintConfigRow } from "#domains/image-manipulation/internal/image-manipulation.types";
 import type USB from "@node-escpos/usb-adapter";
+import type { PaletteImageBuffer } from "@opendisplay/epaper-dithering";
 
 import {
   buildGsV0RasterCommand,
@@ -17,7 +18,7 @@ export const printImageToDevice = async (
 ): Promise<void> => {
   const dithered = await ditherImage(input, ditherConfiguration);
   const rasterCmd = buildGsV0RasterCommand(
-    dithered,
+    dithered as unknown as PaletteImageBuffer,
     ditherConfiguration.threshold,
   );
 

@@ -1,4 +1,5 @@
 import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.utils";
 import {
   Webcam,
@@ -8,11 +9,17 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { SliderField } from "@dither-booth/ui/fields/SliderField";
-import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
+import { SwitchField } from "@dither-booth/ui/fields/SwitchField";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
+import {
+  base64ToBlob,
+  downloadBlob,
+  takeSquarePhotoAndFlipHorizontally,
+} from "@dither-booth/ui/lib/image-manipulation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
+import { format } from "date-fns";
 import { CameraIcon } from "lucide-react";
 import { useCallback, useMemo, useRef, useState, type FC } from "react";
 
@@ -24,7 +31,9 @@ import {
   PRINT_CONFIGURATION_FORM_SCHEMA,
   PRINT_CONFIGURATION_LOG_SOURCE,
   DITHER_MODE_CODE_FIELD_OPTIONS,
+  COLOR_SCHEME_CODE_FIELD_OPTIONS,
   SLIDER_FIELD_CONFIGS,
+  DEFAULT_PRINT_CONFIGURATION_FORM_VALUES,
 } from "./internal/PrintConfiguration.constants";
 import { reportPrintConfigurationError } from "./internal/PrintConfiguration.utils";
 
@@ -70,77 +79,96 @@ export const PrintConfiguration = () => {
   const ditherer = useMutation(trpc.dither.mutationOptions());
   const { isPending: isDithering } = ditherer;
 
-  const generatePreviewDataUrl = useCallback(async () => {
-    const image = await takeSquarePhotoAndFlipHorizontally(
-      PRINT_CONFIGURATION_LOG_SOURCE,
-      async () => {
-        if (!webcamRef.current) {
-          throw new Error("Camera is not available.");
+  const generatePreviewDataUrl = useCallback(
+    async (download: boolean = false) => {
+      const squarePhoto = await takeSquarePhotoAndFlipHorizontally(
+        PRINT_CONFIGURATION_LOG_SOURCE,
+        async () => {
+          if (!webcamRef.current) {
+            throw new Error("Camera is not available.");
+          }
+
+          return await webcamRef.current.takePhoto();
+        },
+      ).catch((e) => {
+        reportPrintConfigurationError(
+          e,
+          "preview-photo-capture-failed",
+          "Take square photo failed.",
+        );
+      });
+
+      if (!squarePhoto) {
+        return;
+      }
+
+      const ditheredSquarePhoto = await ditherer
+        .mutateAsync(squarePhoto)
+        .catch((e) => {
+          reportPrintConfigurationError(
+            e,
+            "preview-dither-failed",
+            "Generate preview failed.",
+          );
+        });
+
+      if (!ditheredSquarePhoto) {
+        return;
+      }
+
+      if (download) {
+        const blob = base64ToBlob(
+          ditheredSquarePhoto.data,
+          ditheredSquarePhoto.mimeType,
+        );
+        downloadBlob(
+          blob,
+          `preview-${format(new Date(), "MM_dd_yyyy_HH_mm_ss")}.webp`,
+        );
+      }
+
+      return `data:${ditheredSquarePhoto.mimeType};base64,${ditheredSquarePhoto.data}`;
+    },
+    [ditherer, webcamRef],
+  );
+
+  const refreshPreview = useCallback(
+    async (download: boolean = false) => {
+      const requestId = latestPreviewRequestIdRef.current + 1;
+      latestPreviewRequestIdRef.current = requestId;
+
+      if (!hasTriggeredInitialPreview) {
+        setHasTriggeredInitialPreview(true);
+      }
+
+      if (webcamRef.current?.cameraState.status !== "ready") {
+        if (!previewSrc) {
+          setHasTriggeredInitialPreview(false);
         }
 
-        return await webcamRef.current.takePhoto();
-      },
-    ).catch((e) => {
-      reportPrintConfigurationError(
-        e,
-        "preview-photo-capture-failed",
-        "Take square photo failed.",
-      );
-    });
-
-    if (!image) {
-      return;
-    }
-
-    const res = await ditherer.mutateAsync(image).catch((e) => {
-      reportPrintConfigurationError(
-        e,
-        "preview-dither-failed",
-        "Generate preview failed.",
-      );
-    });
-
-    if (!res) {
-      return;
-    }
-
-    return `data:${res.mimeType};base64,${res.data}`;
-  }, [ditherer, webcamRef]);
-
-  const refreshPreview = useCallback(async () => {
-    const requestId = latestPreviewRequestIdRef.current + 1;
-    latestPreviewRequestIdRef.current = requestId;
-
-    if (!hasTriggeredInitialPreview) {
-      setHasTriggeredInitialPreview(true);
-    }
-
-    if (webcamRef.current?.cameraState.status !== "ready") {
-      if (!previewSrc) {
-        setHasTriggeredInitialPreview(false);
+        return;
       }
 
-      return;
-    }
+      const previewDataUrl = await generatePreviewDataUrl(download);
 
-    const previewDataUrl = await generatePreviewDataUrl();
-
-    if (requestId !== latestPreviewRequestIdRef.current) {
-      return;
-    }
-
-    if (!previewDataUrl) {
-      if (!previewSrc) {
-        setHasTriggeredInitialPreview(false);
+      if (requestId !== latestPreviewRequestIdRef.current) {
+        return;
       }
 
-      return;
-    }
+      if (!previewDataUrl) {
+        if (!previewSrc) {
+          setHasTriggeredInitialPreview(false);
+        }
 
-    if (previewDataUrl) {
-      setPreviewSrc(previewDataUrl);
-    }
-  }, [generatePreviewDataUrl, hasTriggeredInitialPreview, previewSrc]);
+        return;
+      }
+
+      if (previewDataUrl) {
+        setPreviewSrc(previewDataUrl);
+      }
+    },
+    [generatePreviewDataUrl, hasTriggeredInitialPreview, previewSrc],
+  );
 
   const saveAndRefreshPreview = useCallback(
     async (
@@ -199,6 +227,7 @@ export const PrintConfiguration = () => {
     isUpdatingDitherConfiguration ||
     isCreatingDitherConfiguration;
   const isSelectFieldDisabled = isPersistingDitherConfiguration || isDithering;
+  const isSwitchFieldDisabled = isPersistingDitherConfiguration;
   const isSliderFieldDisabled = isPersistingDitherConfiguration;
 
   const form = useForm({
@@ -218,6 +247,43 @@ export const PrintConfiguration = () => {
     },
   });
 
+  const generateReceipt = useMutation(trpc.generateReceipt.mutationOptions());
+  const { isPending: isGeneratingReceipt } = generateReceipt;
+
+  const downloadReceipt = async () => {
+    try {
+      const squarePhoto = await takeSquarePhotoAndFlipHorizontally(
+        PRINT_CONFIGURATION_LOG_SOURCE,
+        async () => {
+          if (!webcamRef.current) {
+            throw new Error("Camera is not available.");
+          }
+
+          return await webcamRef.current.takePhoto();
+        },
+      );
+
+      if (!squarePhoto) {
+        throw new Error("Square photo is not available.");
+      }
+
+      const receipt = await generateReceipt.mutateAsync(squarePhoto);
+
+      const receiptBlob = base64ToBlob(receipt.data, receipt.mimeType);
+
+      downloadBlob(
+        receiptBlob,
+        `receipt-${format(new Date(), "MM_dd_yyyy_HH_mm_ss")}.webp`,
+      );
+    } catch (e) {
+      reportKioskError(e, {
+        event: "generate-receipt-failed",
+        source: PRINT_CONFIGURATION_LOG_SOURCE,
+        userMessage: "Generate receipt failed.",
+      });
+    }
+  };
+
   return (
     <div className={clsx("h-dvh", "p-4", "flex gap-4")}>
       <div className={clsx("relative", "aspect-square h-full")}>
@@ -232,41 +298,87 @@ export const PrintConfiguration = () => {
           showPreview={!previewSrc}
         />
         <Button
-          onClick={refreshPreview}
+          onClick={() => refreshPreview()}
           className={clsx("absolute z-10", "top-4", "left-4")}
         >
           <CameraIcon className="size-4" />
         </Button>
       </div>
-      <form
-        className={clsx("flex flex-col gap-4", "min-w-96")}
-        onSubmit={(e) => {
-          e.preventDefault();
-          form.handleSubmit();
-        }}
-      >
-        <SelectField
-          form={form}
-          name="ditherModeCode"
-          label="Dither Mode"
-          placeholder="Select a dither mode"
-          options={DITHER_MODE_CODE_FIELD_OPTIONS}
-          disabled={isSelectFieldDisabled}
-        />
-        {SLIDER_FIELD_CONFIGS.map((sliderField) => (
-          <SliderField
-            key={sliderField.name}
+      <div className={clsx("flex-1", "flex flex-col gap-2")}>
+        <form
+          className={clsx("flex flex-col gap-4")}
+          onSubmit={(e) => {
+            e.preventDefault();
+            form.handleSubmit();
+          }}
+        >
+          <SelectField
             form={form}
-            name={sliderField.name}
-            label={sliderField.label}
-            min={sliderField.min}
-            max={sliderField.max}
-            step={sliderField.step}
-            formatValue={sliderField.formatValue}
-            disabled={isSliderFieldDisabled}
+            name="ditherModeCode"
+            label="Dither Mode"
+            placeholder="Select a dither mode"
+            options={DITHER_MODE_CODE_FIELD_OPTIONS}
+            disabled={isSelectFieldDisabled}
           />
-        ))}
-      </form>
+          <SelectField
+            form={form}
+            name="colorSchemeCode"
+            label="Color Scheme"
+            placeholder="Select a color scheme"
+            options={COLOR_SCHEME_CODE_FIELD_OPTIONS}
+            disabled={isSelectFieldDisabled}
+          />
+          <SwitchField
+            form={form}
+            name="serpentine"
+            label="Serpentine"
+            disabled={isSwitchFieldDisabled}
+          />
+          {SLIDER_FIELD_CONFIGS.map((sliderField) => (
+            <SliderField
+              key={sliderField.name}
+              form={form}
+              name={sliderField.name}
+              label={sliderField.label}
+              min={sliderField.min}
+              max={sliderField.max}
+              step={sliderField.step}
+              formatValue={sliderField.formatValue}
+              sliderValueToValue={sliderField.sliderValueToValue}
+              valueToSliderValue={sliderField.valueToSliderValue}
+              disabled={isSliderFieldDisabled}
+            />
+          ))}
+          <Button
+            type="submit"
+            onClick={() => {
+              form.reset(DEFAULT_PRINT_CONFIGURATION_FORM_VALUES);
+            }}
+          >
+            Reset
+          </Button>
+        </form>
+        <Button onClick={() => refreshPreview(true)}>
+          {isDithering ? (
+            <>
+              Dithering&nbsp;
+              <Spinner className="size-4" />
+            </>
+          ) : (
+            "Download raw preview"
+          )}
+        </Button>
+        <Button onClick={downloadReceipt}>
+          {isGeneratingReceipt ? (
+            <>
+              Generating receipt&nbsp;
+              <Spinner className="size-4" />
+            </>
+          ) : (
+            "Download receipt"
+          )}
+        </Button>
+      </div>
     </div>
   );
 };
@@ -301,11 +413,7 @@ const PreviewDisplay: FC<PreviewDisplayProps> = ({
         />
       )}
       {previewSrc && (
-        <img
-          src={previewSrc}
-          alt="Preview"
-          className={clsx("h-full w-full", "-scale-x-100")}
-        />
+        <img src={previewSrc} alt="Preview" className={clsx("h-full w-full")} />
       )}
     </>
   ) : (

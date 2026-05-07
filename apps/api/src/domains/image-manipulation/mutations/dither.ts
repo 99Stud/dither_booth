@@ -1,8 +1,5 @@
 import { db } from "#db/index";
-import {
-  ditherImage,
-  renderDitheredToPng,
-} from "#domains/image-manipulation/internal/image-manipulation.utils";
+import { ditherImage } from "#domains/image-manipulation/internal/image-manipulation.utils";
 import { publicProcedure } from "#internal/trpc";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
@@ -31,7 +28,10 @@ export const dither = publicProcedure
     try {
       const dithered = await ditherImage(inputBuffer, ditherConfiguration);
 
-      return renderDitheredToPng(dithered, ditherConfiguration.threshold);
+      return {
+        data: (await dithered.png().toBuffer()).toBase64(),
+        mimeType: "image/png",
+      };
     } catch (error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
