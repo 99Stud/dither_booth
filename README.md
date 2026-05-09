@@ -10,7 +10,19 @@ The software stack is also split into three main applications: a web app running
 - [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
 - [API](apps/api/README.md): backend service, database management, and local HTTPS helper commands.
 
-## Local HTTPS Setup
+## Bun
+
+To improve server performance and memory usage on low end devices like the Raspberry Pi, this project uses Bun.
+
+Bun is a fast, all-in-one JavaScript, TypeScript & JSX toolkit. It has a fast JavaScript runtime, bundler, test runner, and package manager built in.
+
+Follow the [`bun` official installation instructions](https://bun.com/docs/installation), then verify `bun` is available in your shell :
+
+```bash
+bun -v
+```
+
+## First local HTTPS Setup
 
 This project serves the web and admin browser apps over HTTPS by default so camera access and same-origin API calls work from local network devices. No custom hostname, hosts file, or local DNS server is required.
 
@@ -29,14 +41,13 @@ bun install
 
 ### 2. Set up database
 
-From the repository root, generate migrations after schema changes and apply any pending migrations to the local SQLite database:
+From the repository root, apply all the migrations to the local SQLite database:
 
 ```bash
-bun run --filter @dither-booth/api db:generate
 bun run --filter @dither-booth/api db:migrate
 ```
 
-See the [API README](apps/api/README.md) for details about when to use each database command.
+See the [API README](apps/api/README.md) for details about the database management.
 
 ### 3. Install mkcert
 
@@ -50,7 +61,7 @@ Use IP address that other devices on same Wi-Fi/LAN use to reach machine running
 ipconfig getifaddr en0
 ```
 
-and for mobile hotspot :
+For mobile hotspot :
 
 ```bash
 ifconfig en0 | awk '$1 == "inet" { print $2; exit }'
@@ -82,7 +93,7 @@ This writes:
 
 ### 6. Trust mkcert root CA on client devices
 
-Run this on machine where certificate was generated:
+Run this on the machine where certificates was generated:
 
 ```bash
 bun run --filter @dither-booth/api cert:caroot
@@ -92,7 +103,7 @@ Copy `rootCA.pem` from that directory to each client device and trust it in the 
 
 Browser traffic stays same-origin and both browser app servers proxy `/api/trpc` to the API over loopback, so client devices only need to trust the shared booth certificate.
 
-### 7. Start app
+### 7. Start apps
 
 Development:
 
@@ -116,9 +127,7 @@ Then open:
 
 - Startup logs should show the web and admin HTTPS origins you expect to open.
 - `.local/tls/booth-manifest.json` should show current `publicIp`.
-- iPad should load same URL without hostname mapping.
-
-Receipt generation uses same HTTPS origin, so if browser can open app and certificate is trusted, receipt rendering path should match that setup.
+- iPad should load both Admin and Web apps.
 
 ## Regenerate Or Clean Up
 
@@ -145,5 +154,3 @@ Defaults live in:
 - `apps/api/.env.example`
 
 Most setups can keep defaults. Override only if you need different ports. Each app has its own env example with only the variables that app uses.
-
-Bind hosts, TLS file paths, and SQLite storage are fixed for the booth LAN topology. The browser public IP is read from `.local/tls/booth-manifest.json`; regenerate certificates when the LAN IP changes.
