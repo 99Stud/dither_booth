@@ -7,9 +7,10 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development turbo run dev",
+    "dev": "NODE_ENV=development turbo run dev --vvv",
     "build": "NODE_ENV=production turbo run build",
     "start": "NODE_ENV=production turbo run start",
+    "update": "turbo run update",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",

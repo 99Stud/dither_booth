@@ -50,6 +50,12 @@ Use IP address that other devices on same Wi-Fi/LAN use to reach machine running
 ipconfig getifaddr en0
 ```
 
+and for mobile hotspot :
+
+```bash
+ifconfig en0 | awk '$1 == "inet" { print $2; exit }'
+```
+
 If that returns nothing, try `en1` instead. On Linux or Raspberry Pi, one quick option is:
 
 ```bash

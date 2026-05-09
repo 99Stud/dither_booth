@@ -13,6 +13,7 @@
     "dev": "bun --watch src/server.ts",
     "build": "tsc --noEmit -p tsconfig.json && bun scripts/build.ts",
     "start": "bun ./dist/server.js",
+    "update": "bun update -i",
     "cert:generate": "bun scripts/generate-local-cert.ts",
     "cert:clean": "bun scripts/clean-local-cert.ts",
     "cert:caroot": "mkcert -CAROOT",

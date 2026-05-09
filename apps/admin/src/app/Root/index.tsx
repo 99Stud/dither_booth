@@ -1,10 +1,15 @@
+import { AppSidebar } from "#components/AppSidebar/index";
+import { Outlet } from "@tanstack/react-router";
 import clsx from "clsx";
 import { type FC } from "react";
 
 export const Root: FC = () => {
   return (
-    <main>
-      <h1 className={clsx("text-2xl font-bold")}>Dither Booth Admin</h1>
-    </main>
+    <>
+      <AppSidebar />
+      <main className={clsx("flex-1")}>
+        <Outlet />
+      </main>
+    </>
   );
 };

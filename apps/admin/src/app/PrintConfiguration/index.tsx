@@ -1,3 +1,4 @@
+import { AppSidebarPageHeader } from "#components/AppSidebar/external/components/AppSidebarPageHeader/index";
 import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.utils";
@@ -285,101 +286,112 @@ export const PrintConfiguration = () => {
   };
 
   return (
-    <div className={clsx("h-dvh", "p-4", "flex gap-4")}>
-      <div className={clsx("relative", "aspect-square h-full")}>
-        {hasTriggeredInitialPreview && (
-          <PreviewDisplay isDithering={isDithering} previewSrc={previewSrc} />
+    <>
+      <AppSidebarPageHeader title="Print configuration" />
+      <div
+        className={clsx(
+          "h-[calc(100dvh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100dvh-3rem)]",
+          "pr-2 pb-2",
+          "flex gap-2",
         )}
-        <Webcam
-          ref={webcamRef}
-          className={clsx("h-full")}
-          onCameraStateChange={reportUserMediaCameraStateChange}
-          onConstraintFallbackError={reportUserMediaConstraintFallbackError}
-          showPreview={!previewSrc}
-        />
-        <Button
-          onClick={() => refreshPreview()}
-          className={clsx("absolute z-10", "top-4", "left-4")}
-        >
-          <CameraIcon className="size-4" />
-        </Button>
-      </div>
-      <div className={clsx("flex-1", "flex flex-col gap-2")}>
-        <form
-          className={clsx("flex flex-col gap-4")}
-          onSubmit={(e) => {
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <SelectField
-            form={form}
-            name="ditherModeCode"
-            label="Dither Mode"
-            placeholder="Select a dither mode"
-            options={DITHER_MODE_CODE_FIELD_OPTIONS}
-            disabled={isSelectFieldDisabled}
+      >
+        <div className={clsx("relative", "aspect-square h-full")}>
+          {hasTriggeredInitialPreview && (
+            <PreviewDisplay isDithering={isDithering} previewSrc={previewSrc} />
+          )}
+          <Webcam
+            ref={webcamRef}
+            className={clsx("h-full")}
+            onCameraStateChange={reportUserMediaCameraStateChange}
+            onConstraintFallbackError={reportUserMediaConstraintFallbackError}
+            showPreview={!previewSrc}
           />
-          <SelectField
-            form={form}
-            name="colorSchemeCode"
-            label="Color Scheme"
-            placeholder="Select a color scheme"
-            options={COLOR_SCHEME_CODE_FIELD_OPTIONS}
-            disabled={isSelectFieldDisabled}
-          />
-          <SwitchField
-            form={form}
-            name="serpentine"
-            label="Serpentine"
-            disabled={isSwitchFieldDisabled}
-          />
-          {SLIDER_FIELD_CONFIGS.map((sliderField) => (
-            <SliderField
-              key={sliderField.name}
-              form={form}
-              name={sliderField.name}
-              label={sliderField.label}
-              min={sliderField.min}
-              max={sliderField.max}
-              step={sliderField.step}
-              formatValue={sliderField.formatValue}
-              sliderValueToValue={sliderField.sliderValueToValue}
-              valueToSliderValue={sliderField.valueToSliderValue}
-              disabled={isSliderFieldDisabled}
-            />
-          ))}
           <Button
-            type="submit"
-            onClick={() => {
-              form.reset(DEFAULT_PRINT_CONFIGURATION_FORM_VALUES);
+            onClick={() => refreshPreview()}
+            className={clsx("absolute z-10", "top-4", "left-4")}
+          >
+            <CameraIcon className="size-4" />
+          </Button>
+        </div>
+        <div className={clsx("flex-1", "flex flex-col justify-between gap-2")}>
+          <form
+            className={clsx("flex flex-col gap-4")}
+            onSubmit={(e) => {
+              e.preventDefault();
+              form.handleSubmit();
             }}
           >
-            Reset
-          </Button>
-        </form>
-        <Button onClick={() => refreshPreview(true)}>
-          {isDithering ? (
-            <>
-              Dithering&nbsp;
-              <Spinner className="size-4" />
-            </>
-          ) : (
-            "Download raw preview"
-          )}
-        </Button>
-        <Button onClick={downloadReceipt}>
-          {isGeneratingReceipt ? (
-            <>
-              Generating receipt&nbsp;
-              <Spinner className="size-4" />
-            </>
-          ) : (
-            "Download receipt"
-          )}
-        </Button>
+            <SelectField
+              form={form}
+              name="ditherModeCode"
+              label="Dither Mode"
+              placeholder="Select a dither mode"
+              options={DITHER_MODE_CODE_FIELD_OPTIONS}
+              disabled={isSelectFieldDisabled}
+            />
+            <SelectField
+              form={form}
+              name="colorSchemeCode"
+              label="Color Scheme"
+              placeholder="Select a color scheme"
+              options={COLOR_SCHEME_CODE_FIELD_OPTIONS}
+              disabled={isSelectFieldDisabled}
+            />
+            <SwitchField
+              form={form}
+              name="serpentine"
+              label="Serpentine"
+              disabled={isSwitchFieldDisabled}
+            />
+            {SLIDER_FIELD_CONFIGS.map((sliderField) => (
+              <SliderField
+                key={sliderField.name}
+                form={form}
+                name={sliderField.name}
+                label={sliderField.label}
+                min={sliderField.min}
+                max={sliderField.max}
+                step={sliderField.step}
+                formatValue={sliderField.formatValue}
+                sliderValueToValue={sliderField.sliderValueToValue}
+                valueToSliderValue={sliderField.valueToSliderValue}
+                disabled={isSliderFieldDisabled}
+              />
+            ))}
+            <Button
+              type="submit"
+              onClick={() => {
+                form.reset(DEFAULT_PRINT_CONFIGURATION_FORM_VALUES);
+              }}
+            >
+              Reset
+            </Button>
+          </form>
+          <div className={clsx("flex flex-col gap-2")}>
+            <Button onClick={() => refreshPreview(true)}>
+              {isDithering ? (
+                <>
+                  Dithering&nbsp;
+                  <Spinner className="size-4" />
+                </>
+              ) : (
+                "Download raw preview"
+              )}
+            </Button>
+            <Button onClick={downloadReceipt}>
+              {isGeneratingReceipt ? (
+                <>
+                  Generating receipt&nbsp;
+                  <Spinner className="size-4" />
+                </>
+              ) : (
+                "Download receipt"
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
