@@ -7,12 +7,18 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  redirect,
   type AnyRoute,
 } from "@tanstack/react-router";
 
 import { ROUTE_KEYS, ROUTES_CONFIG } from "./internal/router.constants";
 
 const rootRoute = createRootRoute({
+  beforeLoad: ({ location }) => {
+    if (location.pathname === "/") {
+      throw redirect({ to: ROUTES_CONFIG.get("control-center")!.path });
+    }
+  },
   component: Root,
   errorComponent: ({ error }) => <RootErrorScreen error={error} />,
   notFoundComponent: RootNotFoundScreen,
