@@ -1,4 +1,4 @@
-import { AppSidebar } from "#components/AppSidebar/index";
+import { AppSidebar } from "#components/Layout/AppSidebar/index";
 import { Outlet } from "@tanstack/react-router";
 import clsx from "clsx";
 import { type FC } from "react";

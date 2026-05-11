@@ -1,6 +1,8 @@
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import type {
+  BrowserServerHealthzPayload,
+  BrowserServerMode,
   RouteHandler,
   StaticAssetCachePolicy,
   StaticManifestConfig,
@@ -26,6 +28,34 @@ function getCacheControlHeader(
   }
 
   return PUBLIC_ASSET_CACHE_CONTROL;
+}
+
+export function createHealthzRoute({
+  mode,
+  service,
+}: {
+  mode: BrowserServerMode;
+  service: string;
+}): RouteHandler {
+  return (req) => {
+    if (req.method !== "GET") {
+      return new Response(null, {
+        status: 405,
+        headers: {
+          Allow: "GET",
+        },
+      });
+    }
+
+    const payload: BrowserServerHealthzPayload = {
+      ok: true,
+      service,
+      mode,
+      timestamp: new Date().toISOString(),
+    };
+
+    return Response.json(payload);
+  };
 }
 
 export function getSafeFileUrl(root: URL, encodedPath: string) {

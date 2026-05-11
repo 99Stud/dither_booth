@@ -31,6 +31,7 @@ export const PORT_SCHEMA = z
 export const WEB_TLS_MANIFEST_SCHEMA = z.object({
   publicIp: z.ipv4().or(z.ipv6()),
   generatedAt: z.iso.datetime(),
+  caPath: z.string(),
   certPath: z.string(),
   keyPath: z.string(),
 });

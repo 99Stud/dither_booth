@@ -1,6 +1,8 @@
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 import type { Page } from "puppeteer";
 
+import { API_HEALTHZ_SERVICE } from "#domains/healthz/internal/healthz.constants";
+import { createHealthzPayload } from "#domains/healthz/internal/healthz.utils";
 import { apiRouter } from "#internal/router";
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
@@ -56,6 +58,7 @@ export async function runApiServer(options: {
     printerDevice,
     page,
     db,
+    mode: options.mode,
   });
 
   const trpcHandler = createHTTPHandler({
@@ -88,6 +91,31 @@ export async function runApiServer(options: {
       "Access-Control-Allow-Headers",
       req.headers["access-control-request-headers"] ?? "Content-Type",
     );
+
+    const url = new URL(req.url ?? "/", API_SERVER_ORIGIN);
+
+    if (url.pathname === "/healthz") {
+      if (req.method !== "GET") {
+        res.writeHead(405, {
+          Allow: "GET",
+        });
+        res.end();
+        return;
+      }
+
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+      });
+      res.end(
+        JSON.stringify(
+          createHealthzPayload({
+            mode: options.mode,
+            service: API_HEALTHZ_SERVICE,
+          }),
+        ),
+      );
+      return;
+    }
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);

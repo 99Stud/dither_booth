@@ -1,5 +1,7 @@
 import { dirname, resolve } from "node:path";
 
+export const ADMIN_SERVER_HEALTHZ_SERVICE = "admin";
+
 function requireMainPath() {
   const main = Bun.main;
 

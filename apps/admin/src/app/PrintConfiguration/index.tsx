@@ -1,4 +1,4 @@
-import { AppSidebarPageHeader } from "#components/AppSidebar/external/components/AppSidebarPageHeader/index";
+import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.utils";
@@ -53,9 +53,9 @@ export const PrintConfiguration = () => {
 
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+
   const ditherConfigurationQueryOptions =
     trpc.getDitherConfiguration.queryOptions();
-
   const { data: ditherConfiguration, isLoading: isLoadingDitherConfiguration } =
     useQuery(ditherConfigurationQueryOptions);
 

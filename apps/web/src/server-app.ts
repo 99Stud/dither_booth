@@ -1,5 +1,9 @@
 import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
-import { WEB_APP_ROOT, WEB_REPO_ROOT } from "#lib/server-constants";
+import {
+  WEB_APP_ROOT,
+  WEB_REPO_ROOT,
+  WEB_SERVER_HEALTHZ_SERVICE,
+} from "#lib/server-constants";
 import { getTrpcProxyUpstreamPath } from "#lib/trpc/trpc-proxy.utils";
 import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
 import { runBrowserServer } from "@dither-booth/browser-server";
@@ -17,8 +21,7 @@ const apiOrigin = getApiInternalOrigin();
 
 export async function runWebServer(options: {
   mode: "development" | "production";
-  /** Bun `import index from "./index.html"` value. */
-  indexHtml: unknown;
+  indexHtml: Bun.HTMLBundle;
 }) {
   const isProduction = options.mode === "production";
 
@@ -26,10 +29,6 @@ export async function runWebServer(options: {
     throw new Error(
       "runWebServer: development mode must not run with NODE_ENV=production",
     );
-  }
-
-  if (options.indexHtml === undefined) {
-    throw new Error("runWebServer: indexHtml is required");
   }
 
   const tlsCertPath = getWebTlsCertPath({ repoRoot: WEB_REPO_ROOT });
@@ -41,6 +40,9 @@ export async function runWebServer(options: {
     appRoot: WEB_APP_ROOT,
     bindHost: WEB_BIND_HOST,
     getTrpcProxyUpstreamPath,
+    healthz: {
+      service: WEB_SERVER_HEALTHZ_SERVICE,
+    },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {
       logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-started", {

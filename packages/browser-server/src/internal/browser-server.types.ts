@@ -4,6 +4,17 @@ export type BrowserServerMode = "development" | "production";
 
 export type StaticAssetCachePolicy = "immutable" | "public";
 
+export type BrowserServerHealthzConfig = {
+  service: string;
+};
+
+export type BrowserServerHealthzPayload = {
+  ok: true;
+  service: string;
+  mode: BrowserServerMode;
+  timestamp: string;
+};
+
 export type StaticManifestConfig = {
   cachePolicy: StaticAssetCachePolicy;
   url: URL;
@@ -14,7 +25,8 @@ export type RunBrowserServerOptions = {
   appRoot: string;
   bindHost: string;
   getTrpcProxyUpstreamPath: (path: string) => string;
-  indexHtml: unknown;
+  healthz: BrowserServerHealthzConfig;
+  indexHtml: Bun.HTMLBundle;
   mode: BrowserServerMode;
   port: number;
   publicOrigin: string;

@@ -78,7 +78,7 @@ This writes:
 
 Use the LAN IP that other devices on the same Wi-Fi/LAN use to reach the machine running the app. Do not use `127.0.0.1` or `localhost`.
 
-`booth-manifest.json` stores the current public IP and becomes the runtime source of truth for the browser HTTPS origin.
+`booth-manifest.json` stores the current public IP and the mkcert root CA path. It becomes the runtime source of truth for HTTPS origins and intra-apps fetch TLS configuration.
 
 ### 2. Inspect mkcert root CA
 

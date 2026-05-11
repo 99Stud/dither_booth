@@ -74,6 +74,7 @@ async function readWebTlsManifest(options: RepoPathOptions) {
   return {
     publicIp: manifest.data.publicIp,
     generatedAt: manifest.data.generatedAt,
+    caPath: manifest.data.caPath,
     certPath: manifest.data.certPath,
     keyPath: manifest.data.keyPath,
   };
@@ -120,6 +121,19 @@ export async function getWebPublicIp(options: RepoPathOptions) {
   }
 
   return manifest.publicIp;
+}
+
+export async function getWebTlsCaPath(options: RepoPathOptions) {
+  const manifestPath = getWebTlsManifestPath(options);
+  const manifest = await readWebTlsManifest(options);
+
+  if (!manifest) {
+    throw new Error(
+      `Missing web TLS CA path. ${getWebTlsManifestError(manifestPath)}`,
+    );
+  }
+
+  return manifest.caPath;
 }
 
 export async function getWebOrigin(options: RepoPathOptions) {

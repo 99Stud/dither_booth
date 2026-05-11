@@ -4,6 +4,7 @@ import type { Page } from "puppeteer";
 
 export type TRPCContext = {
   db: DB;
+  mode: "development" | "production";
   printerDevice?: USB;
   page?: Page;
 };

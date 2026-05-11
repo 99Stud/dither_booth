@@ -1,5 +1,9 @@
 import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
-import { ADMIN_APP_ROOT, ADMIN_REPO_ROOT } from "#lib/server-constants";
+import {
+  ADMIN_APP_ROOT,
+  ADMIN_REPO_ROOT,
+  ADMIN_SERVER_HEALTHZ_SERVICE,
+} from "#lib/server-constants";
 import { getTrpcProxyUpstreamPath } from "#lib/trpc/trpc-proxy.utils";
 import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
 import { runBrowserServer } from "@dither-booth/browser-server";
@@ -17,8 +21,7 @@ const apiOrigin = getApiInternalOrigin();
 
 export async function runAdminServer(options: {
   mode: "development" | "production";
-  /** Bun `import index from "./index.html"` value. */
-  indexHtml: unknown;
+  indexHtml: Bun.HTMLBundle;
 }) {
   const isProduction = options.mode === "production";
 
@@ -26,10 +29,6 @@ export async function runAdminServer(options: {
     throw new Error(
       "runAdminServer: development mode must not run with NODE_ENV=production",
     );
-  }
-
-  if (options.indexHtml === undefined) {
-    throw new Error("runAdminServer: indexHtml is required");
   }
 
   const tlsCertPath = getWebTlsCertPath({ repoRoot: ADMIN_REPO_ROOT });
@@ -41,6 +40,9 @@ export async function runAdminServer(options: {
     appRoot: ADMIN_APP_ROOT,
     bindHost: ADMIN_BIND_HOST,
     getTrpcProxyUpstreamPath,
+    healthz: {
+      service: ADMIN_SERVER_HEALTHZ_SERVICE,
+    },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {
       logKioskEvent("info", ADMIN_SERVER_LOG_SOURCE, "server-started", {

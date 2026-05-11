@@ -89,7 +89,7 @@ This writes:
 - `.local/tls/booth-key.pem`
 - `.local/tls/booth-manifest.json`
 
-`booth-manifest.json` stores current public IP and becomes runtime source of truth for HTTPS origin.
+`booth-manifest.json` stores current public IP and the mkcert root CA path. It becomes the runtime source of truth for HTTPS origins and intra-apps fetch TLS configuration.
 
 ### 6. Trust mkcert root CA on client devices
 

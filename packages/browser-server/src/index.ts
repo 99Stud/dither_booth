@@ -9,6 +9,7 @@ import {
   PUBLIC_ASSET_CACHE_CONTROL,
 } from "./internal/browser-server.constants";
 import {
+  createHealthzRoute,
   getProxiedRequestHeaders,
   getPublicAssetRoutes,
   getStaticRoutesFromManifests,
@@ -19,10 +20,13 @@ export {
   PUBLIC_ASSET_CACHE_CONTROL,
 } from "./internal/browser-server.constants";
 export type {
+  BrowserServerHealthzConfig,
+  BrowserServerHealthzPayload,
   BrowserServerMode,
   RunBrowserServerOptions,
 } from "./internal/browser-server.types";
 export {
+  createHealthzRoute,
   getProxiedRequestHeaders,
   getPublicAssetRoutes,
   getSafeFileUrl,
@@ -36,10 +40,6 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     throw new Error(
       `${options.serverName}: development mode must not run with NODE_ENV=production`,
     );
-  }
-
-  if (options.indexHtml === undefined) {
-    throw new Error(`${options.serverName}: indexHtml is required`);
   }
 
   const appPackageUrl = Bun.pathToFileURL(`${options.appRoot}/`);
@@ -105,6 +105,10 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
           },
         )
     : options.indexHtml;
+  const healthzRoute = createHealthzRoute({
+    mode: options.mode,
+    service: options.healthz.service,
+  });
 
   serve({
     hostname: options.bindHost,
@@ -117,8 +121,9 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
       [options.trpcProxyPath]: proxyApiRequest,
       [`${options.trpcProxyPath}/*`]: proxyApiRequest,
       ...staticRoutes,
-      "/": spaFallback as never,
-      "/*": spaFallback as never,
+      "/healthz": healthzRoute,
+      "/": spaFallback,
+      "/*": spaFallback,
     },
     development: isProduction
       ? false

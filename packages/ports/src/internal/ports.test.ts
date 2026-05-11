@@ -9,6 +9,7 @@ import {
   getPort,
   getWebOrigin,
   getWebPublicIp,
+  getWebTlsCaPath,
   getWebTlsCertPath,
   getWebTlsKeyPath,
   getWebTlsManifestPath,
@@ -38,12 +39,14 @@ function restoreEnvironment() {
 function createTempTlsPaths() {
   const directory = mkdtempSync(path.join(tmpdir(), "dither-booth-ports-"));
   const repoPathOptions = { repoRoot: directory };
+  const caPath = path.join(directory, "mkcert", "rootCA.pem");
   const certPath = getWebTlsCertPath(repoPathOptions);
   const keyPath = getWebTlsKeyPath(repoPathOptions);
 
   tempDirectories.push(directory);
 
   return {
+    caPath,
     certPath,
     directory,
     keyPath,
@@ -61,12 +64,13 @@ async function writeRawManifest(manifestPath: string, manifest: string) {
 async function writeManifest(
   manifestPath: string,
   publicIp: string,
-  tlsPaths: { certPath: string; keyPath: string },
+  tlsPaths: { caPath: string; certPath: string; keyPath: string },
 ) {
   await writeRawManifest(
     manifestPath,
     `${JSON.stringify(
       {
+        caPath: tlsPaths.caPath,
         certPath: tlsPaths.certPath,
         generatedAt: "2026-04-13T00:00:00.000Z",
         keyPath: tlsPaths.keyPath,
@@ -108,11 +112,15 @@ describe("@dither-booth/ports", () => {
   });
 
   it("reads web public IP from TLS manifest", async () => {
-    const { certPath, keyPath, manifestPath, repoPathOptions } =
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
       createTempTlsPaths();
 
     process.env.WEB_PORT = "3443";
-    await writeManifest(manifestPath, "192.168.1.42", { certPath, keyPath });
+    await writeManifest(manifestPath, "192.168.1.42", {
+      caPath,
+      certPath,
+      keyPath,
+    });
 
     expect(await getWebPublicIp(repoPathOptions)).toBe("192.168.1.42");
     expect(await getWebOrigin(repoPathOptions)).toBe(
@@ -120,12 +128,29 @@ describe("@dither-booth/ports", () => {
     );
   });
 
+  it("reads web TLS CA path from TLS manifest", async () => {
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
+
+    await writeManifest(manifestPath, "192.168.1.42", {
+      caPath,
+      certPath,
+      keyPath,
+    });
+
+    expect(await getWebTlsCaPath(repoPathOptions)).toBe(caPath);
+  });
+
   it("reads admin origin from the shared TLS manifest", async () => {
-    const { certPath, keyPath, manifestPath, repoPathOptions } =
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
       createTempTlsPaths();
 
     process.env.ADMIN_PORT = "3444";
-    await writeManifest(manifestPath, "192.168.1.43", { certPath, keyPath });
+    await writeManifest(manifestPath, "192.168.1.43", {
+      caPath,
+      certPath,
+      keyPath,
+    });
 
     expect(await getAdminOrigin(repoPathOptions)).toBe(
       "https://192.168.1.43:3444",
@@ -133,11 +158,15 @@ describe("@dither-booth/ports", () => {
   });
 
   it("formats IPv6 web origins with brackets", async () => {
-    const { certPath, keyPath, manifestPath, repoPathOptions } =
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
       createTempTlsPaths();
 
     process.env.WEB_PORT = "3443";
-    await writeManifest(manifestPath, "fe80::1", { certPath, keyPath });
+    await writeManifest(manifestPath, "fe80::1", {
+      caPath,
+      certPath,
+      keyPath,
+    });
 
     expect(await getWebOrigin(repoPathOptions)).toBe("https://[fe80::1]:3443");
   });
@@ -147,6 +176,14 @@ describe("@dither-booth/ports", () => {
 
     await expect(getWebPublicIp(repoPathOptions)).rejects.toThrow(
       /Missing public web IP/,
+    );
+  });
+
+  it("throws clear error when web TLS CA path is missing", async () => {
+    const { repoPathOptions } = createTempTlsPaths();
+
+    await expect(getWebTlsCaPath(repoPathOptions)).rejects.toThrow(
+      /Missing web TLS CA path/,
     );
   });
 
@@ -161,12 +198,13 @@ describe("@dither-booth/ports", () => {
   });
 
   it("throws clear error when TLS manifest schema is invalid", async () => {
-    const { certPath, keyPath, manifestPath, repoPathOptions } =
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
       createTempTlsPaths();
 
     await writeRawManifest(
       manifestPath,
       `${JSON.stringify({
+        caPath,
         certPath,
         generatedAt: "2026-04-13T00:00:00.000Z",
         keyPath,

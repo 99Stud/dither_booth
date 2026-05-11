@@ -3,6 +3,7 @@ import {
   PUBLIC_ASSET_CACHE_CONTROL,
 } from "#internal/browser-server.constants";
 import {
+  createHealthzRoute,
   getProxiedRequestHeaders,
   getPublicAssetRoutes,
   getSafeFileUrl,
@@ -17,6 +18,46 @@ function testTempRoot(): string {
 }
 
 const distRoot = new URL("file:///tmp/dither-booth-browser-server-dist/");
+
+describe("createHealthzRoute", () => {
+  it("returns a 200 JSON response for GET requests", async () => {
+    const route = createHealthzRoute({
+      mode: "development",
+      service: "web",
+    });
+
+    const res = await route(new Request("https://web.local/healthz"));
+    const payload = (await res.json()) as {
+      ok: boolean;
+      service: string;
+      mode: string;
+      timestamp: string;
+    };
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("application/json");
+    expect(payload.ok).toBe(true);
+    expect(payload.service).toBe("web");
+    expect(payload.mode).toBe("development");
+    expect(Number.isNaN(Date.parse(payload.timestamp))).toBe(false);
+  });
+
+  it("rejects non-GET requests", async () => {
+    const route = createHealthzRoute({
+      mode: "production",
+      service: "admin",
+    });
+
+    const res = await route(
+      new Request("https://admin.local/healthz", {
+        method: "POST",
+      }),
+    );
+
+    expect(res.status).toBe(405);
+    expect(res.headers.get("allow")).toBe("GET");
+  });
+});
 
 describe("getSafeFileUrl", () => {
   it("resolves asset paths inside the dist directory", () => {
