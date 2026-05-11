@@ -54,9 +54,7 @@ const applySquareConstraints = async (
     };
   }
 
-  try {
-    await track.applyConstraints(exactConstraints);
-  } catch {
+  await track.applyConstraints(exactConstraints).catch(() => {
     // Fall back to softer constraints so preview and capture stay usable.
     const idealConstraints: MediaTrackConstraints = {
       aspectRatio: {
@@ -73,8 +71,8 @@ const applySquareConstraints = async (
       };
     }
 
-    await track.applyConstraints(idealConstraints);
-  }
+    return track.applyConstraints(idealConstraints);
+  });
 };
 
 const createCameraState = (
@@ -215,12 +213,10 @@ export const useUserMedia = (params: UseUserMediaParams) => {
         if (track) {
           const maxSquareSide = getMaxSquareSide(track);
 
-          try {
-            await applySquareConstraints(track, maxSquareSide);
-          } catch (e) {
+          await applySquareConstraints(track, maxSquareSide).catch((e) => {
             captureInitializationErrorRef.current = e;
             onConstraintFallbackErrorRef.current?.(e);
-          }
+          });
 
           if (!cancelled) {
             captureInitializationRef.current = (async () => {

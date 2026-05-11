@@ -6,13 +6,14 @@ import { TRPCError } from "@trpc/server";
 export const createDitherConfiguration = publicProcedure
   .input(CREATE_DITHER_CONFIGURATION_SCHEMA)
   .mutation(async ({ input, ctx }) => {
-    try {
-      return await ctx.db.insert(printConfigTable).values(input);
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to save dither configuration.",
-        cause: error,
+    return await ctx.db
+      .insert(printConfigTable)
+      .values(input)
+      .catch((error) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to save dither configuration.",
+          cause: error,
+        });
       });
-    }
   });

@@ -8,16 +8,15 @@ import { eq } from "drizzle-orm";
 export const updateDitherConfiguration = publicProcedure
   .input(UPDATE_DITHER_CONFIGURATION_SCHEMA)
   .mutation(async ({ input, ctx }) => {
-    try {
-      return await ctx.db
-        .update(printConfigTable)
-        .set(input)
-        .where(eq(printConfigTable.id, PRINT_CONFIG_SINGLETON_ID));
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to save dither configuration.",
-        cause: error,
+    return await ctx.db
+      .update(printConfigTable)
+      .set(input)
+      .where(eq(printConfigTable.id, PRINT_CONFIG_SINGLETON_ID))
+      .catch((error) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to save dither configuration.",
+          cause: error,
+        });
       });
-    }
   });

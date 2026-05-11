@@ -180,26 +180,24 @@ export const PrintConfiguration = () => {
         const persistDitherConfiguration = async (
           submittedValues: PrintConfigurationFormValues,
         ) => {
-          try {
-            if (ditherConfiguration) {
-              await ditherConfigurationUpdater.mutateAsync(submittedValues);
-            } else {
-              await ditherConfigurationCreator.mutateAsync(submittedValues);
-            }
-          } catch (e) {
-            reportPrintConfigurationError(
-              e,
-              ditherConfiguration
-                ? "update-dither-configuration-failed"
-                : "create-dither-configuration-failed",
-              ditherConfiguration
-                ? "Update dither configuration failed."
-                : "Create dither configuration failed.",
-            );
-            return false;
-          }
+          const ditherConfigurationPersistence = ditherConfiguration
+            ? ditherConfigurationUpdater.mutateAsync(submittedValues)
+            : ditherConfigurationCreator.mutateAsync(submittedValues);
 
-          return true;
+          return await ditherConfigurationPersistence
+            .then(() => true)
+            .catch((e) => {
+              reportPrintConfigurationError(
+                e,
+                ditherConfiguration
+                  ? "update-dither-configuration-failed"
+                  : "create-dither-configuration-failed",
+                ditherConfiguration
+                  ? "Update dither configuration failed."
+                  : "Create dither configuration failed.",
+              );
+              return false;
+            });
         };
 
         const wasPersisted = await persistDitherConfiguration(submittedValues);

@@ -62,20 +62,17 @@ export async function fetchRemoteHealthzPayload<TPayload>({
 }) {
   const serviceNameLower = serviceName.toLowerCase();
 
-  let healthzRes: Response;
-  try {
-    healthzRes = await fetcher(url, {
-      method: "GET",
-      signal: AbortSignal.timeout(timeoutMs),
-      ...(tlsCaFile
-        ? {
-            tls: {
-              ca: [tlsCaFile],
-            },
-          }
-        : {}),
-    });
-  } catch (error) {
+  const healthzRes = await fetcher(url, {
+    method: "GET",
+    signal: AbortSignal.timeout(timeoutMs),
+    ...(tlsCaFile
+      ? {
+          tls: {
+            ca: [tlsCaFile],
+          },
+        }
+      : {}),
+  }).catch((error) => {
     const timedOut = error instanceof Error && error.name === "TimeoutError";
     throw new TRPCError({
       code: "BAD_GATEWAY",
@@ -84,7 +81,7 @@ export async function fetchRemoteHealthzPayload<TPayload>({
         : `Failed to reach ${serviceNameLower} health endpoint.`,
       cause: error,
     });
-  }
+  });
 
   if (!healthzRes.ok) {
     throw new TRPCError({
@@ -93,17 +90,13 @@ export async function fetchRemoteHealthzPayload<TPayload>({
     });
   }
 
-  let healthzResRaw: unknown;
-
-  try {
-    healthzResRaw = await healthzRes.json();
-  } catch (error) {
+  const healthzResRaw = await healthzRes.json().catch((error) => {
     throw new TRPCError({
       code: "BAD_GATEWAY",
       message: `${serviceName} health endpoint returned invalid JSON.`,
       cause: error,
     });
-  }
+  });
 
   const healthzParsed = schema.safeParse(healthzResRaw);
   if (!healthzParsed.success) {

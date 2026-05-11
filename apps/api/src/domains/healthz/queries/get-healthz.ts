@@ -14,21 +14,16 @@ import { getWebOrigin, getWebTlsCaPath } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
 
 export const getHealthz = publicProcedure.query(async ({ ctx }) => {
-  let webOrigin: string;
-  let caPath: string;
-
-  try {
-    [webOrigin, caPath] = await Promise.all([
-      getWebOrigin({ repoRoot: API_REPO_ROOT }),
-      getWebTlsCaPath({ repoRoot: API_REPO_ROOT }),
-    ]);
-  } catch (error) {
+  const [webOrigin, caPath] = await Promise.all([
+    getWebOrigin({ repoRoot: API_REPO_ROOT }),
+    getWebTlsCaPath({ repoRoot: API_REPO_ROOT }),
+  ]).catch((error) => {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to resolve web origin or TLS CA.",
       cause: error,
     });
-  }
+  });
 
   const ca = Bun.file(caPath);
 

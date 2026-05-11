@@ -42,11 +42,11 @@ export const printImageToDevice = async (
           await printer.close();
           resolve();
         } catch (e) {
-          try {
-            await printer.close();
-          } catch {
-            /* ignore */
-          }
+          await Promise.resolve()
+            .then(() => printer.close())
+            .catch(() => {
+              /* ignore */
+            });
           reject(e);
         }
       })();

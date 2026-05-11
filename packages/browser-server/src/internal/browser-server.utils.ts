@@ -148,11 +148,10 @@ export async function getStaticRoutesFromManifests({
 }
 
 async function isExistingDirectory(path: string): Promise<boolean> {
-  try {
-    return (await Bun.file(path).stat()).isDirectory();
-  } catch {
-    return false;
-  }
+  return await Bun.file(path)
+    .stat()
+    .then((stat) => stat.isDirectory())
+    .catch(() => false);
 }
 
 async function getPublicAssetPaths(publicDirectory: URL, manifestUrl?: URL) {
