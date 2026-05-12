@@ -35,7 +35,7 @@ export async function runAdminServer(options: {
   const tlsKeyPath = getWebTlsKeyPath({ repoRoot: ADMIN_REPO_ROOT });
   const adminOrigin = await getAdminOrigin({ repoRoot: ADMIN_REPO_ROOT });
 
-  await runBrowserServer({
+  return await runBrowserServer({
     apiOrigin,
     appRoot: ADMIN_APP_ROOT,
     bindHost: ADMIN_BIND_HOST,

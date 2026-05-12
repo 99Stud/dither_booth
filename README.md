@@ -126,6 +126,24 @@ bun run build
 bun run start
 ```
 
+Production with PM2:
+
+```bash
+bun run build
+bun run start:pm2
+bun run list:pm2
+```
+
+PM2 starts the already-built `dist/server.js` entry for each app. Use `bun run reload:pm2` after a new build, `bun run logs:pm2` to inspect process logs, and `bun run stop:pm2` to stop the managed apps. After confirming a good production state, run `bun run save:pm2` so PM2 can restore that process list on reboot.
+
+Health checks:
+
+```bash
+curl http://127.0.0.1:3001/healthz
+curl -k https://<SERVER_LAN_IP>:3000/healthz
+curl -k https://<SERVER_LAN_IP>:3002/healthz
+```
+
 Then open:
 
 - Web: `https://<SERVER_LAN_IP>:3000` unless you changed `WEB_PORT`

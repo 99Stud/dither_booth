@@ -35,7 +35,7 @@ export async function runWebServer(options: {
   const tlsKeyPath = getWebTlsKeyPath({ repoRoot: WEB_REPO_ROOT });
   const webOrigin = await getWebOrigin({ repoRoot: WEB_REPO_ROOT });
 
-  await runBrowserServer({
+  return await runBrowserServer({
     apiOrigin,
     appRoot: WEB_APP_ROOT,
     bindHost: WEB_BIND_HOST,

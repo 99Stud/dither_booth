@@ -15,6 +15,10 @@ export type BrowserServerHealthzPayload = {
   timestamp: string;
 };
 
+export type BrowserServerLifecycle = {
+  close: () => Promise<void>;
+};
+
 export type StaticManifestConfig = {
   cachePolicy: StaticAssetCachePolicy;
   url: URL;

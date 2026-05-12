@@ -20,6 +20,7 @@ export {
   PUBLIC_ASSET_CACHE_CONTROL,
 } from "./internal/browser-server.constants";
 export type {
+  BrowserServerLifecycle,
   BrowserServerHealthzConfig,
   BrowserServerHealthzPayload,
   BrowserServerMode,
@@ -110,7 +111,7 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     service: options.healthz.service,
   });
 
-  serve({
+  const server = serve({
     hostname: options.bindHost,
     port: options.port,
     tls: {
@@ -139,4 +140,8 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
       url: options.publicOrigin,
     },
   });
+
+  return {
+    close: () => server.stop(),
+  };
 }

@@ -1,5 +1,5 @@
 import type { TRPCContext } from "#lib/trpc/trpc.types";
-import type { Page } from "puppeteer";
+import type { Browser, Page } from "puppeteer";
 
 import { API_HEALTHZ_SERVICE } from "#domains/healthz/internal/healthz.constants";
 import { createHealthzPayload } from "#domains/healthz/internal/healthz.utils";
@@ -20,9 +20,46 @@ import puppeteer from "puppeteer";
 
 import { db } from "./db";
 
+type ApiServerLifecycle = {
+  close: () => Promise<void>;
+  server: http.Server;
+};
+
+type CloseableResource = {
+  close: () => Promise<void> | void;
+};
+
+function isCloseableResource(value: unknown): value is CloseableResource {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "close" in value &&
+    typeof value.close === "function"
+  );
+}
+
+async function closeHttpServer(server: http.Server) {
+  await new Promise<void>((resolvePromise, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolvePromise();
+    });
+  });
+}
+
+async function closePrinterDevice(printerDevice: USB | undefined) {
+  if (isCloseableResource(printerDevice)) {
+    await printerDevice.close();
+  }
+}
+
 export async function runApiServer(options: {
   mode: "development" | "production";
-}) {
+}): Promise<ApiServerLifecycle> {
   if (options.mode === "development" && Bun.env.NODE_ENV === "production") {
     throw new Error(
       "runApiServer: development mode must not run with NODE_ENV=production",
@@ -30,6 +67,7 @@ export async function runApiServer(options: {
   }
 
   let printerDevice: USB | undefined;
+  let browser: Browser | undefined;
   let page: Page | undefined;
 
   try {
@@ -41,7 +79,11 @@ export async function runApiServer(options: {
   }
 
   try {
-    const browser = await puppeteer.launch();
+    browser = await puppeteer.launch({
+      handleSIGHUP: false,
+      handleSIGINT: false,
+      handleSIGTERM: false,
+    });
     page = await browser.newPage();
     await page.setViewport({
       deviceScaleFactor: 2,
@@ -140,5 +182,51 @@ export async function runApiServer(options: {
     });
   }
 
-  return server;
+  let closePromise: Promise<void> | undefined;
+
+  const close = () => {
+    closePromise ??= (async () => {
+      logKioskEvent("info", API_SERVER_LOG_SOURCE, "server-shutdown-started");
+
+      const errors: unknown[] = [];
+      const closeResource = async (
+        resource: string,
+        closeResourceFn: () => Promise<void> | void,
+      ) => {
+        try {
+          await closeResourceFn();
+        } catch (error) {
+          errors.push(error);
+          logKioskEvent(
+            "error",
+            API_SERVER_LOG_SOURCE,
+            "server-shutdown-failed",
+            {
+              details: {
+                resource,
+              },
+              error: getKioskErrorDiagnostics(error, "API shutdown failed."),
+            },
+          );
+        }
+      };
+
+      await closeResource("http-server", () => closeHttpServer(server));
+      await closeResource("browser", () => browser?.close());
+      await closeResource("printer", () => closePrinterDevice(printerDevice));
+
+      if (errors.length > 0) {
+        throw new AggregateError(errors, "API server shutdown failed.");
+      }
+
+      logKioskEvent("info", API_SERVER_LOG_SOURCE, "server-shutdown-completed");
+    })();
+
+    return closePromise;
+  };
+
+  return {
+    close,
+    server,
+  };
 }
