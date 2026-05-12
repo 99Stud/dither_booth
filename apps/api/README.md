@@ -46,6 +46,14 @@ The API owns the local SQLite database at `data/dither-booth.sqlite` and applies
 
 Production keeps native runtime dependencies such as Puppeteer, Sharp, and printer USB packages external, so the workspace dependencies must remain installed wherever the production server runs.
 
+### Reinstall Puppeteer Chrome
+
+During the first installation, Puppeteer downloads the Chrome binary to an external location. After a fresh install, reinstall Chrome in the Puppeteer Cache folder from the repository root:
+
+```bash
+bun run reinstall-puppeteer
+```
+
 ## Database Management
 
 Use these commands from `apps/api`:

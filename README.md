@@ -39,6 +39,14 @@ Both apps use the same local TLS certificate and proxy `/api/trpc` to the API ov
 bun install
 ```
 
+#### Reinstall Puppeteer Chrome
+
+During the first installation, Puppeteer downloads the Chrome binary to an external location. After a fresh install, reinstall Chrome in the Puppeteer Cache folder from the repository root:
+
+```bash
+bun run reinstall-puppeteer
+```
+
 ### 2. Set up database
 
 From the repository root, apply all the migrations to the local SQLite database:

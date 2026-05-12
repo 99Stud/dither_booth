@@ -52,7 +52,7 @@ export const generateReceipt = publicProcedure
     if (!ctx.page) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Receipt page is not initialized.",
+        message: "Puppeteer page is not initialized.",
       });
     }
 

@@ -127,11 +127,13 @@ export const HealthCard = () => {
           <HealthzAccordionItem
             healthz={healthz}
             isHealthzSuccess={isHealthzSuccess}
+            isHealthzError={isHealthzError}
             service="web"
           />
           <HealthzAccordionItem
             healthz={healthz}
             isHealthzSuccess={isHealthzSuccess}
+            isHealthzError={isHealthzError}
             service="api"
           />
         </Accordion>
@@ -143,12 +145,14 @@ export const HealthCard = () => {
 interface HealthzAccordionItemProps {
   service: "web" | "api";
   isHealthzSuccess: boolean;
+  isHealthzError: boolean;
   healthz?: inferOutput<ReturnType<typeof useTRPC>["getHealthz"]>;
 }
 
 const HealthzAccordionItem: FC<HealthzAccordionItemProps> = ({
   service,
   isHealthzSuccess,
+  isHealthzError,
   healthz,
 }) => {
   const serviceHealthz = healthz?.[service].healthz;
@@ -173,6 +177,11 @@ const HealthzAccordionItem: FC<HealthzAccordionItemProps> = ({
               )}
             </p>
           </div>
+        </AccordionContent>
+      )}
+      {isHealthzError && (
+        <AccordionContent>
+          <p>Failed to gather {service} health information.</p>
         </AccordionContent>
       )}
     </AccordionItem>
