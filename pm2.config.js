@@ -5,6 +5,12 @@ const repoRoot = dirname(fileURLToPath(import.meta.url));
 const bunInterpreter = resolve(repoRoot, "node_modules", ".bin", "bun");
 const pm2LogDir = resolve(repoRoot, "logs", "pm2");
 
+export const PM2_PROCESS_NAMES = {
+  api: "dither-booth-api",
+  admin: "dither-booth-admin",
+  web: "dither-booth-web",
+};
+
 const sharedAppConfig = {
   args: ["dist/server.js"],
   autorestart: true,
@@ -39,21 +45,33 @@ const createAppConfig = ({
   },
 });
 
+const assertSingleAdminInstance = (appConfig) => {
+  if (appConfig.instances !== 1) {
+    throw new Error(
+      "Admin PM2 process must run with instances: 1 because PM2 restart locking is in-memory.",
+    );
+  }
+};
+
+const adminAppConfig = createAppConfig({
+  appDirectory: "admin",
+  max_memory_restart: "256M",
+  name: PM2_PROCESS_NAMES.admin,
+});
+
+assertSingleAdminInstance(adminAppConfig);
+
 export const apps = [
   createAppConfig({
     appDirectory: "api",
     max_memory_restart: "1G",
-    name: "dither-booth-api",
+    name: PM2_PROCESS_NAMES.api,
   }),
-  createAppConfig({
-    appDirectory: "admin",
-    max_memory_restart: "256M",
-    name: "dither-booth-admin",
-  }),
+  adminAppConfig,
   createAppConfig({
     appDirectory: "web",
     max_memory_restart: "256M",
-    name: "dither-booth-web",
+    name: PM2_PROCESS_NAMES.web,
   }),
 ];
 

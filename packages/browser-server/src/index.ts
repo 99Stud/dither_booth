@@ -1,7 +1,10 @@
 import { serve } from "bun";
 import { resolve } from "node:path";
 
-import type { RunBrowserServerOptions } from "./internal/browser-server.types";
+import type {
+  BrowserServerWebSocketData,
+  RunBrowserServerOptions,
+} from "./internal/browser-server.types";
 
 import {
   BUILD_ASSET_MANIFEST_FILE_NAME,
@@ -10,27 +13,9 @@ import {
 } from "./internal/browser-server.constants";
 import {
   createHealthzRoute,
+  createWebSocketUpgradeRoute,
   getProxiedRequestHeaders,
   getPublicAssetRoutes,
-  getStaticRoutesFromManifests,
-} from "./internal/browser-server.utils";
-
-export {
-  IMMUTABLE_ASSET_CACHE_CONTROL,
-  PUBLIC_ASSET_CACHE_CONTROL,
-} from "./internal/browser-server.constants";
-export type {
-  BrowserServerLifecycle,
-  BrowserServerHealthzConfig,
-  BrowserServerHealthzPayload,
-  BrowserServerMode,
-  RunBrowserServerOptions,
-} from "./internal/browser-server.types";
-export {
-  createHealthzRoute,
-  getProxiedRequestHeaders,
-  getPublicAssetRoutes,
-  getSafeFileUrl,
   getStaticRoutesFromManifests,
 } from "./internal/browser-server.utils";
 
@@ -41,6 +26,35 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     throw new Error(
       `${options.serverName}: development mode must not run with NODE_ENV=production`,
     );
+  }
+
+  const reservedRoutePaths = new Set([
+    options.trpcProxyPath,
+    `${options.trpcProxyPath}/*`,
+    "/healthz",
+    "/",
+    "/*",
+  ]);
+  const customRoutes = options.routes ?? {};
+  const webSocketRoutes = options.webSocketRoutes ?? {};
+
+  for (const routePath of [
+    ...Object.keys(customRoutes),
+    ...Object.keys(webSocketRoutes),
+  ]) {
+    if (reservedRoutePaths.has(routePath)) {
+      throw new Error(
+        `${options.serverName}: custom route cannot override reserved route "${routePath}".`,
+      );
+    }
+  }
+
+  for (const routePath of Object.keys(webSocketRoutes)) {
+    if (routePath in customRoutes) {
+      throw new Error(
+        `${options.serverName}: route "${routePath}" cannot be both an HTTP and WebSocket route.`,
+      );
+    }
   }
 
   const appPackageUrl = Bun.pathToFileURL(`${options.appRoot}/`);
@@ -110,6 +124,16 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     mode: options.mode,
     service: options.healthz.service,
   });
+  const webSocketUpgradeRoutes = Object.fromEntries(
+    Object.entries(webSocketRoutes).map(([routePath, handler]) => [
+      routePath,
+      createWebSocketUpgradeRoute({
+        handler,
+        publicOrigin: options.publicOrigin,
+        routePath,
+      }),
+    ]),
+  );
 
   const server = serve({
     hostname: options.bindHost,
@@ -121,10 +145,24 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     routes: {
       [options.trpcProxyPath]: proxyApiRequest,
       [`${options.trpcProxyPath}/*`]: proxyApiRequest,
+      ...customRoutes,
+      ...webSocketUpgradeRoutes,
       ...staticRoutes,
       "/healthz": healthzRoute,
       "/": spaFallback,
       "/*": spaFallback,
+    },
+    websocket: {
+      data: {} as BrowserServerWebSocketData,
+      open: (ws) => {
+        void webSocketRoutes[ws.data.routePath]?.open?.(ws);
+      },
+      message: (ws, message) => {
+        void webSocketRoutes[ws.data.routePath]?.message?.(ws, message);
+      },
+      close: (ws, code, reason) => {
+        void webSocketRoutes[ws.data.routePath]?.close?.(ws, code, reason);
+      },
     },
     development: isProduction
       ? false

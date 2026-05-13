@@ -6,6 +6,7 @@ import type {
   RouteHandler,
   StaticAssetCachePolicy,
   StaticManifestConfig,
+  WebSocketRouteHandler,
 } from "./browser-server.types";
 
 import {
@@ -55,6 +56,52 @@ export function createHealthzRoute({
     };
 
     return Response.json(payload);
+  };
+}
+
+export function createWebSocketUpgradeRoute({
+  handler,
+  publicOrigin,
+  routePath,
+}: {
+  handler: WebSocketRouteHandler;
+  publicOrigin: string;
+  routePath: string;
+}): RouteHandler {
+  const allowedOrigin = new URL(publicOrigin).origin;
+
+  return async (req, server) => {
+    if (!server) {
+      return new Response("WebSocket server unavailable.", {
+        status: 500,
+      });
+    }
+
+    if (req.headers.get("origin") !== allowedOrigin) {
+      return new Response("WebSocket origin not allowed.", {
+        status: 403,
+      });
+    }
+
+    const validationResponse = await handler.validateUpgrade?.(req);
+
+    if (validationResponse) {
+      return validationResponse;
+    }
+
+    const didUpgrade = server.upgrade(req, {
+      data: {
+        routePath,
+      },
+    });
+
+    if (didUpgrade) {
+      return undefined;
+    }
+
+    return new Response("WebSocket upgrade failed.", {
+      status: 500,
+    });
   };
 }
 

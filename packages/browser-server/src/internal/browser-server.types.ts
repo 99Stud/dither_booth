@@ -1,4 +1,34 @@
-export type RouteHandler = (req: Request) => Response | Promise<Response>;
+export type RouteHandler = (
+  req: Request,
+  server?: Bun.Server<BrowserServerWebSocketData>,
+) => Response | undefined | Promise<Response | undefined>;
+
+export type BrowserServerWebSocketData = {
+  routePath: string;
+};
+
+export type BrowserServerWebSocket =
+  Bun.ServerWebSocket<BrowserServerWebSocketData>;
+
+export type BrowserServerWebSocketMessage = string | Buffer;
+
+export type WebSocketUpgradeValidator = (
+  req: Request,
+) => Response | undefined | Promise<Response | undefined>;
+
+export type WebSocketRouteHandler = {
+  validateUpgrade?: WebSocketUpgradeValidator;
+  open?: (ws: BrowserServerWebSocket) => void | Promise<void>;
+  message?: (
+    ws: BrowserServerWebSocket,
+    message: BrowserServerWebSocketMessage,
+  ) => void | Promise<void>;
+  close?: (
+    ws: BrowserServerWebSocket,
+    code: number,
+    reason: string,
+  ) => void | Promise<void>;
+};
 
 export type BrowserServerMode = "development" | "production";
 
@@ -34,10 +64,12 @@ export type RunBrowserServerOptions = {
   mode: BrowserServerMode;
   port: number;
   publicOrigin: string;
+  routes?: Record<string, RouteHandler>;
   serverName: string;
   tlsCertPath: string;
   tlsKeyPath: string;
   trpcProxyPath: string;
+  webSocketRoutes?: Record<string, WebSocketRouteHandler>;
   logStarted: (event: {
     details: {
       environment: string | undefined;
