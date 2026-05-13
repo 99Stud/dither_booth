@@ -1,5 +1,7 @@
 export const BUILD_ASSET_MANIFEST_FILE_NAME = "build-assets.json";
 export const PUBLIC_ASSET_MANIFEST_FILE_NAME = "public-assets.json";
+export const PRODUCTION_SERVER_FILE_NAME = "server.js";
+export const PRODUCTION_SERVER_HTML_FILE_NAME = "server.html";
 export const IMMUTABLE_ASSET_CACHE_CONTROL =
   "public, max-age=31536000, immutable";
 export const PUBLIC_ASSET_CACHE_CONTROL = "no-cache";

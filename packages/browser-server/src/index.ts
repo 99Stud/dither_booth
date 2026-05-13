@@ -10,6 +10,7 @@ import {
   BUILD_ASSET_MANIFEST_FILE_NAME,
   PUBLIC_ASSET_MANIFEST_FILE_NAME,
   PUBLIC_ASSET_CACHE_CONTROL,
+  PRODUCTION_SERVER_HTML_FILE_NAME,
 } from "./internal/browser-server.constants";
 import {
   createHealthzRoute,
@@ -112,7 +113,12 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
   const spaFallback = isProduction
     ? () =>
         new Response(
-          Bun.file(new URL("./dist/server-entry.html", appPackageUrl)),
+          Bun.file(
+            new URL(
+              `./dist/${PRODUCTION_SERVER_HTML_FILE_NAME}`,
+              appPackageUrl,
+            ),
+          ),
           {
             headers: {
               "Cache-Control": PUBLIC_ASSET_CACHE_CONTROL,

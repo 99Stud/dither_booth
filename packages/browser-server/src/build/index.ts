@@ -1,12 +1,13 @@
 import {
   BUILD_ASSET_MANIFEST_FILE_NAME,
   PUBLIC_ASSET_MANIFEST_FILE_NAME,
+  PRODUCTION_SERVER_FILE_NAME,
 } from "#internal/browser-server.constants";
 import tailwindPlugin from "bun-plugin-tailwind";
 import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { PRODUCTION_SERVER_ENTRY } from "./internal/build.constants";
+import { PRODUCTION_ENTRY } from "./internal/build.constants";
 import { copyPublicAssets, toDistRelative } from "./internal/build.utils";
 
 export async function buildBrowserServerApp() {
@@ -22,7 +23,6 @@ export async function buildBrowserServerApp() {
     distDirectory,
     PUBLIC_ASSET_MANIFEST_FILE_NAME,
   );
-  const serverBootstrap = resolve(distDirectory, "server.js");
 
   await rm(distDirectory, { recursive: true, force: true });
 
@@ -32,7 +32,7 @@ export async function buildBrowserServerApp() {
   };
 
   const serverResult = await Bun.build({
-    entrypoints: [resolve(resolvedAppRoot, PRODUCTION_SERVER_ENTRY)],
+    entrypoints: [resolve(resolvedAppRoot, PRODUCTION_ENTRY)],
     external: ["pm2"],
     outdir: distDirectory,
     target: "bun",
@@ -41,7 +41,7 @@ export async function buildBrowserServerApp() {
     minify: nodeEnv === "production",
     sourcemap: "none",
     naming: {
-      entry: "server-entry.[ext]",
+      entry: "server.[ext]",
       chunk: "assets/[name]-[hash].[ext]",
       asset: "assets/[name]-[hash].[ext]",
     },
@@ -64,7 +64,7 @@ export async function buildBrowserServerApp() {
   );
   buildPaths.add(BUILD_ASSET_MANIFEST_FILE_NAME);
   buildPaths.add(PUBLIC_ASSET_MANIFEST_FILE_NAME);
-  buildPaths.add("server.js");
+  buildPaths.add(PRODUCTION_SERVER_FILE_NAME);
 
   const buildAssetPaths = [...buildPaths]
     .filter((path) => path.startsWith("assets/"))
@@ -83,15 +83,5 @@ export async function buildBrowserServerApp() {
   await Bun.write(
     publicAssetManifest,
     `${JSON.stringify(publicAssetPaths, null, 2)}\n`,
-  );
-
-  await Bun.write(
-    serverBootstrap,
-    `import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-
-process.chdir(dirname(fileURLToPath(import.meta.url)));
-await import("./server-entry.js");
-`,
   );
 }

@@ -54,7 +54,7 @@ bun run format:fix
 
 Development serves `src/index.html` and raw TypeScript entrypoints through Bun HTML imports with hot reloading.
 
-Production builds a bundled server entry that imports `src/index.html`, then writes a small `dist/server.js` bootstrap that starts it. Bun emits optimized HTML and hashed build assets into `dist`.
+Production builds `src/production-entry.ts` into `dist/server.js`; that entry sets the app root as cwd before loading `src/production-server.ts`. Bun emits optimized HTML and hashed build assets into `dist`.
 
 The production server runs `dist/server.js`, serves static manifest routes over HTTPS, uses immutable cache headers for hashed build assets, and uses conservative cache headers for copied `public/` assets.
 

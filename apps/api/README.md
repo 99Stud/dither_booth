@@ -40,7 +40,7 @@ bun run format:fix
 
 ## Infrastructure
 
-Development runs `src/server.ts` with Bun watch mode. Production first type-checks the API, bundles the server entry, and starts `dist/server.js`, which loads the bundled `dist/server-entry.js`.
+Development runs `src/server.ts` with Bun watch mode. Production first type-checks the API, bundles `src/production-entry.ts`, and starts the resulting `dist/server.js`.
 
 The API owns the local SQLite database at `data/dither-booth.sqlite` and applies SQL migrations from `drizzle`. It also owns the local HTTPS helper scripts that generate the certificate shared by the web and admin apps.
 

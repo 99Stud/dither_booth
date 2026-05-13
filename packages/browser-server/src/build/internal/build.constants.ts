@@ -1,1 +1,1 @@
-export const PRODUCTION_SERVER_ENTRY = "src/production-server.ts";
+export const PRODUCTION_ENTRY = "src/production-entry.ts";
