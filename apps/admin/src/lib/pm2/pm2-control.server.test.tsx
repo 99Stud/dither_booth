@@ -159,9 +159,9 @@ describe("parsePm2RestartProcessNames", () => {
       })();
 
       expect(error).toBeInstanceOf(Pm2RestartOperationError);
-      expect((error as InstanceType<typeof Pm2RestartOperationError>).code).toBe(
-        "pm2-status-unknown",
-      );
+      expect(
+        (error as InstanceType<typeof Pm2RestartOperationError>).code,
+      ).toBe("pm2-status-unknown");
       expect((error as Error).message).toBe(
         "Invalid PM2 process name configuration.",
       );

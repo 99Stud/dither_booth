@@ -28,6 +28,10 @@ export function sendRestartEvent(
   }
 }
 
+export function isPm2ManagedRuntime() {
+  return Bun.env.PROCESS_MANAGER === "pm2";
+}
+
 const NUL_CHAR = String.fromCharCode(0);
 
 export function getWebSocketCloseReason(reason: string) {

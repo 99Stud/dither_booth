@@ -1,25 +1,13 @@
+import type z from "zod";
+
 import { TRPCError } from "@trpc/server";
 
-import type { HealthzMode } from "./healthz.types";
-
-type HealthzPayload<TService extends string> = {
-  ok: true;
-  service: TService;
-  mode: HealthzMode;
-  timestamp: string;
-};
-
-type HealthzSchema<TPayload> = {
-  safeParse: (value: unknown) =>
-    | {
-        success: true;
-        data: TPayload;
-      }
-    | {
-        success: false;
-        error: unknown;
-      };
-};
+import type {
+  DependencyHealthzPayload,
+  HealthzMode,
+  HealthzPayload,
+  Timestamped,
+} from "./healthz.types";
 
 type HealthzFetch = (
   url: URL,
@@ -30,22 +18,56 @@ type HealthzFetch = (
   },
 ) => Promise<Response>;
 
-export function createHealthzPayload<TService extends string>({
-  mode,
-  service,
-}: {
-  mode: HealthzMode;
-  service: TService;
-}): HealthzPayload<TService> {
-  return {
+export function createHealthzPayload<
+  const TService extends HealthzPayload["service"],
+>({ mode, service }: { mode: HealthzMode; service: TService }) {
+  const payload = {
     ok: true,
     service,
     mode,
     timestamp: new Date().toISOString(),
   };
+
+  return payload;
 }
 
-export async function fetchRemoteHealthzPayload<TPayload>({
+export function createDependencyHealthz<
+  const TPayload extends DependencyHealthzPayload,
+>(payload: TPayload): Timestamped<TPayload> {
+  return {
+    ...payload,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export async function withTimeout<T>({
+  message,
+  promise,
+  timeoutMs,
+}: {
+  message: string;
+  promise: Promise<T>;
+  timeoutMs: number;
+}): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+export async function fetchRemoteHealthzPayload<
+  const TSchema extends z.ZodType,
+>({
   fetcher = fetch,
   schema,
   serviceName,
@@ -54,12 +76,12 @@ export async function fetchRemoteHealthzPayload<TPayload>({
   url,
 }: {
   fetcher?: HealthzFetch;
-  schema: HealthzSchema<TPayload>;
+  schema: TSchema;
   serviceName: "Web" | "API";
   timeoutMs: number;
   tlsCaFile?: Bun.BunFile;
   url: URL;
-}) {
+}): Promise<z.output<TSchema>> {
   const serviceNameLower = serviceName.toLowerCase();
 
   const healthzRes = await fetcher(url, {

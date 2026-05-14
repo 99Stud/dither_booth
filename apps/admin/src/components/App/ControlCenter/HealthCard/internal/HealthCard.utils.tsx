@@ -1,3 +1,4 @@
+import type { StatusDotVariant } from "#components/Misc/StatusDot/internal/StatusDot.types";
 import type {
   Pm2RestartProgressEvent,
   Pm2RestartResult,
@@ -13,20 +14,28 @@ import {
 
 import { PM2_RESTART_WEBSOCKET_TIMEOUT_MS } from "./HealthCard.constants";
 
-export const extractUnhealthyServices = (
+export const extractUnhealthyServicesCount = (
   healthz: inferOutput<ReturnType<typeof useTRPC>["getHealthz"]>,
 ) => {
-  const unhealthyServices = [];
+  let unhealthyServicesCount = 0;
 
   if (!healthz.web.healthz.ok) {
-    unhealthyServices.push("web");
+    unhealthyServicesCount++;
   }
 
   if (!healthz.api.healthz.ok) {
-    unhealthyServices.push("api");
+    unhealthyServicesCount++;
   }
 
-  return unhealthyServices;
+  if (!healthz.puppeteer.healthz.ok) {
+    unhealthyServicesCount++;
+  }
+
+  if (!healthz.printer.healthz.ok) {
+    unhealthyServicesCount++;
+  }
+
+  return unhealthyServicesCount;
 };
 
 function getPm2RestartWebSocketUrl() {
@@ -172,4 +181,30 @@ export const getRestartProgressLabel = (
     default:
       return `Restarting ${serviceLabel}`;
   }
+};
+
+export const getHealthStatusVariant = ({
+  isHealthzError,
+  isHealthzPending,
+  isHealthzSuccess,
+  isHealthy,
+}: {
+  isHealthzError: boolean;
+  isHealthzPending: boolean;
+  isHealthzSuccess: boolean;
+  isHealthy?: boolean;
+}): StatusDotVariant => {
+  if (isHealthzPending) {
+    return "pending";
+  }
+
+  if (isHealthzSuccess && isHealthy) {
+    return "success";
+  }
+
+  if (isHealthzError || isHealthy === false) {
+    return "error";
+  }
+
+  return "neutral";
 };

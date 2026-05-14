@@ -41,6 +41,7 @@ const createAppConfig = ({
   out_file: resolve(pm2LogDir, `${name}-out.log`),
   env_production: {
     NODE_ENV: "production",
+    PROCESS_MANAGER: "pm2",
     ...env_production,
   },
 });

@@ -21,4 +21,5 @@ export const webHealthzPayloadSchema = healthzPayloadBaseSchema.extend({
   service: z.literal(WEB_HEALTHZ_SERVICE),
 });
 
+export const DEPENDENCY_HEALTHZ_TIMEOUT_MS = 1000;
 export const WEB_HEALTHZ_TIMEOUT_MS = 5000;

@@ -1,8 +1,6 @@
 import { db } from "#db/index";
 import { ditherImage } from "#domains/image-manipulation/internal/image-manipulation.utils";
 import { publicProcedure } from "#internal/trpc";
-import { API_REPO_ROOT } from "#lib/constants";
-import { getWebOrigin } from "@dither-booth/ports";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
@@ -11,16 +9,6 @@ const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 export const generateReceipt = publicProcedure
   .input(octetInputParser)
   .mutation(async ({ ctx, input }) => {
-    const webOrigin = await getWebOrigin({ repoRoot: API_REPO_ROOT });
-
-    if (!webOrigin) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Web origin not found.",
-      });
-    }
-    const receiptViewerUrl = new URL("/receipt-viewer", webOrigin).toString();
-
     const inputBuffer = Buffer.from(await new Response(input).arrayBuffer());
 
     if (inputBuffer.byteLength === 0) {
@@ -57,8 +45,19 @@ export const generateReceipt = publicProcedure
     }
 
     try {
-      await ctx.page.goto(receiptViewerUrl);
-
+      const ditheredImageDataPromise = dithered
+        .png()
+        .toBuffer()
+        .then(
+          (buffer) => ({
+            data: buffer.toBase64(),
+            ok: true as const,
+          }),
+          (error: unknown) => ({
+            error,
+            ok: false as const,
+          }),
+        );
       const imageElement = await ctx.page.waitForSelector("img#booth-photo");
 
       if (!imageElement) {
@@ -66,6 +65,12 @@ export const generateReceipt = publicProcedure
           code: "NOT_FOUND",
           message: "Receipt photo element was not found.",
         });
+      }
+
+      const ditheredImageData = await ditheredImageDataPromise;
+
+      if (!ditheredImageData.ok) {
+        throw ditheredImageData.error;
       }
 
       await imageElement.evaluate(
@@ -95,7 +100,7 @@ export const generateReceipt = publicProcedure
           await element.decode();
         },
         {
-          data: (await dithered.png().toBuffer()).toBase64(),
+          data: ditheredImageData.data,
           mimeType: "image/png",
         },
       );

@@ -1,6 +1,7 @@
 import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
 import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
+import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
 import {
   ADMIN_APP_ROOT,
   ADMIN_REPO_ROOT,
@@ -26,6 +27,7 @@ export async function runAdminServer(options: {
   indexHtml: Bun.HTMLBundle;
 }) {
   const isProduction = options.mode === "production";
+  const isPm2Managed = isPm2ManagedRuntime();
 
   if (!isProduction && Bun.env.NODE_ENV === "production") {
     throw new Error(
@@ -54,9 +56,11 @@ export async function runAdminServer(options: {
     mode: options.mode,
     port: getPort("ADMIN_PORT"),
     publicOrigin: adminOrigin,
-    webSocketRoutes: {
-      [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute(),
-    },
+    webSocketRoutes: isPm2Managed
+      ? {
+          [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute(),
+        }
+      : undefined,
     serverName: "runAdminServer",
     tlsCertPath,
     tlsKeyPath,

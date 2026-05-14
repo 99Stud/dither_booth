@@ -2,6 +2,17 @@
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
   "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "ADMIN_PORT",
+        "API_PORT",
+        "WEB_PORT",
+        "NODE_ENV",
+        "PROCESS_MANAGER"
+      ]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
@@ -10,7 +21,13 @@
     "start": {
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["ADMIN_PORT", "API_PORT", "NODE_ENV", "WEB_PORT"]
+      "passThroughEnv": [
+        "ADMIN_PORT",
+        "API_PORT",
+        "WEB_PORT",
+        "NODE_ENV",
+        "PROCESS_MANAGER"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -21,11 +38,6 @@
     "update": {
       "cache": false,
       "persistent": true
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true,
-      "passThroughEnv": ["ADMIN_PORT", "API_PORT", "NODE_ENV", "WEB_PORT"]
     }
   }
 }

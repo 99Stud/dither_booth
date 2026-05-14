@@ -1,11 +1,12 @@
 import type { TRPCContext } from "#lib/trpc/trpc.types";
-import type { Browser, Page } from "puppeteer";
 
 import { API_HEALTHZ_SERVICE } from "#domains/healthz/internal/healthz.constants";
 import { createHealthzPayload } from "#domains/healthz/internal/healthz.utils";
 import { apiRouter } from "#internal/router";
-import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
+import { API_REPO_ROOT } from "#lib/constants";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
+import { getRuntimeProcessManager } from "#lib/process-manager/process-manager.utils";
+import { initializePuppeteerReceiptViewer } from "#lib/puppeteer/puppeteer.utils";
 import {
   API_SERVER_BIND_HOST,
   API_SERVER_LOG_SOURCE,
@@ -16,7 +17,6 @@ import { getPort } from "@dither-booth/ports";
 import USB from "@node-escpos/usb-adapter";
 import { createHTTPHandler } from "@trpc/server/adapters/standalone";
 import http from "node:http";
-import puppeteer from "puppeteer";
 
 import { db } from "./db";
 
@@ -67,9 +67,6 @@ export async function runApiServer(options: {
   }
 
   let printerDevice: USB | undefined;
-  let browser: Browser | undefined;
-  let page: Page | undefined;
-
   try {
     printerDevice = new USB();
   } catch (error) {
@@ -78,29 +75,22 @@ export async function runApiServer(options: {
     });
   }
 
-  try {
-    browser = await puppeteer.launch({
-      handleSIGHUP: false,
-      handleSIGINT: false,
-      handleSIGTERM: false,
-    });
-    page = await browser.newPage();
-    await page.setViewport({
-      deviceScaleFactor: 2,
-      width: 1440,
-      height: 900,
-    });
-  } catch (error) {
-    logKioskEvent("error", API_BROWSER_LOG_SOURCE, "browser-init-failed", {
-      error: getKioskErrorDiagnostics(error, "Browser initialization failed."),
-    });
-  }
+  const {
+    browser,
+    page,
+    state: puppeteerState,
+  } = await initializePuppeteerReceiptViewer({
+    repoRoot: API_REPO_ROOT,
+  });
+  const processManager = getRuntimeProcessManager();
 
   const createContext = (): TRPCContext => ({
     printerDevice,
     page,
     db,
     mode: options.mode,
+    processManager,
+    puppeteerState,
   });
 
   const trpcHandler = createHTTPHandler({
@@ -176,6 +166,7 @@ export async function runApiServer(options: {
     logKioskEvent("info", API_SERVER_LOG_SOURCE, "server-started", {
       details: {
         environment: process.env.NODE_ENV,
+        processManager,
         boundAddress: `${address.address}:${address.port}`,
         url: API_SERVER_ORIGIN,
       },
