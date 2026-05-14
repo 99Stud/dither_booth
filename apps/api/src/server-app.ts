@@ -6,16 +6,19 @@ import { apiRouter } from "#internal/router";
 import { API_REPO_ROOT } from "#lib/constants";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import { getRuntimeProcessManager } from "#lib/process-manager/process-manager.utils";
-import { initializePuppeteerReceiptViewer } from "#lib/puppeteer/puppeteer.utils";
+import { createPuppeteerReceiptViewerLifecycle } from "#lib/puppeteer/puppeteer-lifecycle.utils";
 import {
   API_SERVER_BIND_HOST,
   API_SERVER_LOG_SOURCE,
   API_SERVER_ORIGIN,
 } from "#lib/server/server.constants";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import { getPort } from "@dither-booth/ports";
+import { getAdminOrigin, getPort } from "@dither-booth/ports";
 import USB from "@node-escpos/usb-adapter";
-import { createHTTPHandler } from "@trpc/server/adapters/standalone";
+import {
+  createHTTPHandler,
+  type CreateHTTPContextOptions,
+} from "@trpc/server/adapters/standalone";
 import http from "node:http";
 
 import { db } from "./db";
@@ -53,7 +56,7 @@ async function closeHttpServer(server: http.Server) {
 
 async function closePrinterDevice(printerDevice: USB | undefined) {
   if (isCloseableResource(printerDevice)) {
-    await printerDevice.close();
+    printerDevice.close();
   }
 }
 
@@ -75,23 +78,29 @@ export async function runApiServer(options: {
     });
   }
 
-  const {
-    browser,
-    page,
-    state: puppeteerState,
-  } = await initializePuppeteerReceiptViewer({
+  const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle({
     repoRoot: API_REPO_ROOT,
   });
+  await puppeteerLifecycle.initialize();
+
+  const adminOrigin = await getAdminOrigin({ repoRoot: API_REPO_ROOT });
   const processManager = getRuntimeProcessManager();
 
-  const createContext = (): TRPCContext => ({
-    printerDevice,
-    page,
-    db,
-    mode: options.mode,
-    processManager,
-    puppeteerState,
-  });
+  const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
+    const { page, state: puppeteerState } = puppeteerLifecycle.getCurrent();
+
+    return {
+      adminOrigin,
+      printerDevice,
+      page,
+      db,
+      mode: options.mode,
+      processManager,
+      puppeteerLifecycle,
+      puppeteerState,
+      requestOrigin: req.headers.origin,
+    };
+  };
 
   const trpcHandler = createHTTPHandler({
     router: apiRouter,
@@ -203,7 +212,7 @@ export async function runApiServer(options: {
       };
 
       await closeResource("http-server", () => closeHttpServer(server));
-      await closeResource("browser", () => browser?.close());
+      await closeResource("browser", () => puppeteerLifecycle.close());
       await closeResource("printer", () => closePrinterDevice(printerDevice));
 
       if (errors.length > 0) {

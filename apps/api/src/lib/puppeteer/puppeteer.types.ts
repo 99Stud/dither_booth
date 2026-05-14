@@ -17,3 +17,15 @@ export type PuppeteerReceiptViewer = {
   page?: Page;
   state: PuppeteerStartupState;
 };
+
+export type PuppeteerReceiptViewerRestartResult = {
+  ok: boolean;
+  state: PuppeteerStartupState;
+};
+
+export type PuppeteerReceiptViewerLifecycle = {
+  close: () => Promise<void>;
+  getCurrent: () => PuppeteerReceiptViewer;
+  initialize: () => Promise<PuppeteerReceiptViewer>;
+  restart: () => Promise<PuppeteerReceiptViewerRestartResult>;
+};

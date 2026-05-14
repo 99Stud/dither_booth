@@ -11,6 +11,7 @@ import type {
   ReactNode,
 } from "react";
 
+import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
 import { StatusDot } from "#components/Misc/StatusDot/index";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.utils";
@@ -51,7 +52,7 @@ import {
   TooltipTrigger,
 } from "@dither-booth/ui/components/ui/tooltip";
 import { sleep } from "@dither-booth/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { ChevronsUpDown, RefreshCcw } from "lucide-react";
@@ -94,6 +95,10 @@ export const HealthCard = () => {
       refetchOnReconnect: true,
     }),
   );
+  const {
+    mutateAsync: restartPuppeteerReceiptViewer,
+    isPending: isRestartPuppeteerPending,
+  } = useMutation(trpc.restartPuppeteerReceiptViewer.mutationOptions());
 
   const areAllChecksHealthy =
     isHealthzSuccess &&
@@ -105,6 +110,8 @@ export const HealthCard = () => {
   const unhealthyServices = isHealthzSuccess
     ? extractUnhealthyServicesCount(healthz)
     : undefined;
+  const isRestarting =
+    restartProgress !== undefined || isRestartPuppeteerPending;
 
   const refetchHealthzAndNotify = async () => {
     const healthzResult = await refetchHealthz({
@@ -112,7 +119,7 @@ export const HealthCard = () => {
     }).catch((e) => {
       reportKioskError(e, {
         event: "control-center-healthz-refetch-failed",
-        source: "control-center",
+        source: CONTROL_CENTER_LOG_SOURCE,
         userMessage: "Failed to refresh health checks.",
       });
     });
@@ -143,7 +150,7 @@ export const HealthCard = () => {
 
       reportKioskError(e, {
         event: "control-center-pm2-restart-failed",
-        source: "control-center",
+        source: CONTROL_CENTER_LOG_SOURCE,
         userMessage,
       });
     });
@@ -161,12 +168,45 @@ export const HealthCard = () => {
     }).catch((e) => {
       reportKioskError(e, {
         event: "control-center-healthz-refetch-after-restart-failed",
-        source: "control-center",
+        source: CONTROL_CENTER_LOG_SOURCE,
         userMessage: "Failed to refresh health checks after restart.",
       });
     });
 
     setRestartProgress(undefined);
+  };
+
+  const reinitializePuppeteer = async () => {
+    const restartResult = await restartPuppeteerReceiptViewer().catch((e) => {
+      reportKioskError(e, {
+        event: "control-center-puppeteer-restart-failed",
+        source: CONTROL_CENTER_LOG_SOURCE,
+        userMessage: "Failed to re-initialize Puppeteer.",
+      });
+    });
+
+    if (!restartResult) {
+      return;
+    }
+
+    if (restartResult.ok) {
+      toast.success("Puppeteer re-initialized.");
+    } else {
+      toast.error("Puppeteer re-initialized but is unhealthy.");
+    }
+
+    await sleep(RESTART_HEALTHZ_REFETCH_DELAY_MS);
+
+    await refetchHealthz({
+      throwOnError: true,
+    }).catch((e) => {
+      reportKioskError(e, {
+        event: "control-center-healthz-refetch-after-puppeteer-restart-failed",
+        source: CONTROL_CENTER_LOG_SOURCE,
+        userMessage:
+          "Failed to refresh health checks after Puppeteer re-initialization.",
+      });
+    });
   };
 
   return (
@@ -221,7 +261,7 @@ export const HealthCard = () => {
             isHealthzSuccess={isHealthzSuccess}
             isHealthzError={isHealthzError}
             service="web"
-            isRestarting={restartProgress !== undefined}
+            isRestarting={isRestarting}
             restartProgress={restartProgress?.event}
             restartingService={restartProgress?.service}
             onRestart={restartService}
@@ -232,7 +272,7 @@ export const HealthCard = () => {
             isHealthzSuccess={isHealthzSuccess}
             isHealthzError={isHealthzError}
             service="api"
-            isRestarting={restartProgress !== undefined}
+            isRestarting={isRestarting}
             restartProgress={restartProgress?.event}
             restartingService={restartProgress?.service}
             onRestart={restartService}
@@ -242,6 +282,9 @@ export const HealthCard = () => {
             isHealthzSuccess={isHealthzSuccess}
             isHealthzError={isHealthzError}
             healthz={healthz}
+            isRestarting={isRestarting}
+            isRestartingPuppeteer={isRestartPuppeteerPending}
+            onRestart={reinitializePuppeteer}
           />
           <PrinterAccordionItem
             isHealthzPending={isHealthzPending}
@@ -450,7 +493,7 @@ const HealthCollapsibleSection: FC<HealthCollapsibleSectionProps> = ({
         <ChevronsUpDown className="size-3" />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <ul className={clsx("mt-1.5 ml-1")}>{children}</ul>
+        <ul className={clsx("mt-1.5 mb-1.5 ml-1")}>{children}</ul>
       </CollapsibleContent>
     </Collapsible>
   );
@@ -461,6 +504,9 @@ interface PuppeteerAccordionItemProps {
   isHealthzPending: boolean;
   isHealthzError: boolean;
   healthz?: HealthzResponse;
+  isRestarting: boolean;
+  isRestartingPuppeteer: boolean;
+  onRestart: () => void;
 }
 
 const PuppeteerAccordionItem: FC<PuppeteerAccordionItemProps> = ({
@@ -468,6 +514,9 @@ const PuppeteerAccordionItem: FC<PuppeteerAccordionItemProps> = ({
   isHealthzSuccess,
   isHealthzError,
   healthz,
+  isRestarting,
+  isRestartingPuppeteer,
+  onRestart,
 }) => {
   return (
     <HealthAccordionShell
@@ -480,6 +529,44 @@ const PuppeteerAccordionItem: FC<PuppeteerAccordionItemProps> = ({
         isHealthzSuccess,
         isHealthy: healthz?.puppeteer.healthz.ok,
       })}
+      footer={
+        <div className={clsx("text-right")}>
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button disabled={isRestarting} size="sm">
+                  {isRestartingPuppeteer ? (
+                    <>
+                      Re-initializing Puppeteer&nbsp;
+                      <Spinner className="size-4" />
+                    </>
+                  ) : (
+                    <>Re-initialize Puppeteer&nbsp;</>
+                  )}
+                </Button>
+              }
+            />
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Do you really want to re-initialize Puppeteer?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Re-initializing Puppeteer will terminate the current browser
+                  and launch a fresh receipt viewer. In-progress receipt
+                  generation may fail.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onRestart()}>
+                  Restart
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      }
     >
       {isHealthzSuccess && healthz && (
         <>
