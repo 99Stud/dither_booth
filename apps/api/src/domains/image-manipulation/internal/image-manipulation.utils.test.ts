@@ -33,7 +33,11 @@ async function createPngFromMonoPixels({
     .toBuffer();
 }
 
-async function readMonoPixelsFromPng(png: Buffer, width: number, height: number) {
+async function readMonoPixelsFromPng(
+  png: Buffer,
+  _width: number,
+  _height: number,
+) {
   const { data } = await sharp(png)
     .grayscale()
     .raw()
@@ -98,9 +102,7 @@ describe("screenshotToGsV0RasterCommand", () => {
 
 describe("gsV0RasterCommandToPngBuffer", () => {
   test("unpacks an all-black 8px-wide raster byte", async () => {
-    const command = Buffer.from([
-      0x1d, 0x76, 0x30, 0x00, 1, 0, 1, 0, 0xff,
-    ]);
+    const command = Buffer.from([0x1d, 0x76, 0x30, 0x00, 1, 0, 1, 0, 0xff]);
     const png = await gsV0RasterCommandToPngBuffer(command);
 
     expect(await readMonoPixelsFromPng(png, 8, 1)).toEqual([
@@ -109,9 +111,7 @@ describe("gsV0RasterCommandToPngBuffer", () => {
   });
 
   test("unpacks an all-white 8px-wide raster byte", async () => {
-    const command = Buffer.from([
-      0x1d, 0x76, 0x30, 0x00, 1, 0, 1, 0, 0x00,
-    ]);
+    const command = Buffer.from([0x1d, 0x76, 0x30, 0x00, 1, 0, 1, 0, 0x00]);
     const png = await gsV0RasterCommandToPngBuffer(command);
 
     expect(await readMonoPixelsFromPng(png, 8, 1)).toEqual([

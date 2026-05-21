@@ -1,11 +1,12 @@
+import tailwindPlugin from "bun-plugin-tailwind";
+import { rm } from "node:fs/promises";
+import { resolve } from "node:path";
+
 import {
   BUILD_ASSET_MANIFEST_FILE_NAME,
   PUBLIC_ASSET_MANIFEST_FILE_NAME,
   PRODUCTION_SERVER_FILE_NAME,
 } from "#internal/browser-server.constants";
-import tailwindPlugin from "bun-plugin-tailwind";
-import { rm } from "node:fs/promises";
-import { resolve } from "node:path";
 
 import { PRODUCTION_ENTRY } from "./internal/build.constants";
 import { copyPublicAssets, toDistRelative } from "./internal/build.utils";

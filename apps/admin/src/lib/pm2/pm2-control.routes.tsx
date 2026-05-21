@@ -4,9 +4,10 @@ import type {
   WebSocketRouteHandler,
 } from "@dither-booth/browser-server/internal/browser-server.types";
 
-import { ADMIN_PM2_CONTROL_LOG_SOURCE } from "#lib/constants";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { sleep } from "@dither-booth/ui/lib/utils";
+
+import { ADMIN_PM2_CONTROL_LOG_SOURCE } from "#lib/constants";
 
 import type {
   Pm2RestartFailureCode,

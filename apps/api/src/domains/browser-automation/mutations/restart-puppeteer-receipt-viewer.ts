@@ -1,5 +1,6 @@
-import { adminOriginProcedure } from "#internal/trpc";
 import { TRPCError } from "@trpc/server";
+
+import { adminOriginProcedure } from "#internal/trpc";
 
 export const restartPuppeteerReceiptViewer = adminOriginProcedure.mutation(
   async ({ ctx }) => {

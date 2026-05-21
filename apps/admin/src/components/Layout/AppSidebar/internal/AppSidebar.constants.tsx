@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
-import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 import { FolderCog, Printer } from "lucide-react";
+
+import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
 export const APP_SIDEBAR_MENU_LINKS: Array<{
   label: string;

@@ -1,4 +1,3 @@
-import { API_REPO_ROOT } from "#lib/constants";
 import {
   getWebOrigin,
   getWebTlsCertPath,
@@ -8,6 +7,8 @@ import {
 import { mkdirSync } from "node:fs";
 import { isIP } from "node:net";
 import { dirname, join } from "node:path";
+
+import { API_REPO_ROOT } from "#lib/constants";
 
 const certPath = getWebTlsCertPath({ repoRoot: API_REPO_ROOT });
 const keyPath = getWebTlsKeyPath({ repoRoot: API_REPO_ROOT });

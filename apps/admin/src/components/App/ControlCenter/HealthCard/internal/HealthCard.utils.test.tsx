@@ -1,6 +1,6 @@
-import type { Pm2RestartProgressEvent } from "#lib/pm2/pm2-control.types";
-
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+
+import type { Pm2RestartProgressEvent } from "#lib/pm2/pm2-control.types";
 
 import { requestPm2ServiceRestart } from "./HealthCard.utils";
 

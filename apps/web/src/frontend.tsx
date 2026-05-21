@@ -5,10 +5,6 @@
  * It is included in `index.html`.
  */
 
-import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
-import { router } from "#lib/router/index";
-import { queryClient, trpcClient } from "#lib/trpc/trpc.client";
-import { TRPCProvider } from "#lib/trpc/trpc.utils";
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import { Toaster } from "@dither-booth/ui/components/ui/sonner";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -16,6 +12,11 @@ import { RouterProvider } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+
+import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
+import { router } from "#lib/router/index";
+import { queryClient, trpcClient } from "#lib/trpc/trpc.client";
+import { TRPCProvider } from "#lib/trpc/trpc.utils";
 
 import "./styles/globals.css";
 

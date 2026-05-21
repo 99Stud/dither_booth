@@ -1,7 +1,8 @@
+import { TRPCError } from "@trpc/server";
+
 import { printConfigTable } from "#db/internal/db.schema";
 import { CREATE_DITHER_CONFIGURATION_SCHEMA } from "#domains/image-manipulation/internal/image-manipulation.constants";
 import { publicProcedure } from "#internal/trpc";
-import { TRPCError } from "@trpc/server";
 
 export const createDitherConfiguration = publicProcedure
   .input(CREATE_DITHER_CONFIGURATION_SCHEMA)

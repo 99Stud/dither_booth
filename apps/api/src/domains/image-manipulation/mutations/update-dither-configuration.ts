@@ -1,9 +1,10 @@
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+
 import { PRINT_CONFIG_SINGLETON_ID } from "#db/internal/db.constants";
 import { printConfigTable } from "#db/internal/db.schema";
 import { UPDATE_DITHER_CONFIGURATION_SCHEMA } from "#domains/image-manipulation/internal/image-manipulation.constants";
 import { publicProcedure } from "#internal/trpc";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 
 export const updateDitherConfiguration = publicProcedure
   .input(UPDATE_DITHER_CONFIGURATION_SCHEMA)

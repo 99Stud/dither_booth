@@ -1,8 +1,3 @@
-import type { StatusDotVariant } from "#components/Misc/StatusDot/internal/StatusDot.types";
-import type {
-  Pm2RestartProgressEvent,
-  Pm2RestartService,
-} from "#lib/pm2/pm2-control.types";
 import type {
   ComponentProps,
   FC,
@@ -11,10 +6,6 @@ import type {
   ReactNode,
 } from "react";
 
-import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
-import { StatusDot } from "#components/Misc/StatusDot/index";
-import { reportKioskError } from "#lib/logging/logging.utils";
-import { useTRPC } from "#lib/trpc/trpc.utils";
 import {
   Accordion,
   AccordionContent,
@@ -58,6 +49,17 @@ import { format } from "date-fns";
 import { ChevronsUpDown, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+
+import type { StatusDotVariant } from "#components/Misc/StatusDot/internal/StatusDot.types";
+import type {
+  Pm2RestartProgressEvent,
+  Pm2RestartService,
+} from "#lib/pm2/pm2-control.types";
+
+import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
+import { StatusDot } from "#components/Misc/StatusDot/index";
+import { reportKioskError } from "#lib/logging/logging.utils";
+import { useTRPC } from "#lib/trpc/trpc.utils";
 
 import type { HealthzResponse } from "./internal/HealthCard.types";
 

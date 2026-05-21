@@ -1,5 +1,6 @@
-import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
+
+import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
 
 import index from "./index.html";
 import { runWebServer } from "./server-app";

@@ -1,11 +1,3 @@
-import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
-import {
-  WEB_APP_ROOT,
-  WEB_REPO_ROOT,
-  WEB_SERVER_HEALTHZ_SERVICE,
-} from "#lib/server-constants";
-import { getTrpcProxyUpstreamPath } from "#lib/trpc/trpc-proxy.utils";
-import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
 import { runBrowserServer } from "@dither-booth/browser-server";
 import { logKioskEvent } from "@dither-booth/logging";
 import {
@@ -16,6 +8,15 @@ import {
   getWebTlsCertPath,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
+
+import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
+import {
+  WEB_APP_ROOT,
+  WEB_REPO_ROOT,
+  WEB_SERVER_HEALTHZ_SERVICE,
+} from "#lib/server-constants";
+import { getTrpcProxyUpstreamPath } from "#lib/trpc/trpc-proxy.utils";
+import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
 
 const apiOrigin = getApiInternalOrigin();
 

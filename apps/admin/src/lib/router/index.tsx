@@ -1,8 +1,3 @@
-import { Root } from "#app/Root/index";
-import {
-  RootErrorScreen,
-  RootNotFoundScreen,
-} from "#app/Root/internal/components/RootErrorBoundary/index";
 import {
   createRootRoute,
   createRoute,
@@ -10,6 +5,12 @@ import {
   redirect,
   type AnyRoute,
 } from "@tanstack/react-router";
+
+import { Root } from "#app/Root/index";
+import {
+  RootErrorScreen,
+  RootNotFoundScreen,
+} from "#app/Root/internal/components/RootErrorBoundary/index";
 
 import { ROUTE_KEYS, ROUTES_CONFIG } from "./internal/router.constants";
 

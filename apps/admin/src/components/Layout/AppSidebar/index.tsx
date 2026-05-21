@@ -1,6 +1,5 @@
 import type { ComponentProps, FC } from "react";
 
-import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
 import {
   Sidebar,
@@ -15,6 +14,8 @@ import {
 } from "@dither-booth/ui/components/ui/sidebar";
 import { Link, useLocation } from "@tanstack/react-router";
 import clsx from "clsx";
+
+import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
 import { APP_SIDEBAR_MENU_LINKS } from "./internal/AppSidebar.constants";
 

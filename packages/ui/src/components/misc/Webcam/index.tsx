@@ -1,6 +1,7 @@
+import { type FC, type Ref, useImperativeHandle, useRef } from "react";
+
 import { useUserMedia, type UseUserMediaParams } from "#hooks/user-media/index";
 import { cn } from "#lib/utils";
-import { type FC, type Ref, useImperativeHandle, useRef } from "react";
 
 import type { WebcamHandle } from "./internal/Webcam.types";
 

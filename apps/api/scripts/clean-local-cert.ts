@@ -1,4 +1,3 @@
-import { API_REPO_ROOT } from "#lib/constants";
 import {
   getWebTlsCertPath,
   getWebTlsKeyPath,
@@ -6,6 +5,8 @@ import {
 } from "@dither-booth/ports";
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
+
+import { API_REPO_ROOT } from "#lib/constants";
 
 const managedFiles = [
   getWebTlsCertPath({ repoRoot: API_REPO_ROOT }),

@@ -1,11 +1,11 @@
-import type { CameraState } from "#hooks/user-media/index";
-
 import {
   getKioskErrorDiagnostics,
   logKioskEvent,
   type ReportKioskErrorOptions,
 } from "@dither-booth/logging";
 import { toast } from "sonner";
+
+import type { CameraState } from "#hooks/user-media/index";
 
 export type CreateUserMediaReportersParams = {
   source: string;

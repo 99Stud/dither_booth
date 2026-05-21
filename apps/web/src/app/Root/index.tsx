@@ -1,10 +1,11 @@
-import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
 import {
   Webcam,
   type WebcamHandle,
 } from "@dither-booth/ui/components/misc/Webcam";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
 import { type FC, useRef } from "react";
+
+import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
 
 const {
   reportUserMediaCameraStateChange,

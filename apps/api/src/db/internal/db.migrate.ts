@@ -1,7 +1,8 @@
-import { db, sqlite } from "#db/index";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { resolve } from "node:path";
+
+import { db, sqlite } from "#db/index";
 
 import { API_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
 

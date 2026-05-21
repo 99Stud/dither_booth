@@ -1,3 +1,5 @@
+import type { inferOutput } from "@trpc/tanstack-react-query";
+
 import type { StatusDotVariant } from "#components/Misc/StatusDot/internal/StatusDot.types";
 import type {
   Pm2RestartProgressEvent,
@@ -5,7 +7,6 @@ import type {
   Pm2RestartService,
 } from "#lib/pm2/pm2-control.types";
 import type { useTRPC } from "#lib/trpc/trpc.utils";
-import type { inferOutput } from "@trpc/tanstack-react-query";
 
 import {
   PM2_RESTART_ROUTE_PATH,

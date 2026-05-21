@@ -5,6 +5,8 @@ import type {
 } from "@tanstack/react-form";
 import type { ComponentProps } from "react";
 
+import clsx from "clsx";
+
 import {
   Field,
   FieldContent,
@@ -18,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#components/ui/select";
-import clsx from "clsx";
 
 import type {
   SelectFieldName,

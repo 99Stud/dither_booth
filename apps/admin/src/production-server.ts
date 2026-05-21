@@ -1,5 +1,6 @@
-import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
+
+import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
 
 import index from "./index.html";
 import { runAdminServer } from "./server-app";

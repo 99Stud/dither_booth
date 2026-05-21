@@ -1,3 +1,7 @@
+import { describe, expect, it } from "bun:test";
+import { mkdir, rm } from "node:fs/promises";
+import { join } from "node:path";
+
 import type {
   BrowserServerWebSocketData,
   RunBrowserServerOptions,
@@ -16,9 +20,6 @@ import {
   getSafeFileUrl,
   getStaticRoutesFromManifests,
 } from "#internal/browser-server.utils";
-import { describe, expect, it } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
-import { join } from "node:path";
 
 function testTempRoot(): string {
   return Bun.env.TMPDIR ?? Bun.env.TEMP ?? "/tmp";

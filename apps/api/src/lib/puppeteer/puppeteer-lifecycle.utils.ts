@@ -1,12 +1,14 @@
+import type { Browser } from "puppeteer";
+
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
+
+import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
+
 import type {
   PuppeteerReceiptViewer,
   PuppeteerReceiptViewerLifecycle,
   PuppeteerReceiptViewerRestartResult,
 } from "./puppeteer.types";
-
-import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
-import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import type { Browser } from "puppeteer";
 
 import {
   createInitialPuppeteerState,
@@ -90,7 +92,10 @@ function waitForProcessExit({
         resolveOnce();
       };
 
-      if (browserProcess.exitCode !== null || browserProcess.signalCode !== null) {
+      if (
+        browserProcess.exitCode !== null ||
+        browserProcess.signalCode !== null
+      ) {
         resolve();
         return;
       }

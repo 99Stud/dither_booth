@@ -1,12 +1,13 @@
 import type { FC } from "react";
 
-import { cn, mmToPx } from "#lib/utils";
 import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/index";
 import { NinetyNineStudQR } from "@dither-booth/ui/components/svg/99studQR/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
 import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
 import clsx from "clsx";
 import { format } from "date-fns";
+
+import { cn, mmToPx } from "#lib/utils";
 
 interface ReceiptProps {
   className?: string;

@@ -1,6 +1,7 @@
+import clsx from "clsx";
+
 import { HealthCard } from "#components/App/ControlCenter/HealthCard/index";
 import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
-import clsx from "clsx";
 
 export const ControlCenter = () => {
   return (

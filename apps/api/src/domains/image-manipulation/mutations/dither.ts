@@ -1,8 +1,9 @@
+import { TRPCError } from "@trpc/server";
+import { octetInputParser } from "@trpc/server/http";
+
 import { db } from "#db/index";
 import { ditherImage } from "#domains/image-manipulation/internal/image-manipulation.utils";
 import { publicProcedure } from "#internal/trpc";
-import { TRPCError } from "@trpc/server";
-import { octetInputParser } from "@trpc/server/http";
 
 export const dither = publicProcedure
   .input(octetInputParser)

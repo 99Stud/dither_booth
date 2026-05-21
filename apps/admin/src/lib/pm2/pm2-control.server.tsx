@@ -1,9 +1,10 @@
-import { ADMIN_PM2_CONTROL_LOG_SOURCE } from "#lib/constants";
-import { ADMIN_REPO_ROOT } from "#lib/server-constants";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import pm2 from "pm2";
+
+import { ADMIN_PM2_CONTROL_LOG_SOURCE } from "#lib/constants";
+import { ADMIN_REPO_ROOT } from "#lib/server-constants";
 
 import type {
   Pm2Client,
