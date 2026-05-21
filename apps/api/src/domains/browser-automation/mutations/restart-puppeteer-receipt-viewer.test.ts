@@ -1,8 +1,9 @@
+import { describe, expect, test } from "bun:test";
+
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { apiRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
-import { describe, expect, test } from "bun:test";
 
 const ADMIN_ORIGIN = "https://admin.local";
 
@@ -18,7 +19,7 @@ function createTestCaller(requestOrigin?: string) {
     db: {} as TRPCContext["db"],
     mode: "production",
     page: undefined,
-    printerDevice: undefined,
+    printerUSBAdapter: undefined,
     processManager: "unknown",
     puppeteerLifecycle: {
       close: async () => {},

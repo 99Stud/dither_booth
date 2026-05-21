@@ -1,7 +1,3 @@
-import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
-import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
-import { reportKioskError } from "#lib/logging/logging.utils";
-import { useTRPC } from "#lib/trpc/trpc.utils";
 import {
   Webcam,
   type WebcamHandle,
@@ -23,6 +19,11 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { CameraIcon } from "lucide-react";
 import { useCallback, useMemo, useRef, useState, type FC } from "react";
+
+import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
+import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { reportKioskError } from "#lib/logging/logging.utils";
+import { useTRPC } from "#lib/trpc/trpc.utils";
 
 import type { PrintConfigurationFormValues } from "./internal/PrintConfiguration.types";
 
@@ -79,6 +80,9 @@ export const PrintConfiguration = () => {
 
   const ditherer = useMutation(trpc.dither.mutationOptions());
   const { isPending: isDithering } = ditherer;
+
+  const receiptPrinter = useMutation(trpc.printReceipt.mutationOptions());
+  const { isPending: isPrintingReceipt } = receiptPrinter;
 
   const generatePreviewDataUrl = useCallback(
     async (download: boolean = false) => {
@@ -283,6 +287,35 @@ export const PrintConfiguration = () => {
     }
   };
 
+  const printReceipt = async () => {
+    try {
+      const squarePhoto = await takeSquarePhotoAndFlipHorizontally(
+        PRINT_CONFIGURATION_LOG_SOURCE,
+        async () => {
+          if (!webcamRef.current) {
+            throw new Error("Camera is not available.");
+          }
+
+          return await webcamRef.current.takePhoto();
+        },
+      );
+
+      if (!squarePhoto) {
+        throw new Error("Square photo is not available.");
+      }
+
+      const receipt = await receiptPrinter.mutateAsync(squarePhoto);
+
+      console.log(receipt);
+    } catch (e) {
+      reportKioskError(e, {
+        event: "print-receipt-failed",
+        source: PRINT_CONFIGURATION_LOG_SOURCE,
+        userMessage: "Print receipt failed.",
+      });
+    }
+  };
+
   return (
     <>
       <AppSidebarPageHeader title="Print configuration" />
@@ -384,6 +417,16 @@ export const PrintConfiguration = () => {
                 </>
               ) : (
                 "Download receipt"
+              )}
+            </Button>
+            <Button onClick={printReceipt}>
+              {isPrintingReceipt ? (
+                <>
+                  Printing receipt&nbsp;
+                  <Spinner className="size-4" />
+                </>
+              ) : (
+                "Print receipt"
               )}
             </Button>
           </div>

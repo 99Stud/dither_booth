@@ -1,9 +1,6 @@
 import { ColorScheme, DitherMode } from "@opendisplay/epaper-dithering";
 import z from "zod";
 
-/** TM-T20III, 80mm roll, 203 DPI — printable width 576 dots (standard mode, Epson specs). */
-export const PRINT_WIDTH_PX = 576;
-
 export const DITHER_MODE_OPTIONS = [
   0, 1, 2, 3, 4, 5, 6, 7, 8,
 ] satisfies Array<DitherMode>;

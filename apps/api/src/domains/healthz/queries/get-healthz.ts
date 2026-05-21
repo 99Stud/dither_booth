@@ -1,3 +1,6 @@
+import { getWebOrigin, getWebTlsCaPath } from "@dither-booth/ports";
+import { TRPCError } from "@trpc/server";
+
 import type {
   ApiHealthzPayload,
   PrinterDependencyHealthz,
@@ -22,8 +25,6 @@ import {
 } from "#domains/healthz/internal/healthz.utils";
 import { publicProcedure } from "#internal/trpc";
 import { API_REPO_ROOT } from "#lib/constants";
-import { getWebOrigin, getWebTlsCaPath } from "@dither-booth/ports";
-import { TRPCError } from "@trpc/server";
 
 type GetHealthzResponse = {
   web: {
@@ -76,7 +77,7 @@ export const getHealthz = publicProcedure.query(async ({ ctx }) => {
       page: ctx.page,
       state: ctx.puppeteerState,
     }),
-    Promise.resolve().then(() => checkPrinterDependency(ctx.printerDevice)),
+    Promise.resolve().then(() => checkPrinterDependency(ctx.printerUSBAdapter)),
   ]);
 
   const payload = {

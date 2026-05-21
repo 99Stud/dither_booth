@@ -1,9 +1,10 @@
-import { getErrorMessage } from "#lib/misc/misc.utils";
 import USB, { type TDevice } from "@node-escpos/usb-adapter";
+
+import { getErrorMessage } from "#lib/misc/misc.utils";
 
 import { createDependencyHealthz } from "./healthz.utils";
 
-export function checkPrinterDependency(printerDevice: USB | undefined) {
+export function checkPrinterDependency(printerUSBAdapter: USB | undefined) {
   let detectedPrinters: TDevice[];
 
   try {
@@ -18,7 +19,7 @@ export function checkPrinterDependency(printerDevice: USB | undefined) {
     });
   }
 
-  const adapterDevice = printerDevice?.device ?? null;
+  const adapterDevice = printerUSBAdapter?.device ?? null;
   const currentDevicePresent =
     adapterDevice !== null && detectedPrinters.includes(adapterDevice);
   const details = {
@@ -27,7 +28,7 @@ export function checkPrinterDependency(printerDevice: USB | undefined) {
     detectedPrinterCount: detectedPrinters.length,
   };
 
-  if (!printerDevice) {
+  if (!printerUSBAdapter) {
     return createDependencyHealthz({
       ok: false,
       message: "Printer device is not initialized.",

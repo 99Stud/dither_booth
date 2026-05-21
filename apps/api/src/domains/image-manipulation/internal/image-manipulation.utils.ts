@@ -2,74 +2,36 @@ import {
   ditherImage as openDisplayDitherImage,
   type ColorScheme,
   type DitherMode,
-  type PaletteImageBuffer,
 } from "@opendisplay/epaper-dithering";
 import sharp from "sharp";
 
 import type { PrintConfigRow } from "./image-manipulation.types";
 
-/**
- * Maps a palette index to "thermal black" using average RGB < threshold.
- */
-export const isPaletteBlack = (
-  palette: PaletteImageBuffer["palette"],
-  idx: number,
-  threshold: number,
-) => {
-  const c = palette[idx];
-  if (!c) {
-    return false;
-  }
-  return (c.r + c.g + c.b) / 3 < threshold;
-};
+interface DitherImageOptions {
+  width?: number;
+  withoutEnlargement?: boolean;
+}
 
-export const rasterBytesFromDithered = (
-  dithered: PaletteImageBuffer,
-  threshold: number,
-): Buffer => {
-  const { width, height, indices, palette } = dithered;
-  const widthBytes = Math.ceil(width / 8);
-  const out = new Uint8Array(widthBytes * height);
-
-  for (let y = 0; y < height; y++) {
-    for (let xb = 0; xb < widthBytes; xb++) {
-      let byte = 0;
-      for (let b = 0; b < 8; b++) {
-        const px = xb * 8 + b;
-        if (
-          px < width &&
-          isPaletteBlack(palette, indices[y * width + px]!, threshold)
-        ) {
-          byte |= 128 >> b;
-        }
-      }
-      out[y * widthBytes + xb] = byte;
-    }
-  }
-
-  return Buffer.from(out);
-};
-
-export const buildGsV0RasterCommand = (
-  dithered: PaletteImageBuffer,
-  threshold: number,
-): Buffer => {
-  const widthBytes = Math.ceil(dithered.width / 8);
-  const header = Buffer.alloc(8);
-  header[0] = 0x1d;
-  header[1] = 0x76;
-  header[2] = 0x30;
-  header[3] = 0x00;
-  header.writeUInt16LE(widthBytes, 4);
-  header.writeUInt16LE(dithered.height, 6);
-  return Buffer.concat([header, rasterBytesFromDithered(dithered, threshold)]);
-};
+const GS_V_0_HEADER_SIZE = 8;
+const BLACK_PIXEL_BIT_MASKS = Uint8Array.from([
+  0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01,
+]);
 
 export const ditherImage = async (
   buffer: Buffer<ArrayBuffer>,
   ditherConfiguration: PrintConfigRow,
+  options: DitherImageOptions = {},
 ) => {
-  const { data, info } = await sharp(buffer)
+  let image = sharp(buffer);
+
+  if (options.width) {
+    image = image.resize({
+      width: options.width,
+      withoutEnlargement: options.withoutEnlargement ?? true,
+    });
+  }
+
+  const { data, info } = await image
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -112,4 +74,63 @@ export const ditherImage = async (
   return sharp(rgbaBuffer, {
     raw: { width: dithered.width, height: dithered.height, channels: 4 },
   });
+};
+
+export const screenshotToGsV0RasterCommand = async (
+  screenshot: Uint8Array,
+  options: {
+    threshold?: number;
+    width?: number;
+  } = {},
+): Promise<Buffer> => {
+  const threshold = options.threshold ?? 128;
+
+  let image = sharp(Buffer.from(screenshot))
+    .flatten({ background: "#fff" })
+    .grayscale();
+
+  if (options.width) {
+    image = image.resize({ width: options.width, withoutEnlargement: true });
+  }
+
+  const { data, info } = await image
+    .threshold(threshold)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const widthBytes = Math.ceil(info.width / 8);
+  const command = Buffer.allocUnsafe(
+    GS_V_0_HEADER_SIZE + widthBytes * info.height,
+  );
+
+  command[0] = 0x1d; // GS
+  command[1] = 0x76; // v
+  command[2] = 0x30; // 0
+  command[3] = 0x00; // normal density
+  command.writeUInt16LE(widthBytes, 4);
+  command.writeUInt16LE(info.height, 6);
+
+  for (let y = 0; y < info.height; y++) {
+    const sourceRowOffset = y * info.width;
+    const targetRowOffset = GS_V_0_HEADER_SIZE + y * widthBytes;
+
+    for (let xb = 0; xb < widthBytes; xb++) {
+      let byte = 0;
+      const sourceByteOffset = sourceRowOffset + xb * 8;
+      const bitsInByte = Math.min(8, info.width - xb * 8);
+
+      for (let bit = 0; bit < bitsInByte; bit++) {
+        const pixel = data[sourceByteOffset + bit];
+
+        // After threshold(), 0 is black and 255 is white.
+        if (pixel === 0) {
+          byte |= BLACK_PIXEL_BIT_MASKS[bit] ?? 0;
+        }
+      }
+
+      command[targetRowOffset + xb] = byte;
+    }
+  }
+
+  return command;
 };

@@ -1,13 +1,14 @@
-import type { PuppeteerStartupState } from "#lib/puppeteer/puppeteer.types";
 import type { Page } from "puppeteer";
 
+import type { PuppeteerStartupState } from "#lib/puppeteer/puppeteer.types";
+
 import { RECEIPT_VIEWER_PATH } from "#lib/browser/browser.constants";
-import { getErrorMessage } from "#lib/misc/misc.utils";
+import { getErrorMessage, withTimeout } from "#lib/misc/misc.utils";
 
 import type { PuppeteerRuntimeCheckMap } from "./healthz.types";
 
 import { DEPENDENCY_HEALTHZ_TIMEOUT_MS } from "./healthz.constants";
-import { createDependencyHealthz, withTimeout } from "./healthz.utils";
+import { createDependencyHealthz } from "./healthz.utils";
 
 function getFailedCheckNames<const TChecks extends object>(
   checks: TChecks,

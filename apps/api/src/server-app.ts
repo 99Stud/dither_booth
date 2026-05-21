@@ -1,3 +1,12 @@
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
+import { getAdminOrigin, getPort } from "@dither-booth/ports";
+import USB from "@node-escpos/usb-adapter";
+import {
+  createHTTPHandler,
+  type CreateHTTPContextOptions,
+} from "@trpc/server/adapters/standalone";
+import http from "node:http";
+
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { API_HEALTHZ_SERVICE } from "#domains/healthz/internal/healthz.constants";
@@ -12,14 +21,6 @@ import {
   API_SERVER_LOG_SOURCE,
   API_SERVER_ORIGIN,
 } from "#lib/server/server.constants";
-import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import { getAdminOrigin, getPort } from "@dither-booth/ports";
-import USB from "@node-escpos/usb-adapter";
-import {
-  createHTTPHandler,
-  type CreateHTTPContextOptions,
-} from "@trpc/server/adapters/standalone";
-import http from "node:http";
 
 import { db } from "./db";
 
@@ -54,9 +55,9 @@ async function closeHttpServer(server: http.Server) {
   });
 }
 
-async function closePrinterDevice(printerDevice: USB | undefined) {
-  if (isCloseableResource(printerDevice)) {
-    printerDevice.close();
+async function closePrinterUSBAdapter(printerUSBAdapter: USB | undefined) {
+  if (isCloseableResource(printerUSBAdapter)) {
+    printerUSBAdapter.close();
   }
 }
 
@@ -69,9 +70,9 @@ export async function runApiServer(options: {
     );
   }
 
-  let printerDevice: USB | undefined;
+  let printerUSBAdapter: USB | undefined;
   try {
-    printerDevice = new USB();
+    printerUSBAdapter = new USB();
   } catch (error) {
     logKioskEvent("error", API_PRINTER_LOG_SOURCE, "printer-init-failed", {
       error: getKioskErrorDiagnostics(error, "Printer initialization failed."),
@@ -91,7 +92,7 @@ export async function runApiServer(options: {
 
     return {
       adminOrigin,
-      printerDevice,
+      printerUSBAdapter,
       page,
       db,
       mode: options.mode,
@@ -213,7 +214,9 @@ export async function runApiServer(options: {
 
       await closeResource("http-server", () => closeHttpServer(server));
       await closeResource("browser", () => puppeteerLifecycle.close());
-      await closeResource("printer", () => closePrinterDevice(printerDevice));
+      await closeResource("printer", () =>
+        closePrinterUSBAdapter(printerUSBAdapter),
+      );
 
       if (errors.length > 0) {
         throw new AggregateError(errors, "API server shutdown failed.");

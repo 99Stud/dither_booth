@@ -1,5 +1,5 @@
-import { print } from "./mutations/print";
+import { printReceipt } from "./mutations/print-receipt";
 
 export const printer = {
-  print,
+  printReceipt,
 };
