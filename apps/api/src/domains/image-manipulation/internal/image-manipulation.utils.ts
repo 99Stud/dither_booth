@@ -134,3 +134,46 @@ export const screenshotToGsV0RasterCommand = async (
 
   return command;
 };
+
+export const gsV0RasterCommandToPngBuffer = async (
+  command: Buffer,
+): Promise<Buffer> => {
+  if (command.length < GS_V_0_HEADER_SIZE) {
+    throw new Error("GS v 0 raster command is too short.");
+  }
+
+  if (command[0] !== 0x1d || command[1] !== 0x76 || command[2] !== 0x30) {
+    throw new Error("Invalid GS v 0 raster command header.");
+  }
+
+  const widthBytes = command.readUInt16LE(4);
+  const height = command.readUInt16LE(6);
+  const width = widthBytes * 8;
+  const expectedLength = GS_V_0_HEADER_SIZE + widthBytes * height;
+
+  if (command.length < expectedLength) {
+    throw new Error("GS v 0 raster command payload is truncated.");
+  }
+
+  const pixels = Buffer.alloc(width * height);
+
+  for (let y = 0; y < height; y++) {
+    const targetRowOffset = y * width;
+    const sourceRowOffset = GS_V_0_HEADER_SIZE + y * widthBytes;
+
+    for (let xb = 0; xb < widthBytes; xb++) {
+      const byte = command[sourceRowOffset + xb] ?? 0;
+
+      for (let bit = 0; bit < 8; bit++) {
+        const mask = BLACK_PIXEL_BIT_MASKS[bit] ?? 0;
+        pixels[targetRowOffset + xb * 8 + bit] = byte & mask ? 0 : 255;
+      }
+    }
+  }
+
+  return await sharp(pixels, {
+    raw: { width, height, channels: 1 },
+  })
+    .png()
+    .toBuffer();
+};

@@ -146,6 +146,12 @@ export const printReceipt = publicProcedure
       const rasterCmd = await screenshotToGsV0RasterCommand(receiptScreenshot, {
         threshold: ditherConfiguration.threshold,
         width: PRINT_WIDTH_PX,
+      }).catch((error) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to convert receipt screenshot to raster command.",
+          cause: error,
+        });
       });
 
       await printRasterReceipt(printerUSBAdapter, rasterCmd).catch((error) => {

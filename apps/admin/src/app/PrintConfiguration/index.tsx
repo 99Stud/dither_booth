@@ -276,7 +276,7 @@ export const PrintConfiguration = () => {
 
       downloadBlob(
         receiptBlob,
-        `receipt-${format(new Date(), "MM_dd_yyyy_HH_mm_ss")}.webp`,
+        `receipt-${format(new Date(), "MM_dd_yyyy_HH_mm_ss")}.png`,
       );
     } catch (e) {
       reportKioskError(e, {
