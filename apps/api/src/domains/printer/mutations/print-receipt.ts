@@ -2,21 +2,14 @@ import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
 import { db } from "#db/index";
-import {
-  ditherImage,
-  screenshotToGsV0RasterCommand,
-} from "#domains/image-manipulation/internal/image-manipulation.utils";
-import { PRINT_WIDTH_PX } from "#domains/printer/internal/printer.constants";
+import { buildReceiptRasterCommand } from "#domains/printer/internal/receipt-raster.utils";
 import { printRasterReceipt } from "#domains/printer/internal/printer.utils";
 import { publicProcedure } from "#internal/trpc";
-
-const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 
 export const printReceipt = publicProcedure
   .input(octetInputParser)
   .mutation(async ({ ctx, input }) => {
     const printerUSBAdapter = ctx.printerUSBAdapter;
-    const page = ctx.page;
 
     if (!printerUSBAdapter) {
       throw new TRPCError({
@@ -24,6 +17,8 @@ export const printReceipt = publicProcedure
         message: "No printer device available.",
       });
     }
+
+    const page = ctx.page;
 
     if (!page) {
       throw new TRPCError({
@@ -50,128 +45,17 @@ export const printReceipt = publicProcedure
       });
     }
 
-    const dithered = await ditherImage(inputBuffer, ditherConfiguration, {
-      width: PRINT_WIDTH_PX,
-    }).catch((error) => {
+    const rasterCmd = await buildReceiptRasterCommand({
+      page,
+      photoBuffer: inputBuffer,
+      ditherConfiguration,
+    });
+
+    await printRasterReceipt(printerUSBAdapter, rasterCmd).catch((error) => {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to process photo.",
+        message: "Failed to print receipt.",
         cause: error,
       });
     });
-
-    try {
-      const ditheredImageDataPromise = dithered
-        .png()
-        .toBuffer()
-        .then(
-          (buffer) => ({
-            data: buffer.toBase64(),
-            ok: true as const,
-          }),
-          (error: unknown) => ({
-            error,
-            ok: false as const,
-          }),
-        );
-      const imageElement = await page.waitForSelector("img#booth-photo");
-
-      if (!imageElement) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Receipt photo element was not found.",
-        });
-      }
-
-      const ditheredImageData = await ditheredImageDataPromise;
-
-      if (!ditheredImageData.ok) {
-        throw ditheredImageData.error;
-      }
-
-      await imageElement.evaluate(
-        async (element, image) => {
-          // INFO: do not extract this function, puppeteer needs this to be created on runtime
-          const isImageElement = (
-            element: unknown,
-          ): element is {
-            src: string;
-            decode: () => Promise<undefined>;
-          } => {
-            return (
-              element !== null &&
-              typeof element === "object" &&
-              "src" in element &&
-              typeof element.src === "string" &&
-              "decode" in element &&
-              typeof element.decode === "function"
-            );
-          };
-
-          if (!isImageElement(element)) {
-            throw new Error("Receipt photo element is not an image.");
-          }
-
-          element.src = `data:${image.mimeType};base64,${image.data}`;
-          await element.decode();
-        },
-        {
-          data: ditheredImageData.data,
-          mimeType: "image/png",
-        },
-      );
-
-      const handle = await page.locator("div#receipt").waitHandle();
-
-      if (!handle) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Receipt element was not found.",
-        });
-      }
-
-      const receiptScreenshot: Uint8Array | undefined = await handle.screenshot(
-        {
-          optimizeForSpeed: true,
-        },
-      );
-
-      if (!receiptScreenshot) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: RECEIPT_GENERATION_FAILED_MESSAGE,
-        });
-      }
-
-      const rasterCmd = await screenshotToGsV0RasterCommand(receiptScreenshot, {
-        threshold: ditherConfiguration.threshold,
-        width: PRINT_WIDTH_PX,
-      }).catch((error) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to convert receipt screenshot to raster command.",
-          cause: error,
-        });
-      });
-
-      await printRasterReceipt(printerUSBAdapter, rasterCmd).catch((error) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to print receipt.",
-          cause: error,
-        });
-      });
-
-      return;
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: RECEIPT_GENERATION_FAILED_MESSAGE,
-        cause: error,
-      });
-    }
   });

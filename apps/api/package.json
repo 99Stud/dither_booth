@@ -31,7 +31,7 @@
     "@dither-booth/ports": "workspace:*",
     "@node-escpos/core": "0.6.0",
     "@node-escpos/usb-adapter": "0.3.1",
-    "@opendisplay/epaper-dithering": "5.0.0",
+    "@opendisplay/epaper-dithering": "5.0.6",
     "@trpc/server": "11.17.0",
     "drizzle-orm": "0.45.2",
     "puppeteer": "25.0.4",

@@ -7,7 +7,8 @@ import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/i
 import clsx from "clsx";
 import { format } from "date-fns";
 
-import { cn, mmToPx } from "#lib/utils";
+import { PRINT_WIDTH_PX } from "#lib/constants";
+import { cn } from "#lib/utils";
 
 interface ReceiptProps {
   className?: string;
@@ -25,7 +26,7 @@ export const Receipt: FC<ReceiptProps> = ({ className }) => {
         "font-bit leading-none",
         className,
       )}
-      style={{ width: mmToPx(80) + "px" }}
+      style={{ width: PRINT_WIDTH_PX }}
     >
       <img
         id="booth-photo"
