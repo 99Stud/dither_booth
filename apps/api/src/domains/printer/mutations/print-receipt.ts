@@ -2,8 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
 import { db } from "#db/index";
-import { buildReceiptRasterCommand } from "#domains/printer/internal/receipt-raster.utils";
 import { printRasterReceipt } from "#domains/printer/internal/printer.utils";
+import { buildReceiptRasterCommand } from "#domains/printer/internal/receipt-raster.utils";
 import { publicProcedure } from "#internal/trpc";
 
 export const printReceipt = publicProcedure

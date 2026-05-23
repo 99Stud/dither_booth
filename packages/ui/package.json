@@ -17,6 +17,7 @@
     "./lib/image-manipulation": "./src/lib/image-manipulation/index.tsx",
     "./lib/hooks/user-media": "./src/lib/hooks/user-media/index.tsx",
     "./lib/utils": "./src/lib/utils.tsx",
+    "./lib/formatting": "./src/lib/formatting/index.tsx",
     "./shadcn.css": "./src/styles/shadcn.css"
   },
   "scripts": {

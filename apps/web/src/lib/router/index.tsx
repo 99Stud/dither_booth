@@ -3,6 +3,7 @@ import {
   createRoute,
   createRouter,
   Outlet,
+  type AnyRoute,
 } from "@tanstack/react-router";
 
 import {
@@ -10,7 +11,7 @@ import {
   RootNotFoundScreen,
 } from "#app/Root/internal/components/RootErrorBoundary/index";
 
-import { ROUTES_CONFIG } from "./internal/router.constants";
+import { ROUTE_KEYS, ROUTES_CONFIG } from "./internal/router.constants";
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -18,13 +19,20 @@ const rootRoute = createRootRoute({
   notFoundComponent: RootNotFoundScreen,
 });
 
-const routes = ROUTES_CONFIG.map((route) =>
-  createRoute({
-    getParentRoute: () => rootRoute,
-    path: route.path,
-    component: route.component,
-  }),
-);
+const routes = ROUTE_KEYS.reduce<Array<AnyRoute>>((routes, routeKey) => {
+  const routeConfig = ROUTES_CONFIG.get(routeKey);
+  if (routeConfig) {
+    const test = createRoute({
+      getParentRoute: () => rootRoute,
+      path: routeConfig.path,
+      component: routeConfig.component,
+    });
+
+    routes.push(test);
+  }
+
+  return routes;
+}, []);
 
 const routeTree = rootRoute.addChildren(routes);
 
