@@ -75,9 +75,9 @@ export const asciiNode = (inputNode: Node) => {
     const pixelY = int(floor(localPos.y.mul(5.0)).clamp(0.0, 4.0));
     const bitIndex = pixelY.mul(5).add(pixelX);
 
-    let bitmapValue: ReturnType<typeof int> = int(uCharBitmaps[0]!);
+    let bitmapValue = int(uCharBitmaps[0]!).toVar();
     for (let i = CHAR_COUNT - 1; i >= 1; i--) {
-      bitmapValue = charIndex.equal(i).select(int(uCharBitmaps[i]!), bitmapValue);
+      bitmapValue.assign(charIndex.equal(i).select(int(uCharBitmaps[i]!), bitmapValue));
     }
 
     const bitMask = int(1).shiftLeft(bitIndex);

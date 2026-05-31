@@ -64,7 +64,7 @@ type SliderFieldProps<
   formatValue: (value: SliderFieldValue<TFormData, TName>) => string;
 } & Omit<
   ComponentProps<typeof Slider>,
-  "id" | "name" | "value" | "onValueChange"
+  "form" | "id" | "name" | "value" | "onValueChange"
 >;
 
 export const SliderField = <

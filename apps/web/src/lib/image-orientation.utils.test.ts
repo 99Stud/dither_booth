@@ -72,9 +72,7 @@ describe("shouldForceManualOrientation", () => {
   it("forces manual orientation for EXIF-tagged square JPEGs", () => {
     expect(
       shouldForceManualOrientation({
-        height: 1536,
         orientation: 6,
-        width: 1536,
       }),
     ).toBe(true);
   });
@@ -82,9 +80,7 @@ describe("shouldForceManualOrientation", () => {
   it("skips manual orientation when EXIF orientation is normal", () => {
     expect(
       shouldForceManualOrientation({
-        height: 1536,
         orientation: 1,
-        width: 1536,
       }),
     ).toBe(false);
   });

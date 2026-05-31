@@ -13,8 +13,9 @@
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
+    "@types/french-badwords-list": "1.0.0",
     "@types/node": "latest",
-    "typescript": "6.0.2"
+    "typescript": "6.0.3"
   },
   "dependencies": {
     "french-badwords-list": "^1.0.7",

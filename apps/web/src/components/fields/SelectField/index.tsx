@@ -73,7 +73,7 @@ type SelectProps<
   options: Array<SelectFieldOption<SelectFieldValue<TFormData, TName>>>;
 } & Omit<
   ComponentProps<typeof Select>,
-  "id" | "name" | "value" | "onValueChange"
+  "form" | "id" | "name" | "value" | "onValueChange"
 >;
 
 export const SelectField = <
