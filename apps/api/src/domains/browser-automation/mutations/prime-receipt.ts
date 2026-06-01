@@ -1,6 +1,3 @@
-import { buildReceiptViewerUrl } from "#domains/browser-automation/internal/receipt-viewer-url.ts";
-import { publicProcedure } from "#internal/trpc.ts";
-import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import {
   assertTicketNames,
@@ -9,12 +6,19 @@ import {
 } from "@dither-booth/moderation";
 import { z } from "zod";
 
+import { buildReceiptViewerUrl } from "#domains/browser-automation/internal/receipt-viewer-url.ts";
+import { publicProcedure } from "#internal/trpc.ts";
+import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
+
 const PRIME_TIMEOUT_MS = 15_000;
 
 export const primeReceipt = publicProcedure
   .input(
     z.object({
-      names: z.array(z.string().max(MAX_TICKET_NAME_LENGTH)).max(MAX_TICKET_NAMES).optional(),
+      names: z
+        .array(z.string().max(MAX_TICKET_NAME_LENGTH))
+        .max(MAX_TICKET_NAMES)
+        .optional(),
       clientFlowId: z.uuid().optional(),
     }),
   )
@@ -32,13 +36,16 @@ export const primeReceipt = publicProcedure
       return { warm: false } as const;
     }
 
-    const url = buildReceiptViewerUrl(names);
+    const url = await buildReceiptViewerUrl(names);
 
     try {
       await Promise.race([
         slot.prime(url),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("prime timeout")), PRIME_TIMEOUT_MS),
+          setTimeout(
+            () => reject(new Error("prime timeout")),
+            PRIME_TIMEOUT_MS,
+          ),
         ),
       ]);
 

@@ -1,3 +1,4 @@
+import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
 import {
   RootErrorScreen,
   RootNotFoundScreen,
@@ -12,7 +13,10 @@ import {
 
 import type { FC } from "react";
 
-import { ROUTES_CONFIG } from "./internal/router.constants";
+import {
+  RECEIPT_VIEWER_SEARCH_SCHEMA,
+  ROUTES_CONFIG,
+} from "./internal/router.constants";
 
 const RootLayout: FC = () => {
   return (
@@ -31,7 +35,14 @@ const rootRoute = createRootRoute({
   notFoundComponent: RootNotFoundScreen,
 });
 
-const routes = ROUTES_CONFIG.map((route) =>
+export const receiptViewerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/receipt-viewer",
+  component: ReceiptViewer,
+  validateSearch: RECEIPT_VIEWER_SEARCH_SCHEMA,
+});
+
+const otherRoutes = ROUTES_CONFIG.map((route) =>
   createRoute({
     getParentRoute: () => rootRoute,
     path: route.path,
@@ -39,6 +50,6 @@ const routes = ROUTES_CONFIG.map((route) =>
   }),
 );
 
-const routeTree = rootRoute.addChildren(routes);
+const routeTree = rootRoute.addChildren([receiptViewerRoute, ...otherRoutes]);
 
 export const router = createRouter({ routeTree });

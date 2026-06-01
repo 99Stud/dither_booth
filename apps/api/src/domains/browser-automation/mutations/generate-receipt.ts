@@ -1,3 +1,15 @@
+import type { Page } from "puppeteer";
+
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
+import {
+  assertTicketNames,
+  MAX_TICKET_NAME_LENGTH,
+  MAX_TICKET_NAMES,
+  TicketNameModerationError,
+} from "@dither-booth/moderation";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+
 import { db } from "#db/index.ts";
 import {
   gotoAutomation,
@@ -11,16 +23,6 @@ import {
 } from "#domains/image-manipulation/internal/image-manipulation.utils.ts";
 import { publicProcedure } from "#internal/trpc.ts";
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants.ts";
-import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import {
-  assertTicketNames,
-  MAX_TICKET_NAME_LENGTH,
-  MAX_TICKET_NAMES,
-  TicketNameModerationError,
-} from "@dither-booth/moderation";
-import { TRPCError } from "@trpc/server";
-import type { Page } from "puppeteer";
-import { z } from "zod";
 
 const DATA_URL_REGEX = /^data:([^;]+);base64,(.+)$/;
 
@@ -52,15 +54,22 @@ const parseReceiptImageDataUrl = (dataUrl: string): { buffer: Buffer } => {
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 
-const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
+const roundMs = (since: number) =>
+  Math.round((performance.now() - since) * 100) / 100;
 
 export const generateReceipt = publicProcedure
   .input(
     z.object({
       image: z.string().min(1, "Receipt image is required."),
-      names: z.array(z.string().max(MAX_TICKET_NAME_LENGTH)).max(MAX_TICKET_NAMES).optional(),
+      names: z
+        .array(z.string().max(MAX_TICKET_NAME_LENGTH))
+        .max(MAX_TICKET_NAMES)
+        .optional(),
       /** Six-digit serial; must match lottery ticket when both are printed. */
-      ticketRef: z.string().regex(/^\d{6}$/).optional(),
+      ticketRef: z
+        .string()
+        .regex(/^\d{6}$/)
+        .optional(),
       clientFlowId: z.uuid().optional(),
     }),
   )
@@ -112,15 +121,16 @@ export const generateReceipt = publicProcedure
       const ditherMs = roundMs(ditherStartedAt);
 
       const pngStartedAt = performance.now();
-      const ditheredPng = await renderDitheredToPng(dithered, ditherConfiguration.threshold).catch(
-        (error) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to process photo.",
-            cause: error,
-          });
-        },
-      );
+      const ditheredPng = await renderDitheredToPng(
+        dithered,
+        ditherConfiguration.threshold,
+      ).catch((error) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to process photo.",
+          cause: error,
+        });
+      });
       const renderPngMs = roundMs(pngStartedAt);
 
       const getBrowser = () => ctx.getPuppeteerBrowser?.() ?? ctx.browser;
@@ -136,7 +146,7 @@ export const generateReceipt = publicProcedure
         });
       }
 
-      const receiptViewerUrl = buildReceiptViewerUrl(names, {
+      const receiptViewerUrl = await buildReceiptViewerUrl(names, {
         ticketRef: input.ticketRef,
       });
 
@@ -268,24 +278,29 @@ export const generateReceipt = publicProcedure
         );
       }
 
-      logKioskEvent("info", API_BROWSER_LOG_SOURCE, "generate-receipt-metrics", {
-        details: {
-          totalMs: roundMs(mutationStartedAt),
-          inputBytes: inputBuffer.byteLength,
-          nameCount: names.length,
-          prewarmHit,
-          parseDataUrlMs,
-          loadPrintConfigMs,
-          ditherMs,
-          renderPngMs,
-          puppeteerGotoMs,
-          waitReceiptImageSelectorMs: capture.waitReceiptImageSelectorMs,
-          receiptImageDecodeMs: capture.receiptImageDecodeMs,
-          waitReceiptLocatorMs: capture.waitReceiptLocatorMs,
-          receiptScreenshotMs: capture.receiptScreenshotMs,
-          ...(input.clientFlowId ? { clientFlowId: input.clientFlowId } : {}),
+      logKioskEvent(
+        "info",
+        API_BROWSER_LOG_SOURCE,
+        "generate-receipt-metrics",
+        {
+          details: {
+            totalMs: roundMs(mutationStartedAt),
+            inputBytes: inputBuffer.byteLength,
+            nameCount: names.length,
+            prewarmHit,
+            parseDataUrlMs,
+            loadPrintConfigMs,
+            ditherMs,
+            renderPngMs,
+            puppeteerGotoMs,
+            waitReceiptImageSelectorMs: capture.waitReceiptImageSelectorMs,
+            receiptImageDecodeMs: capture.receiptImageDecodeMs,
+            waitReceiptLocatorMs: capture.waitReceiptLocatorMs,
+            receiptScreenshotMs: capture.receiptScreenshotMs,
+            ...(input.clientFlowId ? { clientFlowId: input.clientFlowId } : {}),
+          },
         },
-      });
+      );
 
       return {
         data: capture.receiptScreenshot,
@@ -304,9 +319,17 @@ export const generateReceipt = publicProcedure
         throw error;
       }
 
-      logKioskEvent("error", API_BROWSER_LOG_SOURCE, "generate-receipt-failed", {
-        error: getKioskErrorDiagnostics(error, RECEIPT_GENERATION_FAILED_MESSAGE),
-      });
+      logKioskEvent(
+        "error",
+        API_BROWSER_LOG_SOURCE,
+        "generate-receipt-failed",
+        {
+          error: getKioskErrorDiagnostics(
+            error,
+            RECEIPT_GENERATION_FAILED_MESSAGE,
+          ),
+        },
+      );
 
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
