@@ -96,7 +96,9 @@ export const Receipt: FC<ReceiptProps> = (props) => {
         <div className={clsx("relative aspect-square w-full overflow-visible")}>
           <img
             id="booth-photo"
-            className={clsx("relative z-0 h-full w-full object-cover")}
+            className={clsx(
+              "relative z-0 h-full w-full [mask-image:url(../../public/ressources/SVG_dither_booth_mask.svg)] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat] object-cover",
+            )}
             src="https://picsum.photos/200"
             alt="booth photo"
           />

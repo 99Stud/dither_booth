@@ -19,7 +19,7 @@ export const sanitizeTicketNameInput = (value: string) => {
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
     .replace(/\|/g, " ")
-    .replace(/[^A-Z ]/g, "")
+    .replace(/[^A-Z0-9 ]/g, "")
     .replace(/\s+/g, " ")
     .trimStart()
     .slice(0, MAX_TICKET_NAME_LENGTH);
