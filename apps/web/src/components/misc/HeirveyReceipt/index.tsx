@@ -12,6 +12,7 @@ export const HeirveyReceipt: FC<HeirveyReceiptProps> = (props) => {
   return (
     <div
       id="receipt"
+      data-receipt-ready="true"
       className={cn("bg-white p-6 text-black", className)}
       style={{ width: mmToPx(80) + "px" }}
     >

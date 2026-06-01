@@ -1,3 +1,4 @@
+import { AdminHeirveyReceipt } from "#app/AdminHeirveyReceipt/index.tsx";
 import { AdminLottery } from "#app/AdminLottery/index.tsx";
 import { AdminPrint } from "#app/AdminPrint/index.tsx";
 import { Booth } from "#app/Booth/index.tsx";
@@ -61,6 +62,10 @@ export const ROUTES_CONFIG = [
   {
     path: "/admin/lottery",
     component: AdminLottery,
+  },
+  {
+    path: "/admin/heirvey-receipt",
+    component: AdminHeirveyReceipt,
   },
   {
     path: "/sandbox",

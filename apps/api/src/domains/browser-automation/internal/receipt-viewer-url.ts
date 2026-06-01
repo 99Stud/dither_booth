@@ -4,10 +4,15 @@ import { API_REPO_ROOT } from "#lib/constants.ts";
 import { serializeTicketSearch } from "#lib/ticket-names-url.ts";
 
 export const RECEIPT_TEMPLATE = "nexus" as const;
+export const HEIRVEY_RECEIPT_TEMPLATE = "heirvey" as const;
+
+export type ReceiptViewerTemplate =
+  | typeof RECEIPT_TEMPLATE
+  | typeof HEIRVEY_RECEIPT_TEMPLATE;
 
 export async function buildReceiptViewerUrl(
   names: string[],
-  options?: { ticketRef?: string; template?: typeof RECEIPT_TEMPLATE },
+  options?: { ticketRef?: string; template?: ReceiptViewerTemplate },
 ): Promise<string> {
   const webOrigin = await getWebOrigin({ repoRoot: API_REPO_ROOT });
   const base = new URL("/receipt-viewer", webOrigin);
