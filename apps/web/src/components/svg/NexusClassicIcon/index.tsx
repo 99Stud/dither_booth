@@ -1,0 +1,19 @@
+import type { FC } from "react";
+
+import { cn } from "#lib/utils.ts";
+
+interface NexusClassicIconProps {
+  className?: string;
+}
+
+export const NexusClassicIcon: FC<NexusClassicIconProps> = ({ className }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1920 1920"
+      className={cn("h-auto w-auto", className)}
+    >
+      <path d="M911.1,682.48c-20.29-.78-40.67-.16-61-.21-6.1-.01-11.82-5.05-15.36,1.21l100.53,1011.72-698.52,173.07v-34.79s47.58-726.9,47.58-726.9L21.79,437.26v-12.04S601.09,24.61,601.09,24.61l207.98,205.98L1083.03,2.59c13.31-6.27,57.35.52,74.11,2.87,149.52,20.92,344.3,99.5,423.54,234.34,24.59,308.99,46.45,618.65,68.41,928.02,80.47,136.98,166.24,270.91,248.76,406.71l-297.36,345.48-481.37-102.16-208.02-1135.36Z" />
+    </svg>
+  );
+};
