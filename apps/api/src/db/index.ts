@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 
 import { printConfigTable } from "./internal/db.schema";
+import { itemTable } from "#domains/items/internal/items.schema.ts";
 import {
   lotteryConfigTable,
   lotteryEventTable,
@@ -22,6 +23,7 @@ export const db = drizzle({
   client: sqlite,
   schema: {
     printConfigTable,
+    itemTable,
     lotteryConfigTable,
     lotteryLotTable,
     lotteryEventTable,

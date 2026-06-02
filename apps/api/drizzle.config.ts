@@ -13,6 +13,7 @@ export default defineConfig({
   schema: [
     "./src/db/internal/db.schema.ts",
     "./src/domains/lottery/internal/lottery.schema.ts",
+    "./src/domains/items/internal/items.schema.ts",
   ],
   dialect: "sqlite",
   dbCredentials: {

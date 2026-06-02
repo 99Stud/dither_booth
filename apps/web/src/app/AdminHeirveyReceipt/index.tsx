@@ -3,9 +3,10 @@ import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { logKioskEvent } from "@dither-booth/logging";
 import { useMutation } from "@tanstack/react-query";
-import type { FC } from "react";
+import { type FC, useState } from "react";
 
 import { ADMIN_HEIRVEY_RECEIPT_LOG_SOURCE } from "./internal/AdminHeirveyReceipt.constants.ts";
+import { AdminHeirveyReceiptItemsTab } from "./internal/AdminHeirveyReceiptItemsTab.tsx";
 
 export const AdminHeirveyReceipt: FC = () => {
   const trpc = useTRPC();
@@ -14,8 +15,12 @@ export const AdminHeirveyReceipt: FC = () => {
     trpc.generateHeirveyReceipt.mutationOptions(),
   );
   const printReceipt = useMutation(trpc.print.mutationOptions());
+  const [itemsMutating, setItemsMutating] = useState(false);
 
-  const isBusy = generateHeirveyReceipt.isPending || printReceipt.isPending;
+  const isBusy =
+    generateHeirveyReceipt.isPending ||
+    printReceipt.isPending ||
+    itemsMutating;
 
   const printHeirvey = async () => {
     try {
@@ -62,10 +67,13 @@ export const AdminHeirveyReceipt: FC = () => {
       <header className="border-b px-4 py-4 sm:px-6 lg:px-8">
         <h1 className="text-sm font-semibold tracking-tight">Heirvey receipt admin</h1>
       </header>
-      <div className="flex flex-1 items-center justify-center px-4 py-10">
-        <Button disabled={isBusy} onClick={() => void printHeirvey()}>
-          {buttonLabel}
-        </Button>
+      <div className="flex flex-1 flex-col gap-6 px-4 py-6 pb-10 sm:px-6 lg:px-8">
+        <AdminHeirveyReceiptItemsTab onMutatingChange={setItemsMutating} />
+        <div className="flex justify-end border-t border-border pt-6">
+          <Button disabled={isBusy} onClick={() => void printHeirvey()}>
+            {buttonLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );

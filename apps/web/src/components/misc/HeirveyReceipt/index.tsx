@@ -8,7 +8,9 @@ import { DitherBoothLogotypeMark } from "#components/svg/DitherBoothLogotypeMark
 import { HeirveyLogo } from "#components/svg/HeirveyLogo/index.tsx";
 import { NexusKey } from "#components/svg/NexusKey/index.tsx";
 import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
+import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
+import { useQuery } from "@tanstack/react-query";
 
 interface HeirveyReceiptProps {
   className?: string;
@@ -18,6 +20,13 @@ interface HeirveyReceiptProps {
 
 export const HeirveyReceipt: FC<HeirveyReceiptProps> = (props) => {
   const { className, names: _, ticketRef } = props;
+
+  const trpc = useTRPC();
+  const {
+    data: items,
+    isLoading,
+    isError,
+  } = useQuery(trpc.getItems.queryOptions());
 
   const today = new Date();
 
@@ -31,16 +40,23 @@ export const HeirveyReceipt: FC<HeirveyReceiptProps> = (props) => {
     );
   }, [ticketRef]);
 
-  const lineItems = [
-    { qty: "1x" as const, label: "99Stud", price: 100 },
-    { qty: "1x" as const, label: "El Tony Mate", price: 100 },
-    { qty: "1x" as const, label: "Ginette", price: 100 },
-  ];
+  const lineItems = useMemo(() => {
+    if (isError || !items) return [];
+    return items.map((item) => ({
+      qty: `${item.qty}x` as const,
+      label: item.label,
+      price: item.price,
+    }));
+  }, [isError, items]);
+
+  const receiptReady = !isLoading;
+
+  const totalPrice = lineItems.reduce((acc, row) => acc + Number(row.price), 0);
 
   return (
     <div
       id="receipt"
-      data-receipt-ready="true"
+      {...(receiptReady ? { "data-receipt-ready": "true" } : {})}
       className={cn(
         "flex flex-col gap-4",
         "bg-white text-black",
@@ -104,9 +120,7 @@ export const HeirveyReceipt: FC<HeirveyReceiptProps> = (props) => {
         <div className={clsx("mt-1 border border-dashed border-black")} />
         <div className={clsx("mt-1 flex items-baseline justify-between gap-3")}>
           <p className="tracking-wide uppercase">Total</p>
-          <p className="shrink-0 tabular-nums">
-            {lineItems.reduce((acc, row) => acc + Number(row.price), 0)}€
-          </p>
+          <p className="shrink-0 tabular-nums">{totalPrice}€</p>
         </div>
       </div>
       <div className={clsx("border border-dashed border-black")} />

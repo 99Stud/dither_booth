@@ -1,5 +1,6 @@
 import { browserAutomation } from "#domains/browser-automation/index.ts";
 import { imageManipulation } from "#domains/image-manipulation/index.ts";
+import { items } from "#domains/items/index.ts";
 import { lottery } from "#domains/lottery/index.ts";
 import { printer } from "#domains/printer/index.ts";
 
@@ -10,4 +11,5 @@ export const apiRouter = router({
   ...imageManipulation,
   ...browserAutomation,
   ...lottery,
+  ...items,
 });
