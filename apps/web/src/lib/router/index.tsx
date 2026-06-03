@@ -7,6 +7,7 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 
+import { AdminHeirveyReceipt } from "#app/AdminHeirveyReceipt/index.tsx";
 import { ReceiptViewer } from "#app/ReceiptViewer/index.tsx";
 import {
   RootErrorScreen,
@@ -43,6 +44,11 @@ export const receiptViewerRoute = createRoute({
   validateSearch: RECEIPT_VIEWER_SEARCH_SCHEMA,
 });
 
+const adminHeirveyReceiptRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/heirvey-receipt",
+  component: AdminHeirveyReceipt,
+});
 const otherRoutes = ROUTES_CONFIG.map((route) =>
   createRoute({
     getParentRoute: () => rootRoute,
@@ -51,6 +57,10 @@ const otherRoutes = ROUTES_CONFIG.map((route) =>
   }),
 );
 
-const routeTree = rootRoute.addChildren([receiptViewerRoute, ...otherRoutes]);
+const routeTree = rootRoute.addChildren([
+  receiptViewerRoute,
+  adminHeirveyReceiptRoute,
+  ...otherRoutes,
+]);
 
 export const router = createRouter({ routeTree });
