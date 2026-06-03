@@ -1,4 +1,5 @@
-import { AdminHeirveyReceipt } from "#app/AdminHeirveyReceipt/index.tsx";
+import z from "zod";
+
 import { AdminLottery } from "#app/AdminLottery/index.tsx";
 import { AdminPrint } from "#app/AdminPrint/index.tsx";
 import { Booth } from "#app/Booth/index.tsx";
@@ -8,7 +9,6 @@ import { PrintConfiguration } from "#app/PrintConfiguration/index.tsx";
 import { Root } from "#app/Root/index.tsx";
 import { Sandbox } from "#app/Sandbox/index.tsx";
 import { Splash } from "#app/Splash/index.tsx";
-import z from "zod";
 
 /** Default receipt layout when `template` is missing or invalid. */
 export const RECEIPT_TEMPLATE = "nexus" as const;
@@ -19,10 +19,7 @@ export const RECEIPT_TEMPLATE_VALUES = [
 ] as const;
 
 export const RECEIPT_VIEWER_SEARCH_SCHEMA = z.object({
-  template: z
-    .enum(RECEIPT_TEMPLATE_VALUES)
-    .optional()
-    .catch(RECEIPT_TEMPLATE),
+  template: z.enum(RECEIPT_TEMPLATE_VALUES).optional().catch(RECEIPT_TEMPLATE),
   ticket: z
     .union([z.string(), z.array(z.string())])
     .optional()
@@ -62,10 +59,6 @@ export const ROUTES_CONFIG = [
   {
     path: "/admin/lottery",
     component: AdminLottery,
-  },
-  {
-    path: "/admin/heirvey-receipt",
-    component: AdminHeirveyReceipt,
   },
   {
     path: "/sandbox",

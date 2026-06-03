@@ -1,16 +1,13 @@
+import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { useMemo, type FC } from "react";
 
-import { NinetyNineStudLogo } from "#components/svg/99StudLogo/index.tsx";
-import { NinetyNineStudQR } from "#components/svg/99studQR/index.tsx";
-import { DitherBoothLogotypeMark } from "#components/svg/DitherBoothLogotypeMark/index.tsx";
 import { HeirveyLogo } from "#components/svg/HeirveyLogo/index.tsx";
-import { NexusKey } from "#components/svg/NexusKey/index.tsx";
+import { Nexus2026HeirveyQR } from "#components/svg/Nexus2026HeirveyQR/index.tsx";
 import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
-import { useQuery } from "@tanstack/react-query";
 
 interface HeirveyReceiptProps {
   className?: string;
@@ -66,7 +63,7 @@ export const HeirveyReceipt: FC<HeirveyReceiptProps> = (props) => {
       )}
       style={{ width: mmToPx(80) + "px" }}
     >
-      <HeirveyLogo className="mx-auto" />
+      <HeirveyLogo className="mx-auto -my-16" />
       <div className={clsx("flex items-center justify-between")}>
         <div className={clsx("flex w-full flex-col gap-2")}>
           <div
@@ -124,29 +121,9 @@ export const HeirveyReceipt: FC<HeirveyReceiptProps> = (props) => {
         </div>
       </div>
       <div className={clsx("border border-dashed border-black")} />
-      <div className={clsx("grid grid-cols-3 items-center gap-4")}>
-        <NinetyNineStudLogo className={clsx("h-10", "justify-self-start")} />
-        <div
-          className={clsx(
-            "flex w-full items-center justify-center gap-2 text-center text-xl",
-          )}
-        >
-          <DitherBoothLogotypeMark
-            className={clsx("h-10 w-auto", "justify-self-end")}
-          />
-        </div>
-        <div
-          className={clsx(
-            "flex w-full items-center justify-end gap-2 text-center text-xl",
-          )}
-        >
-          <NexusKey className={clsx("h-10", "justify-self-center")} />
-        </div>
-      </div>
-      <div className={clsx("border border-dashed border-black")} />
-      <NinetyNineStudQR className={clsx("h-[150px]")} />
+      <Nexus2026HeirveyQR className={clsx("h-[150px]")} />
       <div className={clsx("text-center text-2xl leading-none font-bold")}>
-        ✦ Thanks for partying with us! ✦
+        ✦ From Heirvey with love ✦
       </div>
       <div
         className={clsx(

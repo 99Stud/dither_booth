@@ -6,8 +6,8 @@ import { useMemo } from "react";
 
 import { NinetyNineStudLogo } from "#components/svg/99StudLogo/index.tsx";
 import { DitherBoothLogotypeMark } from "#components/svg/DitherBoothLogotypeMark/index.tsx";
+import { Nexus2026ClassicQR } from "#components/svg/Nexus2026ClassicQR/index.tsx";
 import { NexusClassicLogo } from "#components/svg/NexusClassicLogo/index.tsx";
-import { NexusClassicQR } from "#components/svg/NexusClassicQR/index.tsx";
 import { NexusKey } from "#components/svg/NexusKey/index.tsx";
 import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
@@ -182,7 +182,7 @@ export const Receipt: FC<ReceiptProps> = (props) => {
         </div>
       </div>
       <div className={clsx("border border-dashed border-black")} />
-      <NexusClassicQR className={clsx("h-[150px]")} />
+      <Nexus2026ClassicQR className={clsx("h-[150px]")} />
       <div className={clsx("text-center text-2xl leading-none font-bold")}>
         ✦ Thanks for partying with us! ✦
       </div>
