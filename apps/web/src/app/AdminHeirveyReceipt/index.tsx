@@ -2,25 +2,39 @@ import { Button } from "#components/ui/button.tsx";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { logKioskEvent } from "@dither-booth/logging";
-import { useMutation } from "@tanstack/react-query";
-import { type FC, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type FC, useCallback, useState } from "react";
 
 import { ADMIN_HEIRVEY_RECEIPT_LOG_SOURCE } from "./internal/AdminHeirveyReceipt.constants.ts";
 import { AdminHeirveyReceiptItemsTab } from "./internal/AdminHeirveyReceiptItemsTab.tsx";
 
 export const AdminHeirveyReceipt: FC = () => {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
+  const { data: items } = useQuery(trpc.getItems.queryOptions());
   const generateHeirveyReceipt = useMutation(
     trpc.generateHeirveyReceipt.mutationOptions(),
   );
   const printReceipt = useMutation(trpc.print.mutationOptions());
+  const resetAllItemQuantities = useMutation(
+    trpc.resetAllItemQuantities.mutationOptions(),
+  );
   const [itemsMutating, setItemsMutating] = useState(false);
+
+  const allQuantitiesZero =
+    items !== undefined && items.length > 0 && items.every((item) => item.qty === 0);
 
   const isBusy =
     generateHeirveyReceipt.isPending ||
     printReceipt.isPending ||
-    itemsMutating;
+    itemsMutating ||
+    resetAllItemQuantities.isPending;
+
+  const handleResetQuantities = useCallback(async () => {
+    await resetAllItemQuantities.mutateAsync();
+    await queryClient.invalidateQueries(trpc.getItems.queryOptions());
+  }, [queryClient, resetAllItemQuantities, trpc]);
 
   const printHeirvey = async () => {
     try {
@@ -64,11 +78,26 @@ export const AdminHeirveyReceipt: FC = () => {
 
   return (
     <div className="flex min-h-dvh w-full flex-col bg-background">
-      <header className="border-b px-4 py-4 sm:px-6 lg:px-8">
+      <header className="flex items-center justify-between gap-4 border-b px-4 py-4 sm:px-6 lg:px-8">
         <h1 className="text-sm font-semibold tracking-tight">Heirvey receipt admin</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={
+            isBusy ||
+            (items?.length ?? 0) === 0 ||
+            allQuantitiesZero
+          }
+          onClick={() => void handleResetQuantities()}
+        >
+          {resetAllItemQuantities.isPending ? "Resetting…" : "Reset quantities"}
+        </Button>
       </header>
       <div className="flex flex-1 flex-col gap-6 px-4 py-6 pb-10 sm:px-6 lg:px-8">
-        <AdminHeirveyReceiptItemsTab onMutatingChange={setItemsMutating} />
+        <AdminHeirveyReceiptItemsTab
+          disabled={isBusy}
+          onMutatingChange={setItemsMutating}
+        />
         <div className="flex justify-end border-t border-border pt-6">
           <Button disabled={isBusy} onClick={() => void printHeirvey()}>
             {buttonLabel}

@@ -12,7 +12,7 @@ import { NexusKey } from "#components/svg/NexusKey/index.tsx";
 import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
 
-const RECEIPT_TOTAL_EUR = 1999;
+const RECEIPT_TOTAL_EUR = 999.99;
 
 const formatReceiptEuro = (amount: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(
@@ -67,9 +67,9 @@ export const Receipt: FC<ReceiptProps> = (props) => {
       names && names.length > 0
         ? names.map((name) => ({ qty: "1x" as const, label: name }))
         : [
-            { qty: "1x" as const, label: "99Stud" },
-            { qty: "1x" as const, label: "El Tony Mate" },
-            { qty: "1x" as const, label: "Ginette" },
+            { qty: "1x" as const, label: "Nexus Station" },
+            { qty: "1x" as const, label: "99stud" },
+            { qty: "1x" as const, label: "Hénagone Studio" },
           ];
     const amountsEur = randomPartitionEur(RECEIPT_TOTAL_EUR, rows.length);
     const lineItems = rows.map((row, i) => ({

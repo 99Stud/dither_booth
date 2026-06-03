@@ -1,3 +1,19 @@
+CREATE TABLE `print_debug_config` (
+	`id` integer PRIMARY KEY DEFAULT 1 NOT NULL,
+	`dither_mode_code` integer DEFAULT 2 NOT NULL,
+	`brightness` real DEFAULT 1 NOT NULL,
+	`contrast` real DEFAULT 1 NOT NULL,
+	`gamma` real DEFAULT 1 NOT NULL,
+	`threshold` real DEFAULT 128 NOT NULL,
+	`names_entry_enabled` integer DEFAULT false NOT NULL,
+	CONSTRAINT "print_debug_config_singleton_check" CHECK("print_debug_config"."id" = 1),
+	CONSTRAINT "print_debug_config_dither_mode_code_check" CHECK("print_debug_config"."dither_mode_code" between 0 and 8),
+	CONSTRAINT "print_debug_config_brightness_step_check" CHECK("print_debug_config"."brightness" between 0 and 3),
+	CONSTRAINT "print_debug_config_contrast_step_check" CHECK("print_debug_config"."contrast" between 0 and 3),
+	CONSTRAINT "print_debug_config_gamma_step_check" CHECK("print_debug_config"."gamma" between 1 and 3),
+	CONSTRAINT "print_debug_config_threshold_check" CHECK("print_debug_config"."threshold" between 0 and 255)
+);
+--> statement-breakpoint
 CREATE TABLE `lottery_config` (
 	`id` integer PRIMARY KEY DEFAULT 1 NOT NULL,
 	`enabled` integer DEFAULT false NOT NULL,
@@ -5,7 +21,6 @@ CREATE TABLE `lottery_config` (
 	`end_time` text DEFAULT '21:00' NOT NULL,
 	`base_win_pressure` real DEFAULT 0.15 NOT NULL,
 	`max_boost` real DEFAULT 3 NOT NULL,
-	`lookback_minutes` integer DEFAULT 30 NOT NULL,
 	`abuse_window_seconds` integer DEFAULT 60 NOT NULL,
 	`abuse_max_attempts` integer DEFAULT 5 NOT NULL,
 	`abuse_min_interval_seconds` integer DEFAULT 10 NOT NULL,
@@ -36,9 +51,27 @@ CREATE TABLE `lottery_lot` (
 	`stock_remaining` integer NOT NULL,
 	`base_weight` real DEFAULT 1 NOT NULL,
 	`rarity` text DEFAULT 'common' NOT NULL,
+	`description` text,
+	`instructions` text,
 	`active` integer DEFAULT true NOT NULL,
 	`sort_order` integer DEFAULT 0 NOT NULL,
 	CONSTRAINT "lottery_lot_stock_remaining_check" CHECK("lottery_lot"."stock_remaining" >= 0),
 	CONSTRAINT "lottery_lot_stock_total_check" CHECK("lottery_lot"."stock_total" >= 1),
 	CONSTRAINT "lottery_lot_base_weight_check" CHECK("lottery_lot"."base_weight" > 0)
+);
+--> statement-breakpoint
+CREATE TABLE `lottery_preset` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`name` text NOT NULL,
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
+	`lines_json` text NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE `item` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`label` text NOT NULL,
+	`qty` integer NOT NULL,
+	`price` real NOT NULL,
+	CONSTRAINT "item_qty_check" CHECK("item"."qty" >= 0),
+	CONSTRAINT "item_price_check" CHECK("item"."price" >= 0)
 );

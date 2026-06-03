@@ -9,6 +9,14 @@ import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
 
+const euroReceiptFormatter = new Intl.NumberFormat("fr-FR", {
+  style: "currency",
+  currency: "EUR",
+});
+
+const formatReceiptEuro = (amount: number) =>
+  euroReceiptFormatter.format(amount);
+
 interface HeirveyReceiptProps {
   className?: string;
   names?: string[];
@@ -39,11 +47,20 @@ export const HeirveyReceipt: FC<HeirveyReceiptProps> = (props) => {
 
   const lineItems = useMemo(() => {
     if (isError || !items) return [];
-    return items.map((item) => ({
-      qty: `${item.qty}x` as const,
-      label: item.label,
-      price: item.price,
-    }));
+    return items.reduce<Array<{ qty: number; label: string; price: number }>>(
+      (items, item) => {
+        if (item.qty === 0) return items;
+
+        items.push({
+          qty: item.qty,
+          label: item.label,
+          price: item.price,
+        });
+
+        return items;
+      },
+      [],
+    );
   }, [isError, items]);
 
   const receiptReady = !isLoading;
@@ -102,22 +119,26 @@ export const HeirveyReceipt: FC<HeirveyReceiptProps> = (props) => {
           "text-2xl leading-none font-bold",
         )}
       >
-        {lineItems.map((row, index) => (
-          <div
-            key={`${index}-${row.label}`}
-            className={clsx("flex items-baseline gap-3")}
-          >
-            <p className="shrink-0">{row.qty}</p>
-            <p className="min-w-0 flex-1 wrap-break-word">{row.label}</p>
-            <p className="shrink-0 font-mono text-sm font-light tabular-nums">
-              {row.price}
-            </p>
-          </div>
-        ))}
+        {lineItems.map((row, index) =>
+          row.qty >= 1 ? (
+            <div
+              key={`${index}-${row.label}`}
+              className={clsx("flex items-baseline gap-3")}
+            >
+              <p className="shrink-0">{row.qty}x</p>
+              <p className="min-w-0 flex-1 wrap-break-word">{row.label}</p>
+              <p className="shrink-0 font-mono text-sm font-light tabular-nums">
+                {formatReceiptEuro(row.price)}
+              </p>
+            </div>
+          ) : null,
+        )}
         <div className={clsx("mt-1 border border-dashed border-black")} />
         <div className={clsx("mt-1 flex items-baseline justify-between gap-3")}>
           <p className="tracking-wide uppercase">Total</p>
-          <p className="shrink-0 tabular-nums">{totalPrice}€</p>
+          <p className="shrink-0 tabular-nums">
+            {formatReceiptEuro(totalPrice)}
+          </p>
         </div>
       </div>
       <div className={clsx("border border-dashed border-black")} />

@@ -10,7 +10,7 @@ export const itemTable = sqliteTable(
     price: real("price").notNull(),
   },
   (table) => [
-    check("item_qty_check", sql`${table.qty} >= 1`),
+    check("item_qty_check", sql`${table.qty} >= 0`),
     check("item_price_check", sql`${table.price} >= 0`),
   ],
 );

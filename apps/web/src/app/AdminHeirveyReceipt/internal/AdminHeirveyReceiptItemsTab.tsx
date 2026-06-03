@@ -1,3 +1,7 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Minus, Plus, Trash2 } from "lucide-react";
+import { type FC, useCallback, useEffect, useState } from "react";
+
 import { Button } from "#components/ui/button.tsx";
 import {
   Card,
@@ -16,11 +20,9 @@ import {
   TableRow,
 } from "#components/ui/table.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
-import { type FC, useCallback, useEffect, useState } from "react";
 
 type AdminHeirveyReceiptItemsTabProps = {
+  disabled?: boolean;
   onMutatingChange?: (mutating: boolean) => void;
 };
 
@@ -31,10 +33,10 @@ type ItemRow = {
   price: number;
 };
 
-export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> = (
-  props,
-) => {
-  const { onMutatingChange } = props;
+export const AdminHeirveyReceiptItemsTab: FC<
+  AdminHeirveyReceiptItemsTabProps
+> = (props) => {
+  const { disabled = false, onMutatingChange } = props;
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { data: items, isLoading } = useQuery(trpc.getItems.queryOptions());
@@ -50,6 +52,7 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
 
   const isMutating =
     createItem.isPending || updateItem.isPending || deleteItem.isPending;
+  const controlsDisabled = isMutating || disabled;
 
   useEffect(() => {
     onMutatingChange?.(isMutating);
@@ -93,11 +96,24 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
     return Math.min(max, Math.max(min, Math.floor(n)));
   }, []);
 
+  const QTY_MIN = 0;
+  const QTY_MAX = 1_000_000;
+
+  const adjustQty = useCallback(
+    (item: ItemRow, delta: -1 | 1) => {
+      const next = clampInt(item.qty + delta, QTY_MIN, QTY_MAX);
+      if (next === item.qty) return;
+      void handlePatchItem(item, { qty: next });
+    },
+    [clampInt, handlePatchItem],
+  );
+
   if (isLoading) {
     return <p className="p-4 text-xs text-muted-foreground">Loading…</p>;
   }
 
-  const totalPrice = items?.reduce((sum, row) => sum + row.price, 0) ?? 0;
+  const totalPrice =
+    items?.reduce((sum, row) => sum + row.price * row.qty, 0) ?? 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -142,11 +158,11 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
               )}
               {items?.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="min-w-40 max-w-64">
+                  <TableCell className="max-w-64 min-w-40">
                     <Input
                       className="h-8 w-full min-w-0 font-medium"
                       defaultValue={item.label}
-                      disabled={isMutating}
+                      disabled={controlsDisabled}
                       key={`label-${item.id}-${item.label}`}
                       maxLength={200}
                       onBlur={(e) => {
@@ -162,35 +178,57 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Input
-                      className="ml-auto h-8 w-18 tabular-nums"
-                      disabled={isMutating}
-                      defaultValue={item.qty}
-                      key={`qty-${item.id}-${item.qty}`}
-                      type="number"
-                      min={1}
-                      onBlur={(e) => {
-                        const raw = e.target.value.trim();
-                        if (raw === "") {
-                          e.target.value = String(item.qty);
-                          return;
-                        }
-                        const v = Number(raw);
-                        if (Number.isNaN(v)) {
-                          e.target.value = String(item.qty);
-                          return;
-                        }
-                        const qty = clampInt(v, 1, 1_000_000);
-                        if (qty === item.qty) return;
-                        void handlePatchItem(item, { qty });
-                      }}
-                      aria-label={`Quantity for ${item.label}`}
-                    />
+                    <div className="ml-auto flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => adjustQty(item, -1)}
+                        title="Decrease quantity"
+                        disabled={controlsDisabled || item.qty <= QTY_MIN}
+                        aria-label={`Decrease quantity for ${item.label}`}
+                      >
+                        <Minus className="size-3" />
+                      </Button>
+                      <Input
+                        className="h-8 w-14 tabular-nums"
+                        disabled={controlsDisabled}
+                        defaultValue={item.qty}
+                        key={`qty-${item.id}-${item.qty}`}
+                        type="number"
+                        min={QTY_MIN}
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          if (raw === "") {
+                            e.target.value = String(item.qty);
+                            return;
+                          }
+                          const v = Number(raw);
+                          if (Number.isNaN(v)) {
+                            e.target.value = String(item.qty);
+                            return;
+                          }
+                          const qty = clampInt(v, QTY_MIN, QTY_MAX);
+                          if (qty === item.qty) return;
+                          void handlePatchItem(item, { qty });
+                        }}
+                        aria-label={`Quantity for ${item.label}`}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => adjustQty(item, 1)}
+                        title="Increase quantity"
+                        disabled={controlsDisabled || item.qty >= QTY_MAX}
+                        aria-label={`Increase quantity for ${item.label}`}
+                      >
+                        <Plus className="size-3" />
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <Input
                       className="ml-auto h-8 w-18 tabular-nums"
-                      disabled={isMutating}
+                      disabled={controlsDisabled}
                       defaultValue={item.price}
                       key={`price-${item.id}-${item.price}`}
                       type="number"
@@ -220,7 +258,7 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
                       size="icon-xs"
                       onClick={() => handleDelete(item.id)}
                       title="Delete"
-                      disabled={isMutating}
+                      disabled={controlsDisabled}
                     >
                       <Trash2 className="size-3" />
                     </Button>
@@ -241,6 +279,7 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
             <FieldLabel htmlFor="new-item-label">Label</FieldLabel>
             <Input
               id="new-item-label"
+              disabled={controlsDisabled}
               value={newItem.label}
               onChange={(e) =>
                 setNewItem((f) => ({ ...f, label: e.target.value }))
@@ -259,6 +298,7 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
                 id="new-item-qty"
                 type="number"
                 min="1"
+                disabled={controlsDisabled}
                 value={newItem.qty}
                 onChange={(e) =>
                   setNewItem((f) => ({
@@ -278,6 +318,7 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
                 type="number"
                 min="0"
                 step="0.01"
+                disabled={controlsDisabled}
                 value={newItem.price}
                 onChange={(e) =>
                   setNewItem((f) => ({
@@ -290,7 +331,9 @@ export const AdminHeirveyReceiptItemsTab: FC<AdminHeirveyReceiptItemsTabProps> =
           </div>
           <Button
             onClick={() => void handleCreate()}
-            disabled={createItem.isPending || !newItem.label.trim()}
+            disabled={
+              controlsDisabled || createItem.isPending || !newItem.label.trim()
+            }
             className="self-end"
           >
             Add

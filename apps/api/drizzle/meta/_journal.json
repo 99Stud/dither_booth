@@ -5,64 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1775002771241,
-      "tag": "0000_funny_ultron",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1776184947669,
-      "tag": "0001_hard_killraven",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1776270375430,
-      "tag": "0002_flippant_baron_strucker",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1776271915332,
-      "tag": "0003_tan_silverclaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1776330838508,
-      "tag": "0004_same_sebastian_shaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1776331220027,
-      "tag": "0005_dizzy_wolfpack",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1776439620756,
-      "tag": "0006_light_leper_queen",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1776511858642,
-      "tag": "0007_drop_lottery_session",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1780356013157,
-      "tag": "0008_slim_puff_adder",
+      "when": 1780482061447,
+      "tag": "0000_small_praxagora",
       "breakpoints": true
     }
   ]
