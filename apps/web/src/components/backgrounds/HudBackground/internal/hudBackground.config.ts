@@ -11,7 +11,7 @@ export const PALETTE = {
   color0: "#000000",
   color1: "#000000",
   color2: "#000000",
-  color3: "#ff005C",
+  color3: "#0055ff",
   color4: "#000000",
   color5: "#000000",
 } as const;

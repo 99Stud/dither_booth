@@ -301,14 +301,14 @@ export const Booth: FC = () => {
         <div className="relative mb-8 w-[min(98vw,calc(100dvh-8rem))] shrink-0">
           <div
             className={cn(
-              "relative aspect-square w-full overflow-hidden border border-primary/45 bg-background/30 shadow-[0_0_0_1px_oklch(0.85_0.06_48/0.12),0_12px_48px_-12px_oklch(0_0_0/0.55)]",
+              "relative aspect-square w-full overflow-hidden border border-primary/45 bg-background/30 shadow-[0_0_0_1px_oklch(0.85_0.06_262.64/0.12),0_12px_48px_-12px_oklch(0_0_0/0.55)]",
               "transition-[border-color,box-shadow] duration-500 ease-out motion-reduce:transition-none",
               !cameraReady &&
                 "border-primary/25 shadow-[0_12px_32px_-16px_oklch(0_0_0/0.35)]",
             )}
           >
             {showTicketNameHeader && (
-              <div className="absolute top-0 right-0 left-0 z-20 animate-in border-b border-primary/25 bg-background/70 px-2 py-2 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm duration-300 ease-out fade-in slide-in-from-top-2 motion-reduce:animate-none sm:px-3 sm:py-2.5">
+              <div className="absolute top-0 right-0 left-0 z-20 animate-in border-b border-primary/25 bg-background/70 px-2 py-2 shadow-[0_0_30px_oklch(0.53_0.26_262.64/0.08)] backdrop-blur-sm duration-300 ease-out fade-in slide-in-from-top-2 motion-reduce:animate-none sm:px-3 sm:py-2.5">
                 {canUseTicketNames ? (
                   <ul className="flex flex-wrap justify-center gap-x-2 gap-y-1.5 opacity-90 sm:gap-x-2.5">
                     {ticketNames.map((name, i) => (

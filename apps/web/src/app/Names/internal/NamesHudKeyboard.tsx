@@ -9,13 +9,13 @@ import { buttonVariants } from "#components/ui/button.tsx";
 import { cn } from "#lib/utils.ts";
 
 const keyOutlinePress =
-  "group touch-manipulation transition-[transform,box-shadow,border-color,background-color] duration-100 ease-out active:scale-[0.92] active:translate-y-[3px] active:duration-[70ms] active:border-primary active:bg-primary/18 active:shadow-[0_0_22px_oklch(0.72_0.2_48/0.48),0_0_0_1px_oklch(0.72_0.2_48/0.4),inset_0_1px_0_oklch(0.88_0.12_55/0.15)] motion-reduce:active:scale-100 motion-reduce:active:translate-y-px motion-reduce:transition-none";
+  "group touch-manipulation transition-[transform,box-shadow,border-color,background-color] duration-100 ease-out active:scale-[0.92] active:translate-y-[3px] active:duration-[70ms] active:border-primary active:bg-primary/18 active:shadow-[0_0_22px_oklch(0.58_0.24_262.64/0.48),0_0_0_1px_oklch(0.58_0.24_262.64/0.4),inset_0_1px_0_oklch(0.88_0.12_262.64/0.15)] motion-reduce:active:scale-100 motion-reduce:active:translate-y-px motion-reduce:transition-none";
 
 const keyHudPress =
-  "group touch-manipulation transition-[transform,box-shadow,border-color,background-color] duration-100 ease-out active:scale-[0.94] active:translate-y-[2px] active:duration-[70ms] active:shadow-[0_0_32px_oklch(0.72_0.2_48/0.72),0_0_0_2px_oklch(0.72_0.2_48/0.55),inset_0_0_18px_oklch(0.72_0.2_48/0.22)] active:bg-primary/10 motion-reduce:active:scale-100 motion-reduce:active:translate-y-px motion-reduce:transition-none";
+  "group touch-manipulation transition-[transform,box-shadow,border-color,background-color] duration-100 ease-out active:scale-[0.94] active:translate-y-[2px] active:duration-[70ms] active:shadow-[0_0_32px_oklch(0.58_0.24_262.64/0.72),0_0_0_2px_oklch(0.58_0.24_262.64/0.55),inset_0_0_18px_oklch(0.58_0.24_262.64/0.22)] active:bg-primary/10 motion-reduce:active:scale-100 motion-reduce:active:translate-y-px motion-reduce:transition-none";
 
 const keyLabelFlash =
-  "pointer-events-none inline-block transition-[transform,filter] duration-100 ease-out group-active:scale-105 group-active:brightness-125 group-active:[text-shadow:0_0_12px_oklch(0.82_0.2_55/0.95),0_0_4px_oklch(0.78_0.2_48/0.9)] motion-reduce:group-active:scale-100 motion-reduce:group-active:brightness-100";
+  "pointer-events-none inline-block transition-[transform,filter] duration-100 ease-out group-active:scale-105 group-active:brightness-125 group-active:[text-shadow:0_0_12px_oklch(0.82_0.2_262.64/0.95),0_0_4px_oklch(0.65_0.24_262.64/0.9)] motion-reduce:group-active:scale-100 motion-reduce:group-active:brightness-100";
 
 const KeyCap: FC<{
   ariaLabel?: string;
@@ -135,7 +135,7 @@ export const NamesHudKeyboard: FC<{
                 disabled={isKeyboardDisabled}
                 className={cn(
                   buttonVariants({ variant: "default", size: "touch" }),
-                  "flex min-h-11 items-center justify-center border-0 px-1 text-primary-foreground shadow-[0_2px_0_oklch(0_0_0/0.18),0_0_24px_oklch(0.55_0.2_48/0.45)] sm:min-h-14 [@media(max-height:720px)]:min-h-9",
+                  "flex min-h-11 items-center justify-center border-0 px-1 text-primary-foreground shadow-[0_2px_0_oklch(0_0_0/0.18),0_0_24px_oklch(0.45_0.22_262.64/0.45)] sm:min-h-14 [@media(max-height:720px)]:min-h-9",
                   "touch-manipulation transition-[transform,box-shadow,filter] duration-100 ease-out active:translate-y-[2px] active:scale-[0.94] active:brightness-95 active:duration-70 motion-reduce:active:translate-y-0 motion-reduce:active:scale-100",
                 )}
                 onClick={onContinue}

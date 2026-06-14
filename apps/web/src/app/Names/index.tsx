@@ -174,7 +174,7 @@ export const Names: FC = () => {
             paddingBottom: `${contentBottomPad}px`,
           }}
         >
-          <div className="flex flex-col gap-5 rounded-sm border border-primary/35 bg-background/70 p-5 shadow-[0_8px_48px_-8px_oklch(0_0_0/0.65),inset_0_1px_0_0_oklch(0.85_0.06_48/0.06)] backdrop-blur-sm sm:gap-7 sm:p-7 [@media(max-height:720px)]:gap-4 [@media(max-height:720px)]:p-4">
+          <div className="flex flex-col gap-5 rounded-sm border border-primary/35 bg-background/70 p-5 shadow-[0_8px_48px_-8px_oklch(0_0_0/0.65),inset_0_1px_0_0_oklch(0.85_0.06_262.64/0.06)] backdrop-blur-sm sm:gap-7 sm:p-7 [@media(max-height:720px)]:gap-4 [@media(max-height:720px)]:p-4">
             <header className="text-center font-heading">
               <h1 className="hud-text-glow-orange text-lg leading-tight tracking-[0.12em] text-primary uppercase sm:text-2xl lg:text-3xl [@media(max-height:720px)]:text-base">
                 Qui êtes-vous ?
@@ -213,7 +213,7 @@ export const Names: FC = () => {
                         "flex h-auto min-h-13 min-w-19 shrink-0 flex-col items-center justify-center gap-0.5 px-2 py-2 font-mono sm:min-w-21",
                         "border-primary/50 bg-card/90",
                         activeRowId === row.id &&
-                          "border-primary bg-primary/15 shadow-[0_0_20px_oklch(0.7_0.2_48/0.25)]",
+                          "border-primary bg-primary/15 shadow-[0_0_20px_oklch(0.53_0.26_262.64/0.25)]",
                       )}
                       onClick={() => {
                         setActiveRowId(row.id);
@@ -292,9 +292,9 @@ export const Names: FC = () => {
                     className={cn(
                       "h-12 min-h-12 w-full border-0 border-b-2 bg-transparent px-1 pt-1 pb-2 text-base text-foreground sm:h-16 sm:min-h-16 sm:pb-3 sm:text-lg [@media(max-height:720px)]:h-11 [@media(max-height:720px)]:min-h-11 [@media(max-height:720px)]:text-[15px]",
                       "rounded-none placeholder:text-foreground/45",
-                      "focus:border-primary focus:shadow-[0_12px_40px_-8px_oklch(0.7_0.2_48/0.35)] focus:ring-0 focus:outline-none",
+                      "focus:border-primary focus:shadow-[0_12px_40px_-8px_oklch(0.53_0.26_262.64/0.35)] focus:ring-0 focus:outline-none",
                       "hud-text-glow-orange-soft",
-                      "border-primary text-primary [text-shadow:0_0_12px_oklch(0.72_0.18_48/0.45)]",
+                      "border-primary text-primary [text-shadow:0_0_12px_oklch(0.58_0.22_262.64/0.45)]",
                     )}
                   />
                 </label>
