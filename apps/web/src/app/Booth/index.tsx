@@ -28,7 +28,7 @@ import { BOOTH_LOG_SOURCE } from "./internal/Booth.constants";
 
 type BoothPhase = "idle" | "countdown" | "flash" | "processing" | "thank-you";
 
-const COUNTDOWN_SECONDS = 4;
+const COUNTDOWN_SECONDS = 3;
 const THANK_YOU_DURATION_MS = 6_000;
 const FLASH_HOLD_MS = 140;
 
@@ -360,7 +360,7 @@ export const Booth: FC = () => {
             >
               <BoothDitherLottie className="h-40 max-h-[min(45vw,220px)] w-40 max-w-[min(45vw,220px)] shrink-0 sm:h-48 sm:w-48" />
               <p className="font-bit text-2xl font-bold tracking-[0.25em] text-white uppercase">
-                Initialisation caméra…
+                Camera initialization…
               </p>
             </div>
 
@@ -386,7 +386,7 @@ export const Booth: FC = () => {
                 )}
                 onClick={startSequence}
               >
-                Prendre la photo
+                Take photo
               </button>
             </div>
           )}

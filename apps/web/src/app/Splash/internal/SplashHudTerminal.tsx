@@ -46,7 +46,7 @@ export const SplashHudTerminal: FC<{ reduceMotion: boolean }> = (props) => {
     >
       <div className="mb-2 flex items-center justify-between gap-3 border-b border-white/35 pb-2 font-bit text-[9px] uppercase">
         <span className="hud-text-glow-orange tracking-[0.22em]">
-          99_stud feed
+          Framer feed
         </span>
         <span className="hud-text-glow-orange-soft tracking-[0.2em]">
           Active

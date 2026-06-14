@@ -109,7 +109,9 @@ export const Splash: FC = () => {
             </div>
 
             <DitherBoothSplashLogo className="hud-splash-logo-animate max-w-[min(100%,15rem)]" />
-
+            <p className="font-bit text-3xl font-medium text-white/80">
+              powered by <span className="font-bold">99stud™</span>
+            </p>
             <SplashHudTerminal reduceMotion={reduceMotion} />
           </div>
 
@@ -132,13 +134,13 @@ export const Splash: FC = () => {
             disabled={isLoadingPrintConfig}
             className={cn(
               buttonVariants({ variant: "hud", size: "touch" }),
-              "hud-cta-pulse min-h-24 w-full max-w-sm justify-center border border-white bg-black/60 px-56 py-4 font-bit text-2xl font-bold text-white",
+              "hud-cta-pulse min-h-24 w-auto max-w-xl justify-center border border-white bg-black/60 px-56 py-4 font-bit text-2xl font-bold text-white",
               isLoadingPrintConfig && "pointer-events-none opacity-50",
               "backdrop-blur-sm",
             )}
             onClick={goToExperience}
           >
-            Commencer l'expérience
+            Launch Framer x Dither Booth
           </button>
         </div>
       </div>
