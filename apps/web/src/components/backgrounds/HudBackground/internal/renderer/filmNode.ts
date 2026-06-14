@@ -1,6 +1,8 @@
-import { film } from "three/addons/tsl/display/FilmNode.js";
 import type Node from "three/src/nodes/core/Node.js";
+
+import { film } from "three/addons/tsl/display/FilmNode.js";
 import { uniform } from "three/tsl";
+
 import { FILM } from "../hudBackground.config.ts";
 
 const uFilmStrength = uniform(FILM.strength);

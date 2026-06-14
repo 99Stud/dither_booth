@@ -1,3 +1,5 @@
+import type { FC } from "react";
+
 import {
   Field,
   FieldContent,
@@ -5,7 +7,6 @@ import {
   FieldLabel,
 } from "#components/ui/field.tsx";
 import { DEFAULT_BOOTH_TICKET_DISPLAY_NAMES } from "#lib/ticket-names.ts";
-import type { FC } from "react";
 
 export const NamesEntryEnabledControl: FC<{
   inputId: string;
@@ -20,8 +21,8 @@ export const NamesEntryEnabledControl: FC<{
       <FieldContent className="gap-1.5">
         <FieldLabel htmlFor={inputId}>Name entry</FieldLabel>
         <FieldDescription>
-          When off, check-in sends guests straight to the booth with default ticket labels (
-          {DEFAULT_BOOTH_TICKET_DISPLAY_NAMES.join(", ")}).
+          When off, check-in sends guests straight to the booth with default
+          ticket labels ({DEFAULT_BOOTH_TICKET_DISPLAY_NAMES.join(", ")}).
         </FieldDescription>
       </FieldContent>
       <div className="flex items-center pt-1">

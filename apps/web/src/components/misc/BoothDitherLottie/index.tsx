@@ -11,10 +11,7 @@ export const BoothDitherLottie: FC<{
 }> = (props) => {
   const { className, style } = props;
   return (
-    <div
-      className={cn("brightness-0 invert", className)}
-      style={style}
-    >
+    <div className={cn("brightness-0 invert", className)} style={style}>
       <DotLottieReact
         src={BOOTH_LOTTIE_SRC}
         loop

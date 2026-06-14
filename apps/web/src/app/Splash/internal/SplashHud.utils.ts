@@ -19,13 +19,18 @@ export const getNextSyncValue = (elapsedMs: number) => {
 };
 
 export const getTerminalLine = (step: number) => {
-  const template = TERMINAL_LINE_TEMPLATES[step % TERMINAL_LINE_TEMPLATES.length];
+  const template =
+    TERMINAL_LINE_TEMPLATES[step % TERMINAL_LINE_TEMPLATES.length];
   const channel = (step % 4) + 1;
   const hex = (0x70 + ((step * 13) % 0x1f)).toString(16).toUpperCase();
 
   return `[CH-${channel}] ${template} // 0x${hex}`;
 };
 
-export const appendTerminalLine = (lines: string[], nextLine: string, maxLines: number) => {
+export const appendTerminalLine = (
+  lines: string[],
+  nextLine: string,
+  maxLines: number,
+) => {
   return [...lines, nextLine].slice(-maxLines);
 };

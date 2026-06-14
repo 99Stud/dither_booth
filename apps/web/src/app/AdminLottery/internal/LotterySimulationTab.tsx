@@ -1,3 +1,20 @@
+import {
+  SIMULATE_LOTTERY_MAX_ATTEMPTS,
+  SIMULATE_LOTTERY_MAX_PRODUCT,
+  SIMULATE_LOTTERY_MAX_SAMPLES,
+} from "@dither-booth/api/lottery-constants";
+import { useMutation } from "@tanstack/react-query";
+import { type FC, type ReactNode, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+} from "recharts";
+
 import { Badge } from "#components/ui/badge.tsx";
 import { Button } from "#components/ui/button.tsx";
 import {
@@ -17,14 +34,6 @@ import {
 import { Field, FieldDescription, FieldLabel } from "#components/ui/field.tsx";
 import { Input } from "#components/ui/input.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import {
-  SIMULATE_LOTTERY_MAX_ATTEMPTS,
-  SIMULATE_LOTTERY_MAX_PRODUCT,
-  SIMULATE_LOTTERY_MAX_SAMPLES,
-} from "@dither-booth/api/lottery-constants";
-import { useMutation } from "@tanstack/react-query";
-import { type FC, type ReactNode, useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 const hourlyChartConfig = {
   meanAttempts: { label: "Mean attempts", color: "oklch(0.72 0.04 90)" },
@@ -61,7 +70,9 @@ export const LotterySimulationTab: FC = () => {
 
   const [attempts, setAttempts] = useState(500);
   const [samples, setSamples] = useState(50);
-  const [profile, setProfile] = useState<"normal" | "bursty" | "mixed">("normal");
+  const [profile, setProfile] = useState<"normal" | "bursty" | "mixed">(
+    "normal",
+  );
 
   const simulation = simulateLottery.data;
 
@@ -107,9 +118,15 @@ export const LotterySimulationTab: FC = () => {
     () =>
       simulation?.perLot.map((lot) => ({
         ...lot,
-        meanDistributionRatePct: Number((lot.distributionRate.mean * 100).toFixed(1)),
-        p10DistributionRatePct: Number((lot.distributionRate.p10 * 100).toFixed(1)),
-        p90DistributionRatePct: Number((lot.distributionRate.p90 * 100).toFixed(1)),
+        meanDistributionRatePct: Number(
+          (lot.distributionRate.mean * 100).toFixed(1),
+        ),
+        p10DistributionRatePct: Number(
+          (lot.distributionRate.p10 * 100).toFixed(1),
+        ),
+        p90DistributionRatePct: Number(
+          (lot.distributionRate.p90 * 100).toFixed(1),
+        ),
         coverageRatePct: Number((lot.coverageRate * 100).toFixed(1)),
       })) ?? [],
     [simulation],
@@ -121,8 +138,9 @@ export const LotterySimulationTab: FC = () => {
         <CardHeader>
           <CardTitle>Simulation</CardTitle>
           <CardDescription>
-            Runs the live lottery engine offline. The enabled toggle is ignored, and Monte Carlo
-            repeats the full run many times to show mean outcomes and spread.
+            Runs the live lottery engine offline. The enabled toggle is ignored,
+            and Monte Carlo repeats the full run many times to show mean
+            outcomes and spread.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -130,8 +148,8 @@ export const LotterySimulationTab: FC = () => {
             <Field>
               <FieldLabel htmlFor="simulation-attempts">Attempts</FieldLabel>
               <FieldDescription>
-                How many synthetic draws to run inside the configured daily window. Product
-                (samples × attempts) cannot exceed{" "}
+                How many synthetic draws to run inside the configured daily
+                window. Product (samples × attempts) cannot exceed{" "}
                 {SIMULATE_LOTTERY_MAX_PRODUCT.toLocaleString("en-US")}.
               </FieldDescription>
               <Input
@@ -146,8 +164,8 @@ export const LotterySimulationTab: FC = () => {
             <Field>
               <FieldLabel htmlFor="simulation-samples">Samples</FieldLabel>
               <FieldDescription>
-                Number of full runs to aggregate. Higher values reduce noise. Same product cap
-                as attempts.
+                Number of full runs to aggregate. Higher values reduce noise.
+                Same product cap as attempts.
               </FieldDescription>
               <Input
                 id="simulation-samples"
@@ -159,7 +177,9 @@ export const LotterySimulationTab: FC = () => {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="simulation-profile">Traffic shape</FieldLabel>
+              <FieldLabel htmlFor="simulation-profile">
+                Traffic shape
+              </FieldLabel>
               <FieldDescription>
                 Even spacing, bursty abuse pressure, or a mixed profile.
               </FieldDescription>
@@ -168,7 +188,9 @@ export const LotterySimulationTab: FC = () => {
                 className="h-9 w-full border border-input bg-transparent px-2 text-xs"
                 value={profile}
                 onChange={(event) =>
-                  setProfile(event.target.value as "normal" | "bursty" | "mixed")
+                  setProfile(
+                    event.target.value as "normal" | "bursty" | "mixed",
+                  )
                 }
               >
                 <option value="normal">Normal (even)</option>
@@ -179,7 +201,9 @@ export const LotterySimulationTab: FC = () => {
             <div className="flex items-end">
               <Button
                 className="w-full"
-                onClick={() => simulateLottery.mutate({ attempts, samples, profile })}
+                onClick={() =>
+                  simulateLottery.mutate({ attempts, samples, profile })
+                }
                 disabled={simulateLottery.isPending}
               >
                 {simulateLottery.isPending ? "Running…" : "Run"}
@@ -211,7 +235,11 @@ export const LotterySimulationTab: FC = () => {
               label="Mean wins"
               value={simulation.wins.mean}
               range={`${simulation.wins.p10.toFixed(0)}–${simulation.wins.p90.toFixed(0)}`}
-              badge={<Badge variant="success">{simulation.wins.p50.toFixed(0)} median</Badge>}
+              badge={
+                <Badge variant="success">
+                  {simulation.wins.p50.toFixed(0)} median
+                </Badge>
+              }
             />
             <SummaryStatCard
               label="Mean forced losses"
@@ -254,16 +282,27 @@ export const LotterySimulationTab: FC = () => {
             <CardHeader>
               <CardTitle>Monte Carlo probability curve</CardTitle>
               <CardDescription>
-                Mean P(win) and remaining stock over the session. Dashed lines show the P10/P90
-                spread between runs.
+                Mean P(win) and remaining stock over the session. Dashed lines
+                show the P10/P90 spread between runs.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer config={probCurveConfig} className="h-[280px]">
                 <LineChart accessibilityLayer data={probCurveData}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="elapsedPct" unit="%" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis unit="%" tickLine={false} axisLine={false} domain={[0, 100]} />
+                  <XAxis
+                    dataKey="elapsedPct"
+                    unit="%"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <YAxis
+                    unit="%"
+                    tickLine={false}
+                    axisLine={false}
+                    domain={[0, 100]}
+                  />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     type="monotone"
@@ -306,14 +345,34 @@ export const LotterySimulationTab: FC = () => {
                 <CardTitle>Mean counts by hour</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={hourlyChartConfig} className="h-[260px]">
+                <ChartContainer
+                  config={hourlyChartConfig}
+                  className="h-[260px]"
+                >
                   <BarChart accessibilityLayer data={hourlyChartData}>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" tickLine={false} tickMargin={8} axisLine={false} />
-                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                    <XAxis
+                      dataKey="hour"
+                      tickLine={false}
+                      tickMargin={8}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tickLine={false}
+                      axisLine={false}
+                    />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="meanAttempts" fill="var(--color-meanAttempts)" radius={0} />
-                    <Bar dataKey="meanWins" fill="var(--color-meanWins)" radius={0} />
+                    <Bar
+                      dataKey="meanAttempts"
+                      fill="var(--color-meanAttempts)"
+                      radius={0}
+                    />
+                    <Bar
+                      dataKey="meanWins"
+                      fill="var(--color-meanWins)"
+                      radius={0}
+                    />
                     <Bar
                       dataKey="meanForcedLosses"
                       fill="var(--color-meanForcedLosses)"
@@ -329,11 +388,24 @@ export const LotterySimulationTab: FC = () => {
                 <CardTitle>Hourly win rate spread</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={hourlyChartConfig} className="h-[260px]">
+                <ChartContainer
+                  config={hourlyChartConfig}
+                  className="h-[260px]"
+                >
                   <LineChart accessibilityLayer data={hourlyChartData}>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" tickLine={false} tickMargin={8} axisLine={false} />
-                    <YAxis unit="%" tickLine={false} axisLine={false} domain={[0, 100]} />
+                    <XAxis
+                      dataKey="hour"
+                      tickLine={false}
+                      tickMargin={8}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      unit="%"
+                      tickLine={false}
+                      axisLine={false}
+                      domain={[0, 100]}
+                    />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Line
                       type="monotone"
@@ -368,8 +440,8 @@ export const LotterySimulationTab: FC = () => {
             <CardHeader>
               <CardTitle>Per-minute win rate spread</CardTitle>
               <CardDescription>
-                Monte Carlo mean win rate and P10/P90 band by clock minute (only minutes that
-                received at least one attempt in each run).
+                Monte Carlo mean win rate and P10/P90 band by clock minute (only
+                minutes that received at least one attempt in each run).
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -387,7 +459,12 @@ export const LotterySimulationTab: FC = () => {
                     textAnchor="end"
                     height={48}
                   />
-                  <YAxis unit="%" tickLine={false} axisLine={false} domain={[0, 100]} />
+                  <YAxis
+                    unit="%"
+                    tickLine={false}
+                    axisLine={false}
+                    domain={[0, 100]}
+                  />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     type="monotone"
@@ -424,12 +501,17 @@ export const LotterySimulationTab: FC = () => {
                 Mean percentage distributed for each lot across all samples.
               </CardDescription>
               <CardAction className="text-[10px] text-muted-foreground">
-                {(simulation.fullDepletionRate * 100).toFixed(1)}% full depletion
+                {(simulation.fullDepletionRate * 100).toFixed(1)}% full
+                depletion
               </CardAction>
             </CardHeader>
             <CardContent>
               <ChartContainer config={lotChartConfig} className="h-[300px]">
-                <BarChart accessibilityLayer data={lotChartData} layout="vertical">
+                <BarChart
+                  accessibilityLayer
+                  data={lotChartData}
+                  layout="vertical"
+                >
                   <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                   <XAxis
                     type="number"
@@ -467,8 +549,8 @@ export const LotterySimulationTab: FC = () => {
                   >
                     <span className="truncate">{lot.label}</span>
                     <span className="tabular-nums">
-                      {lot.p10DistributionRatePct.toFixed(1)}–{lot.p90DistributionRatePct.toFixed(1)}%
-                      {" · "}
+                      {lot.p10DistributionRatePct.toFixed(1)}–
+                      {lot.p90DistributionRatePct.toFixed(1)}%{" · "}
                       coverage {lot.coverageRatePct.toFixed(1)}%
                     </span>
                   </div>
@@ -496,16 +578,24 @@ const SummaryStatCard: FC<{
       <CardContent className="flex flex-col gap-1 pt-4">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold tabular-nums">
-            {typeof value === "number" ? value.toFixed(1).replace(/\.0$/, "") : value}
+            {typeof value === "number"
+              ? value.toFixed(1).replace(/\.0$/, "")
+              : value}
           </span>
           {badge}
         </div>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-[10px] tracking-wider text-muted-foreground uppercase">
+          {label}
+        </span>
         {range ? (
-          <span className="text-[10px] leading-tight text-muted-foreground/70">p10–p90 {range}</span>
+          <span className="text-[10px] leading-tight text-muted-foreground/70">
+            p10–p90 {range}
+          </span>
         ) : null}
         {helper ? (
-          <span className="text-[10px] leading-tight text-muted-foreground/70">{helper}</span>
+          <span className="text-[10px] leading-tight text-muted-foreground/70">
+            {helper}
+          </span>
         ) : null}
       </CardContent>
     </Card>

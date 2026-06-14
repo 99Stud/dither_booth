@@ -1,3 +1,6 @@
+import type { Texture, MagnificationTextureFilter, PixelFormat } from "three";
+import type { Node, TextureNode, WebGPURenderer } from "three/webgpu";
+
 import {
   HalfFloatType,
   LinearFilter,
@@ -7,11 +10,20 @@ import {
   RedFormat,
   RenderTarget,
 } from "three";
-import type { Texture, MagnificationTextureFilter, PixelFormat } from "three";
-import { abs, float, Fn, uniform, uniformTexture, uv, vec2, vec4 } from "three/tsl";
-import type { Node, TextureNode, WebGPURenderer } from "three/webgpu";
+import {
+  abs,
+  float,
+  Fn,
+  uniform,
+  uniformTexture,
+  uv,
+  vec2,
+  vec4,
+} from "three/tsl";
 import { NodeMaterial, QuadMesh } from "three/webgpu";
+
 import type { Splat } from "./pointer.ts";
+
 import { FLUID } from "../hudBackground.config.ts";
 
 interface DoubleFBO {
@@ -32,7 +44,13 @@ function createDoubleFBO(
   format: PixelFormat,
   filter: MagnificationTextureFilter,
 ): DoubleFBO {
-  const opts = { type: HalfFloatType, format, minFilter: filter, magFilter: filter, depthBuffer: false };
+  const opts = {
+    type: HalfFloatType,
+    format,
+    minFilter: filter,
+    magFilter: filter,
+    depthBuffer: false,
+  };
   const fbo: DoubleFBO = {
     read: new RenderTarget(width, height, opts),
     write: new RenderTarget(width, height, opts),
@@ -102,7 +120,14 @@ function buildAdvectionPass() {
     return vec4(result.rgb, 1.0);
   })();
 
-  return { quad: createPass(node), uVelocity, uSource, uTexelSize, uDt, uDissipation };
+  return {
+    quad: createPass(node),
+    uVelocity,
+    uSource,
+    uTexelSize,
+    uDt,
+    uDissipation,
+  };
 }
 
 const uSimTexelSize = uniform(vec2(1 / 128, 1 / 128));
@@ -136,7 +161,9 @@ function buildVorticityPass() {
     const B = uCurl.sample(coord.sub(vec2(0.0, uSimTexelSize.y))).x;
     const C = uCurl.sample(coord).x;
 
-    const force = vec2(abs(T).sub(abs(B)), abs(R).sub(abs(L))).mul(0.5).toVar();
+    const force = vec2(abs(T).sub(abs(B)), abs(R).sub(abs(L)))
+      .mul(0.5)
+      .toVar();
     force.assign(force.div(force.length().add(0.0001)));
     force.assign(force.mul(uCurlStrength).mul(C));
     const vel = uVelocity.sample(coord).xy;
@@ -263,7 +290,8 @@ export class FluidSimulation {
   }
 
   step(splats: Splat[]): void {
-    const aspect = this._renderer.domElement.width / this._renderer.domElement.height;
+    const aspect =
+      this._renderer.domElement.width / this._renderer.domElement.height;
 
     for (const s of splats) {
       setTex(this._splatPass.uTarget, this._velocity.read.texture);
@@ -309,7 +337,10 @@ export class FluidSimulation {
     this._renderPass(this._gradientSubtract.quad, this._velocity.write);
     this._velocity.swap();
 
-    this._advection.uTexelSize.value.set(uSimTexelSize.value.x, uSimTexelSize.value.y);
+    this._advection.uTexelSize.value.set(
+      uSimTexelSize.value.x,
+      uSimTexelSize.value.y,
+    );
     setTex(this._advection.uVelocity, this._velocity.read.texture);
     setTex(this._advection.uSource, this._velocity.read.texture);
     this._advection.uDissipation.value = uVelocityDissipation.value;

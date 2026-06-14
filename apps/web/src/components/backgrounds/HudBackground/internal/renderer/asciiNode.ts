@@ -1,3 +1,5 @@
+import type Node from "three/src/nodes/core/Node.js";
+
 import {
   convertToTexture,
   dot,
@@ -12,7 +14,7 @@ import {
   vec3,
   vec4,
 } from "three/tsl";
-import type Node from "three/src/nodes/core/Node.js";
+
 import { ASCII } from "../hudBackground.config.ts";
 
 const uCellSize = uniform(ASCII.cellSize);
@@ -67,7 +69,10 @@ export const asciiNode = (inputNode: Node) => {
     brightness.assign(uInvert.greaterThan(0.5).select(inverted, brightness));
 
     const charIndex = int(
-      floor(brightness.mul(float(CHAR_COUNT - 1)).add(0.2)).clamp(0.0, float(CHAR_COUNT - 1)),
+      floor(brightness.mul(float(CHAR_COUNT - 1)).add(0.2)).clamp(
+        0.0,
+        float(CHAR_COUNT - 1),
+      ),
     );
 
     const localPos = fract(coordPx.div(uCellSize));
@@ -77,17 +82,23 @@ export const asciiNode = (inputNode: Node) => {
 
     let bitmapValue = int(uCharBitmaps[0]!).toVar();
     for (let i = CHAR_COUNT - 1; i >= 1; i--) {
-      bitmapValue.assign(charIndex.equal(i).select(int(uCharBitmaps[i]!), bitmapValue));
+      bitmapValue.assign(
+        charIndex.equal(i).select(int(uCharBitmaps[i]!), bitmapValue),
+      );
     }
 
     const bitMask = int(1).shiftLeft(bitIndex);
     const isLit = bitmapValue.bitAnd(bitMask).greaterThan(0);
 
-    const charColor = uColor.greaterThan(0.5).select(sceneColor.mul(uCharBrightness), vec3(uCharBrightness));
-    const bgColor = uColor.greaterThan(0.5).select(
-      sceneColor.mul(uBackgroundBrightness),
-      vec3(uBackgroundBrightness),
-    );
+    const charColor = uColor
+      .greaterThan(0.5)
+      .select(sceneColor.mul(uCharBrightness), vec3(uCharBrightness));
+    const bgColor = uColor
+      .greaterThan(0.5)
+      .select(
+        sceneColor.mul(uBackgroundBrightness),
+        vec3(uBackgroundBrightness),
+      );
 
     const finalColor = isLit.select(charColor, bgColor);
     return vec4(finalColor, 1.0);

@@ -1,6 +1,9 @@
 import { useLayoutEffect, useState } from "react";
 
-export const useElementHeight = (elementId: string, fallbackPx: number): number => {
+export const useElementHeight = (
+  elementId: string,
+  fallbackPx: number,
+): number => {
   const [height, setHeight] = useState(fallbackPx);
 
   useLayoutEffect(() => {

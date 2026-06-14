@@ -21,8 +21,12 @@ export class Pointer {
     this._boundPointerMove = this._onPointerMove.bind(this);
     this._boundTouchMove = this._onTouchMove.bind(this);
 
-    window.addEventListener("pointermove", this._boundPointerMove, { passive: true });
-    window.addEventListener("touchmove", this._boundTouchMove, { passive: true });
+    window.addEventListener("pointermove", this._boundPointerMove, {
+      passive: true,
+    });
+    window.addEventListener("touchmove", this._boundTouchMove, {
+      passive: true,
+    });
   }
 
   drainSplats(): Splat[] {
@@ -57,7 +61,12 @@ export class Pointer {
     this._prevY = clientY;
 
     if (Math.abs(deltaX) > 0 || Math.abs(deltaY) > 0) {
-      this._splats.push({ x: this.x, y: this.y, dx: deltaX * 5, dy: deltaY * -5 });
+      this._splats.push({
+        x: this.x,
+        y: this.y,
+        dx: deltaX * 5,
+        dy: deltaY * -5,
+      });
     }
   }
 

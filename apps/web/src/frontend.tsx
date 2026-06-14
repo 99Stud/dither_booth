@@ -5,18 +5,19 @@
  * It is included in `src/index.html`.
  */
 
+import { initializeBrowserLogging } from "@dither-booth/logging/browser";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider } from "@tanstack/react-router";
+import { ThemeProvider } from "next-themes";
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
+import { lazy, StrictMode, Suspense } from "react";
+import { createRoot } from "react-dom/client";
+
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index.tsx";
 import { Toaster } from "#components/ui/sonner.tsx";
 import { router } from "#lib/router/index.tsx";
 import { queryClient, trpcClient } from "#lib/trpc/trpc.client.ts";
 import { TRPCProvider } from "#lib/trpc/trpc.utils.ts";
-import { initializeBrowserLogging } from "@dither-booth/logging/browser";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { RouterProvider } from "@tanstack/react-router";
-import { lazy, StrictMode, Suspense } from "react";
-import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "next-themes";
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
 const TanStackRouterDevtoolsLazy = lazy(() =>
   import("@tanstack/react-router-devtools").then((m) => ({
@@ -29,7 +30,9 @@ const showRouterDevtools = process.env.NODE_ENV === "development";
 const WEB_APP_MANIFEST_HREF = "/manifest.webmanifest";
 
 if (typeof document !== "undefined") {
-  let link: HTMLLinkElement | null = document.querySelector('link[rel="manifest"]');
+  let link: HTMLLinkElement | null = document.querySelector(
+    'link[rel="manifest"]',
+  );
   if (!link) {
     link = document.createElement("link");
     link.rel = "manifest";

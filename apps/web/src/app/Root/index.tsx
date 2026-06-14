@@ -1,3 +1,7 @@
+import { logKioskEvent } from "@dither-booth/logging";
+import { useMutation } from "@tanstack/react-query";
+import { type FC, useRef } from "react";
+
 import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types.ts";
 
 import { Webcam } from "#components/misc/Webcam/index.tsx";
@@ -6,9 +10,6 @@ import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.util
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
 import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, downloadBlob } from "#lib/utils.ts";
-import { logKioskEvent } from "@dither-booth/logging";
-import { useMutation } from "@tanstack/react-query";
-import { type FC, useRef } from "react";
 
 import { ROOT_LOG_SOURCE } from "./internal/Root.constants";
 
@@ -40,11 +41,13 @@ export const Root: FC = () => {
         return;
       }
 
-      const photoMs = Math.round((performance.now() - flowStartedAt) * 100) / 100;
+      const photoMs =
+        Math.round((performance.now() - flowStartedAt) * 100) / 100;
 
       const dataUrlStartedAt = performance.now();
       const photoDataUrl = await blobToDataUrl(squarePhoto);
-      const dataUrlMs = Math.round((performance.now() - dataUrlStartedAt) * 100) / 100;
+      const dataUrlMs =
+        Math.round((performance.now() - dataUrlStartedAt) * 100) / 100;
 
       const receiptStartedAt = performance.now();
       const receipt = await generateReceipt.mutateAsync({
@@ -52,7 +55,8 @@ export const Root: FC = () => {
         ticketRef,
         clientFlowId,
       });
-      const generateReceiptMs = Math.round((performance.now() - receiptStartedAt) * 100) / 100;
+      const generateReceiptMs =
+        Math.round((performance.now() - receiptStartedAt) * 100) / 100;
 
       logKioskEvent("info", ROOT_LOG_SOURCE, "root-download-receipt-metrics", {
         details: {

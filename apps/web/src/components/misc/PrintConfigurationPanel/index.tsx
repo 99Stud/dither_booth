@@ -1,8 +1,32 @@
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import clsx from "clsx";
+import { X } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FC,
+  type RefObject,
+} from "react";
+
+import type { PrintConfigurationFormValues } from "#app/PrintConfiguration/internal/PrintConfiguratio.types.ts";
 import type {
   CameraStatus,
   WebcamHandle,
 } from "#components/misc/Webcam/index.tsx";
 
+import { NamesEntryEnabledControl } from "#app/PrintConfiguration/internal/NamesEntryEnabledControl.tsx";
+import {
+  DITHER_MODE_CODE_FIELD_OPTIONS,
+  getPrintConfigurationFormValues,
+  PRINT_CONFIGURATION_FORM_SCHEMA,
+  PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
+  SLIDER_FIELD_CONFIGS,
+} from "#app/PrintConfiguration/internal/PrintConfiguration.constants.ts";
+import { reportPrintConfigurationError } from "#app/PrintConfiguration/internal/PrintConfiguration.utils.ts";
 import { SelectField } from "#components/fields/SelectField/index.tsx";
 import { Button } from "#components/ui/button.tsx";
 import {
@@ -28,31 +52,6 @@ import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, cn } from "#lib/utils.ts";
-import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import clsx from "clsx";
-import { X } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FC,
-  type RefObject,
-} from "react";
-
-import type { PrintConfigurationFormValues } from "#app/PrintConfiguration/internal/PrintConfiguratio.types.ts";
-
-import { NamesEntryEnabledControl } from "#app/PrintConfiguration/internal/NamesEntryEnabledControl.tsx";
-import {
-  DITHER_MODE_CODE_FIELD_OPTIONS,
-  getPrintConfigurationFormValues,
-  PRINT_CONFIGURATION_FORM_SCHEMA,
-  PRINT_CONFIGURATION_PANEL_LOG_SOURCE,
-  SLIDER_FIELD_CONFIGS,
-} from "#app/PrintConfiguration/internal/PrintConfiguration.constants.ts";
-import { reportPrintConfigurationError } from "#app/PrintConfiguration/internal/PrintConfiguration.utils.ts";
 
 const getSliderValue = (value: number | ReadonlyArray<number>) => {
   return Array.isArray(value) ? value[0] : value;
@@ -111,7 +110,9 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
   const { isPending: isCreatingDitherConfiguration } =
     ditherConfigurationCreator;
 
-  const ditherPreviewMutation = useMutation(trpc.ditherPreview.mutationOptions());
+  const ditherPreviewMutation = useMutation(
+    trpc.ditherPreview.mutationOptions(),
+  );
   const { isPending: isDithering } = ditherPreviewMutation;
 
   const generatePreviewDataUrl = useCallback(
@@ -273,7 +274,9 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
 
         if (url) {
           initialAutoPreviewSucceededRef.current = true;
-        } else if (autoPreviewAttemptCountRef.current < MAX_AUTO_PREVIEW_ATTEMPTS) {
+        } else if (
+          autoPreviewAttemptCountRef.current < MAX_AUTO_PREVIEW_ATTEMPTS
+        ) {
           setAutoPreviewRetryGate((g) => g + 1);
         }
       } finally {
@@ -288,12 +291,13 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
     isLoadingDitherConfiguration,
     previewSrc,
     refreshPreview,
+    webcamRef.current?.cameraState.status,
   ]);
 
   return (
     <Card
       className={cn(
-        "flex min-h-0 max-h-full flex-col overflow-y-auto overflow-x-hidden",
+        "flex max-h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto",
         "bg-card/95 backdrop-blur-sm",
         className,
       )}
@@ -317,10 +321,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
         </CardAction>
       </CardHeader>
       <CardContent
-        className={clsx(
-          "flex min-h-0 flex-col gap-4",
-          "border-t-0 pt-0",
-        )}
+        className={clsx("flex min-h-0 flex-col gap-4", "border-t-0 pt-0")}
       >
         <div className="flex w-full shrink-0 justify-center">
           <Dialog>
@@ -346,10 +347,7 @@ export const PrintConfigurationPanel: FC<PrintConfigurationPanelProps> = ({
           </Dialog>
         </div>
         <form
-          className={clsx(
-            "relative z-10 flex flex-col gap-4",
-            "bg-card",
-          )}
+          className={clsx("relative z-10 flex flex-col gap-4", "bg-card")}
           onSubmit={(e) => {
             e.preventDefault();
             form.handleSubmit();

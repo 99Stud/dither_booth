@@ -18,16 +18,25 @@ function missingGpuReason(): string {
 }
 
 async function probeWebGPU(): Promise<WebGPUProbe> {
-  if (typeof navigator === "undefined" || !("gpu" in navigator) || !navigator.gpu) {
+  if (
+    typeof navigator === "undefined" ||
+    !("gpu" in navigator) ||
+    !navigator.gpu
+  ) {
     return { ok: false, reason: missingGpuReason() };
   }
   try {
-    let adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+    let adapter = await navigator.gpu.requestAdapter({
+      powerPreference: "high-performance",
+    });
     if (!adapter) {
       adapter = await navigator.gpu.requestAdapter();
     }
     if (!adapter) {
-      return { ok: false, reason: "requestAdapter() returned null (no usable GPU adapter)" };
+      return {
+        ok: false,
+        reason: "requestAdapter() returned null (no usable GPU adapter)",
+      };
     }
     return { ok: true };
   } catch (error) {
@@ -39,9 +48,9 @@ async function probeWebGPU(): Promise<WebGPUProbe> {
 export const HudBackgroundCanvas: FC<{ onFallback: () => void }> = (props) => {
   const { onFallback } = props;
   const containerRef = useRef<HTMLDivElement>(null);
-  const envRef = useRef<import("./renderer/backgroundEnvironment.ts").BackgroundEnvironment | null>(
-    null,
-  );
+  const envRef = useRef<
+    import("./renderer/backgroundEnvironment.ts").BackgroundEnvironment | null
+  >(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -61,7 +70,8 @@ export const HudBackgroundCanvas: FC<{ onFallback: () => void }> = (props) => {
           return;
         }
 
-        const { BackgroundEnvironment } = await import("./renderer/backgroundEnvironment.ts");
+        const { BackgroundEnvironment } =
+          await import("./renderer/backgroundEnvironment.ts");
         if (disposed) return;
 
         const env = new BackgroundEnvironment();
@@ -77,7 +87,10 @@ export const HudBackgroundCanvas: FC<{ onFallback: () => void }> = (props) => {
 
         env.start();
       } catch (error) {
-        console.error("[HudBackground] WebGPU background failed to start", error);
+        console.error(
+          "[HudBackground] WebGPU background failed to start",
+          error,
+        );
         if (!disposed) {
           setFailed(true);
           onFallback();
@@ -102,7 +115,7 @@ export const HudBackgroundCanvas: FC<{ onFallback: () => void }> = (props) => {
     <div
       ref={containerRef}
       aria-hidden
-      className="pointer-events-none fixed top-0 left-0 z-0 h-lvh w-lvw max-h-none max-w-none [&>canvas]:block! [&>canvas]:h-full! [&>canvas]:w-full!"
+      className="pointer-events-none fixed top-0 left-0 z-0 h-lvh max-h-none w-lvw max-w-none [&>canvas]:block! [&>canvas]:h-full! [&>canvas]:w-full!"
     />
   );
 };

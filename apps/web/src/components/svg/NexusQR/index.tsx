@@ -13,7 +13,7 @@ export const NexusQR: FC<NexusQRProps> = ({ className }) => {
       xmlns="http://www.w3.org/2000/svg"
       xmlnsXlink="http://www.w3.org/1999/xlink"
       version="1.1"
-      shape-rendering="crispEdges"
+      shapeRendering="crispEdges"
       viewBox="0 0 39 39"
     >
       <rect x="0" y="0" height="39" width="39" fill="#FFF" />

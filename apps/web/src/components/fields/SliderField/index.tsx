@@ -1,19 +1,20 @@
 import type { ComponentProps } from "react";
 
 import {
-  Field,
-  FieldContent,
-  FieldError,
-  FieldLabel,
-} from "#components/ui/field.tsx";
-import { Slider } from "#components/ui/slider.tsx";
-import {
   type DeepKeys,
   type DeepValue,
   type FormAsyncValidateOrFn,
   type FormValidateOrFn,
   type ReactFormExtendedApi,
 } from "@tanstack/react-form";
+
+import {
+  Field,
+  FieldContent,
+  FieldError,
+  FieldLabel,
+} from "#components/ui/field.tsx";
+import { Slider } from "#components/ui/slider.tsx";
 
 const getSliderValue = (value: number | ReadonlyArray<number>) => {
   return Array.isArray(value) ? value[0] : value;

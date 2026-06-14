@@ -1,11 +1,11 @@
 export const PRINT_CONFIGURATION_LOG_SOURCE = "web.print-configuration";
 
+import z from "zod";
+
 import type {
   SelectFieldOption,
   SelectFieldValue,
 } from "#components/fields/SelectField/internal/SelectField.types.ts";
-
-import z from "zod";
 
 import type {
   PrintConfigurationFormValues,

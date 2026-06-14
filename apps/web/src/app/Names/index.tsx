@@ -1,3 +1,8 @@
+import { validateTicketNames } from "@dither-booth/moderation";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
+
 import { NamesHudKeyboard } from "#app/Names/internal/NamesHudKeyboard.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
@@ -12,10 +17,6 @@ import {
 } from "#lib/ticket-names.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn } from "#lib/utils.ts";
-import { validateTicketNames } from "@dither-booth/moderation";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { type FC, useEffect, useMemo, useRef, useState } from "react";
 
 type NameRow = {
   id: number;
@@ -141,7 +142,8 @@ export const Names: FC = () => {
   const activeRow = useMemo(() => {
     return rows.find((row) => row.id === activeRowId) ?? rows[0];
   }, [activeRowId, rows]);
-  const activeFieldLabel = activeRowIndex >= 0 ? `Champ ${activeRowIndex + 1}` : "Aucun champ";
+  const activeFieldLabel =
+    activeRowIndex >= 0 ? `Champ ${activeRowIndex + 1}` : "Aucun champ";
 
   const slotPreview = (value: string) => {
     const t = sanitizeTicketNameInput(value).trim();
@@ -167,13 +169,13 @@ export const Names: FC = () => {
     <div className="relative flex h-dvh min-h-dvh touch-none flex-col overflow-hidden overscroll-none text-foreground">
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <div
-          className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col overflow-y-auto overscroll-contain px-[max(1rem,calc(0.75rem+1.75rem+0.5rem))] py-4 sm:max-w-3xl sm:px-7 sm:py-6 [@media(max-height:720px)]:py-3"
+          className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col overflow-y-auto overscroll-contain px-[max(1rem,calc(0.75rem+1.75rem+0.5rem))] py-4 sm:max-w-3xl sm:px-7 sm:py-6 [@media(max-height:720px)]:py-3"
           style={{
             paddingBottom: `${contentBottomPad}px`,
           }}
         >
           <div className="flex flex-col gap-5 rounded-sm border border-primary/35 bg-background/70 p-5 shadow-[0_8px_48px_-8px_oklch(0_0_0/0.65),inset_0_1px_0_0_oklch(0.85_0.06_48/0.06)] backdrop-blur-sm sm:gap-7 sm:p-7 [@media(max-height:720px)]:gap-4 [@media(max-height:720px)]:p-4">
-            <header className="font-heading text-center">
+            <header className="text-center font-heading">
               <h1 className="hud-text-glow-orange text-lg leading-tight tracking-[0.12em] text-primary uppercase sm:text-2xl lg:text-3xl [@media(max-height:720px)]:text-base">
                 Qui êtes-vous ?
               </h1>
@@ -187,7 +189,8 @@ export const Names: FC = () => {
                 <span className="mr-2 text-[10px] tracking-[0.35em] text-primary uppercase">
                   Msg
                 </span>
-                Touchez l’un des noms (01…), puis utilisez le clavier en bas de l’écran.
+                Touchez l’un des noms (01…), puis utilisez le clavier en bas de
+                l’écran.
               </p>
 
               <div className="flex flex-col gap-3 sm:gap-4 [@media(max-height:720px)]:gap-2">
@@ -287,7 +290,7 @@ export const Names: FC = () => {
                       }
                     }}
                     className={cn(
-                      "h-12 w-full min-h-12 border-0 border-b-2 bg-transparent px-1 pt-1 pb-2 text-base text-foreground sm:h-16 sm:min-h-16 sm:pb-3 sm:text-lg [@media(max-height:720px)]:h-11 [@media(max-height:720px)]:min-h-11 [@media(max-height:720px)]:text-[15px]",
+                      "h-12 min-h-12 w-full border-0 border-b-2 bg-transparent px-1 pt-1 pb-2 text-base text-foreground sm:h-16 sm:min-h-16 sm:pb-3 sm:text-lg [@media(max-height:720px)]:h-11 [@media(max-height:720px)]:min-h-11 [@media(max-height:720px)]:text-[15px]",
                       "rounded-none placeholder:text-foreground/45",
                       "focus:border-primary focus:shadow-[0_12px_40px_-8px_oklch(0.7_0.2_48/0.35)] focus:ring-0 focus:outline-none",
                       "hud-text-glow-orange-soft",
@@ -315,7 +318,10 @@ export const Names: FC = () => {
               </div>
 
               {error && (
-                <p className="font-mono text-sm text-destructive sm:text-base" role="alert">
+                <p
+                  className="font-mono text-sm text-destructive sm:text-base"
+                  role="alert"
+                >
                   {error}
                 </p>
               )}

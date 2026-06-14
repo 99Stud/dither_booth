@@ -1,11 +1,13 @@
+import type { FC } from "react";
+
+import { useRef, useState } from "react";
+
 import { PrintConfigurationPanel } from "#components/misc/PrintConfigurationPanel/index.tsx";
 import {
   Webcam,
   type CameraState,
   type WebcamHandle,
 } from "#components/misc/Webcam/index.tsx";
-import type { FC } from "react";
-import { useRef, useState } from "react";
 
 export const AdminPrint: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);

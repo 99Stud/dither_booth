@@ -1,8 +1,9 @@
-import { WinLoseTicket } from "#components/misc/WinLoseTicket/index.tsx";
-import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { useQuery } from "@tanstack/react-query";
 import { parseAsString, useQueryState } from "nuqs";
 import { type FC, useMemo } from "react";
+
+import { WinLoseTicket } from "#components/misc/WinLoseTicket/index.tsx";
+import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 
 export const LotteryTicketViewer: FC = () => {
   const trpc = useTRPC();
@@ -35,12 +36,12 @@ export const LotteryTicketViewer: FC = () => {
 
   const displayLabel =
     resolvedOutcome === "win" && lotId !== null
-      ? lotQuery.data?.label ?? lotLabel ?? null
+      ? (lotQuery.data?.label ?? lotLabel ?? null)
       : lotLabel;
 
   const displayRarity =
     resolvedOutcome === "win" && lotId !== null
-      ? lotQuery.data?.rarity ?? lotRarity ?? null
+      ? (lotQuery.data?.rarity ?? lotRarity ?? null)
       : lotRarity;
 
   const displayDescription =

@@ -1,9 +1,10 @@
-import { Button } from "#components/ui/button.tsx";
-import { reportKioskError } from "#lib/logging/logging.utils.ts";
-import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { logKioskEvent } from "@dither-booth/logging";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FC, useCallback, useState } from "react";
+
+import { Button } from "#components/ui/button.tsx";
+import { reportKioskError } from "#lib/logging/logging.utils.ts";
+import { base64ToBlob, useTRPC } from "#lib/trpc/trpc.utils.ts";
 
 import { ADMIN_HEIRVEY_RECEIPT_LOG_SOURCE } from "./internal/AdminHeirveyReceipt.constants.ts";
 import { AdminHeirveyReceiptItemsTab } from "./internal/AdminHeirveyReceiptItemsTab.tsx";
@@ -23,7 +24,9 @@ export const AdminHeirveyReceipt: FC = () => {
   const [itemsMutating, setItemsMutating] = useState(false);
 
   const allQuantitiesZero =
-    items !== undefined && items.length > 0 && items.every((item) => item.qty === 0);
+    items !== undefined &&
+    items.length > 0 &&
+    items.every((item) => item.qty === 0);
 
   const isBusy =
     generateHeirveyReceipt.isPending ||
@@ -51,16 +54,23 @@ export const AdminHeirveyReceipt: FC = () => {
       const printStartedAt = performance.now();
       const blob = base64ToBlob(screenshot.data, screenshot.mimeType);
       await printReceipt.mutateAsync(blob);
-      const printMs = Math.round((performance.now() - printStartedAt) * 100) / 100;
+      const printMs =
+        Math.round((performance.now() - printStartedAt) * 100) / 100;
 
-      logKioskEvent("info", ADMIN_HEIRVEY_RECEIPT_LOG_SOURCE, "admin-heirvey-print-metrics", {
-        details: {
-          clientFlowId,
-          generateHeirveyReceiptMs,
-          printMs,
-          totalMs: Math.round((performance.now() - flowStartedAt) * 100) / 100,
+      logKioskEvent(
+        "info",
+        ADMIN_HEIRVEY_RECEIPT_LOG_SOURCE,
+        "admin-heirvey-print-metrics",
+        {
+          details: {
+            clientFlowId,
+            generateHeirveyReceiptMs,
+            printMs,
+            totalMs:
+              Math.round((performance.now() - flowStartedAt) * 100) / 100,
+          },
         },
-      });
+      );
     } catch (e) {
       reportKioskError(e, {
         event: "admin-heirvey-print-failed",
@@ -79,15 +89,13 @@ export const AdminHeirveyReceipt: FC = () => {
   return (
     <div className="flex min-h-dvh w-full flex-col bg-background">
       <header className="flex items-center justify-between gap-4 border-b px-4 py-4 sm:px-6 lg:px-8">
-        <h1 className="text-sm font-semibold tracking-tight">Heirvey receipt admin</h1>
+        <h1 className="text-sm font-semibold tracking-tight">
+          Heirvey receipt admin
+        </h1>
         <Button
           variant="outline"
           size="sm"
-          disabled={
-            isBusy ||
-            (items?.length ?? 0) === 0 ||
-            allQuantitiesZero
-          }
+          disabled={isBusy || (items?.length ?? 0) === 0 || allQuantitiesZero}
           onClick={() => void handleResetQuantities()}
         >
           {resetAllItemQuantities.isPending ? "Resetting…" : "Reset quantities"}

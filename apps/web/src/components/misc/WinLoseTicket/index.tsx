@@ -1,10 +1,10 @@
+import clsx from "clsx";
 import { type FC, useMemo } from "react";
 
 import { LoserMark } from "#components/svg/LoserMark/index.tsx";
 import { WinnerMark } from "#components/svg/WinnerMark/index.tsx";
 import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
-import clsx from "clsx";
 
 function formatWonAtDisplay(iso: string): string | null {
   const d = new Date(iso);
@@ -64,7 +64,7 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
     <div
       className={clsx(
         "relative w-full overflow-hidden rounded-sm border-2 px-3 py-2.5",
-        "font-mono uppercase tracking-[0.2em]",
+        "font-mono tracking-[0.2em] uppercase",
         cfg.className,
       )}
     >
@@ -77,12 +77,18 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
         }}
       />
       <div className="relative flex items-center justify-between gap-2">
-        <span className="text-[10px] font-bold tabular-nums opacity-80">{cfg.tier}</span>
+        <span className="text-[10px] font-bold tabular-nums opacity-80">
+          {cfg.tier}
+        </span>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5 text-center">
-          <span className="text-[12px] tracking-[0.35em] opacity-70">Rareté</span>
-          <span className="truncate text-[15px] font-bold tracking-[0.12em]">{cfg.label}</span>
+          <span className="text-[12px] tracking-[0.35em] opacity-70">
+            Rareté
+          </span>
+          <span className="truncate text-[15px] font-bold tracking-[0.12em]">
+            {cfg.label}
+          </span>
         </div>
-        <span className="text-sm tabular-nums leading-none" aria-hidden>
+        <span className="text-sm leading-none tabular-nums" aria-hidden>
           {cfg.accent}
         </span>
       </div>
@@ -118,7 +124,8 @@ export const WinLoseTicket: FC<{
   const ready = ticketReady ?? true;
   const wonAtDisplay = wonAtIso ? formatWonAtDisplay(wonAtIso) : null;
   const ticketNumber = useMemo(() => {
-    if (ticketRef && /^\d{6}$/.test(ticketRef)) return formatBoothTicketNumber(ticketRef);
+    if (ticketRef && /^\d{6}$/.test(ticketRef))
+      return formatBoothTicketNumber(ticketRef);
     return formatBoothTicketNumber(
       Math.floor(Math.random() * 1_000_000)
         .toString()
@@ -134,7 +141,7 @@ export const WinLoseTicket: FC<{
         "flex flex-col items-center gap-4",
         "bg-white text-black",
         "font-bit leading-none",
-        "py-[40px] px-[20px]",
+        "px-[20px] py-[40px]",
         className,
       )}
       style={{ width: mmToPx(80) + "px" }}
@@ -144,23 +151,31 @@ export const WinLoseTicket: FC<{
       {outcome === "win" ? (
         <>
           <div className="flex w-full flex-col items-center gap-1 px-1">
-            <WinnerMark className="h-auto w-full max-w-full max-h-22" />
+            <WinnerMark className="h-auto max-h-22 w-full max-w-full" />
           </div>
           {lotLabel ? (
-            <div className={clsx("text-3xl font-bold text-center leading-tight")}>{lotLabel}</div>
+            <div
+              className={clsx("text-center text-3xl leading-tight font-bold")}
+            >
+              {lotLabel}
+            </div>
           ) : null}
           {lotRarity ? <LotteryRarityStrip lotRarity={lotRarity} /> : null}
           {description ? (
             <div
               className={clsx(
-                "w-full px-1 text-center text-[13px] font-normal font-mono leading-snug whitespace-pre-wrap",
+                "w-full px-1 text-center font-mono text-[13px] leading-snug font-normal whitespace-pre-wrap",
               )}
             >
               {description}
             </div>
           ) : null}
           {instructionsLine ? (
-            <div className={clsx("mt-1 text-center font-mono text-base whitespace-pre-wrap")}>
+            <div
+              className={clsx(
+                "mt-1 text-center font-mono text-base whitespace-pre-wrap",
+              )}
+            >
               {instructionsLine}
             </div>
           ) : null}
@@ -168,7 +183,7 @@ export const WinLoseTicket: FC<{
       ) : (
         <>
           <div className="flex w-full flex-col items-center gap-3 px-1">
-            <LoserMark className="h-auto w-full max-w-full max-h-22" />
+            <LoserMark className="h-auto max-h-22 w-full max-w-full" />
           </div>
         </>
       )}
@@ -176,11 +191,13 @@ export const WinLoseTicket: FC<{
       <div className={clsx("w-full border border-dashed border-black")} />
 
       <div className={clsx("flex flex-col items-center gap-1")}>
-        <div className={clsx("text-center font-bold text-xl uppercase")}>{ticketNumber}</div>
+        <div className={clsx("text-center text-xl font-bold uppercase")}>
+          {ticketNumber}
+        </div>
         {outcome === "win" && wonAtDisplay ? (
           <div
             className={clsx(
-              "text-center font-mono text-sm tabular-nums leading-snug text-black/80",
+              "text-center font-mono text-sm leading-snug text-black/80 tabular-nums",
             )}
           >
             {wonAtDisplay}

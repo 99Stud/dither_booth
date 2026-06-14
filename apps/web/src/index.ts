@@ -1,6 +1,3 @@
-import { WEB_SERVER_LOG_SOURCE } from "#lib/constants.ts";
-import { WEB_REPO_ROOT } from "#lib/server-constants.ts";
-import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants.ts";
 import { logKioskEvent } from "@dither-booth/logging";
 import {
   getApiInternalOrigin,
@@ -14,10 +11,18 @@ import { serve } from "bun";
 import { existsSync } from "node:fs";
 import { posix } from "node:path";
 
+import { WEB_SERVER_LOG_SOURCE } from "#lib/constants.ts";
+import { WEB_REPO_ROOT } from "#lib/server-constants.ts";
+import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants.ts";
+
 import index from "./index.html";
 
-const manifestFile = Bun.file(new URL("./manifest.webmanifest", import.meta.url));
-const kioskLogoFile = Bun.file(new URL("../assets/ditherbooth_logo.png", import.meta.url));
+const manifestFile = Bun.file(
+  new URL("./manifest.webmanifest", import.meta.url),
+);
+const kioskLogoFile = Bun.file(
+  new URL("../assets/ditherbooth_logo.png", import.meta.url),
+);
 
 const apiOrigin = getApiInternalOrigin();
 const publicDirectory = new URL("../public/", import.meta.url);

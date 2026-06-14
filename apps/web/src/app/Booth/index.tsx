@@ -1,5 +1,16 @@
+import { logKioskEvent } from "@dither-booth/logging";
+import { validateTicketNames } from "@dither-booth/moderation";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryState } from "nuqs";
+import { type FC, useCallback, useEffect, useRef, useState } from "react";
+
 import { BoothDitherLottie } from "#components/misc/BoothDitherLottie/index.tsx";
-import { type CameraState, Webcam, type WebcamHandle } from "#components/misc/Webcam/index.tsx";
+import {
+  type CameraState,
+  Webcam,
+  type WebcamHandle,
+} from "#components/misc/Webcam/index.tsx";
 import { buttonVariants } from "#components/ui/button.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
@@ -12,12 +23,6 @@ import {
   useTRPCClient,
 } from "#lib/trpc/trpc.utils.ts";
 import { blobToDataUrl, cn } from "#lib/utils.ts";
-import { logKioskEvent } from "@dither-booth/logging";
-import { validateTicketNames } from "@dither-booth/moderation";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { useQueryState } from "nuqs";
-import { type FC, useCallback, useEffect, useRef, useState } from "react";
 
 import { BOOTH_LOG_SOURCE } from "./internal/Booth.constants";
 
@@ -27,7 +32,10 @@ const COUNTDOWN_SECONDS = 4;
 const THANK_YOU_DURATION_MS = 6_000;
 const FLASH_HOLD_MS = 140;
 
-const PRINT_TICKET_PROGRESS_LABELS: Record<PrintTicketSequenceProgress["step"], string> = {
+const PRINT_TICKET_PROGRESS_LABELS: Record<
+  PrintTicketSequenceProgress["step"],
+  string
+> = {
   load_config: "__CONFIG_LOADING__",
   decode: "Decoding image…",
   prepare_receipt: "Preparing receipt…",
@@ -36,7 +44,8 @@ const PRINT_TICKET_PROGRESS_LABELS: Record<PrintTicketSequenceProgress["step"], 
   printing_lottery: "Last output: your lottery ticket…",
 };
 
-const roundMs = (since: number) => Math.round((performance.now() - since) * 100) / 100;
+const roundMs = (since: number) =>
+  Math.round((performance.now() - since) * 100) / 100;
 
 export const Booth: FC = () => {
   const webcamRef = useRef<WebcamHandle>(null);
@@ -46,7 +55,9 @@ export const Booth: FC = () => {
   const [phase, setPhase] = useState<BoothPhase>("idle");
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
   const [error, setError] = useState<string | null>(null);
-  const [processingStatus, setProcessingStatus] = useState("Preparing your ticket…");
+  const [processingStatus, setProcessingStatus] = useState(
+    "Preparing your ticket…",
+  );
 
   const [ticketRaw] = useQueryState("ticket", ticketNamesParser);
   const ticketNames = normalizeTicketNames(ticketRaw ?? []);
@@ -55,19 +66,27 @@ export const Booth: FC = () => {
 
   const trpc = useTRPC();
   const trpcClient = useTRPCClient();
-  const { data: printConfig } = useQuery(trpc.getDitherConfiguration.queryOptions());
-  const { data: lotteryConfig } = useQuery(trpc.getLotteryConfig.queryOptions());
+  const { data: printConfig } = useQuery(
+    trpc.getDitherConfiguration.queryOptions(),
+  );
+  const { data: lotteryConfig } = useQuery(
+    trpc.getLotteryConfig.queryOptions(),
+  );
   const generateReceipt = useMutation(trpc.generateReceipt.mutationOptions());
   const primeReceiptMutation = useMutation(trpc.primeReceipt.mutationOptions());
   const printReceipt = useMutation(trpc.print.mutationOptions());
   const lotteryDrawMutation = useMutation(trpc.lotteryDraw.mutationOptions());
-  const generateLotteryTicketMutation = useMutation(trpc.generateLotteryTicket.mutationOptions());
+  const generateLotteryTicketMutation = useMutation(
+    trpc.generateLotteryTicket.mutationOptions(),
+  );
   const registerPrintTicketSequence = useMutation(
     trpc.registerPrintTicketSequence.mutationOptions(),
   );
 
   const showTicketNameHeader =
-    printConfig?.namesEntryEnabled === true && ticketNames.length > 0 && phase === "idle";
+    printConfig?.namesEntryEnabled === true &&
+    ticketNames.length > 0 &&
+    phase === "idle";
 
   const isBusy = phase !== "idle";
   const canStart = cameraReady && canUseTicketNames && !isBusy;
@@ -166,7 +185,9 @@ export const Booth: FC = () => {
         const lotteryTicket = await generateLotteryTicketMutation.mutateAsync({
           outcome: drawResult.outcome === "win" ? "win" : "loss",
           lotId:
-            drawResult.outcome === "win" && drawResult.lotId != null ? drawResult.lotId : undefined,
+            drawResult.outcome === "win" && drawResult.lotId != null
+              ? drawResult.lotId
+              : undefined,
           lotLabel: drawResult.lotLabel,
           lotRarity: drawResult.lotRarity,
           wonAt: drawResult.wonAt ?? undefined,
@@ -276,28 +297,31 @@ export const Booth: FC = () => {
 
   return (
     <div className="relative flex min-h-dvh touch-none flex-col overflow-x-hidden overscroll-none text-foreground">
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-[max(0.25rem,env(safe-area-inset-top))] pb-[max(2.75rem,calc(env(safe-area-inset-bottom)+2rem))]">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-[max(0.5rem,env(safe-area-inset-left))] pt-[max(0.25rem,env(safe-area-inset-top))] pr-[max(0.5rem,env(safe-area-inset-right))] pb-[max(2.75rem,calc(env(safe-area-inset-bottom)+2rem))]">
         <div className="relative mb-8 w-[min(98vw,calc(100dvh-8rem))] shrink-0">
           <div
             className={cn(
               "relative aspect-square w-full overflow-hidden border border-primary/45 bg-background/30 shadow-[0_0_0_1px_oklch(0.85_0.06_48/0.12),0_12px_48px_-12px_oklch(0_0_0/0.55)]",
               "transition-[border-color,box-shadow] duration-500 ease-out motion-reduce:transition-none",
-              !cameraReady && "border-primary/25 shadow-[0_12px_32px_-16px_oklch(0_0_0/0.35)]",
+              !cameraReady &&
+                "border-primary/25 shadow-[0_12px_32px_-16px_oklch(0_0_0/0.35)]",
             )}
           >
             {showTicketNameHeader && (
-              <div className="absolute top-0 right-0 left-0 z-20 animate-in fade-in slide-in-from-top-2 border-b border-primary/25 bg-background/70 px-2 py-2 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm duration-300 ease-out motion-reduce:animate-none sm:px-3 sm:py-2.5">
+              <div className="absolute top-0 right-0 left-0 z-20 animate-in border-b border-primary/25 bg-background/70 px-2 py-2 shadow-[0_0_30px_oklch(0.7_0.2_48/0.08)] backdrop-blur-sm duration-300 ease-out fade-in slide-in-from-top-2 motion-reduce:animate-none sm:px-3 sm:py-2.5">
                 {canUseTicketNames ? (
                   <ul className="flex flex-wrap justify-center gap-x-2 gap-y-1.5 opacity-90 sm:gap-x-2.5">
                     {ticketNames.map((name, i) => (
                       <li
                         key={`${i}-${name}`}
-                        className="flex items-baseline gap-1.5 border border-primary/35 bg-background/55 px-2 py-1 font-mono text-[10px] text-muted-foreground hud-text-glow-orange-soft sm:text-[11px]"
+                        className="hud-text-glow-orange-soft flex items-baseline gap-1.5 border border-primary/35 bg-background/55 px-2 py-1 font-mono text-[10px] text-muted-foreground sm:text-[11px]"
                       >
-                        <span className="min-w-[1.1em] tabular-nums text-primary/55">
+                        <span className="min-w-[1.1em] text-primary/55 tabular-nums">
                           {String(i + 1).padStart(2, "0")}
                         </span>
-                        <span className="max-w-[9rem] truncate sm:max-w-[11rem]">{name}</span>
+                        <span className="max-w-[9rem] truncate sm:max-w-[11rem]">
+                          {name}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -313,7 +337,9 @@ export const Booth: FC = () => {
               className={cn(
                 "absolute inset-0 z-0 overflow-hidden",
                 "origin-center transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0",
-                cameraReady ? "scale-100 opacity-100" : "scale-[1.03] opacity-0",
+                cameraReady
+                  ? "scale-100 opacity-100"
+                  : "scale-[1.03] opacity-0",
                 phase === "countdown" && cameraReady && "brightness-[0.72]",
               )}
             >
@@ -332,8 +358,8 @@ export const Booth: FC = () => {
                 cameraReady ? "pointer-events-none opacity-0" : "opacity-100",
               )}
             >
-              <BoothDitherLottie className="h-40 w-40 max-h-[min(45vw,220px)] max-w-[min(45vw,220px)] shrink-0 sm:h-48 sm:w-48" />
-              <p className="font-bit text-2xl tracking-[0.25em] text-white uppercase font-bold">
+              <BoothDitherLottie className="h-40 max-h-[min(45vw,220px)] w-40 max-w-[min(45vw,220px)] shrink-0 sm:h-48 sm:w-48" />
+              <p className="font-bit text-2xl font-bold tracking-[0.25em] text-white uppercase">
                 Initialisation caméra…
               </p>
             </div>
@@ -355,8 +381,8 @@ export const Booth: FC = () => {
                 disabled={!canStart}
                 className={cn(
                   buttonVariants({ variant: "hud", size: "touch" }),
-                  "hud-cta-pulse pointer-events-auto min-h-24 w-full max-w-sm translate-y-1/2 justify-center py-4 font-bit font-bold text-2xl text-white shadow-[0_8px_32px_-4px_oklch(0_0_0/0.55)] border-white border backdrop-blur-sm bg-black/60",
-                  !canStart && "pointer-events-none opacity-40 ",
+                  "hud-cta-pulse pointer-events-auto min-h-24 w-full max-w-sm translate-y-1/2 justify-center border border-white bg-black/60 py-4 font-bit text-2xl font-bold text-white shadow-[0_8px_32px_-4px_oklch(0_0_0/0.55)] backdrop-blur-sm",
+                  !canStart && "pointer-events-none opacity-40",
                 )}
                 onClick={startSequence}
               >
@@ -372,7 +398,7 @@ export const Booth: FC = () => {
         <div className="fixed inset-0 z-30 flex items-center justify-center">
           <span
             key={countdown}
-            className="animate-in zoom-in-75 fade-in font-bit text-[min(30vw,180px)] font-bold leading-none text-white drop-shadow-[0_0_48px_oklch(0.99_0.02_95/0.55)]"
+            className="animate-in font-bit text-[min(30vw,180px)] leading-none font-bold text-white drop-shadow-[0_0_48px_oklch(0.99_0.02_95/0.55)] zoom-in-75 fade-in"
             style={{ animationDuration: "300ms" }}
           >
             {countdown}
@@ -383,8 +409,11 @@ export const Booth: FC = () => {
       {/* Flash overlay */}
       {phase === "flash" && (
         <div
-          className="fixed inset-0 z-40 animate-out fade-out bg-white pointer-events-none"
-          style={{ animationDuration: `${FLASH_HOLD_MS}ms`, animationFillMode: "forwards" }}
+          className="pointer-events-none fixed inset-0 z-40 animate-out bg-white fade-out"
+          style={{
+            animationDuration: `${FLASH_HOLD_MS}ms`,
+            animationFillMode: "forwards",
+          }}
         />
       )}
 
@@ -395,8 +424,8 @@ export const Booth: FC = () => {
           role="status"
           aria-live="polite"
         >
-          <BoothDitherLottie className="h-40 w-40 max-h-[min(45vw,220px)] max-w-[min(45vw,220px)] shrink-0 sm:h-48 sm:w-48" />
-          <p className="wrap-break-word max-w-[min(92vw,32rem)] text-center font-bit text-2xl leading-relaxed tracking-[0.2em] text-white font-bold">
+          <BoothDitherLottie className="h-40 max-h-[min(45vw,220px)] w-40 max-w-[min(45vw,220px)] shrink-0 sm:h-48 sm:w-48" />
+          <p className="max-w-[min(92vw,32rem)] text-center font-bit text-2xl leading-relaxed font-bold tracking-[0.2em] wrap-break-word text-white">
             {processingStatus}
           </p>
         </div>
@@ -405,10 +434,10 @@ export const Booth: FC = () => {
       {/* Thank you overlay */}
       {phase === "thank-you" && (
         <div className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-background/90 px-4 backdrop-blur-sm">
-          <p className="hud-text-glow-orange font-bit tracking-[0.14em] text-white uppercase text-3xl">
+          <p className="hud-text-glow-orange font-bit text-3xl tracking-[0.14em] text-white uppercase">
             Merci !
           </p>
-          <p className="max-w-[min(92vw,24rem)] text-center font-bit text-2xl leading-relaxed tracking-[0.08em] text-white font-bold uppercase">
+          <p className="max-w-[min(92vw,24rem)] text-center font-bit text-2xl leading-relaxed font-bold tracking-[0.08em] text-white uppercase">
             Récupérez vos tickets
           </p>
         </div>

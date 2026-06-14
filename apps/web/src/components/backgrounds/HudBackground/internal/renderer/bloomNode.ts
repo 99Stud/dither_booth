@@ -1,5 +1,7 @@
-import { bloom } from "three/addons/tsl/display/BloomNode.js";
 import type { Node } from "three/webgpu";
+
+import { bloom } from "three/addons/tsl/display/BloomNode.js";
+
 import { BLOOM } from "../hudBackground.config.ts";
 
 export const bloomNode = (inputNode: Node) => {

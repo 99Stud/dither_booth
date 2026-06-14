@@ -1,18 +1,35 @@
-import { ACESFilmicToneMapping as RendererACESFilmicToneMapping, NoToneMapping } from "three";
 import type Node from "three/src/nodes/core/Node.js";
-import { acesFilmicToneMapping, emissive, float, mrt, output, pass, screenUV } from "three/tsl";
 import type { PerspectiveCamera, Scene, WebGPURenderer } from "three/webgpu";
+
+import {
+  ACESFilmicToneMapping as RendererACESFilmicToneMapping,
+  NoToneMapping,
+} from "three";
+import {
+  acesFilmicToneMapping,
+  emissive,
+  float,
+  mrt,
+  output,
+  pass,
+  screenUV,
+} from "three/tsl";
 import { RenderPipeline } from "three/webgpu";
+
+import { FILM } from "../hudBackground.config.ts";
 import { asciiNode } from "./asciiNode.ts";
 import { bloomNode } from "./bloomNode.ts";
 import { filmNode } from "./filmNode.ts";
-import { FILM } from "../hudBackground.config.ts";
 
 export class PostProcessingPipeline {
   postProcessing: RenderPipeline | undefined;
   private _renderer: WebGPURenderer | null = null;
 
-  async setup(renderer: WebGPURenderer, scene: Scene, camera: PerspectiveCamera): Promise<void> {
+  async setup(
+    renderer: WebGPURenderer,
+    scene: Scene,
+    camera: PerspectiveCamera,
+  ): Promise<void> {
     if (!renderer || !scene || !camera) return;
 
     this.dispose();

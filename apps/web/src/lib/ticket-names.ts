@@ -19,9 +19,9 @@ export const serializeTicketSearch = createSerializer({
 
 /** Shown on the ticket when the Names step is disabled (admin config). */
 export const DEFAULT_BOOTH_TICKET_DISPLAY_NAMES = [
-  "Nexus Station",
+  "Framer",
+  "Virgil Caffier",
   "99stud",
-  "Hénagone Studio",
 ] as const;
 
 export const ticketNamesToBoothSearchRecord = (

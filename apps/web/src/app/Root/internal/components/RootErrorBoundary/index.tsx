@@ -1,8 +1,9 @@
+import { getKioskErrorDiagnostics } from "@dither-booth/logging";
+import { Component, type ErrorInfo, useEffect } from "react";
+
 import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants.ts";
 import { Button, buttonVariants } from "#components/ui/button.tsx";
 import { reportKioskError } from "#lib/logging/logging.utils.ts";
-import { getKioskErrorDiagnostics } from "@dither-booth/logging";
-import { Component, type ErrorInfo, useEffect } from "react";
 
 import type {
   RootErrorBoundaryProps,
@@ -63,14 +64,27 @@ const RootErrorScreen = ({ error }: { error: unknown }) => {
     reportRootError(error, "root-route-render-failed", "This screen failed.");
   }, [error]);
 
-  return <RootScreen title="Something went wrong" description="This screen failed to load." />;
+  return (
+    <RootScreen
+      title="Something went wrong"
+      description="This screen failed to load."
+    />
+  );
 };
 
 export const RootNotFoundScreen = () => {
-  return <RootScreen title="Page not found" description="This page does not exist." />;
+  return (
+    <RootScreen
+      title="Page not found"
+      description="This page does not exist."
+    />
+  );
 };
 
-export class RootErrorBoundary extends Component<RootErrorBoundaryProps, RootErrorBoundaryState> {
+export class RootErrorBoundary extends Component<
+  RootErrorBoundaryProps,
+  RootErrorBoundaryState
+> {
   override state: RootErrorBoundaryState = {
     error: null,
   };
@@ -80,9 +94,14 @@ export class RootErrorBoundary extends Component<RootErrorBoundaryProps, RootErr
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    reportRootError(error, "root-app-render-failed", "The app failed to load.", {
-      componentStack: errorInfo.componentStack,
-    });
+    reportRootError(
+      error,
+      "root-app-render-failed",
+      "The app failed to load.",
+      {
+        componentStack: errorInfo.componentStack,
+      },
+    );
   }
 
   override render() {

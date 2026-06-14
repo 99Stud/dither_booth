@@ -1,10 +1,11 @@
-import { cn } from "#lib/utils.ts";
 import * as React from "react";
 import {
   Legend as RechartsLegend,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
 } from "recharts";
+
+import { cn } from "#lib/utils.ts";
 
 type ChartConfig = Record<
   string,
@@ -67,7 +68,9 @@ type ChartTooltipContentProps = {
   nameKey?: string;
 };
 
-export const ChartTooltipContent: React.FC<ChartTooltipContentProps> = (props) => {
+export const ChartTooltipContent: React.FC<ChartTooltipContentProps> = (
+  props,
+) => {
   const { active, payload, label } = props;
   const context = React.useContext(ChartContext);
 
@@ -78,7 +81,7 @@ export const ChartTooltipContent: React.FC<ChartTooltipContentProps> = (props) =
   return (
     <div className="rounded-none border border-border bg-card px-3 py-2 text-xs shadow-md">
       {label !== undefined && (
-        <div className="mb-2 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
           {String(label)}
         </div>
       )}
@@ -99,7 +102,7 @@ export const ChartTooltipContent: React.FC<ChartTooltipContentProps> = (props) =
                   {series?.label ?? item.name ?? key}
                 </span>
               </div>
-              <span className="tabular-nums text-foreground">
+              <span className="text-foreground tabular-nums">
                 {typeof item.value === "number"
                   ? item.value.toFixed(1).replace(/\.0$/, "")
                   : String(item.value ?? "")}

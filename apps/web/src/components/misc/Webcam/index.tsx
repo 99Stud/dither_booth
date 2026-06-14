@@ -1,5 +1,3 @@
-import { type CameraState, useUserMedia } from "#lib/hooks/user-media/index.ts";
-import { cn } from "#lib/utils.ts";
 import { format } from "date-fns";
 import {
   type FC,
@@ -8,6 +6,9 @@ import {
   useImperativeHandle,
   useRef,
 } from "react";
+
+import { type CameraState, useUserMedia } from "#lib/hooks/user-media/index.ts";
+import { cn } from "#lib/utils.ts";
 
 import type { WebcamHandle } from "./internal/Webcam.types.ts";
 

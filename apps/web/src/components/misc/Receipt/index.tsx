@@ -6,38 +6,45 @@ import { useMemo } from "react";
 
 import { NinetyNineStudLogo } from "#components/svg/99StudLogo/index.tsx";
 import { DitherBoothLogotypeMark } from "#components/svg/DitherBoothLogotypeMark/index.tsx";
-import { Nexus2026ClassicQR } from "#components/svg/Nexus2026ClassicQR/index.tsx";
-import { NexusClassicLogo } from "#components/svg/NexusClassicLogo/index.tsx";
-import { NexusKey } from "#components/svg/NexusKey/index.tsx";
+import { FramerEventQR } from "#components/svg/FramerEventQR/index.tsx";
+import { FramerLogo } from "#components/svg/FramerLogo/index.tsx";
 import { formatBoothTicketNumber } from "#lib/ticket-ref.ts";
 import { cn, mmToPx } from "#lib/utils.ts";
 
-const RECEIPT_TOTAL_EUR = 999.99;
+const RECEIPT_TOTAL_EUR = 1606.26;
+const LAST_LINE_EUR = 99.99;
 
 const formatReceiptEuro = (amount: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(
     amount,
   );
 
-/** Random positive amounts (cent precision) that sum to `totalEur`. */
+/** Random positive amounts (cent precision) that sum to `totalEur`; last entry is always €99.99. */
 const randomPartitionEur = (totalEur: number, parts: number): number[] => {
-  const totalCents = Math.round(totalEur * 100);
   if (parts <= 0) return [];
-  if (parts === 1) return [totalEur];
-  if (totalCents < parts) {
-    const each = totalEur / parts;
-    return Array.from({ length: parts }, () => each);
+  if (parts === 1) return [LAST_LINE_EUR];
+
+  const remainderEur = totalEur - LAST_LINE_EUR;
+  const leadingParts = parts - 1;
+  const totalCents = Math.round(remainderEur * 100);
+
+  let leadingAmounts: number[];
+  if (totalCents < leadingParts) {
+    const each = remainderEur / leadingParts;
+    leadingAmounts = Array.from({ length: leadingParts }, () => each);
+  } else {
+    const cuts = new Set<number>();
+    while (cuts.size < leadingParts - 1) {
+      cuts.add(Math.floor(Math.random() * (totalCents - 1)) + 1);
+    }
+    const sorted = [0, ...Array.from(cuts).sort((a, b) => a - b), totalCents];
+    leadingAmounts = [];
+    for (let i = 0; i < leadingParts; i++) {
+      leadingAmounts.push((sorted[i + 1]! - sorted[i]!) / 100);
+    }
   }
-  const cuts = new Set<number>();
-  while (cuts.size < parts - 1) {
-    cuts.add(Math.floor(Math.random() * (totalCents - 1)) + 1);
-  }
-  const sorted = [0, ...Array.from(cuts).sort((a, b) => a - b), totalCents];
-  const amounts: number[] = [];
-  for (let i = 0; i < parts; i++) {
-    amounts.push((sorted[i + 1]! - sorted[i]!) / 100);
-  }
-  return amounts;
+
+  return [...leadingAmounts, LAST_LINE_EUR];
 };
 
 interface ReceiptProps {
@@ -67,9 +74,9 @@ export const Receipt: FC<ReceiptProps> = (props) => {
       names && names.length > 0
         ? names.map((name) => ({ qty: "1x" as const, label: name }))
         : [
-            { qty: "1x" as const, label: "Nexus Station" },
+            { qty: "1x" as const, label: "Framer" },
+            { qty: "1x" as const, label: "Virgil Caffier" },
             { qty: "1x" as const, label: "99stud" },
-            { qty: "1x" as const, label: "Hénagone Studio" },
           ];
     const amountsEur = randomPartitionEur(RECEIPT_TOTAL_EUR, rows.length);
     const lineItems = rows.map((row, i) => ({
@@ -91,14 +98,12 @@ export const Receipt: FC<ReceiptProps> = (props) => {
       )}
       style={{ width: mmToPx(80) + "px" }}
     >
-      <NexusClassicLogo className={clsx("z-10", "w-2/3", "mx-auto -mb-6")} />
+      <FramerLogo className={clsx("z-10", "w-1/2", "mx-auto")} />
       <div className={clsx("relative w-full overflow-visible bg-white")}>
         <div className={clsx("relative aspect-square w-full overflow-visible")}>
           <img
             id="booth-photo"
-            className={clsx(
-              "relative z-0 h-full w-full [mask-image:url(../../public/ressources/SVG_dither_booth_mask.svg)] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat] object-cover",
-            )}
+            className={clsx("relative z-0 h-full w-full object-cover")}
             src="https://picsum.photos/200"
             alt="booth photo"
           />
@@ -169,7 +174,7 @@ export const Receipt: FC<ReceiptProps> = (props) => {
             "flex w-full items-center justify-center gap-2 text-center text-xl",
           )}
         >
-          <NexusKey className={clsx("h-10 w-auto", "justify-self-end")} />
+          <FramerLogo className={clsx("h-10 w-auto", "justify-self-end")} />
         </div>
         <div
           className={clsx(
@@ -182,9 +187,9 @@ export const Receipt: FC<ReceiptProps> = (props) => {
         </div>
       </div>
       <div className={clsx("border border-dashed border-black")} />
-      <Nexus2026ClassicQR className={clsx("h-[150px]")} />
+      <FramerEventQR className={clsx("h-[150px]")} />
       <div className={clsx("text-center text-2xl leading-none font-bold")}>
-        ✦ Thanks for partying with us! ✦
+        ✦ Thanks for attending this Framer event! ✦
       </div>
       <div
         className={clsx(

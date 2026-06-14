@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 
-import { appendTerminalLine, getNextSyncValue, getTerminalLine } from "./SplashHud.utils.ts";
+import {
+  appendTerminalLine,
+  getNextSyncValue,
+  getTerminalLine,
+} from "./SplashHud.utils.ts";
 
 describe("getNextSyncValue", () => {
   it("keeps the sync value in a high-attention nominal band", () => {

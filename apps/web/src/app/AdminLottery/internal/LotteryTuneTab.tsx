@@ -1,3 +1,12 @@
+import {
+  TUNE_LOTTERY_MAX_ATTEMPTS,
+  TUNE_LOTTERY_MAX_PRODUCT,
+  TUNE_LOTTERY_MAX_SAMPLES,
+} from "@dither-booth/api/lottery-constants";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2 } from "lucide-react";
+import { type FC, useCallback, useState } from "react";
+
 import { Button } from "#components/ui/button.tsx";
 import {
   Card,
@@ -28,14 +37,6 @@ import {
   TableRow,
 } from "#components/ui/table.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import {
-  TUNE_LOTTERY_MAX_ATTEMPTS,
-  TUNE_LOTTERY_MAX_PRODUCT,
-  TUNE_LOTTERY_MAX_SAMPLES,
-} from "@dither-booth/api/lottery-constants";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2 } from "lucide-react";
-import { type FC, useCallback, useState } from "react";
 
 export const LotteryTuneTab: FC = () => {
   const trpc = useTRPC();
@@ -99,7 +100,7 @@ export const LotteryTuneTab: FC = () => {
                   .map((l) => (
                     <TableRow key={l.id}>
                       <TableCell className="font-medium">{l.label}</TableCell>
-                      <TableCell className="capitalize text-muted-foreground">
+                      <TableCell className="text-muted-foreground capitalize">
                         {l.rarity.replace("_", " ")}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
@@ -132,9 +133,10 @@ export const LotteryTuneTab: FC = () => {
             <Field>
               <FieldLabel htmlFor="tune-samples">Samples</FieldLabel>
               <FieldDescription>
-                How many random candidate configs to try. Each sample picks random base pressure,
-                max boost, and rarity weights, then scores the result. Product (samples × attempts
-                per simulation) cannot exceed {TUNE_LOTTERY_MAX_PRODUCT.toLocaleString("en-US")}.
+                How many random candidate configs to try. Each sample picks
+                random base pressure, max boost, and rarity weights, then scores
+                the result. Product (samples × attempts per simulation) cannot
+                exceed {TUNE_LOTTERY_MAX_PRODUCT.toLocaleString("en-US")}.
               </FieldDescription>
               <Input
                 id="tune-samples"
@@ -146,10 +148,13 @@ export const LotteryTuneTab: FC = () => {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="tune-attempts">Attempts per simulation</FieldLabel>
+              <FieldLabel htmlFor="tune-attempts">
+                Attempts per simulation
+              </FieldLabel>
               <FieldDescription>
-                Length of each offline simulation run used to score a candidate (same engine as the
-                Simulation tab, "normal" traffic). Subject to same product cap as samples.
+                Length of each offline simulation run used to score a candidate
+                (same engine as the Simulation tab, "normal" traffic). Subject
+                to same product cap as samples.
               </FieldDescription>
               <Input
                 id="tune-attempts"
@@ -163,8 +168,8 @@ export const LotteryTuneTab: FC = () => {
             <Field>
               <FieldLabel htmlFor="tune-seed">Random seed</FieldLabel>
               <FieldDescription>
-                Seeds the RNG that generates random candidates so runs are reproducible when inputs
-                are unchanged.
+                Seeds the RNG that generates random candidates so runs are
+                reproducible when inputs are unchanged.
               </FieldDescription>
               <Input
                 id="tune-seed"
@@ -215,8 +220,8 @@ export const LotteryTuneTab: FC = () => {
                 <CardTitle>Best candidate</CardTitle>
                 <CardDescription>
                   Rank #1 out of {result?.samples ?? 0} samples — score{" "}
-                  {best.score.toFixed(0)}. Dispersion metrics from same offline run as score
-                  (tanh curve + soft ceiling in engine).
+                  {best.score.toFixed(0)}. Dispersion metrics from same offline
+                  run as score (tanh curve + soft ceiling in engine).
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -229,7 +234,11 @@ export const LotteryTuneTab: FC = () => {
                 <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
                   <DialogTrigger
                     render={
-                      <Button variant="default" size="sm" disabled={isApplying} />
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={isApplying}
+                      />
                     }
                   >
                     Apply to live config
@@ -238,13 +247,16 @@ export const LotteryTuneTab: FC = () => {
                     <DialogHeader>
                       <DialogTitle>Apply recommended config?</DialogTitle>
                       <DialogDescription>
-                        This will overwrite the live lottery&apos;s win pressure, max boost, and
-                        all lot weights. The next draw will use the new values.
+                        This will overwrite the live lottery&apos;s win
+                        pressure, max boost, and all lot weights. The next draw
+                        will use the new values.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-2 rounded-none border bg-muted/40 p-3 text-xs">
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="text-muted-foreground">Win pressure</div>
+                        <div className="text-muted-foreground">
+                          Win pressure
+                        </div>
                         <div className="font-mono font-medium">
                           {rec.baseWinPressure.toFixed(4)}
                         </div>
@@ -255,12 +267,19 @@ export const LotteryTuneTab: FC = () => {
                       </div>
                       {rec.lots.length > 0 ? (
                         <div className="mt-2 border-t pt-2">
-                          <div className="mb-1.5 text-muted-foreground">Lot weights</div>
+                          <div className="mb-1.5 text-muted-foreground">
+                            Lot weights
+                          </div>
                           <div className="flex flex-col gap-1">
                             {rec.lots.map((l) => {
-                              const current = lots?.find((lot) => lot.id === l.id);
+                              const current = lots?.find(
+                                (lot) => lot.id === l.id,
+                              );
                               return (
-                                <div key={l.id} className="grid grid-cols-[1fr_auto_auto] gap-2">
+                                <div
+                                  key={l.id}
+                                  className="grid grid-cols-[1fr_auto_auto] gap-2"
+                                >
                                   <span className="truncate">{l.label}</span>
                                   {current ? (
                                     <span className="text-muted-foreground tabular-nums">
@@ -278,10 +297,7 @@ export const LotteryTuneTab: FC = () => {
                       ) : null}
                     </div>
                     <DialogFooter showCloseButton>
-                      <Button
-                        onClick={handleApply}
-                        disabled={isApplying}
-                      >
+                      <Button onClick={handleApply} disabled={isApplying}>
                         {isApplying ? (
                           <>
                             <Spinner className="mr-2" />
@@ -299,7 +315,10 @@ export const LotteryTuneTab: FC = () => {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Stat label="Win pressure" value={rec.baseWinPressure.toFixed(4)} />
+              <Stat
+                label="Win pressure"
+                value={rec.baseWinPressure.toFixed(4)}
+              />
               <Stat label="Max boost" value={`${rec.maxBoost.toFixed(2)}×`} />
               <Stat
                 label="Hourly rate σ"
@@ -335,7 +354,7 @@ export const LotteryTuneTab: FC = () => {
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <p className="mb-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
                 Recommended lot weights
               </p>
               <Table>
@@ -356,14 +375,14 @@ export const LotteryTuneTab: FC = () => {
                     return (
                       <TableRow key={l.id}>
                         <TableCell className="font-medium">{l.label}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                        <TableCell className="text-right text-muted-foreground tabular-nums">
                           {current?.baseWeight ?? "—"}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">
+                        <TableCell className="text-right font-medium tabular-nums">
                           {l.baseWeight.toFixed(4)}
                         </TableCell>
                         <TableCell
-                          className={`text-right tabular-nums text-xs ${
+                          className={`text-right text-xs tabular-nums ${
                             delta == null
                               ? ""
                               : delta > 0
@@ -415,8 +434,13 @@ export const LotteryTuneTab: FC = () => {
               </TableHeader>
               <TableBody>
                 {result.top.map((row) => (
-                  <TableRow key={row.rank} className={row.rank === 1 ? "bg-muted/50" : ""}>
-                    <TableCell className="tabular-nums font-medium">{row.rank}</TableCell>
+                  <TableRow
+                    key={row.rank}
+                    className={row.rank === 1 ? "bg-muted/50" : ""}
+                  >
+                    <TableCell className="font-medium tabular-nums">
+                      {row.rank}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {row.score.toFixed(0)}
                     </TableCell>
@@ -429,21 +453,23 @@ export const LotteryTuneTab: FC = () => {
                     <TableCell className="text-right tabular-nums">
                       {row.hourlyWinRateStd.toFixed(3)}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-xs">
+                    <TableCell className="text-right text-xs tabular-nums">
                       {row.peakWinProbability.toFixed(3)}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-xs">
+                    <TableCell className="text-right text-xs tabular-nums">
                       {row.avgWinProbability.toFixed(3)}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-xs">
+                    <TableCell className="text-right text-xs tabular-nums">
                       {(row.saturatedShare * 100).toFixed(1)}%
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-xs">
+                    <TableCell className="text-right text-xs tabular-nums">
                       {row.maxConsecutiveWins}
                     </TableCell>
                     <TableCell className="text-xs">
                       {row.allLotsDistributed ? (
-                        <span className="text-green-600 dark:text-green-400">All empty</span>
+                        <span className="text-green-600 dark:text-green-400">
+                          All empty
+                        </span>
                       ) : (
                         <span className="text-muted-foreground">
                           {row.totalRemainingStock} left
@@ -470,7 +496,9 @@ const Stat: FC<{ label: string; value: string; muted?: boolean }> = (props) => {
       >
         {value}
       </span>
-      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
+      <span className="text-[10px] tracking-wider text-muted-foreground uppercase">
+        {label}
+      </span>
     </div>
   );
 };

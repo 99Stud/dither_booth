@@ -1,10 +1,11 @@
+import { type FC, useState } from "react";
+
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "#components/ui/tabs.tsx";
-import { type FC, useState } from "react";
 
 import { LotteryAnalyticsTab } from "./internal/LotteryAnalyticsTab.tsx";
 import { LotteryConfigTab } from "./internal/LotteryConfigTab.tsx";

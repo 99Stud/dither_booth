@@ -1,4 +1,5 @@
 import { type FC, useCallback, useEffect, useState } from "react";
+
 import { HudBackgroundCanvas } from "./internal/HudBackgroundCanvas.tsx";
 
 function useReducedMotion(): boolean {
@@ -42,11 +43,11 @@ export const HudBackground: FC = () => {
 
       <div
         aria-hidden
-        className="pointer-events-none fixed top-0 left-0 z-0 h-px w-lvw bg-linear-to-r from-transparent via-primary/60 to-transparent hud-splash-rail-animate"
+        className="hud-splash-rail-animate pointer-events-none fixed top-0 left-0 z-0 h-px w-lvw bg-linear-to-r from-transparent via-primary/60 to-transparent"
       />
       <div
         aria-hidden
-        className="pointer-events-none fixed bottom-0 left-0 z-0 h-px w-lvw bg-linear-to-r from-transparent via-primary/40 to-transparent hud-splash-rail-animate"
+        className="hud-splash-rail-animate pointer-events-none fixed bottom-0 left-0 z-0 h-px w-lvw bg-linear-to-r from-transparent via-primary/40 to-transparent"
       />
     </>
   );

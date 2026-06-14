@@ -1,10 +1,8 @@
-import { cn } from "#lib/utils.ts";
 import * as React from "react";
 
-function Tabs({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+import { cn } from "#lib/utils.ts";
+
+function Tabs({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="tabs"
@@ -14,10 +12,7 @@ function Tabs({
   );
 }
 
-function TabsList({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function TabsList({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="tabs-list"
@@ -44,7 +39,7 @@ function TabsTrigger({
         "inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors",
         "hover:text-foreground",
         "data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground",
-        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        "focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none",
         className,
       )}
       {...props}
@@ -52,10 +47,7 @@ function TabsTrigger({
   );
 }
 
-function TabsContent({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function TabsContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="tabs-content"

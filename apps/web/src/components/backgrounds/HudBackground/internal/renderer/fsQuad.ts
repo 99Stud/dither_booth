@@ -1,9 +1,20 @@
+import type { TextureNode, WebGPURenderer } from "three/webgpu";
+
 import { HalfFloatType, LinearFilter, RGBAFormat, RenderTarget } from "three";
 import { positionLocal, uniform, uniformTexture, uv, vec4 } from "three/tsl";
-import type { TextureNode, WebGPURenderer } from "three/webgpu";
-import { Mesh, MeshStandardNodeMaterial, NodeMaterial, PlaneGeometry, QuadMesh } from "three/webgpu";
+import {
+  Mesh,
+  MeshStandardNodeMaterial,
+  NodeMaterial,
+  PlaneGeometry,
+  QuadMesh,
+} from "three/webgpu";
+
+import {
+  TURBULENCE_RT_SCALE,
+  FLUID_STRENGTH,
+} from "../hudBackground.config.ts";
 import { buildTurbulencesNode } from "./turbulences.ts";
-import { TURBULENCE_RT_SCALE, FLUID_STRENGTH } from "../hudBackground.config.ts";
 
 const uFluidStrength = uniform(FLUID_STRENGTH);
 

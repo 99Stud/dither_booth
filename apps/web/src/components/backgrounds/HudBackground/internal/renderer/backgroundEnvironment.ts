@@ -1,7 +1,14 @@
-import { Color, PerspectiveCamera, Scene, SRGBColorSpace, ACESFilmicToneMapping } from "three";
+import {
+  Color,
+  PerspectiveCamera,
+  Scene,
+  SRGBColorSpace,
+  ACESFilmicToneMapping,
+} from "three";
 import { WebGPURenderer } from "three/webgpu";
-import { FsQuad } from "./fsQuad.ts";
+
 import { FluidSimulation } from "./fluid.ts";
+import { FsQuad } from "./fsQuad.ts";
 import { Pointer } from "./pointer.ts";
 import { PostProcessingPipeline } from "./postProcessingPipeline.ts";
 
@@ -26,13 +33,21 @@ export class BackgroundEnvironment {
     this.fsQuad = new FsQuad();
     this.scene.add(this.fsQuad);
 
-    this.camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.camera = new PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000,
+    );
     this.camera.position.set(0, 0, 5);
 
     this.fluid = new FluidSimulation();
     this.postProcessing = new PostProcessingPipeline();
 
-    this.renderer = new WebGPURenderer({ antialias: true, powerPreference: "high-performance" });
+    this.renderer = new WebGPURenderer({
+      antialias: true,
+      powerPreference: "high-performance",
+    });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.toneMapping = ACESFilmicToneMapping;

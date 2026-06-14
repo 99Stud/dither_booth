@@ -1,12 +1,10 @@
-import {
-  createOrientedImageBitmap,
-  getBlobDimensions,
-} from "#lib/utils.ts";
+import { logKioskEvent } from "@dither-booth/logging";
+
 import {
   getJpegImageMetadataFromBlob,
   shouldForceManualOrientation,
 } from "#lib/image-orientation.utils.ts";
-import { logKioskEvent } from "@dither-booth/logging";
+import { createOrientedImageBitmap, getBlobDimensions } from "#lib/utils.ts";
 
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";
 const MAX_PHOTO_SIDE_PX = 1024;

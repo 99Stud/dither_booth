@@ -1,3 +1,6 @@
+import type { Node, TextureNode } from "three/webgpu";
+
+import { DataTexture, FloatType, LinearFilter, RGBAFormat } from "three";
 import {
   clamp,
   color,
@@ -14,8 +17,7 @@ import {
   uv,
   vec2,
 } from "three/tsl";
-import type { Node, TextureNode } from "three/webgpu";
-import { DataTexture, FloatType, LinearFilter, RGBAFormat } from "three";
+
 import { TURBULENCE, PALETTE, COLOR_STOPS } from "../hudBackground.config.ts";
 
 const cScale = uniform(TURBULENCE.scale);
@@ -40,7 +42,13 @@ const LUT_SIZE = 64;
 const uColorRampLUT: TextureNode = uniformTexture();
 
 const _rampData = new Float32Array(LUT_SIZE * 4);
-const _rampTexture = new DataTexture(_rampData, LUT_SIZE, 1, RGBAFormat, FloatType);
+const _rampTexture = new DataTexture(
+  _rampData,
+  LUT_SIZE,
+  1,
+  RGBAFormat,
+  FloatType,
+);
 _rampTexture.minFilter = LinearFilter;
 _rampTexture.magFilter = LinearFilter;
 
@@ -58,11 +66,13 @@ function rebuildColorRampLUT(): void {
   const s2 = uStop2.value;
   const s3 = uStop3.value;
   const s4 = uStop4.value;
-  const colors = [uColor0, uColor1, uColor2, uColor3, uColor4, uColor5].map((u) => ({
-    r: u.value.r,
-    g: u.value.g,
-    b: u.value.b,
-  }));
+  const colors = [uColor0, uColor1, uColor2, uColor3, uColor4, uColor5].map(
+    (u) => ({
+      r: u.value.r,
+      g: u.value.g,
+      b: u.value.b,
+    }),
+  );
 
   for (let i = 0; i < LUT_SIZE; i++) {
     const t = i / (LUT_SIZE - 1);
@@ -114,7 +124,10 @@ rebuildColorRampLUT();
 const RCP_D0 = 1.0 / 0.6;
 const RCP_D1 = 1.0 / 1.6;
 
-export function buildTurbulencesNode(fluidTex: TextureNode, fluidStrength: Node<"float">) {
+export function buildTurbulencesNode(
+  fluidTex: TextureNode,
+  fluidStrength: Node<"float">,
+) {
   return Fn(() => {
     const fluidSample = fluidTex.sample(uv()).rgb;
     const displacement = fluidSample.mul(fluidStrength);
@@ -145,7 +158,12 @@ export function buildTurbulencesNode(fluidTex: TextureNode, fluidStrength: Node<
 
       c.addAssign(
         float(1.0).div(
-          length(vec2(sin(i.x.add(t)).mul(rcpIntensity), cos(i.y.add(t)).mul(rcpIntensity))),
+          length(
+            vec2(
+              sin(i.x.add(t)).mul(rcpIntensity),
+              cos(i.y.add(t)).mul(rcpIntensity),
+            ),
+          ),
         ),
       );
     }

@@ -1,16 +1,24 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type FC, useCallback, useEffect, useState } from "react";
+
 import { Button } from "#components/ui/button.tsx";
-import { Card, CardContent, CardHeader, CardTitle } from "#components/ui/card.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "#components/ui/card.tsx";
 import { Field, FieldDescription, FieldLabel } from "#components/ui/field.tsx";
 import { Input } from "#components/ui/input.tsx";
 import { Switch } from "#components/ui/switch.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FC, useCallback, useEffect, useState } from "react";
 
 export const LotteryConfigTab: FC = () => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { data: config, isLoading } = useQuery(trpc.getLotteryConfig.queryOptions());
+  const { data: config, isLoading } = useQuery(
+    trpc.getLotteryConfig.queryOptions(),
+  );
   const updateConfig = useMutation(trpc.updateLotteryConfig.mutationOptions());
 
   const [form, setForm] = useState({
@@ -66,8 +74,8 @@ export const LotteryConfigTab: FC = () => {
               />
             </div>
             <FieldDescription>
-              When on, draws happen only inside the daily time window below. Turn off to
-              disable the lottery entirely.
+              When on, draws happen only inside the daily time window below.
+              Turn off to disable the lottery entirely.
             </FieldDescription>
           </Field>
           <div className="grid grid-cols-2 gap-3">
@@ -79,19 +87,24 @@ export const LotteryConfigTab: FC = () => {
               <Input
                 id="lottery-start"
                 value={form.startTime}
-                onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, startTime: e.target.value }))
+                }
                 placeholder="16:00"
               />
             </Field>
             <Field>
               <FieldLabel htmlFor="lottery-end">End (HH:MM)</FieldLabel>
               <FieldDescription>
-                Exclusive end: the last allowed minute is one minute before this time.
+                Exclusive end: the last allowed minute is one minute before this
+                time.
               </FieldDescription>
               <Input
                 id="lottery-end"
                 value={form.endTime}
-                onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, endTime: e.target.value }))
+                }
                 placeholder="21:00"
               />
             </Field>
@@ -105,11 +118,13 @@ export const LotteryConfigTab: FC = () => {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Field>
-            <FieldLabel htmlFor="base-win-pressure">Base win pressure (0–1)</FieldLabel>
+            <FieldLabel htmlFor="base-win-pressure">
+              Base win pressure (0–1)
+            </FieldLabel>
             <FieldDescription>
-              Starting win probability before catch-up. The engine compares how much stock should
-              have been given out by now vs. how much actually was, then scales this value up
-              (when behind) or down (when ahead).
+              Starting win probability before catch-up. The engine compares how
+              much stock should have been given out by now vs. how much actually
+              was, then scales this value up (when behind) or down (when ahead).
             </FieldDescription>
             <Input
               id="base-win-pressure"
@@ -129,8 +144,9 @@ export const LotteryConfigTab: FC = () => {
           <Field>
             <FieldLabel htmlFor="max-boost">Max boost (1–10)</FieldLabel>
             <FieldDescription>
-              Maximum multiplier applied to base win pressure when prizes are behind schedule
-              (stock not depleted fast enough for the elapsed time in the window).
+              Maximum multiplier applied to base win pressure when prizes are
+              behind schedule (stock not depleted fast enough for the elapsed
+              time in the window).
             </FieldDescription>
             <Input
               id="max-boost"
@@ -139,7 +155,9 @@ export const LotteryConfigTab: FC = () => {
               min="1"
               max="10"
               value={form.maxBoost}
-              onChange={(e) => setForm((f) => ({ ...f, maxBoost: Number(e.target.value) }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, maxBoost: Number(e.target.value) }))
+              }
             />
           </Field>
         </CardContent>
@@ -151,15 +169,19 @@ export const LotteryConfigTab: FC = () => {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <FieldDescription className="-mt-1">
-            Recent draw attempts are checked. Too many attempts in a short window, or attempts
-            closer than the minimum interval, yield a forced loss. After an abuse-related forced
-            loss, further wins are blocked until the cooldown elapses.
+            Recent draw attempts are checked. Too many attempts in a short
+            window, or attempts closer than the minimum interval, yield a forced
+            loss. After an abuse-related forced loss, further wins are blocked
+            until the cooldown elapses.
           </FieldDescription>
           <div className="grid grid-cols-2 gap-3">
             <Field>
-              <FieldLabel htmlFor="abuse-window">Rolling window (seconds)</FieldLabel>
+              <FieldLabel htmlFor="abuse-window">
+                Rolling window (seconds)
+              </FieldLabel>
               <FieldDescription>
-                Only events in this sliding window count toward the attempt limit.
+                Only events in this sliding window count toward the attempt
+                limit.
               </FieldDescription>
               <Input
                 id="abuse-window"
@@ -176,10 +198,12 @@ export const LotteryConfigTab: FC = () => {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="abuse-max">Max attempts in window</FieldLabel>
+              <FieldLabel htmlFor="abuse-max">
+                Max attempts in window
+              </FieldLabel>
               <FieldDescription>
-                If this many attempts occur within the rolling window, the next outcome is a forced
-                loss.
+                If this many attempts occur within the rolling window, the next
+                outcome is a forced loss.
               </FieldDescription>
               <Input
                 id="abuse-max"
@@ -198,9 +222,12 @@ export const LotteryConfigTab: FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field>
-              <FieldLabel htmlFor="abuse-interval">Min interval (seconds)</FieldLabel>
+              <FieldLabel htmlFor="abuse-interval">
+                Min interval (seconds)
+              </FieldLabel>
               <FieldDescription>
-                If any two attempts in the window are closer than this, abuse is triggered.
+                If any two attempts in the window are closer than this, abuse is
+                triggered.
               </FieldDescription>
               <Input
                 id="abuse-interval"
@@ -217,10 +244,12 @@ export const LotteryConfigTab: FC = () => {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="abuse-cooldown">Cooldown (seconds)</FieldLabel>
+              <FieldLabel htmlFor="abuse-cooldown">
+                Cooldown (seconds)
+              </FieldLabel>
               <FieldDescription>
-                After a forced loss with abuse detected, wins stay blocked while any such event is
-                newer than this duration.
+                After a forced loss with abuse detected, wins stay blocked while
+                any such event is newer than this duration.
               </FieldDescription>
               <Input
                 id="abuse-cooldown"
@@ -240,7 +269,11 @@ export const LotteryConfigTab: FC = () => {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={updateConfig.isPending} className="self-end">
+      <Button
+        onClick={handleSave}
+        disabled={updateConfig.isPending}
+        className="self-end"
+      >
         {updateConfig.isPending ? "Saving…" : "Save"}
       </Button>
     </div>

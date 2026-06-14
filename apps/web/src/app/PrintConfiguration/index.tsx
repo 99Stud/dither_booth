@@ -1,3 +1,9 @@
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import clsx from "clsx";
+import { CameraIcon } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, type FC } from "react";
+
 import type { WebcamHandle } from "#components/misc/Webcam/internal/Webcam.types.ts";
 
 import { SelectField } from "#components/fields/SelectField/index.tsx";
@@ -7,11 +13,6 @@ import { Button } from "#components/ui/button.tsx";
 import { Spinner } from "#components/ui/spinner.tsx";
 import { takeSquarePhoto } from "#lib/image-manipulation/image-manipulation.utils.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import clsx from "clsx";
-import { CameraIcon } from "lucide-react";
-import { useCallback, useMemo, useRef, useState, type FC } from "react";
 
 import type { PrintConfigurationFormValues } from "./internal/PrintConfiguratio.types";
 

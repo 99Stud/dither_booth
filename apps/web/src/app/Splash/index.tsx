@@ -1,3 +1,7 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { type FC, useCallback, useEffect, useState } from "react";
+
 import { getNextSyncValue } from "#app/Splash/internal/SplashHud.utils.ts";
 import { SplashHudTerminal } from "#app/Splash/internal/SplashHudTerminal.tsx";
 import { DitherBoothSplashLogo } from "#components/svg/DitherBoothSplashLogo/index.tsx";
@@ -10,9 +14,6 @@ import {
 } from "#lib/ticket-names.ts";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn } from "#lib/utils.ts";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { type FC, useCallback, useEffect, useState } from "react";
 
 export const Splash: FC = () => {
   const navigate = useNavigate();
@@ -40,7 +41,9 @@ export const Splash: FC = () => {
       }
       void navigate({
         to: "/booth",
-        search: ticketNamesToBoothSearchRecord([...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES]),
+        search: ticketNamesToBoothSearchRecord([
+          ...DEFAULT_BOOTH_TICKET_DISPLAY_NAMES,
+        ]),
       });
     });
   }, [navigate, printConfig]);
@@ -52,7 +55,8 @@ export const Splash: FC = () => {
   );
 
   const [syncPct, setSyncPct] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ? 100
       : getNextSyncValue(0),
   );
@@ -91,14 +95,16 @@ export const Splash: FC = () => {
 
   return (
     <div className="relative flex min-h-dvh touch-none flex-col overflow-hidden overscroll-none text-foreground">
-      <div className="relative z-10 flex min-h-dvh flex-col px-[max(1rem,calc(1.125rem+2.25rem+0.75rem))] pb-12 pt-8 sm:pt-10">
+      <div className="relative z-10 flex min-h-dvh flex-col px-[max(1rem,calc(1.125rem+2.25rem+0.75rem))] pt-8 pb-12 sm:pt-10">
         <div className="grid items-start gap-6 md:grid-cols-[minmax(0,22rem)_1fr] md:gap-8 lg:gap-10">
           <div className="flex min-w-0 flex-col gap-4">
-            <div className="font-bit flex items-end justify-between gap-4 text-white text-2xl">
-              <span className="leading-none tracking-[0.04em] uppercase text-base">Display</span>
-              <span className="leading-none tabular-nums tracking-[0.02em] text-base">
+            <div className="flex items-end justify-between gap-4 font-bit text-2xl text-white">
+              <span className="text-base leading-none tracking-[0.04em] uppercase">
+                Display
+              </span>
+              <span className="text-base leading-none tracking-[0.02em] tabular-nums">
                 {syncPct.toFixed(1)}
-                <span className="text-[0.62em] align-top">%</span>
+                <span className="align-top text-[0.62em]">%</span>
               </span>
             </div>
 
@@ -107,8 +113,8 @@ export const Splash: FC = () => {
             <SplashHudTerminal reduceMotion={reduceMotion} />
           </div>
 
-          <header className="font-bit flex min-w-0 shrink-0 flex-col text-white md:items-end md:text-right">
-            <span className="wrap-break-word text-base font-bold leading-tight tracking-widest uppercase">
+          <header className="flex min-w-0 shrink-0 flex-col font-bit text-white md:items-end md:text-right">
+            <span className="text-base leading-tight font-bold tracking-widest wrap-break-word uppercase">
               DITHERBOOTH STANDBY
               <span
                 aria-hidden
@@ -126,7 +132,7 @@ export const Splash: FC = () => {
             disabled={isLoadingPrintConfig}
             className={cn(
               buttonVariants({ variant: "hud", size: "touch" }),
-              "hud-cta-pulse min-h-24 w-full border max-w-sm justify-center py-4 font-bit font-bold text-white text-2xl px-56 border-white bg-black/60",
+              "hud-cta-pulse min-h-24 w-full max-w-sm justify-center border border-white bg-black/60 px-56 py-4 font-bit text-2xl font-bold text-white",
               isLoadingPrintConfig && "pointer-events-none opacity-50",
               "backdrop-blur-sm",
             )}

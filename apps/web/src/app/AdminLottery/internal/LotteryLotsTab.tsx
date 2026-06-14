@@ -1,3 +1,7 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
+import { type FC, Fragment, useCallback, useState } from "react";
+
 import { Button } from "#components/ui/button.tsx";
 import {
   Card,
@@ -17,9 +21,6 @@ import {
 } from "#components/ui/table.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
 import { cn } from "#lib/utils.ts";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
-import { type FC, Fragment, useCallback, useState } from "react";
 
 const lotSelectClassName =
   "h-8 w-full min-w-[7.5rem] border border-input bg-background px-2 text-xs";
@@ -198,169 +199,179 @@ export const LotteryLotsTab: FC = () => {
               {lots?.map((lot) => (
                 <Fragment key={lot.id}>
                   <TableRow>
-                  <TableCell className="min-w-40 max-w-64">
-                    <Input
-                      className="h-8 w-full min-w-0 font-medium"
-                      defaultValue={lot.label}
-                      disabled={patchLot.isPending}
-                      key={`name-${lot.id}-${lot.label}`}
-                      maxLength={100}
-                      onBlur={(e) => {
-                        const raw = e.target.value.trim();
-                        if (raw === "") {
-                          e.target.value = lot.label;
-                          return;
-                        }
-                        if (raw === lot.label) return;
-                        void handlePatchLot(lot, { label: raw });
-                      }}
-                      aria-label={`Name for prize pool ${lot.id}`}
-                    />
-                  </TableCell>
-                  <TableCell className="min-w-34">
-                    <select
-                      className={lotSelectClassName}
-                      disabled={patchLot.isPending}
-                      value={lot.rarity}
-                      onChange={(e) => {
-                        const rarity = e.target.value as
-                          | "common"
-                          | "medium"
-                          | "rare"
-                          | "very_rare";
-                        if (rarity === lot.rarity) return;
-                        void handlePatchLot(lot, { rarity });
-                      }}
-                      aria-label={`Rarity for ${lot.label}`}
-                    >
-                      {RARITY_OPTIONS.map((r) => (
-                        <option key={r.value} value={r.value}>
-                          {r.label}
-                        </option>
-                      ))}
-                    </select>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      className="ml-auto h-8 w-18 tabular-nums"
-                      disabled={patchLot.isPending}
-                      defaultValue={lot.baseWeight}
-                      key={`bw-${lot.id}-${lot.baseWeight}`}
-                      type="number"
-                      step={0.1}
-                      min={0.01}
-                      max={100}
-                      onBlur={(e) => {
-                        const raw = e.target.value.trim();
-                        if (raw === "") {
-                          e.target.value = String(lot.baseWeight);
-                          return;
-                        }
-                        const v = Number(raw);
-                        if (Number.isNaN(v)) {
-                          e.target.value = String(lot.baseWeight);
-                          return;
-                        }
-                        const baseWeight = Math.min(100, Math.max(0.01, v));
-                        if (baseWeight === lot.baseWeight) return;
-                        void handlePatchLot(lot, { baseWeight });
-                      }}
-                      aria-label={`Weight for ${lot.label}`}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      className="ml-auto h-8 w-18 tabular-nums"
-                      disabled={patchLot.isPending}
-                      defaultValue={lot.stockTotal}
-                      key={`st-${lot.id}-${lot.stockTotal}`}
-                      type="number"
-                      min={1}
-                      onBlur={(e) => {
-                        const raw = e.target.value.trim();
-                        if (raw === "") {
-                          e.target.value = String(lot.stockTotal);
-                          return;
-                        }
-                        const v = Number(raw);
-                        if (Number.isNaN(v)) {
-                          e.target.value = String(lot.stockTotal);
-                          return;
-                        }
-                        const stockTotal = clampInt(v, 1, 1_000_000);
-                        if (stockTotal === lot.stockTotal) return;
-                        const stockRemaining = Math.min(lot.stockRemaining, stockTotal);
-                        void handlePatchLot(lot, { stockTotal, stockRemaining });
-                      }}
-                      aria-label={`Total stock for ${lot.label}`}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      className={`ml-auto h-8 w-18 tabular-nums ${
-                        lot.stockRemaining === 0 ? "text-destructive" : ""
-                      }`}
-                      disabled={patchLot.isPending}
-                      defaultValue={lot.stockRemaining}
-                      key={`sr-${lot.id}-${lot.stockRemaining}-${lot.stockTotal}`}
-                      type="number"
-                      min={0}
-                      max={lot.stockTotal}
-                      onBlur={(e) => {
-                        const raw = e.target.value.trim();
-                        if (raw === "") {
-                          e.target.value = String(lot.stockRemaining);
-                          return;
-                        }
-                        const v = Number(raw);
-                        if (Number.isNaN(v)) {
-                          e.target.value = String(lot.stockRemaining);
-                          return;
-                        }
-                        const stockRemaining = clampInt(v, 0, lot.stockTotal);
-                        if (stockRemaining === lot.stockRemaining) return;
-                        void handlePatchLot(lot, { stockRemaining });
-                      }}
-                      aria-label={`Remaining stock for ${lot.label}`}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => handleResetStock(lot.id, lot.stockTotal)}
-                        title="Restock"
+                    <TableCell className="max-w-64 min-w-40">
+                      <Input
+                        className="h-8 w-full min-w-0 font-medium"
+                        defaultValue={lot.label}
                         disabled={patchLot.isPending}
-                      >
-                        ↺
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => handleDelete(lot.id)}
-                        title="Delete"
+                        key={`name-${lot.id}-${lot.label}`}
+                        maxLength={100}
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          if (raw === "") {
+                            e.target.value = lot.label;
+                            return;
+                          }
+                          if (raw === lot.label) return;
+                          void handlePatchLot(lot, { label: raw });
+                        }}
+                        aria-label={`Name for prize pool ${lot.id}`}
+                      />
+                    </TableCell>
+                    <TableCell className="min-w-34">
+                      <select
+                        className={lotSelectClassName}
                         disabled={patchLot.isPending}
+                        value={lot.rarity}
+                        onChange={(e) => {
+                          const rarity = e.target.value as
+                            | "common"
+                            | "medium"
+                            | "rare"
+                            | "very_rare";
+                          if (rarity === lot.rarity) return;
+                          void handlePatchLot(lot, { rarity });
+                        }}
+                        aria-label={`Rarity for ${lot.label}`}
                       >
-                        <Trash2 className="size-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                        {RARITY_OPTIONS.map((r) => (
+                          <option key={r.value} value={r.value}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </select>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        className="ml-auto h-8 w-18 tabular-nums"
+                        disabled={patchLot.isPending}
+                        defaultValue={lot.baseWeight}
+                        key={`bw-${lot.id}-${lot.baseWeight}`}
+                        type="number"
+                        step={0.1}
+                        min={0.01}
+                        max={100}
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          if (raw === "") {
+                            e.target.value = String(lot.baseWeight);
+                            return;
+                          }
+                          const v = Number(raw);
+                          if (Number.isNaN(v)) {
+                            e.target.value = String(lot.baseWeight);
+                            return;
+                          }
+                          const baseWeight = Math.min(100, Math.max(0.01, v));
+                          if (baseWeight === lot.baseWeight) return;
+                          void handlePatchLot(lot, { baseWeight });
+                        }}
+                        aria-label={`Weight for ${lot.label}`}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        className="ml-auto h-8 w-18 tabular-nums"
+                        disabled={patchLot.isPending}
+                        defaultValue={lot.stockTotal}
+                        key={`st-${lot.id}-${lot.stockTotal}`}
+                        type="number"
+                        min={1}
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          if (raw === "") {
+                            e.target.value = String(lot.stockTotal);
+                            return;
+                          }
+                          const v = Number(raw);
+                          if (Number.isNaN(v)) {
+                            e.target.value = String(lot.stockTotal);
+                            return;
+                          }
+                          const stockTotal = clampInt(v, 1, 1_000_000);
+                          if (stockTotal === lot.stockTotal) return;
+                          const stockRemaining = Math.min(
+                            lot.stockRemaining,
+                            stockTotal,
+                          );
+                          void handlePatchLot(lot, {
+                            stockTotal,
+                            stockRemaining,
+                          });
+                        }}
+                        aria-label={`Total stock for ${lot.label}`}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        className={`ml-auto h-8 w-18 tabular-nums ${
+                          lot.stockRemaining === 0 ? "text-destructive" : ""
+                        }`}
+                        disabled={patchLot.isPending}
+                        defaultValue={lot.stockRemaining}
+                        key={`sr-${lot.id}-${lot.stockRemaining}-${lot.stockTotal}`}
+                        type="number"
+                        min={0}
+                        max={lot.stockTotal}
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          if (raw === "") {
+                            e.target.value = String(lot.stockRemaining);
+                            return;
+                          }
+                          const v = Number(raw);
+                          if (Number.isNaN(v)) {
+                            e.target.value = String(lot.stockRemaining);
+                            return;
+                          }
+                          const stockRemaining = clampInt(v, 0, lot.stockTotal);
+                          if (stockRemaining === lot.stockRemaining) return;
+                          void handlePatchLot(lot, { stockRemaining });
+                        }}
+                        aria-label={`Remaining stock for ${lot.label}`}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() =>
+                            handleResetStock(lot.id, lot.stockTotal)
+                          }
+                          title="Restock"
+                          disabled={patchLot.isPending}
+                        >
+                          ↺
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => handleDelete(lot.id)}
+                          title="Delete"
+                          disabled={patchLot.isPending}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                   <TableRow className="border-0 hover:bg-transparent">
-                    <TableCell className="bg-muted/20 pb-4 pt-0" colSpan={6}>
+                    <TableCell className="bg-muted/20 pt-0 pb-4" colSpan={6}>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <Field>
                           <FieldLabel htmlFor={`lot-${lot.id}-description`}>
                             Description (ticket)
                           </FieldLabel>
-                          <FieldDescription>Optional text on the printed ticket.</FieldDescription>
+                          <FieldDescription>
+                            Optional text on the printed ticket.
+                          </FieldDescription>
                           <textarea
                             id={`lot-${lot.id}-description`}
                             className={cn(
                               "flex min-h-[52px] w-full rounded-none border border-input bg-transparent px-3 py-2 text-xs transition-colors",
                               "placeholder:text-muted-foreground",
-                              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                              "focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none",
                               "disabled:cursor-not-allowed disabled:opacity-50",
                             )}
                             defaultValue={lot.description ?? ""}
@@ -381,14 +392,15 @@ export const LotteryLotsTab: FC = () => {
                             Instructions (after win)
                           </FieldLabel>
                           <FieldDescription>
-                            Redemption message. Leave empty for the default line (present at bar).
+                            Redemption message. Leave empty for the default line
+                            (present at bar).
                           </FieldDescription>
                           <textarea
                             id={`lot-${lot.id}-instructions`}
                             className={cn(
                               "flex min-h-[52px] w-full rounded-none border border-input bg-transparent px-3 py-2 text-xs transition-colors",
                               "placeholder:text-muted-foreground",
-                              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                              "focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none",
                               "disabled:cursor-not-allowed disabled:opacity-50",
                             )}
                             defaultValue={lot.instructions ?? ""}
@@ -433,7 +445,9 @@ export const LotteryLotsTab: FC = () => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field>
               <FieldLabel htmlFor="new-lot-stock">Stock</FieldLabel>
-              <FieldDescription>How many of this prize can be won in total.</FieldDescription>
+              <FieldDescription>
+                How many of this prize can be won in total.
+              </FieldDescription>
               <Input
                 id="new-lot-stock"
                 type="number"
@@ -450,8 +464,8 @@ export const LotteryLotsTab: FC = () => {
             <Field>
               <FieldLabel htmlFor="new-lot-weight">Weight</FieldLabel>
               <FieldDescription>
-                Relative chance when a win picks a lot: weights are compared only among lots that
-                still have stock.
+                Relative chance when a win picks a lot: weights are compared
+                only among lots that still have stock.
               </FieldDescription>
               <Input
                 id="new-lot-weight"
@@ -470,8 +484,8 @@ export const LotteryLotsTab: FC = () => {
             <Field>
               <FieldLabel htmlFor="new-lot-rarity">Rarity</FieldLabel>
               <FieldDescription>
-                Used for display and for optimization presets; it does not change draw logic by
-                itself.
+                Used for display and for optimization presets; it does not
+                change draw logic by itself.
               </FieldDescription>
               <select
                 id="new-lot-rarity"
@@ -491,14 +505,18 @@ export const LotteryLotsTab: FC = () => {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field>
-              <FieldLabel htmlFor="new-lot-description">Description (optional)</FieldLabel>
-              <FieldDescription>Optional copy on the printed ticket.</FieldDescription>
+              <FieldLabel htmlFor="new-lot-description">
+                Description (optional)
+              </FieldLabel>
+              <FieldDescription>
+                Optional copy on the printed ticket.
+              </FieldDescription>
               <textarea
                 id="new-lot-description"
                 className={cn(
                   "flex min-h-[52px] w-full rounded-none border border-input bg-transparent px-3 py-2 text-xs transition-colors",
                   "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none",
                 )}
                 value={newLot.description}
                 onChange={(e) =>
@@ -509,7 +527,9 @@ export const LotteryLotsTab: FC = () => {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="new-lot-instructions">Instructions (optional)</FieldLabel>
+              <FieldLabel htmlFor="new-lot-instructions">
+                Instructions (optional)
+              </FieldLabel>
               <FieldDescription>
                 Shown after a win. Empty uses the default kiosk message.
               </FieldDescription>
@@ -518,7 +538,7 @@ export const LotteryLotsTab: FC = () => {
                 className={cn(
                   "flex min-h-[52px] w-full rounded-none border border-input bg-transparent px-3 py-2 text-xs transition-colors",
                   "placeholder:text-muted-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none",
                 )}
                 value={newLot.instructions}
                 onChange={(e) =>
@@ -590,7 +610,9 @@ export const LotteryLotsTab: FC = () => {
               type="button"
               onClick={handleApplyPreset}
               disabled={
-                applyPreset.isPending || selectedPresetId === "" || presets?.length === 0
+                applyPreset.isPending ||
+                selectedPresetId === "" ||
+                presets?.length === 0
               }
             >
               {applyPreset.isPending ? "…" : "Apply"}

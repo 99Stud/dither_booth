@@ -1,3 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type FC, type ReactNode, useState } from "react";
+
 import { Badge } from "#components/ui/badge.tsx";
 import { Button } from "#components/ui/button.tsx";
 import {
@@ -25,15 +28,15 @@ import {
   TableRow,
 } from "#components/ui/table.tsx";
 import { useTRPC } from "#lib/trpc/trpc.utils.ts";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FC, type ReactNode, useState } from "react";
 
 export const LotteryAnalyticsTab: FC = () => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [resetOpen, setResetOpen] = useState(false);
 
-  const resetAnalytics = useMutation(trpc.resetLotteryAnalytics.mutationOptions());
+  const resetAnalytics = useMutation(
+    trpc.resetLotteryAnalytics.mutationOptions(),
+  );
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery(
     trpc.getLotteryAnalytics.queryOptions(),
@@ -48,7 +51,9 @@ export const LotteryAnalyticsTab: FC = () => {
   const handleConfirmReset = async () => {
     await resetAnalytics.mutateAsync();
     setResetOpen(false);
-    await queryClient.invalidateQueries(trpc.getLotteryAnalytics.queryOptions());
+    await queryClient.invalidateQueries(
+      trpc.getLotteryAnalytics.queryOptions(),
+    );
     await queryClient.invalidateQueries(
       trpc.getLotteryEvents.queryOptions({ limit: 300 }),
     );
@@ -59,9 +64,7 @@ export const LotteryAnalyticsTab: FC = () => {
   }
 
   if (!analytics) {
-    return (
-      <p className="p-4 text-xs text-muted-foreground">No data yet.</p>
-    );
+    return <p className="p-4 text-xs text-muted-foreground">No data yet.</p>;
   }
 
   const totalRemaining = lots?.reduce((s, l) => s + l.stockRemaining, 0) ?? 0;
@@ -76,7 +79,9 @@ export const LotteryAnalyticsTab: FC = () => {
               <Button
                 variant="destructive"
                 size="sm"
-                disabled={analytics.totalAttempts === 0 || resetAnalytics.isPending}
+                disabled={
+                  analytics.totalAttempts === 0 || resetAnalytics.isPending
+                }
               />
             }
           >
@@ -86,9 +91,9 @@ export const LotteryAnalyticsTab: FC = () => {
             <DialogHeader>
               <DialogTitle>Reset analytics?</DialogTitle>
               <DialogDescription>
-                This permanently deletes all recorded lottery draws from the database. Summary
-                stats and the draw log will be cleared. Pool stock and configuration are not
-                changed.
+                This permanently deletes all recorded lottery draws from the
+                database. Summary stats and the draw log will be cleared. Pool
+                stock and configuration are not changed.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter showCloseButton>
@@ -255,7 +260,7 @@ export const LotteryAnalyticsTab: FC = () => {
               )}
               {trials?.map((t) => (
                 <TableRow key={t.id}>
-                  <TableCell className="tabular-nums text-muted-foreground">
+                  <TableCell className="text-muted-foreground tabular-nums">
                     {t.id}
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate font-mono text-[11px]">
@@ -314,7 +319,7 @@ const StatCard: FC<{
           <span className="text-lg font-bold tabular-nums">{value}</span>
           {badge}
         </div>
-        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+        <span className="text-[10px] tracking-wider text-muted-foreground uppercase">
           {label}
         </span>
       </CardContent>
