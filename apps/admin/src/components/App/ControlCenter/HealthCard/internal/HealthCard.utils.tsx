@@ -1,12 +1,9 @@
-import type { inferOutput } from "@trpc/tanstack-react-query";
-
 import type { StatusDotVariant } from "#components/Misc/StatusDot/internal/StatusDot.types";
 import type {
   Pm2RestartProgressEvent,
   Pm2RestartResult,
   Pm2RestartService,
 } from "#lib/pm2/pm2-control.types";
-import type { useTRPC } from "#lib/trpc/trpc.utils";
 
 import {
   PM2_RESTART_ROUTE_PATH,
@@ -14,30 +11,6 @@ import {
 } from "#lib/pm2/pm2-control.constants";
 
 import { PM2_RESTART_WEBSOCKET_TIMEOUT_MS } from "./HealthCard.constants";
-
-export const extractUnhealthyServicesCount = (
-  healthz: inferOutput<ReturnType<typeof useTRPC>["getHealthz"]>,
-) => {
-  let unhealthyServicesCount = 0;
-
-  if (!healthz.web.healthz.ok) {
-    unhealthyServicesCount++;
-  }
-
-  if (!healthz.api.healthz.ok) {
-    unhealthyServicesCount++;
-  }
-
-  if (!healthz.puppeteer.healthz.ok) {
-    unhealthyServicesCount++;
-  }
-
-  if (!healthz.printer.healthz.ok) {
-    unhealthyServicesCount++;
-  }
-
-  return unhealthyServicesCount;
-};
 
 function getPm2RestartWebSocketUrl() {
   const url = new URL(PM2_RESTART_ROUTE_PATH, window.location.href);
@@ -159,30 +132,6 @@ export async function requestPm2ServiceRestart({
     ws.addEventListener("close", onClose);
   });
 }
-
-export const getRestartProgressLabel = (
-  progressEvent: Pm2RestartProgressEvent | undefined,
-  serviceLabel: string,
-) => {
-  switch (progressEvent?.type) {
-    case "accepted":
-      return `Starting ${serviceLabel} restart`;
-    case "resolving-process":
-      return "Resolving PM2 process";
-    case "connecting":
-      return "Connecting to PM2";
-    case "restarting":
-      return `Restarting ${serviceLabel}`;
-    case "disconnecting":
-      return "Disconnecting from PM2";
-    case "completed":
-      return `${serviceLabel} restarted`;
-    case "failed":
-      return `${serviceLabel} restart failed`;
-    default:
-      return `Restarting ${serviceLabel}`;
-  }
-};
 
 export const getHealthStatusVariant = ({
   isHealthzError,

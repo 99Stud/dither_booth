@@ -2,7 +2,10 @@ import USB, { type TDevice } from "@node-escpos/usb-adapter";
 
 import { getErrorMessage } from "#lib/misc/misc.utils";
 
-import { createDependencyHealthz } from "./healthz.utils";
+import {
+  createHealthyDependencyHealthz,
+  createUnhealthyDependencyHealthz,
+} from "./healthz.utils";
 
 export function checkPrinterDependency(printerUSBAdapter: USB | undefined) {
   let detectedPrinters: TDevice[];
@@ -10,12 +13,16 @@ export function checkPrinterDependency(printerUSBAdapter: USB | undefined) {
   try {
     detectedPrinters = USB.findPrinter();
   } catch (error) {
-    return createDependencyHealthz({
-      ok: false,
-      message: "Failed to scan USB printer devices.",
-      details: {
-        error: getErrorMessage(error),
-      },
+    const details = {
+      adapterDeviceAttached: printerUSBAdapter?.device !== undefined,
+    };
+    const message = "Failed to scan USB printer devices.";
+
+    return createUnhealthyDependencyHealthz({
+      cause: getErrorMessage(error),
+      context: details,
+      details,
+      message,
     });
   }
 
@@ -29,31 +36,30 @@ export function checkPrinterDependency(printerUSBAdapter: USB | undefined) {
   };
 
   if (!printerUSBAdapter) {
-    return createDependencyHealthz({
-      ok: false,
-      message: "Printer device is not initialized.",
+    return createUnhealthyDependencyHealthz({
+      context: details,
       details,
+      message: "Printer device is not initialized.",
     });
   }
 
   if (!adapterDevice) {
-    return createDependencyHealthz({
-      ok: false,
-      message: "Printer device is detached.",
+    return createUnhealthyDependencyHealthz({
+      context: details,
       details,
+      message: "Printer device is detached.",
     });
   }
 
   if (!currentDevicePresent) {
-    return createDependencyHealthz({
-      ok: false,
-      message: "Printer device is not detected on the USB bus.",
+    return createUnhealthyDependencyHealthz({
+      context: details,
       details,
+      message: "Printer device is not detected on the USB bus.",
     });
   }
 
-  return createDependencyHealthz({
-    ok: true,
+  return createHealthyDependencyHealthz({
     details,
   });
 }

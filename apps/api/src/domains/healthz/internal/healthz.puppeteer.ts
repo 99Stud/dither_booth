@@ -5,10 +5,26 @@ import type { PuppeteerStartupState } from "#lib/puppeteer/puppeteer.types";
 import { RECEIPT_VIEWER_PATH } from "#lib/browser/browser.constants";
 import { getErrorMessage, withTimeout } from "#lib/misc/misc.utils";
 
-import type { PuppeteerRuntimeCheckMap } from "./healthz.types";
+import type {
+  PuppeteerRuntimeCheckHealthz,
+  PuppeteerRuntimeCheckMap,
+  PuppeteerRuntimeClientRouteDetails,
+} from "./healthz.types";
 
 import { DEPENDENCY_HEALTHZ_TIMEOUT_MS } from "./healthz.constants";
-import { createDependencyHealthz } from "./healthz.utils";
+import {
+  createHealthzError,
+  createHealthyDependencyHealthz,
+  createUnhealthyDependencyHealthz,
+} from "./healthz.utils";
+
+const CLIENT_ROUTE_STATUS_ATTRIBUTE = "data-dither-route-status";
+const CLIENT_ROUTE_STATUS_SELECTOR = `[${CLIENT_ROUTE_STATUS_ATTRIBUTE}]`;
+const CLIENT_ROUTE_STATUS_ERROR = "error";
+const CLIENT_ROUTE_STATUS_NOT_FOUND = "not-found";
+const CLIENT_ROUTE_STATUS_READY = "ready";
+const CLIENT_ROUTE_STATUS_MISSING_MESSAGE =
+  "Puppeteer page route status marker was not found.";
 
 function getFailedCheckNames<const TChecks extends object>(
   checks: TChecks,
@@ -18,13 +34,23 @@ function getFailedCheckNames<const TChecks extends object>(
     .map(([name]) => name as Extract<keyof TChecks, string>);
 }
 
-function createPuppeteerStageHealthz(
-  stage: PuppeteerStartupState[keyof PuppeteerStartupState],
-) {
-  return createDependencyHealthz({
-    ok: stage.ok,
-    ...(stage.message ? { message: stage.message } : {}),
-    ...(stage.details ? { details: stage.details } : {}),
+function createPuppeteerStageHealthz<
+  const TStage extends PuppeteerStartupState[keyof PuppeteerStartupState],
+>(stage: TStage) {
+  if (stage.ok) {
+    return createHealthyDependencyHealthz(
+      stage.details ? { details: stage.details } : {},
+    );
+  }
+
+  const message = stage.message ?? "Puppeteer startup stage failed.";
+
+  return createUnhealthyDependencyHealthz({
+    ...(stage.cause ? { cause: stage.cause } : {}),
+    ...(stage.details
+      ? { context: stage.details, details: stage.details }
+      : {}),
+    message,
   });
 }
 
@@ -37,54 +63,237 @@ function createPuppeteerRuntimeHealthz<
     ...checks,
   };
 
-  return createDependencyHealthz(
-    failedChecks.length > 0
-      ? {
-          ok: false,
-          message: "Puppeteer runtime is unhealthy.",
-          details,
+  if (failedChecks.length > 0) {
+    return createUnhealthyDependencyHealthz({
+      context: {
+        failedChecks,
+      },
+      details,
+      message: "Puppeteer runtime is unhealthy.",
+    });
+  }
+
+  return createHealthyDependencyHealthz({
+    details,
+  });
+}
+
+function getCurrentPathDetails(currentUrl: string) {
+  try {
+    return {
+      currentPath: new URL(currentUrl).pathname,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function createFailedPuppeteerRuntimeCheck<
+  const TDetails extends object = Record<string, never>,
+>({
+  cause,
+  context,
+  details,
+  message,
+}: {
+  cause?: string;
+  context?: TDetails;
+  details?: TDetails;
+  message: string;
+}): PuppeteerRuntimeCheckHealthz<TDetails> {
+  return {
+    ok: false,
+    message,
+    error: createHealthzError({
+      ...(cause !== undefined ? { cause } : {}),
+      ...(context !== undefined
+        ? { context }
+        : details !== undefined
+          ? { context: details }
+          : {}),
+      message,
+    }),
+    ...(details !== undefined ? { details } : {}),
+  };
+}
+
+function createClientRouteDetails({
+  currentUrl,
+  status,
+  statuses,
+}: {
+  currentUrl: string;
+  status?: "error" | "not-found" | "ready";
+  statuses: string[];
+}): PuppeteerRuntimeClientRouteDetails {
+  return {
+    ...getCurrentPathDetails(currentUrl),
+    currentUrl,
+    ...(status ? { status } : {}),
+    statuses,
+  };
+}
+
+export function createPuppeteerClientRouteHealthz({
+  currentUrl,
+  error,
+  statuses = [],
+}: {
+  currentUrl: string;
+  error?: unknown;
+  statuses?: string[];
+}): PuppeteerRuntimeCheckHealthz<PuppeteerRuntimeClientRouteDetails> {
+  if (error) {
+    const details = {
+      ...getCurrentPathDetails(currentUrl),
+      currentUrl,
+      statuses,
+    };
+    const message = "Puppeteer page route status is unavailable.";
+
+    return createFailedPuppeteerRuntimeCheck({
+      cause: getErrorMessage(error),
+      context: details,
+      details,
+      message,
+    });
+  }
+
+  const statusSet = new Set(statuses);
+  const status = statusSet.has(CLIENT_ROUTE_STATUS_NOT_FOUND)
+    ? CLIENT_ROUTE_STATUS_NOT_FOUND
+    : statusSet.has(CLIENT_ROUTE_STATUS_ERROR)
+      ? CLIENT_ROUTE_STATUS_ERROR
+      : statusSet.has(CLIENT_ROUTE_STATUS_READY)
+        ? CLIENT_ROUTE_STATUS_READY
+        : undefined;
+  const details = createClientRouteDetails({
+    currentUrl,
+    status,
+    statuses,
+  });
+
+  if (status === CLIENT_ROUTE_STATUS_NOT_FOUND) {
+    const message = "Puppeteer page rendered the not found route.";
+
+    return createFailedPuppeteerRuntimeCheck({
+      details,
+      message,
+    });
+  }
+
+  if (status === CLIENT_ROUTE_STATUS_ERROR) {
+    const message = "Puppeteer page rendered an error route.";
+
+    return createFailedPuppeteerRuntimeCheck({
+      details,
+      message,
+    });
+  }
+
+  if (statuses.length === 0) {
+    const message = CLIENT_ROUTE_STATUS_MISSING_MESSAGE;
+
+    return createFailedPuppeteerRuntimeCheck({
+      details,
+      message,
+    });
+  }
+
+  if (
+    status === CLIENT_ROUTE_STATUS_READY &&
+    statuses.every((routeStatus) => routeStatus === CLIENT_ROUTE_STATUS_READY)
+  ) {
+    return {
+      ok: true,
+      details,
+    };
+  }
+
+  const message = "Puppeteer page route status marker is invalid.";
+
+  return createFailedPuppeteerRuntimeCheck({
+    details,
+    message,
+  });
+}
+
+async function getClientRouteStatuses(page: Page) {
+  await page
+    .waitForSelector(CLIENT_ROUTE_STATUS_SELECTOR, {
+      timeout: DEPENDENCY_HEALTHZ_TIMEOUT_MS,
+    })
+    .catch((error) => {
+      throw new Error(CLIENT_ROUTE_STATUS_MISSING_MESSAGE, {
+        cause: error,
+      });
+    });
+
+  return await withTimeout({
+    message: "Puppeteer page route status evaluation timed out.",
+    promise: page.evaluate((attribute) => {
+      const document = (
+        globalThis as unknown as {
+          document: {
+            querySelectorAll: (selector: string) => Array<{
+              getAttribute: (attribute: string) => string | null;
+            }>;
+          };
         }
-      : {
-          ok: true,
-          details,
-        },
-  );
+      ).document;
+
+      return Array.from(
+        document.querySelectorAll(`[${attribute}]`),
+        (element) => element.getAttribute(attribute),
+      ).filter(
+        (routeStatus): routeStatus is string =>
+          typeof routeStatus === "string" && routeStatus.length > 0,
+      );
+    }, CLIENT_ROUTE_STATUS_ATTRIBUTE),
+    timeoutMs: DEPENDENCY_HEALTHZ_TIMEOUT_MS,
+  });
 }
 
 export async function checkPuppeteerRuntimeDependency(page: Page | undefined) {
   if (!page) {
     return createPuppeteerRuntimeHealthz({
-      page: {
-        ok: false,
+      page: createFailedPuppeteerRuntimeCheck({
         message: "Puppeteer page is not initialized.",
-      },
-      browser: {
-        ok: false,
-      },
-      document: {
-        ok: false,
-      },
-      url: {
-        ok: false,
-      },
+      }),
+      browser: createFailedPuppeteerRuntimeCheck({
+        message: "Puppeteer browser is unavailable.",
+      }),
+      clientRoute: createFailedPuppeteerRuntimeCheck({
+        message: "Puppeteer client route is unavailable.",
+      }),
+      document: createFailedPuppeteerRuntimeCheck({
+        message: "Puppeteer document is unavailable.",
+      }),
+      url: createFailedPuppeteerRuntimeCheck({
+        message: "Puppeteer page URL is unavailable.",
+      }),
     });
   }
 
   if (page.isClosed()) {
     return createPuppeteerRuntimeHealthz({
-      page: {
-        ok: false,
+      page: createFailedPuppeteerRuntimeCheck({
         message: "Puppeteer page is closed.",
-      },
-      browser: {
-        ok: false,
-      },
-      document: {
-        ok: false,
-      },
-      url: {
-        ok: false,
-      },
+      }),
+      browser: createFailedPuppeteerRuntimeCheck({
+        message: "Puppeteer browser is unavailable because the page is closed.",
+      }),
+      clientRoute: createFailedPuppeteerRuntimeCheck({
+        message: "Puppeteer client route is unavailable.",
+      }),
+      document: createFailedPuppeteerRuntimeCheck({
+        message:
+          "Puppeteer document is unavailable because the page is closed.",
+      }),
+      url: createFailedPuppeteerRuntimeCheck({
+        message:
+          "Puppeteer page URL is unavailable because the page is closed.",
+      }),
     });
   }
 
@@ -93,24 +302,26 @@ export async function checkPuppeteerRuntimeDependency(page: Page | undefined) {
     page: {
       ok: true,
     },
-    browser: {
-      ok: false,
-    },
-    document: {
-      ok: false,
-    },
-    url: {
-      ok: false,
-    },
+    browser: createFailedPuppeteerRuntimeCheck({
+      message: "Puppeteer browser connection has not been checked.",
+    }),
+    clientRoute: createFailedPuppeteerRuntimeCheck({
+      message: "Puppeteer client route has not been checked.",
+    }),
+    document: createFailedPuppeteerRuntimeCheck({
+      message: "Puppeteer document has not been checked.",
+    }),
+    url: createFailedPuppeteerRuntimeCheck({
+      message: "Puppeteer page URL has not been checked.",
+    }),
   };
 
   if (!browser.connected) {
     return createPuppeteerRuntimeHealthz({
       ...checks,
-      browser: {
-        ok: false,
+      browser: createFailedPuppeteerRuntimeCheck({
         message: "Puppeteer browser is disconnected.",
-      },
+      }),
     });
   }
 
@@ -132,25 +343,26 @@ export async function checkPuppeteerRuntimeDependency(page: Page | undefined) {
               expectedPath: RECEIPT_VIEWER_PATH,
             },
           }
-        : {
-            ok: false,
-            message: "Puppeteer page is not on the receipt viewer.",
+        : createFailedPuppeteerRuntimeCheck({
             details: {
               currentPath,
               currentUrl,
               expectedPath: RECEIPT_VIEWER_PATH,
             },
-          };
+            message: "Puppeteer page is not on the receipt viewer.",
+          });
   } catch (error) {
-    checks.url = {
-      ok: false,
-      message: "Puppeteer page URL is invalid.",
-      details: {
-        currentUrl,
-        error: getErrorMessage(error),
-        expectedPath: RECEIPT_VIEWER_PATH,
-      },
+    const details = {
+      currentUrl,
+      expectedPath: RECEIPT_VIEWER_PATH,
     };
+
+    checks.url = createFailedPuppeteerRuntimeCheck({
+      cause: getErrorMessage(error),
+      context: details,
+      details,
+      message: "Puppeteer page URL is invalid.",
+    });
   }
 
   try {
@@ -172,22 +384,34 @@ export async function checkPuppeteerRuntimeDependency(page: Page | undefined) {
               readyState,
             },
           }
-        : {
-            ok: false,
-            message: "Puppeteer page document is not fully loaded.",
+        : createFailedPuppeteerRuntimeCheck({
             details: {
               expectedReadyState: "complete",
               readyState,
             },
-          };
+            message: "Puppeteer page document is not fully loaded.",
+          });
   } catch (error) {
-    checks.document = {
-      ok: false,
+    checks.document = createFailedPuppeteerRuntimeCheck({
+      cause: getErrorMessage(error),
       message: "Puppeteer page is not responsive.",
-      details: {
-        error: getErrorMessage(error),
-      },
-    };
+    });
+  }
+
+  try {
+    const statuses = await getClientRouteStatuses(page);
+
+    checks.clientRoute = createPuppeteerClientRouteHealthz({
+      currentUrl,
+      statuses,
+    });
+  } catch (error) {
+    checks.clientRoute = createPuppeteerClientRouteHealthz({
+      currentUrl,
+      ...(getErrorMessage(error) === CLIENT_ROUTE_STATUS_MISSING_MESSAGE
+        ? { statuses: [] }
+        : { error }),
+    });
   }
 
   return createPuppeteerRuntimeHealthz(checks);
@@ -211,20 +435,18 @@ export async function checkPuppeteerDependency({
     runtime,
   };
   const failedChecks = getFailedCheckNames(checks);
-  const healthzPayload =
+  const healthz =
     failedChecks.length > 0
-      ? {
-          ok: false,
-          message: "Puppeteer dependency is unhealthy.",
+      ? createUnhealthyDependencyHealthz({
+          context: {
+            failedChecks,
+          },
           details: {
             failedChecks,
           },
-        }
-      : {
-          ok: true,
-        };
-
-  const healthz = createDependencyHealthz(healthzPayload);
+          message: "Puppeteer dependency is unhealthy.",
+        })
+      : createHealthyDependencyHealthz();
 
   return {
     healthz,

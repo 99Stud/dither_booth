@@ -4,7 +4,6 @@ import { TRPCError } from "@trpc/server";
 import type {
   ApiHealthzPayload,
   PrinterDependencyHealthz,
-  WebHealthzPayload,
 } from "#domains/healthz/internal/healthz.types";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 
@@ -28,7 +27,11 @@ import { API_REPO_ROOT } from "#lib/constants";
 
 type GetHealthzResponse = {
   web: {
-    healthz: WebHealthzPayload;
+    healthz: Awaited<
+      ReturnType<
+        typeof fetchRemoteHealthzPayload<typeof webHealthzPayloadSchema>
+      >
+    >;
   };
   api: {
     healthz: ApiHealthzPayload;

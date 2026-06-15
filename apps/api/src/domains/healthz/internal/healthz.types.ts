@@ -16,47 +16,65 @@ export type Timestamped<TPayload extends object> = TPayload & {
   timestamp: string;
 };
 
+export type HealthzError<TContext extends object = Record<string, never>> = {
+  message: string;
+  cause?: string;
+  context?: TContext;
+};
+
+export type HealthzCheck<
+  TDetails extends object = Record<string, never>,
+  TErrorContext extends object = Record<string, never>,
+> =
+  | {
+      ok: true;
+      details?: TDetails;
+    }
+  | {
+      ok: false;
+      message: string;
+      error: HealthzError<TErrorContext>;
+      details?: TDetails;
+    };
+
 export type DependencyHealthzPayload = {
   ok: boolean;
   message?: string;
   details?: object;
+  error?: HealthzError<object>;
 };
 
-export type PuppeteerRuntimeCheckHealthz<TDetails extends object = never> = {
-  ok: boolean;
-  message?: string;
-} & ([TDetails] extends [never]
-  ? object
-  : {
-      details?: TDetails;
-    });
+export type PuppeteerRuntimeCheckHealthz<
+  TDetails extends object = Record<string, never>,
+> = HealthzCheck<TDetails, TDetails>;
 
 export type PuppeteerRuntimeDocumentDetails =
-  | {
-      readyState: string;
-    }
   | {
       expectedReadyState: "complete";
       readyState: string;
     }
   | {
-      error: string;
+      readyState: string;
     };
 
-export type PuppeteerRuntimeUrlDetails =
-  | {
-      currentPath: string;
-      currentUrl: string;
-      expectedPath: string;
-    }
-  | {
-      currentUrl: string;
-      error: string;
-      expectedPath: string;
-    };
+export type PuppeteerRuntimeUrlDetails = {
+  currentPath?: string;
+  currentUrl: string;
+  expectedPath: string;
+};
+
+export type PuppeteerRuntimeClientRouteStatus = "error" | "not-found" | "ready";
+
+export type PuppeteerRuntimeClientRouteDetails = {
+  currentPath?: string;
+  currentUrl: string;
+  status?: PuppeteerRuntimeClientRouteStatus;
+  statuses: string[];
+};
 
 export type PuppeteerRuntimeCheckMap = {
   browser: PuppeteerRuntimeCheckHealthz;
+  clientRoute: PuppeteerRuntimeCheckHealthz<PuppeteerRuntimeClientRouteDetails>;
   document: PuppeteerRuntimeCheckHealthz<PuppeteerRuntimeDocumentDetails>;
   page: PuppeteerRuntimeCheckHealthz;
   url: PuppeteerRuntimeCheckHealthz<PuppeteerRuntimeUrlDetails>;

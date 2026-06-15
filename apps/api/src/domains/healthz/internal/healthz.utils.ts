@@ -1,9 +1,10 @@
 import type z from "zod";
 
-import { TRPCError } from "@trpc/server";
+import { getErrorMessage } from "#lib/misc/misc.utils";
 
 import type {
   DependencyHealthzPayload,
+  HealthzError,
   HealthzMode,
   HealthzPayload,
   Timestamped,
@@ -40,6 +41,59 @@ export function createDependencyHealthz<
   };
 }
 
+export function createHealthzError<
+  const TContext extends object = Record<string, never>,
+>({
+  cause,
+  context,
+  message,
+}: {
+  cause?: string;
+  context?: TContext;
+  message: string;
+}): HealthzError<TContext> {
+  return {
+    message,
+    ...(cause !== undefined ? { cause } : {}),
+    ...(context !== undefined ? { context } : {}),
+  };
+}
+
+export function createHealthyDependencyHealthz<
+  const TDetails extends object = Record<string, never>,
+>({ details }: { details?: TDetails } = {}) {
+  return createDependencyHealthz({
+    ok: true,
+    ...(details !== undefined ? { details } : {}),
+  });
+}
+
+export function createUnhealthyDependencyHealthz<
+  const TDetails extends object = Record<string, never>,
+  const TContext extends object = Record<string, never>,
+>({
+  cause,
+  context,
+  details,
+  message,
+}: {
+  cause?: string;
+  context?: TContext;
+  details?: TDetails;
+  message: string;
+}) {
+  return createDependencyHealthz({
+    ok: false,
+    message,
+    error: createHealthzError({
+      ...(cause !== undefined ? { cause } : {}),
+      ...(context !== undefined ? { context } : {}),
+      message,
+    }),
+    ...(details !== undefined ? { details } : {}),
+  });
+}
+
 export async function fetchRemoteHealthzPayload<
   const TSchema extends z.ZodType,
 >({
@@ -56,53 +110,100 @@ export async function fetchRemoteHealthzPayload<
   timeoutMs: number;
   tlsCaFile?: Bun.BunFile;
   url: URL;
-}): Promise<z.output<TSchema>> {
+}) {
   const serviceNameLower = serviceName.toLowerCase();
 
-  const healthzRes = await fetcher(url, {
-    method: "GET",
-    signal: AbortSignal.timeout(timeoutMs),
-    ...(tlsCaFile
-      ? {
-          tls: {
-            ca: [tlsCaFile],
-          },
-        }
-      : {}),
-  }).catch((error) => {
-    const timedOut = error instanceof Error && error.name === "TimeoutError";
-    throw new TRPCError({
-      code: "BAD_GATEWAY",
-      message: timedOut
-        ? `${serviceName} health check timed out.`
-        : `Failed to reach ${serviceNameLower} health endpoint.`,
-      cause: error,
-    });
-  });
+  let healthzRes: Response;
 
-  if (!healthzRes.ok) {
-    throw new TRPCError({
-      code: "BAD_GATEWAY",
-      message: `${serviceName} health endpoint returned HTTP ${healthzRes.status}.`,
+  try {
+    healthzRes = await fetcher(url, {
+      method: "GET",
+      signal: AbortSignal.timeout(timeoutMs),
+      ...(tlsCaFile
+        ? {
+            tls: {
+              ca: [tlsCaFile],
+            },
+          }
+        : {}),
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    const message = timedOut
+      ? `${serviceName} health check timed out.`
+      : `Failed to reach ${serviceNameLower} health endpoint.`;
+
+    return createUnhealthyDependencyHealthz({
+      cause: getErrorMessage(error),
+      context: {
+        service: serviceNameLower,
+        timeoutMs,
+        url: url.toString(),
+      },
+      details: {
+        service: serviceNameLower,
+        url: url.toString(),
+      },
+      message,
     });
   }
 
-  const healthzResRaw = await healthzRes.json().catch((error) => {
-    throw new TRPCError({
-      code: "BAD_GATEWAY",
-      message: `${serviceName} health endpoint returned invalid JSON.`,
-      cause: error,
+  if (!healthzRes.ok) {
+    const message = `${serviceName} health endpoint returned HTTP ${healthzRes.status}.`;
+
+    return createUnhealthyDependencyHealthz({
+      context: {
+        service: serviceNameLower,
+        status: healthzRes.status,
+        url: url.toString(),
+      },
+      details: {
+        service: serviceNameLower,
+        status: healthzRes.status,
+        url: url.toString(),
+      },
+      message,
     });
-  });
+  }
+
+  let healthzResRaw: unknown;
+
+  try {
+    healthzResRaw = await healthzRes.json();
+  } catch (error) {
+    const message = `${serviceName} health endpoint returned invalid JSON.`;
+
+    return createUnhealthyDependencyHealthz({
+      cause: getErrorMessage(error),
+      context: {
+        service: serviceNameLower,
+        url: url.toString(),
+      },
+      details: {
+        service: serviceNameLower,
+        url: url.toString(),
+      },
+      message,
+    });
+  }
 
   const healthzParsed = schema.safeParse(healthzResRaw);
   if (!healthzParsed.success) {
-    throw new TRPCError({
-      code: "BAD_GATEWAY",
-      message: `${serviceName} health endpoint returned unexpected payload.`,
-      cause: healthzParsed.error,
+    const message = `${serviceName} health endpoint returned unexpected payload.`;
+
+    return createUnhealthyDependencyHealthz({
+      cause: getErrorMessage(healthzParsed.error),
+      context: {
+        service: serviceNameLower,
+        url: url.toString(),
+      },
+      details: {
+        service: serviceNameLower,
+        url: url.toString(),
+      },
+      message,
     });
   }
 
-  return healthzParsed.data;
+  return healthzParsed.data as z.output<TSchema>;
 }

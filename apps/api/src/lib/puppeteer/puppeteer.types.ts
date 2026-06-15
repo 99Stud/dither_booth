@@ -1,15 +1,23 @@
 import type { Browser, Page } from "puppeteer";
 
-export type PuppeteerStartupStage = {
+export type PuppeteerReceiptViewerNavigationDetails = {
+  path: string;
+  url?: string;
+};
+
+export type PuppeteerStartupStage<
+  TDetails extends object = Record<string, never>,
+> = {
   ok: boolean;
+  cause?: string;
   message?: string;
-  details?: Record<string, unknown>;
+  details?: TDetails;
 };
 
 export type PuppeteerStartupState = {
   launch: PuppeteerStartupStage;
   page: PuppeteerStartupStage;
-  navigation: PuppeteerStartupStage;
+  navigation: PuppeteerStartupStage<PuppeteerReceiptViewerNavigationDetails>;
 };
 
 export type PuppeteerReceiptViewer = {

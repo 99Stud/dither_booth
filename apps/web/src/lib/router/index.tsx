@@ -1,9 +1,9 @@
+import { RECEIPT_VIEWER_PATH } from "@dither-booth/ports/browser";
 import {
   createRootRoute,
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { RECEIPT_VIEWER_PATH } from "@dither-booth/ports/browser";
 
 import { Experience } from "#app/Experience/index";
 import { ReceiptViewer } from "#app/ReceiptViewer/index";

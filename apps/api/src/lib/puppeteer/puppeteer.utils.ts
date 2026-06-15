@@ -9,27 +9,30 @@ import {
 import { getErrorMessage } from "#lib/misc/misc.utils";
 
 import type {
+  PuppeteerReceiptViewerNavigationDetails,
   PuppeteerReceiptViewer,
   PuppeteerStartupStage,
   PuppeteerStartupState,
 } from "./puppeteer.types";
 
 export function createReceiptViewerDetails(
-  details: Record<string, unknown> = {},
-): Record<string, unknown> {
+  details: Omit<PuppeteerReceiptViewerNavigationDetails, "path"> = {},
+): PuppeteerReceiptViewerNavigationDetails {
   return {
     path: RECEIPT_VIEWER_PATH,
     ...details,
   };
 }
 
-export function createSkippedPuppeteerStage({
+export function createSkippedPuppeteerStage<
+  const TDetails extends object = Record<string, never>,
+>({
   details,
   message,
 }: {
-  details?: Record<string, unknown>;
+  details?: TDetails;
   message: string;
-}): PuppeteerStartupStage {
+}): PuppeteerStartupStage<TDetails> {
   return {
     ok: false,
     message,
@@ -52,22 +55,22 @@ export function createInitialPuppeteerState(): PuppeteerStartupState {
   };
 }
 
-export function createFailedPuppeteerStage({
+export function createFailedPuppeteerStage<
+  const TDetails extends object = Record<string, never>,
+>({
   details,
   error,
   message,
 }: {
-  details?: Record<string, unknown>;
+  details?: TDetails;
   error: unknown;
   message: string;
-}): PuppeteerStartupStage {
+}): PuppeteerStartupStage<TDetails> {
   return {
     ok: false,
+    cause: getErrorMessage(error),
     message,
-    details: {
-      ...details,
-      error: getErrorMessage(error),
-    },
+    ...(details ? { details } : {}),
   };
 }
 
@@ -160,9 +163,9 @@ export async function initializePuppeteerReceiptViewer({
 
       state.navigation = {
         ok: true,
-        details: {
+        details: createReceiptViewerDetails({
           url: receiptViewerUrl,
-        },
+        }),
       };
     } catch (error) {
       const navigationDetails = createReceiptViewerDetails(
