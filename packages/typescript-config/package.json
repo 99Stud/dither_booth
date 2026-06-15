@@ -1,0 +1,14 @@
+{
+  "name": "@dither-booth/typescript-config",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base.json": "./base.json",
+    "./bun.json": "./bun.json",
+    "./bun-dom.json": "./bun-dom.json",
+    "./dom.json": "./dom.json",
+    "./react-app.json": "./react-app.json",
+    "./bun-react-app.json": "./bun-react-app.json",
+    "./react-library.json": "./react-library.json"
+  }
+}

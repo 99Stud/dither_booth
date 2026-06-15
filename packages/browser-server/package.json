@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./app-signals": "./src/app-signals/index.ts",
     "./internal/browser-server.types": "./src/internal/browser-server.types.ts",
+    "./internal/browser-server.utils": "./src/internal/browser-server.utils.ts",
     "./build": "./src/build/index.ts"
   },
   "scripts": {
@@ -23,6 +24,7 @@
     "bun-plugin-tailwind": "0.1.2"
   },
   "devDependencies": {
+    "@dither-booth/typescript-config": "workspace:*",
     "@types/bun": "1.3.14"
   }
 }

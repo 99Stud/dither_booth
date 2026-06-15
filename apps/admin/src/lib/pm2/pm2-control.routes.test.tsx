@@ -3,6 +3,7 @@ import type {
   BrowserServerWebSocketData,
 } from "@dither-booth/browser-server/internal/browser-server.types";
 
+import { createWebSocketUpgradeRoute } from "@dither-booth/browser-server/internal/browser-server.utils";
 import { describe, expect, it } from "bun:test";
 
 import type {
@@ -10,7 +11,6 @@ import type {
   Pm2RestartResult,
 } from "./pm2-control.types";
 
-import { createWebSocketUpgradeRoute } from "../../../../../packages/browser-server/src/internal/browser-server.utils";
 import {
   PM2_RESTART_CLOSE_REASON_MAX_BYTES,
   PM2_RESTART_ROUTE_PATH,
