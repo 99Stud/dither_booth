@@ -1,5 +1,7 @@
 import z from "zod";
 
+export { RECEIPT_VIEWER_PATH } from "./ports.browser.constants";
+
 // Defaults
 export const DEFAULT_API_PORT = 3001;
 export const DEFAULT_WEB_PORT = 3000;

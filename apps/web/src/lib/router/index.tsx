@@ -2,37 +2,39 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  Outlet,
-  type AnyRoute,
 } from "@tanstack/react-router";
+import { RECEIPT_VIEWER_PATH } from "@dither-booth/ports/browser";
 
+import { Experience } from "#app/Experience/index";
+import { ReceiptViewer } from "#app/ReceiptViewer/index";
+import { Root } from "#app/Root/index";
 import {
   RootErrorScreen,
   RootNotFoundScreen,
 } from "#app/Root/internal/components/RootErrorBoundary/index";
 
-import { ROUTE_KEYS, ROUTES_CONFIG } from "./internal/router.constants";
+import { RECEIPT_VIEWER_SEARCH_SCHEMA } from "./internal/router.constants";
 
 const rootRoute = createRootRoute({
-  component: () => <Outlet />,
+  component: Root,
   errorComponent: ({ error }) => <RootErrorScreen error={error} />,
   notFoundComponent: RootNotFoundScreen,
 });
 
-const routes = ROUTE_KEYS.reduce<Array<AnyRoute>>((routes, routeKey) => {
-  const routeConfig = ROUTES_CONFIG.get(routeKey);
-  if (routeConfig) {
-    const test = createRoute({
-      getParentRoute: () => rootRoute,
-      path: routeConfig.path,
-      component: routeConfig.component,
-    });
+export const experienceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: Experience,
+});
 
-    routes.push(test);
-  }
+export const receiptViewerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: RECEIPT_VIEWER_PATH,
+  component: ReceiptViewer,
+  validateSearch: RECEIPT_VIEWER_SEARCH_SCHEMA,
+});
 
-  return routes;
-}, []);
+const routes = [experienceRoute, receiptViewerRoute];
 
 const routeTree = rootRoute.addChildren(routes);
 

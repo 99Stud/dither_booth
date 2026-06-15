@@ -11,5 +11,6 @@ export type RootErrorBoundaryState = {
 export type RootScreenProps = {
   description: string;
   details?: string;
+  routeStatus: "error" | "not-found";
   title: string;
 };

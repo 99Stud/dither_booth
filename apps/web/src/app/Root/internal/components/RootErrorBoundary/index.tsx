@@ -32,9 +32,17 @@ const reportRootError = (
   }
 };
 
-const RootScreen = ({ description, details, title }: RootScreenProps) => {
+const RootScreen = ({
+  description,
+  details,
+  routeStatus,
+  title,
+}: RootScreenProps) => {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-black p-6 text-white">
+    <div
+      className="flex min-h-dvh items-center justify-center bg-black p-6 text-white"
+      data-dither-route-status={routeStatus}
+    >
       <div className="flex max-w-sm flex-col items-center gap-4 text-center">
         <div className="flex flex-col gap-1">
           <h1 className="text-lg font-semibold">{title}</h1>
@@ -67,6 +75,7 @@ const RootErrorScreen = ({ error }: { error: unknown }) => {
     <RootScreen
       title="Something went wrong"
       description="This screen failed to load."
+      routeStatus="error"
     />
   );
 };
@@ -76,6 +85,7 @@ export const RootNotFoundScreen = () => {
     <RootScreen
       title="Page not found"
       description="This page does not exist."
+      routeStatus="not-found"
     />
   );
 };

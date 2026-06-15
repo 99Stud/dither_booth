@@ -7,6 +7,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./app-signals": "./src/app-signals/index.ts",
     "./internal/browser-server.types": "./src/internal/browser-server.types.ts",
     "./build": "./src/build/index.ts"
   },

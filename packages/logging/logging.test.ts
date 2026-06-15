@@ -223,7 +223,7 @@ describe("initializeBrowserLogging", () => {
     callListener(windowErrorListener!, {
       colno: 4,
       error: new Error("Camera exploded"),
-      filename: "/src/frontend.tsx",
+      filename: "/src/main.tsx",
       lineno: 12,
       message: "Camera exploded",
     } as ErrorEvent);
@@ -234,7 +234,7 @@ describe("initializeBrowserLogging", () => {
     expect(payload).toMatchObject({
       details: {
         colno: 4,
-        filename: "/src/frontend.tsx",
+        filename: "/src/main.tsx",
         lineno: 12,
       },
       deviceId: "kiosk-b",
