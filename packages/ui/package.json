@@ -6,7 +6,9 @@
     "**/*.css"
   ],
   "imports": {
-    "#*": "./src/*.tsx"
+    "#components/*": "./src/components/*.tsx",
+    "#lib/*": "./src/lib/*.tsx",
+    "#hooks/*": "./src/hooks/*.tsx"
   },
   "exports": {
     "./components/misc/Webcam": "./src/components/misc/Webcam/index.tsx",
