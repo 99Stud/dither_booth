@@ -2,7 +2,7 @@
 import { QRCodeSVG } from "@cheprasov/qrcode";
 
 const qrSVG = new QRCodeSVG(
-  "https://go.ditherbooth.com/track/framer-event/framer-website",
+  "https://go.ditherbooth.com/track/framer-event/framer",
   {
     level: "H",
     image: {
