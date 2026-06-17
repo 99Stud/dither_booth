@@ -1,0 +1,38 @@
+{
+  "name": "@dither-booth/shared",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./async": "./src/async/index.ts",
+    "./browser/blob": "./src/browser/blob.ts",
+    "./browser/image": "./src/browser/image.ts",
+    "./browser/storage": "./src/browser/storage.ts",
+    "./errors": "./src/errors/index.ts",
+    "./formatting": "./src/formatting/index.ts",
+    "./healthz": "./src/healthz/index.ts",
+    "./id": "./src/id/index.ts",
+    "./paths": "./src/paths/index.ts",
+    "./printing": "./src/printing/index.ts",
+    "./routes": "./src/routes/index.ts",
+    "./runtime": "./src/runtime/index.ts",
+    "./styles": "./src/styles/index.ts",
+    "./trpc": "./src/trpc/index.ts"
+  },
+  "scripts": {
+    "update": "bun update -i",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt --check",
+    "format:fix": "oxfmt",
+    "check-types": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.6.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@dither-booth/typescript-config": "workspace:*",
+    "@types/bun": "1.3.14"
+  }
+}
