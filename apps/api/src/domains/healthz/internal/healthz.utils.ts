@@ -1,36 +1,15 @@
-import type z from "zod";
-
-import { getErrorMessage } from "#lib/misc/misc.utils";
+import { getErrorMessage } from "@dither-booth/shared/errors";
+import {
+  WEB_HEALTHZ_SERVICE,
+  webHealthzPayloadSchema,
+} from "@dither-booth/shared/healthz";
+import { fetch } from "bun";
 
 import type {
   DependencyHealthzPayload,
   HealthzError,
-  HealthzMode,
-  HealthzPayload,
   Timestamped,
 } from "./healthz.types";
-
-type HealthzFetch = (
-  url: URL,
-  init: RequestInit & {
-    tls?: {
-      ca: ReturnType<typeof Bun.file>[];
-    };
-  },
-) => Promise<Response>;
-
-export function createHealthzPayload<
-  const TService extends HealthzPayload["service"],
->({ mode, service }: { mode: HealthzMode; service: TService }) {
-  const payload = {
-    ok: true,
-    service,
-    mode,
-    timestamp: new Date().toISOString(),
-  };
-
-  return payload;
-}
 
 export function createDependencyHealthz<
   const TPayload extends DependencyHealthzPayload,
@@ -94,29 +73,19 @@ export function createUnhealthyDependencyHealthz<
   });
 }
 
-export async function fetchRemoteHealthzPayload<
-  const TSchema extends z.ZodType,
->({
-  fetcher = fetch,
-  schema,
-  serviceName,
+export async function fetchWebHealthz({
   timeoutMs,
   tlsCaFile,
   url,
 }: {
-  fetcher?: HealthzFetch;
-  schema: TSchema;
-  serviceName: "Web" | "API";
   timeoutMs: number;
   tlsCaFile?: Bun.BunFile;
   url: URL;
 }) {
-  const serviceNameLower = serviceName.toLowerCase();
-
   let healthzRes: Response;
 
   try {
-    healthzRes = await fetcher(url, {
+    healthzRes = await fetch(url, {
       method: "GET",
       signal: AbortSignal.timeout(timeoutMs),
       ...(tlsCaFile
@@ -130,18 +99,18 @@ export async function fetchRemoteHealthzPayload<
   } catch (error) {
     const timedOut = error instanceof Error && error.name === "TimeoutError";
     const message = timedOut
-      ? `${serviceName} health check timed out.`
-      : `Failed to reach ${serviceNameLower} health endpoint.`;
+      ? `Web app server health check timed out.`
+      : `Failed to reach web app server health endpoint.`;
 
     return createUnhealthyDependencyHealthz({
       cause: getErrorMessage(error),
       context: {
-        service: serviceNameLower,
+        service: WEB_HEALTHZ_SERVICE,
         timeoutMs,
         url: url.toString(),
       },
       details: {
-        service: serviceNameLower,
+        service: WEB_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       message,
@@ -149,16 +118,16 @@ export async function fetchRemoteHealthzPayload<
   }
 
   if (!healthzRes.ok) {
-    const message = `${serviceName} health endpoint returned HTTP ${healthzRes.status}.`;
+    const message = `Web app server health endpoint returned HTTP ${healthzRes.status}.`;
 
     return createUnhealthyDependencyHealthz({
       context: {
-        service: serviceNameLower,
+        service: WEB_HEALTHZ_SERVICE,
         status: healthzRes.status,
         url: url.toString(),
       },
       details: {
-        service: serviceNameLower,
+        service: WEB_HEALTHZ_SERVICE,
         status: healthzRes.status,
         url: url.toString(),
       },
@@ -171,39 +140,39 @@ export async function fetchRemoteHealthzPayload<
   try {
     healthzResRaw = await healthzRes.json();
   } catch (error) {
-    const message = `${serviceName} health endpoint returned invalid JSON.`;
+    const message = `Web app server health endpoint returned invalid JSON.`;
 
     return createUnhealthyDependencyHealthz({
       cause: getErrorMessage(error),
       context: {
-        service: serviceNameLower,
+        service: WEB_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       details: {
-        service: serviceNameLower,
+        service: WEB_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       message,
     });
   }
 
-  const healthzParsed = schema.safeParse(healthzResRaw);
+  const healthzParsed = webHealthzPayloadSchema.safeParse(healthzResRaw);
   if (!healthzParsed.success) {
-    const message = `${serviceName} health endpoint returned unexpected payload.`;
+    const message = `Web app server health endpoint returned unexpected payload.`;
 
     return createUnhealthyDependencyHealthz({
       cause: getErrorMessage(healthzParsed.error),
       context: {
-        service: serviceNameLower,
+        service: WEB_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       details: {
-        service: serviceNameLower,
+        service: WEB_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       message,
     });
   }
 
-  return healthzParsed.data as z.output<TSchema>;
+  return healthzParsed.data;
 }

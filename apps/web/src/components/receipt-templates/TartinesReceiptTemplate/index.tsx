@@ -1,18 +1,18 @@
 import type { FC } from "react";
 
+import { formatPrice } from "@dither-booth/shared/formatting";
+import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
+import { cn } from "@dither-booth/shared/styles";
 import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/index";
 import { NinetyNineStudQR } from "@dither-booth/ui/components/svg/99studQR/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
 import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
-import { formatPrice } from "@dither-booth/ui/lib/formatting";
 import clsx from "clsx";
 import { format } from "date-fns";
 
 import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index";
-import { PRINT_WIDTH_PX } from "#lib/constants";
 import { RECEIPT_ID } from "#lib/receipt-templates/receipt-templates.constants";
-import { cn } from "#lib/utils";
 interface TartinesReceiptTemplateProps {
   className?: string;
 }

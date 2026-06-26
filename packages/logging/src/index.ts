@@ -1,3 +1,6 @@
+import { getErrorCauseMessage } from "@dither-booth/shared/errors";
+import { hasDetails } from "@dither-booth/shared/runtime";
+
 import type {
   KioskErrorDiagnostics,
   KioskLogContext,
@@ -8,8 +11,6 @@ import type {
 import {
   getBrowserLoggingContext,
   getConsoleMethod,
-  getErrorCauseMessage,
-  hasDetails,
 } from "./internal/logging.utils";
 
 export const getKioskErrorDiagnostics = (

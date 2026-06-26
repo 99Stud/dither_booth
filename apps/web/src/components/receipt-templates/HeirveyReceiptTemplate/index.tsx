@@ -1,8 +1,9 @@
 import type { FC } from "react";
 
-import { PRINT_WIDTH_PX } from "#lib/constants";
+import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
+import { cn } from "@dither-booth/shared/styles";
+
 import { RECEIPT_ID } from "#lib/receipt-templates/receipt-templates.constants";
-import { cn } from "#lib/utils";
 
 interface HeirveyReceiptTemplateProps {
   className?: string;

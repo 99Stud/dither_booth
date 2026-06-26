@@ -13,7 +13,6 @@ const processNames = {
 mock.module("#lib/server-constants", () => ({
   ADMIN_APP_ROOT: adminAppRoot,
   ADMIN_REPO_ROOT: repoRoot,
-  ADMIN_SERVER_HEALTHZ_SERVICE: "admin",
 }));
 
 const {

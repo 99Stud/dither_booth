@@ -1,4 +1,5 @@
 import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export function requireBunMainPath() {
   const main = Bun.main;
@@ -20,12 +21,12 @@ export function getAppRootFromImportMetaUrl(
   importMetaUrl: string,
   relativePath = "../..",
 ) {
-  return resolve(dirname(Bun.fileURLToPath(importMetaUrl)), relativePath);
+  return resolve(dirname(fileURLToPath(importMetaUrl)), relativePath);
 }
 
 /** App package root for production entry files compiled from `src/production-entry.ts`. */
 export function getProductionEntryAppRoot(importMetaUrl: string) {
-  return Bun.fileURLToPath(new URL("../", importMetaUrl));
+  return fileURLToPath(new URL("../", importMetaUrl));
 }
 
 /** Monorepo root - only for server/config code, not browser bundles. */

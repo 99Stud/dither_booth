@@ -1,3 +1,4 @@
+import { sleep } from "@dither-booth/shared/async";
 import { Accordion } from "@dither-booth/ui/components/ui/accordion";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
@@ -7,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
-import { sleep } from "@dither-booth/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { RefreshCcw } from "lucide-react";
@@ -22,7 +22,7 @@ import type {
 import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
 import { StatusDot } from "#components/Misc/StatusDot/index";
 import { reportKioskError } from "#lib/logging/logging.utils";
-import { useTRPC } from "#lib/trpc/trpc.utils";
+import { useTRPC } from "#lib/trpc/trpc.client";
 
 import type { HealthzResponse } from "./internal/HealthCard.types";
 

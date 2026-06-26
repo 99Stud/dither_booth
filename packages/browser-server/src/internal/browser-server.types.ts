@@ -1,3 +1,5 @@
+import type { HealthzMode, HealthzPayload } from "@dither-booth/shared/healthz";
+
 export type RouteHandler = (
   req: Request,
   server?: Bun.Server<BrowserServerWebSocketData>,
@@ -30,7 +32,7 @@ export type WebSocketRouteHandler = {
   ) => void | Promise<void>;
 };
 
-export type BrowserServerMode = "development" | "production";
+export type BrowserServerMode = HealthzMode;
 
 export type StaticAssetCachePolicy = "immutable" | "public";
 
@@ -38,12 +40,7 @@ export type BrowserServerHealthzConfig = {
   service: string;
 };
 
-export type BrowserServerHealthzPayload = {
-  ok: true;
-  service: string;
-  mode: BrowserServerMode;
-  timestamp: string;
-};
+export type BrowserServerHealthzPayload = HealthzPayload<string>;
 
 export type BrowserServerLifecycle = {
   close: () => Promise<void>;

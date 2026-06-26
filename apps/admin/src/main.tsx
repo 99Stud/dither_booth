@@ -10,10 +10,9 @@ import { createRoot } from "react-dom/client";
 
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
 import { router } from "#lib/router/index";
-import { queryClient, trpcClient } from "#lib/trpc/trpc.client";
+import { TRPCProvider, queryClient, trpcClient } from "#lib/trpc/trpc.client";
 
 import "./styles/globals.css";
-import { TRPCProvider } from "#lib/trpc/trpc.utils";
 
 const isDevelopment =
   typeof process !== "undefined" && process.env.NODE_ENV === "development";

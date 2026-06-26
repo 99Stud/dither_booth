@@ -8,30 +8,20 @@ import {
   getWebTlsCertPath,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
+import { WEB_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
+import {
+  TRPC_PROXY_PATH,
+  getTrpcProxyUpstreamPath,
+} from "@dither-booth/shared/trpc";
 
 import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
-import {
-  WEB_APP_ROOT,
-  WEB_REPO_ROOT,
-  WEB_SERVER_HEALTHZ_SERVICE,
-} from "#lib/server-constants";
-import { getTrpcProxyUpstreamPath } from "#lib/trpc/trpc-proxy.utils";
-import { TRPC_PROXY_PATH } from "#lib/trpc/trpc.constants";
-
+import { WEB_APP_ROOT, WEB_REPO_ROOT } from "#lib/server-constants";
 const apiOrigin = getApiInternalOrigin();
 
 export async function runWebServer(options: {
   mode: "development" | "production";
   indexHtml: Bun.HTMLBundle;
 }) {
-  const isProduction = options.mode === "production";
-
-  if (!isProduction && Bun.env.NODE_ENV === "production") {
-    throw new Error(
-      "runWebServer: development mode must not run with NODE_ENV=production",
-    );
-  }
-
   const tlsCertPath = getWebTlsCertPath({ repoRoot: WEB_REPO_ROOT });
   const tlsKeyPath = getWebTlsKeyPath({ repoRoot: WEB_REPO_ROOT });
   const webOrigin = await getWebOrigin({ repoRoot: WEB_REPO_ROOT });
@@ -42,7 +32,7 @@ export async function runWebServer(options: {
     bindHost: WEB_BIND_HOST,
     getTrpcProxyUpstreamPath,
     healthz: {
-      service: WEB_SERVER_HEALTHZ_SERVICE,
+      service: WEB_HEALTHZ_SERVICE,
     },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {

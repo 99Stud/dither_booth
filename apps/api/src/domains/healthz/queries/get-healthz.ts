@@ -1,44 +1,38 @@
 import { getWebOrigin, getWebTlsCaPath } from "@dither-booth/ports";
+import {
+  API_HEALTHZ_SERVICE,
+  apiHealthzPayloadSchema,
+  createHealthzPayload,
+} from "@dither-booth/shared/healthz";
 import { TRPCError } from "@trpc/server";
 
 import type {
   ApiHealthzPayload,
-  PrinterDependencyHealthz,
+  PrinterHealthz,
+  WebHealthz,
 } from "#domains/healthz/internal/healthz.types";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 
-import {
-  API_HEALTHZ_SERVICE,
-  WEB_HEALTHZ_TIMEOUT_MS,
-  apiHealthzPayloadSchema,
-  webHealthzPayloadSchema,
-} from "#domains/healthz/internal/healthz.constants";
-import { checkPrinterDependency } from "#domains/healthz/internal/healthz.printer";
+import { WEB_HEALTHZ_TIMEOUT_MS } from "#domains/healthz/internal/healthz.constants";
+import { checkPrinterHealthz } from "#domains/healthz/internal/healthz.printer";
 import {
   checkPuppeteerDependency,
   type PuppeteerHealthz,
 } from "#domains/healthz/internal/healthz.puppeteer";
-import {
-  createHealthzPayload,
-  fetchRemoteHealthzPayload,
-} from "#domains/healthz/internal/healthz.utils";
+import { fetchWebHealthz } from "#domains/healthz/internal/healthz.utils";
 import { publicProcedure } from "#internal/trpc";
 import { API_REPO_ROOT } from "#lib/constants";
 
 type GetHealthzResponse = {
   web: {
-    healthz: Awaited<
-      ReturnType<
-        typeof fetchRemoteHealthzPayload<typeof webHealthzPayloadSchema>
-      >
-    >;
+    healthz: WebHealthz;
   };
   api: {
     healthz: ApiHealthzPayload;
   };
   puppeteer: PuppeteerHealthz;
   printer: {
-    healthz: PrinterDependencyHealthz;
+    healthz: PrinterHealthz;
   };
   runtime: {
     processManager: RuntimeProcessManager;
@@ -61,9 +55,7 @@ export const getHealthz = publicProcedure.query(async ({ ctx }) => {
 
   const webHealthzUrl = new URL("/healthz", webOrigin);
   const [webHealthz, apiHealthz, puppeteer, printer] = await Promise.all([
-    fetchRemoteHealthzPayload({
-      schema: webHealthzPayloadSchema,
-      serviceName: "Web",
+    fetchWebHealthz({
       timeoutMs: WEB_HEALTHZ_TIMEOUT_MS,
       tlsCaFile: ca,
       url: webHealthzUrl,
@@ -80,7 +72,7 @@ export const getHealthz = publicProcedure.query(async ({ ctx }) => {
       page: ctx.page,
       state: ctx.puppeteerState,
     }),
-    Promise.resolve().then(() => checkPrinterDependency(ctx.printerUSBAdapter)),
+    Promise.resolve().then(() => checkPrinterHealthz(ctx.printerUSBAdapter)),
   ]);
 
   const payload = {

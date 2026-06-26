@@ -1,8 +1,7 @@
 import type USB from "@node-escpos/usb-adapter";
 
+import { withTimeout } from "@dither-booth/shared/async";
 import { Printer } from "@node-escpos/core";
-
-import { withTimeout } from "#lib/misc/misc.utils";
 
 import type {
   CloseablePrinter,

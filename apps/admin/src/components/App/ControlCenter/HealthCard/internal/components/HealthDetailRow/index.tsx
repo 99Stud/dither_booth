@@ -1,6 +1,6 @@
 import type { FC, PropsWithChildren } from "react";
 
-import { cn } from "@dither-booth/ui/lib/utils";
+import { cn } from "@dither-booth/shared/styles";
 import clsx from "clsx";
 
 interface HealthDetailRowProps extends PropsWithChildren {

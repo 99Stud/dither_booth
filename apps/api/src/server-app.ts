@@ -1,5 +1,10 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { getAdminOrigin, getPort } from "@dither-booth/ports";
+import {
+  API_HEALTHZ_SERVICE,
+  createHealthzPayload,
+} from "@dither-booth/shared/healthz";
+import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/runtime";
 import USB from "@node-escpos/usb-adapter";
 import {
   createHTTPHandler,
@@ -9,8 +14,6 @@ import http from "node:http";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import { API_HEALTHZ_SERVICE } from "#domains/healthz/internal/healthz.constants";
-import { createHealthzPayload } from "#domains/healthz/internal/healthz.utils";
 import { apiRouter } from "#internal/router";
 import { API_REPO_ROOT } from "#lib/constants";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
@@ -64,11 +67,10 @@ async function closePrinterUSBAdapter(printerUSBAdapter: USB | undefined) {
 export async function runApiServer(options: {
   mode: "development" | "production";
 }): Promise<ApiServerLifecycle> {
-  if (options.mode === "development" && Bun.env.NODE_ENV === "production") {
-    throw new Error(
-      "runApiServer: development mode must not run with NODE_ENV=production",
-    );
-  }
+  assertNonProductionNodeEnvForDevelopmentMode({
+    mode: options.mode,
+    serverName: "runApiServer",
+  });
 
   let printerUSBAdapter: USB | undefined;
   try {

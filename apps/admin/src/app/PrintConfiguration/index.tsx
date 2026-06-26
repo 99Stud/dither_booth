@@ -1,3 +1,4 @@
+import { base64ToBlob, downloadBlob } from "@dither-booth/shared/browser/blob";
 import {
   Webcam,
   type WebcamHandle,
@@ -8,11 +9,7 @@ import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { SliderField } from "@dither-booth/ui/fields/SliderField";
 import { SwitchField } from "@dither-booth/ui/fields/SwitchField";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
-import {
-  base64ToBlob,
-  downloadBlob,
-  takeSquarePhotoAndFlipHorizontally,
-} from "@dither-booth/ui/lib/image-manipulation";
+import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
@@ -23,7 +20,7 @@ import { useCallback, useMemo, useRef, useState, type FC } from "react";
 import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { reportKioskError } from "#lib/logging/logging.utils";
-import { useTRPC } from "#lib/trpc/trpc.utils";
+import { useTRPC } from "#lib/trpc/trpc.client";
 
 import type { PrintConfigurationFormValues } from "./internal/PrintConfiguration.types";
 

@@ -1,9 +1,10 @@
 import type { Page } from "puppeteer";
 
-import type { PuppeteerStartupState } from "#lib/puppeteer/puppeteer.types";
+import { withTimeout } from "@dither-booth/shared/async";
+import { getErrorMessage } from "@dither-booth/shared/errors";
+import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
 
-import { RECEIPT_VIEWER_PATH } from "#lib/browser/browser.constants";
-import { getErrorMessage, withTimeout } from "#lib/misc/misc.utils";
+import type { PuppeteerStartupState } from "#lib/puppeteer/puppeteer.types";
 
 import type {
   PuppeteerRuntimeCheckHealthz,

@@ -1,12 +1,10 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { getWebOrigin } from "@dither-booth/ports";
+import { getErrorMessage } from "@dither-booth/shared/errors";
+import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
 import puppeteer from "puppeteer";
 
-import {
-  API_BROWSER_LOG_SOURCE,
-  RECEIPT_VIEWER_PATH,
-} from "#lib/browser/browser.constants";
-import { getErrorMessage } from "#lib/misc/misc.utils";
+import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
 
 import type {
   PuppeteerReceiptViewerNavigationDetails,

@@ -12,7 +12,6 @@ import {
   DEFAULT_WEB_PORT,
   DEFAULT_WEB_TLS_MANIFEST_FILE_NAME,
   PORT_SCHEMA,
-  RECEIPT_VIEWER_PATH,
   WEB_BIND_HOST,
   WEB_TLS_CERT_PATH,
   WEB_TLS_KEY_PATH,
@@ -20,7 +19,6 @@ import {
 } from "./internal/ports.constants";
 
 export { ADMIN_BIND_HOST, API_BIND_HOST, WEB_BIND_HOST };
-export { RECEIPT_VIEWER_PATH };
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
   return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);

@@ -1,4 +1,7 @@
-import { RECEIPT_VIEWER_PATH } from "@dither-booth/ports/browser";
+import {
+  RECEIPT_VIEWER_PATH,
+  RECEIPT_VIEWER_SEARCH_SCHEMA,
+} from "@dither-booth/shared/routes";
 import {
   createRootRoute,
   createRoute,
@@ -12,8 +15,6 @@ import {
   RootErrorScreen,
   RootNotFoundScreen,
 } from "#app/Root/internal/components/RootErrorBoundary/index";
-
-import { RECEIPT_VIEWER_SEARCH_SCHEMA } from "./internal/router.constants";
 
 const rootRoute = createRootRoute({
   component: Root,

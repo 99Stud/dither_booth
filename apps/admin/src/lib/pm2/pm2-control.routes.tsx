@@ -5,7 +5,7 @@ import type {
 } from "@dither-booth/browser-server/internal/browser-server.types";
 
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import { sleep } from "@dither-booth/ui/lib/utils";
+import { sleep } from "@dither-booth/shared/async";
 
 import { ADMIN_PM2_CONTROL_LOG_SOURCE } from "#lib/constants";
 

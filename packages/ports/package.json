@@ -3,8 +3,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./browser": "./src/browser.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "update": "bun update -i",

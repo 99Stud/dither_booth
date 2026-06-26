@@ -1,13 +1,12 @@
+import { getErrorMessage } from "@dither-booth/shared/errors";
 import USB, { type TDevice } from "@node-escpos/usb-adapter";
-
-import { getErrorMessage } from "#lib/misc/misc.utils";
 
 import {
   createHealthyDependencyHealthz,
   createUnhealthyDependencyHealthz,
 } from "./healthz.utils";
 
-export function checkPrinterDependency(printerUSBAdapter: USB | undefined) {
+export function checkPrinterHealthz(printerUSBAdapter: USB | undefined) {
   let detectedPrinters: TDevice[];
 
   try {

@@ -1,3 +1,4 @@
+import { createHealthzPayload } from "@dither-booth/shared/healthz";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import type {
@@ -48,12 +49,10 @@ export function createHealthzRoute({
       });
     }
 
-    const payload: BrowserServerHealthzPayload = {
-      ok: true,
-      service,
+    const payload = createHealthzPayload({
       mode,
-      timestamp: new Date().toISOString(),
-    };
+      service,
+    }) satisfies BrowserServerHealthzPayload;
 
     return Response.json(payload);
   };

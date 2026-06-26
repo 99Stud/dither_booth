@@ -1,6 +1,6 @@
 import type { FC } from "react";
 
-import { cn } from "#lib/utils";
+import { cn } from "@dither-booth/shared/styles";
 
 interface ElectroniqueLogoProps {
   className?: string;

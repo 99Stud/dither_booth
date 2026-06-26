@@ -1,3 +1,10 @@
+import {
+  getStoredValue,
+  setStoredValue,
+} from "@dither-booth/shared/browser/storage";
+import { createDeviceId } from "@dither-booth/shared/id";
+import { getValueType } from "@dither-booth/shared/runtime";
+
 import type { KioskLogDetails } from "#internal/logging.types";
 
 import { getKioskErrorDiagnostics, logKioskEvent } from "#index";
@@ -21,41 +28,6 @@ export const getBrowserLoggingState = () => {
   return window.__ditherBoothKioskLoggingState;
 };
 
-export const getStoredValue = (key: string) => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
-
-export const setStoredValue = (key: string, value: string) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // Ignore storage write failures and fall back to in-memory context.
-  }
-};
-
-export const createDeviceId = () => {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-
-  return `device-${Math.random().toString(36).slice(2, 10)}`;
-};
-
 export const getOrCreateDeviceId = () => {
   const storedDeviceId = getStoredValue(DEVICE_ID_STORAGE_KEY);
   if (storedDeviceId) {
@@ -77,22 +49,6 @@ export const getNextRunId = () => {
 
   setStoredValue(RUN_ID_STORAGE_KEY, String(runId));
   return runId;
-};
-
-export const getValueType = (value: unknown) => {
-  if (value === null) {
-    return "null";
-  }
-
-  if (Array.isArray(value)) {
-    return "array";
-  }
-
-  if (value instanceof Error) {
-    return "error";
-  }
-
-  return typeof value;
 };
 
 export const getWindowErrorDetails = (

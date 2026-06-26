@@ -1,5 +1,6 @@
 import type { ElementHandle, Page } from "puppeteer";
 
+import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { TRPCError } from "@trpc/server";
 
 import type { PrintConfigRow } from "#domains/image-manipulation/internal/image-manipulation.types";
@@ -8,8 +9,6 @@ import {
   ditherImage,
   screenshotToGsV0RasterCommand,
 } from "#domains/image-manipulation/internal/image-manipulation.utils";
-
-import { PRINT_WIDTH_PX } from "./printer.constants";
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 

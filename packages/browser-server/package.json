@@ -21,6 +21,7 @@
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@dither-booth/shared": "workspace:*",
     "bun-plugin-tailwind": "0.1.2"
   },
   "devDependencies": {

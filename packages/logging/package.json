@@ -17,6 +17,9 @@
     "format:fix": "oxfmt",
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
+  "dependencies": {
+    "@dither-booth/shared": "workspace:*"
+  },
   "devDependencies": {
     "@dither-booth/typescript-config": "workspace:*"
   }

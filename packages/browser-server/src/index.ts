@@ -1,3 +1,4 @@
+import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/runtime";
 import { serve } from "bun";
 import { resolve } from "node:path";
 
@@ -23,11 +24,10 @@ import {
 export async function runBrowserServer(options: RunBrowserServerOptions) {
   const isProduction = options.mode === "production";
 
-  if (!isProduction && Bun.env.NODE_ENV === "production") {
-    throw new Error(
-      `${options.serverName}: development mode must not run with NODE_ENV=production`,
-    );
-  }
+  assertNonProductionNodeEnvForDevelopmentMode({
+    mode: options.mode,
+    serverName: options.serverName,
+  });
 
   const reservedRoutePaths = new Set([
     options.trpcProxyPath,
