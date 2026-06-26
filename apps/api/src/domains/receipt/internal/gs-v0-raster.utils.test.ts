@@ -4,7 +4,7 @@ import sharp from "sharp";
 import {
   gsV0RasterCommandToPngBuffer,
   screenshotToGsV0RasterCommand,
-} from "./image-manipulation.utils";
+} from "./gs-v0-raster.utils";
 
 async function createPngFromMonoPixels({
   height,

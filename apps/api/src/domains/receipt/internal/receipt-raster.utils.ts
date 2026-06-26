@@ -3,14 +3,57 @@ import type { ElementHandle, Page } from "puppeteer";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { TRPCError } from "@trpc/server";
 
-import type { PrintConfigRow } from "#domains/image-manipulation/internal/image-manipulation.types";
+import type { PrintConfigRow } from "#domains/image-manipulation/image-manipulation.service";
+import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import {
-  ditherImage,
-  screenshotToGsV0RasterCommand,
-} from "#domains/image-manipulation/internal/image-manipulation.utils";
+import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
+
+import { screenshotToGsV0RasterCommand } from "./gs-v0-raster.utils";
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
+
+const RECEIPT_PHOTO_ELEMENT_TIMEOUT_MS = 3_000;
+
+export async function prepareReceiptRasterCommand({
+  ctx,
+  input,
+}: {
+  ctx: Pick<TRPCContext, "db" | "page">;
+  input: ConstructorParameters<typeof Response>[0];
+}): Promise<Buffer> {
+  const page = ctx.page;
+
+  if (!page) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Puppeteer page is not initialized.",
+    });
+  }
+
+  const inputBuffer = Buffer.from(await new Response(input).arrayBuffer());
+
+  if (inputBuffer.byteLength === 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Photo input was empty.",
+    });
+  }
+
+  const ditherConfiguration = await ctx.db.query.printConfigTable.findFirst();
+
+  if (!ditherConfiguration) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Dither configuration not found.",
+    });
+  }
+
+  return await buildReceiptRasterCommand({
+    page,
+    photoBuffer: inputBuffer,
+    ditherConfiguration,
+  });
+}
 
 export async function buildReceiptRasterCommand({
   page,
@@ -50,6 +93,7 @@ export async function buildReceiptRasterCommand({
 
     const imageHandle: ElementHandle = await page
       .locator("img#booth-photo")
+      .setTimeout(RECEIPT_PHOTO_ELEMENT_TIMEOUT_MS)
       .waitHandle()
       .catch((error) => {
         throw new TRPCError({
