@@ -2,9 +2,9 @@ import type USB from "@node-escpos/usb-adapter";
 
 import { describe, expect, test } from "bun:test";
 
-import { printRasterReceipt } from "../printer.service";
 import type { ReceiptPrinter } from "./printer.types";
 
+import { printRasterReceipt } from "../printer.service";
 import { PRINTER_INITIALIZE_COMMAND } from "./printer.constants";
 
 type OpenCallback = (error?: Error | null) => void;

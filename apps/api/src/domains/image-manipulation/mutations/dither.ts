@@ -22,7 +22,7 @@ export const dither = publicProcedure
     if (!ditherConfiguration) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Dither configuration not found.",
+        message: "Print configuration not found.",
       });
     }
 

@@ -1,0 +1,22 @@
+CREATE TABLE `print_config` (
+	`id` integer PRIMARY KEY DEFAULT 1 NOT NULL,
+	`dither_mode_code` integer DEFAULT 1 NOT NULL,
+	`color_scheme_code` integer DEFAULT 0 NOT NULL,
+	`serpentine` integer DEFAULT true NOT NULL,
+	`exposure` real DEFAULT 1 NOT NULL,
+	`saturation` real DEFAULT 1 NOT NULL,
+	`shadows` real DEFAULT 0 NOT NULL,
+	`highlights` real DEFAULT 0 NOT NULL,
+	`threshold` real DEFAULT 128 NOT NULL,
+	`template` text DEFAULT 'tartines' NOT NULL,
+	CONSTRAINT "print_config_singleton_check" CHECK("print_config"."id" = 1),
+	CONSTRAINT "print_config_dither_mode_code_check" CHECK("print_config"."dither_mode_code" between 0 and 8),
+	CONSTRAINT "print_config_color_scheme_code_check" CHECK("print_config"."color_scheme_code" in (0, 5, 6, 7)),
+	CONSTRAINT "print_config_serpentine_check" CHECK("print_config"."serpentine" in (0, 1)),
+	CONSTRAINT "print_config_exposure_check" CHECK("print_config"."exposure" > 0 and "print_config"."exposure" <= 4),
+	CONSTRAINT "print_config_saturation_check" CHECK("print_config"."saturation" between 0 and 4),
+	CONSTRAINT "print_config_shadows_check" CHECK("print_config"."shadows" between 0 and 1),
+	CONSTRAINT "print_config_highlights_check" CHECK("print_config"."highlights" between 0 and 1),
+	CONSTRAINT "print_config_threshold_check" CHECK("print_config"."threshold" between 0 and 255),
+	CONSTRAINT "print_config_template_check" CHECK("print_config"."template" in ('tartines', 'heirvey'))
+);

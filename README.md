@@ -57,6 +57,8 @@ bun run --filter @dither-booth/api db:migrate
 
 See the [API README](apps/api/README.md) for details about the database management.
 
+If `RECEIPT_TEMPLATES` changes in `packages/shared/src/routes/index.ts`, regenerate and apply the API DB migration so the `print_config.template` check constraint stays in sync. See the [API README](apps/api/README.md#receipt-template-migrations) for the exact workflow.
+
 ### 3. Install mkcert
 
 Follow the [`mkcert` install instructions](https://github.com/FiloSottile/mkcert), then make sure `mkcert` is available in your shell.

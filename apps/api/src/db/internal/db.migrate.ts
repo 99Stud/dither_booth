@@ -5,11 +5,13 @@ import { resolve } from "node:path";
 import { db, sqlite } from "#db/index";
 
 import { API_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
+import { ensureDefaultPrintConfiguration } from "./db.seed";
 
 const migrationsFolder = resolve(process.cwd(), "drizzle");
 
 try {
   migrate(db, { migrationsFolder });
+  await ensureDefaultPrintConfiguration();
   logKioskEvent(
     "info",
     API_DB_MIGRATE_LOG_SOURCE,

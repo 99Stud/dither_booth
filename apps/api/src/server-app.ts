@@ -26,6 +26,7 @@ import {
 } from "#lib/server/server.constants";
 
 import { db } from "./db";
+import { ensureDefaultPrintConfiguration } from "./db/internal/db.seed";
 
 type ApiServerLifecycle = {
   close: () => Promise<void>;
@@ -71,6 +72,8 @@ export async function runApiServer(options: {
     mode: options.mode,
     serverName: "runApiServer",
   });
+
+  await ensureDefaultPrintConfiguration();
 
   let printerUSBAdapter: USB | undefined;
   try {

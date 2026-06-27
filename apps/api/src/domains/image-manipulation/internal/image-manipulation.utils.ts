@@ -5,7 +5,7 @@ import {
 } from "@opendisplay/epaper-dithering";
 import sharp from "sharp";
 
-import type { PrintConfigRow } from "./image-manipulation.types";
+import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
 
 interface DitherImageOptions {
   width?: number;

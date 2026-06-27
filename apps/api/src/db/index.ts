@@ -11,4 +11,7 @@ const dbParentDir = Bun.fileURLToPath(
 mkdirSync(dbParentDir, { recursive: true });
 
 export const sqlite = new Database(API_DB_FILE_PATH);
-export const db = drizzle({ client: sqlite, schema: { printConfigTable } });
+export const db = drizzle({
+  client: sqlite,
+  schema: { printConfigTable },
+});

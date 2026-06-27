@@ -3,6 +3,11 @@ import type {
   SelectFieldValue,
 } from "@dither-booth/ui/fields/SelectField";
 
+import { capitalize } from "@dither-booth/shared/formatting";
+import {
+  RECEIPT_TEMPLATES,
+  receiptTemplateSchema,
+} from "@dither-booth/shared/routes";
 import z from "zod";
 
 import type {
@@ -43,6 +48,13 @@ export const COLOR_SCHEME_CODE_FIELD_OPTIONS: Array<
   { label: "Grayscale 16", value: 7 },
 ];
 
+export const RECEIPT_TEMPLATE_FIELD_OPTIONS: Array<
+  SelectFieldOption<SelectFieldValue<PrintConfigurationFormValues, "template">>
+> = RECEIPT_TEMPLATES.map((template) => ({
+  label: capitalize(template),
+  value: template,
+}));
+
 export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   ditherModeCode: DITHER_MODE_CODE_SCHEMA,
   colorSchemeCode: COLOR_SCHEME_CODE_SCHEMA,
@@ -52,6 +64,7 @@ export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
   threshold: z.number().int().min(0).max(255),
+  template: receiptTemplateSchema,
 });
 
 export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValues =
@@ -64,6 +77,7 @@ export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValu
     shadows: 0,
     highlights: 0,
     threshold: 128,
+    template: "tartines",
   };
 
 export const PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS = 500;
@@ -78,23 +92,24 @@ type PersistedPrintConfiguration = Omit<
 };
 
 export const getPrintConfigurationFormValues = (
-  ditherConfiguration?: PersistedPrintConfiguration | null,
+  printConfiguration?: PersistedPrintConfiguration | null,
 ): PrintConfigurationFormValues => {
-  if (!ditherConfiguration) {
+  if (!printConfiguration) {
     return DEFAULT_PRINT_CONFIGURATION_FORM_VALUES;
   }
 
   return {
     ditherModeCode:
-      ditherConfiguration.ditherModeCode as PrintConfigurationFormValues["ditherModeCode"],
+      printConfiguration.ditherModeCode as PrintConfigurationFormValues["ditherModeCode"],
     colorSchemeCode:
-      ditherConfiguration.colorSchemeCode as PrintConfigurationFormValues["colorSchemeCode"],
-    serpentine: ditherConfiguration.serpentine,
-    exposure: ditherConfiguration.exposure,
-    saturation: ditherConfiguration.saturation,
-    shadows: ditherConfiguration.shadows,
-    highlights: ditherConfiguration.highlights,
-    threshold: ditherConfiguration.threshold,
+      printConfiguration.colorSchemeCode as PrintConfigurationFormValues["colorSchemeCode"],
+    serpentine: printConfiguration.serpentine,
+    exposure: printConfiguration.exposure,
+    saturation: printConfiguration.saturation,
+    shadows: printConfiguration.shadows,
+    highlights: printConfiguration.highlights,
+    threshold: printConfiguration.threshold,
+    template: printConfiguration.template,
   };
 };
 

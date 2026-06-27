@@ -11,7 +11,7 @@ import { SwitchField } from "@dither-booth/ui/fields/SwitchField";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
 import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { CameraIcon } from "lucide-react";
@@ -31,6 +31,7 @@ import {
   PRINT_CONFIGURATION_LOG_SOURCE,
   DITHER_MODE_CODE_FIELD_OPTIONS,
   COLOR_SCHEME_CODE_FIELD_OPTIONS,
+  RECEIPT_TEMPLATE_FIELD_OPTIONS,
   SLIDER_FIELD_CONFIGS,
   DEFAULT_PRINT_CONFIGURATION_FORM_VALUES,
 } from "./internal/PrintConfiguration.constants";
@@ -50,30 +51,16 @@ export const PrintConfiguration = () => {
     useState(false);
 
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
 
-  const ditherConfigurationQueryOptions =
-    trpc.getDitherConfiguration.queryOptions();
-  const { data: ditherConfiguration, isLoading: isLoadingDitherConfiguration } =
-    useQuery(ditherConfigurationQueryOptions);
+  const printConfigurationQueryOptions =
+    trpc.getPrintConfiguration.queryOptions();
+  const { data: printConfiguration, isLoading: isLoadingPrintConfiguration } =
+    useQuery(printConfigurationQueryOptions);
 
-  const ditherConfigurationUpdater = useMutation(
-    trpc.updateDitherConfiguration.mutationOptions(),
+  const printConfigurationUpdater = useMutation(
+    trpc.updatePrintConfiguration.mutationOptions(),
   );
-  const { isPending: isUpdatingDitherConfiguration } =
-    ditherConfigurationUpdater;
-
-  const ditherConfigurationCreator = useMutation(
-    trpc.createDitherConfiguration.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: ditherConfigurationQueryOptions.queryKey,
-        });
-      },
-    }),
-  );
-  const { isPending: isCreatingDitherConfiguration } =
-    ditherConfigurationCreator;
+  const { isPending: isUpdatingPrintConfiguration } = printConfigurationUpdater;
 
   const ditherer = useMutation(trpc.dither.mutationOptions());
   const { isPending: isDithering } = ditherer;
@@ -178,30 +165,23 @@ export const PrintConfiguration = () => {
       options?: { skipPersist?: boolean },
     ) => {
       if (!options?.skipPersist) {
-        const persistDitherConfiguration = async (
+        const persistPrintConfiguration = async (
           submittedValues: PrintConfigurationFormValues,
         ) => {
-          const ditherConfigurationPersistence = ditherConfiguration
-            ? ditherConfigurationUpdater.mutateAsync(submittedValues)
-            : ditherConfigurationCreator.mutateAsync(submittedValues);
-
-          return await ditherConfigurationPersistence
+          return await printConfigurationUpdater
+            .mutateAsync(submittedValues)
             .then(() => true)
             .catch((e) => {
               reportPrintConfigurationError(
                 e,
-                ditherConfiguration
-                  ? "update-dither-configuration-failed"
-                  : "create-dither-configuration-failed",
-                ditherConfiguration
-                  ? "Update dither configuration failed."
-                  : "Create dither configuration failed.",
+                "update-print-configuration-failed",
+                "Update print configuration failed.",
               );
               return false;
             });
         };
 
-        const wasPersisted = await persistDitherConfiguration(submittedValues);
+        const wasPersisted = await persistPrintConfiguration(submittedValues);
 
         if (!wasPersisted) {
           return;
@@ -210,25 +190,18 @@ export const PrintConfiguration = () => {
 
       await refreshPreview();
     },
-    [
-      refreshPreview,
-      ditherConfiguration,
-      ditherConfigurationCreator,
-      ditherConfigurationUpdater,
-    ],
+    [refreshPreview, printConfigurationUpdater],
   );
 
   const defaultValues = useMemo<PrintConfigurationFormValues>(
-    () => getPrintConfigurationFormValues(ditherConfiguration),
-    [ditherConfiguration],
+    () => getPrintConfigurationFormValues(printConfiguration),
+    [printConfiguration],
   );
-  const isPersistingDitherConfiguration =
-    isLoadingDitherConfiguration ||
-    isUpdatingDitherConfiguration ||
-    isCreatingDitherConfiguration;
-  const isSelectFieldDisabled = isPersistingDitherConfiguration || isDithering;
-  const isSwitchFieldDisabled = isPersistingDitherConfiguration;
-  const isSliderFieldDisabled = isPersistingDitherConfiguration;
+  const isPersistingPrintConfiguration =
+    isLoadingPrintConfiguration || isUpdatingPrintConfiguration;
+  const isSelectFieldDisabled = isPersistingPrintConfiguration || isDithering;
+  const isSwitchFieldDisabled = isPersistingPrintConfiguration;
+  const isSliderFieldDisabled = isPersistingPrintConfiguration;
 
   const form = useForm({
     defaultValues,
@@ -363,6 +336,14 @@ export const PrintConfiguration = () => {
               label="Color Scheme"
               placeholder="Select a color scheme"
               options={COLOR_SCHEME_CODE_FIELD_OPTIONS}
+              disabled={isSelectFieldDisabled}
+            />
+            <SelectField
+              form={form}
+              name="template"
+              label="Receipt Template"
+              placeholder="Select a receipt template"
+              options={RECEIPT_TEMPLATE_FIELD_OPTIONS}
               disabled={isSelectFieldDisabled}
             />
             <SwitchField

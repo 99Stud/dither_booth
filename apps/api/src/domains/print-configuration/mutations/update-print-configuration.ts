@@ -3,11 +3,11 @@ import { eq } from "drizzle-orm";
 
 import { PRINT_CONFIG_SINGLETON_ID } from "#db/internal/db.constants";
 import { printConfigTable } from "#db/internal/db.schema";
-import { UPDATE_DITHER_CONFIGURATION_SCHEMA } from "#domains/image-manipulation/internal/image-manipulation.constants";
+import { UPDATE_PRINT_CONFIGURATION_SCHEMA } from "#domains/print-configuration/internal/print-configuration.constants";
 import { publicProcedure } from "#internal/trpc";
 
-export const updateDitherConfiguration = publicProcedure
-  .input(UPDATE_DITHER_CONFIGURATION_SCHEMA)
+export const updatePrintConfiguration = publicProcedure
+  .input(UPDATE_PRINT_CONFIGURATION_SCHEMA)
   .mutation(async ({ input, ctx }) => {
     return await ctx.db
       .update(printConfigTable)
@@ -16,7 +16,7 @@ export const updateDitherConfiguration = publicProcedure
       .catch((error) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to save dither configuration.",
+          message: "Failed to save print configuration.",
           cause: error,
         });
       });

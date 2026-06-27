@@ -1,3 +1,5 @@
+import type { ReceiptTemplate } from "@dither-booth/shared/routes";
+
 import { resolve } from "node:path";
 
 import { API_APP_ROOT } from "#lib/constants";
@@ -9,3 +11,4 @@ export const API_DB_FILE_PATH = resolve(
 );
 
 export const PRINT_CONFIG_SINGLETON_ID = 1;
+export const DEFAULT_RECEIPT_TEMPLATE = "tartines" satisfies ReceiptTemplate;

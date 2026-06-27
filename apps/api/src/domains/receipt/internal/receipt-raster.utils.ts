@@ -3,7 +3,7 @@ import type { ElementHandle, Page } from "puppeteer";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { TRPCError } from "@trpc/server";
 
-import type { PrintConfigRow } from "#domains/image-manipulation/image-manipulation.service";
+import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
@@ -39,34 +39,34 @@ export async function prepareReceiptRasterCommand({
     });
   }
 
-  const ditherConfiguration = await ctx.db.query.printConfigTable.findFirst();
+  const printConfiguration = await ctx.db.query.printConfigTable.findFirst();
 
-  if (!ditherConfiguration) {
+  if (!printConfiguration) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Dither configuration not found.",
+      message: "Print configuration not found.",
     });
   }
 
   return await buildReceiptRasterCommand({
     page,
     photoBuffer: inputBuffer,
-    ditherConfiguration,
+    printConfiguration,
   });
 }
 
 export async function buildReceiptRasterCommand({
   page,
   photoBuffer,
-  ditherConfiguration,
+  printConfiguration,
 }: {
   page: Page;
   photoBuffer: Buffer<ArrayBuffer>;
-  ditherConfiguration: PrintConfigRow;
+  printConfiguration: PrintConfigRow;
 }): Promise<Buffer> {
   const deviceScaleFactor = page.viewport()?.deviceScaleFactor ?? 1;
 
-  const dithered = await ditherImage(photoBuffer, ditherConfiguration, {
+  const dithered = await ditherImage(photoBuffer, printConfiguration, {
     width: PRINT_WIDTH_PX * deviceScaleFactor,
   }).catch((error) => {
     throw new TRPCError({
@@ -165,7 +165,7 @@ export async function buildReceiptRasterCommand({
       });
 
     return await screenshotToGsV0RasterCommand(receiptScreenshot, {
-      threshold: ditherConfiguration.threshold,
+      threshold: printConfiguration.threshold,
       width: PRINT_WIDTH_PX,
     }).catch((error) => {
       throw new TRPCError({

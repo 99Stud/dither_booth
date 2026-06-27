@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7c6a23fd-1bbe-490c-9e45-9a9bca856c95",
+  "id": "41e4af8c-1f8a-46c1-bb52-3d46b1a9fb70",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "print_debug_config": {
-      "name": "print_debug_config",
+    "print_config": {
+      "name": "print_config",
       "columns": {
         "id": {
           "name": "id",
@@ -78,6 +78,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": 128
+        },
+        "template": {
+          "name": "template",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'tartines'"
         }
       },
       "indexes": {},
@@ -85,41 +93,45 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {
-        "print_debug_config_singleton_check": {
-          "name": "print_debug_config_singleton_check",
-          "value": "\"print_debug_config\".\"id\" = 1"
+        "print_config_singleton_check": {
+          "name": "print_config_singleton_check",
+          "value": "\"print_config\".\"id\" = 1"
         },
-        "print_debug_config_dither_mode_code_check": {
-          "name": "print_debug_config_dither_mode_code_check",
-          "value": "\"print_debug_config\".\"dither_mode_code\" between 0 and 8"
+        "print_config_dither_mode_code_check": {
+          "name": "print_config_dither_mode_code_check",
+          "value": "\"print_config\".\"dither_mode_code\" between 0 and 8"
         },
-        "print_debug_config_color_scheme_code_check": {
-          "name": "print_debug_config_color_scheme_code_check",
-          "value": "\"print_debug_config\".\"color_scheme_code\" in (0, 5, 6, 7)"
+        "print_config_color_scheme_code_check": {
+          "name": "print_config_color_scheme_code_check",
+          "value": "\"print_config\".\"color_scheme_code\" in (0, 5, 6, 7)"
         },
-        "print_debug_config_serpentine_check": {
-          "name": "print_debug_config_serpentine_check",
-          "value": "\"print_debug_config\".\"serpentine\" in (0, 1)"
+        "print_config_serpentine_check": {
+          "name": "print_config_serpentine_check",
+          "value": "\"print_config\".\"serpentine\" in (0, 1)"
         },
-        "print_debug_config_exposure_check": {
-          "name": "print_debug_config_exposure_check",
-          "value": "\"print_debug_config\".\"exposure\" > 0 and \"print_debug_config\".\"exposure\" <= 4"
+        "print_config_exposure_check": {
+          "name": "print_config_exposure_check",
+          "value": "\"print_config\".\"exposure\" > 0 and \"print_config\".\"exposure\" <= 4"
         },
-        "print_debug_config_saturation_check": {
-          "name": "print_debug_config_saturation_check",
-          "value": "\"print_debug_config\".\"saturation\" between 0 and 4"
+        "print_config_saturation_check": {
+          "name": "print_config_saturation_check",
+          "value": "\"print_config\".\"saturation\" between 0 and 4"
         },
-        "print_debug_config_shadows_check": {
-          "name": "print_debug_config_shadows_check",
-          "value": "\"print_debug_config\".\"shadows\" between 0 and 1"
+        "print_config_shadows_check": {
+          "name": "print_config_shadows_check",
+          "value": "\"print_config\".\"shadows\" between 0 and 1"
         },
-        "print_debug_config_highlights_check": {
-          "name": "print_debug_config_highlights_check",
-          "value": "\"print_debug_config\".\"highlights\" between 0 and 1"
+        "print_config_highlights_check": {
+          "name": "print_config_highlights_check",
+          "value": "\"print_config\".\"highlights\" between 0 and 1"
         },
-        "print_debug_config_threshold_check": {
-          "name": "print_debug_config_threshold_check",
-          "value": "\"print_debug_config\".\"threshold\" between 0 and 255"
+        "print_config_threshold_check": {
+          "name": "print_config_threshold_check",
+          "value": "\"print_config\".\"threshold\" between 0 and 255"
+        },
+        "print_config_template_check": {
+          "name": "print_config_template_check",
+          "value": "\"print_config\".\"template\" in ('tartines', 'heirvey')"
         }
       }
     }
