@@ -1,9 +1,8 @@
 import type { FC } from "react";
 
+import { RECEIPT_ELEMENT_ID } from "@dither-booth/shared/browser/receipt-viewer";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { cn } from "@dither-booth/shared/styles";
-
-import { RECEIPT_ID } from "#lib/receipt-templates/receipt-templates.constants";
 
 interface HeirveyReceiptTemplateProps {
   className?: string;
@@ -14,7 +13,7 @@ export const HeirveyReceiptTemplate: FC<HeirveyReceiptTemplateProps> = ({
 }) => {
   return (
     <div
-      id={RECEIPT_ID}
+      id={RECEIPT_ELEMENT_ID}
       className={cn("bg-background", "font-bit leading-none", className)}
       style={{ width: PRINT_WIDTH_PX }}
     >

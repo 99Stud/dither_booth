@@ -1,5 +1,6 @@
 import type { FC } from "react";
 
+import { RECEIPT_ELEMENT_ID } from "@dither-booth/shared/browser/receipt-viewer";
 import { formatPrice } from "@dither-booth/shared/formatting";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { cn } from "@dither-booth/shared/styles";
@@ -12,7 +13,6 @@ import { format } from "date-fns";
 
 import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index";
-import { RECEIPT_ID } from "#lib/receipt-templates/receipt-templates.constants";
 interface TartinesReceiptTemplateProps {
   className?: string;
 }
@@ -24,7 +24,7 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
 
   return (
     <div
-      id={RECEIPT_ID}
+      id={RECEIPT_ELEMENT_ID}
       className={cn(
         "pt-16",
         "bg-background",

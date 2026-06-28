@@ -6,6 +6,7 @@
     "./async": "./src/async/index.ts",
     "./browser/blob": "./src/browser/blob.ts",
     "./browser/image": "./src/browser/image.ts",
+    "./browser/receipt-viewer": "./src/browser/receipt-viewer.ts",
     "./browser/storage": "./src/browser/storage.ts",
     "./errors": "./src/errors/index.ts",
     "./formatting": "./src/formatting/index.ts",
@@ -28,7 +29,7 @@
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@tanstack/react-query": "5.101.1",
+    "@tanstack/react-query": "5.101.2",
     "@trpc/client": "11.18.0",
     "@trpc/server": "11.18.0",
     "@trpc/tanstack-react-query": "11.18.0",
