@@ -1,7 +1,7 @@
 import {
   getAppRootFromImportMetaUrl,
   getRepoRootFromAppRoot,
-} from "@dither-booth/shared/paths";
+} from "@dither-booth/shared/server/paths";
 
 /** App package root (`apps/api` - parent of `src` or `dist`). */
 export const API_APP_ROOT = getAppRootFromImportMetaUrl(import.meta.url);

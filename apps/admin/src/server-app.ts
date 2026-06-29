@@ -12,7 +12,7 @@ import { ADMIN_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
 import {
   TRPC_PROXY_PATH,
   getTrpcProxyUpstreamPath,
-} from "@dither-booth/shared/trpc";
+} from "@dither-booth/shared/trpc-proxy";
 
 import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
 import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";

@@ -14,7 +14,7 @@ import {
   createTRPCOptionsProxy,
 } from "@trpc/tanstack-react-query";
 
-import { TRPC_PROXY_PATH } from "./index";
+import { TRPC_PROXY_PATH } from "#isomorphic/trpc-proxy";
 
 type JsonTRPCRouter = AnyTRPCRouter & {
   _def: {

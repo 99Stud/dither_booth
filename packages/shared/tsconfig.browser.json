@@ -1,0 +1,9 @@
+{
+  "extends": "@dither-booth/typescript-config/base.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": ["react"]
+  },
+  "include": ["src/browser/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

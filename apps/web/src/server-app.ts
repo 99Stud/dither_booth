@@ -12,7 +12,7 @@ import { WEB_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
 import {
   TRPC_PROXY_PATH,
   getTrpcProxyUpstreamPath,
-} from "@dither-booth/shared/trpc";
+} from "@dither-booth/shared/trpc-proxy";
 
 import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
 import { WEB_APP_ROOT, WEB_REPO_ROOT } from "#lib/server-constants";

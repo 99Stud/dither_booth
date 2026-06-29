@@ -1,7 +1,7 @@
 import {
   getAppRootFromMain,
   getRepoRootFromAppRoot,
-} from "@dither-booth/shared/paths";
+} from "@dither-booth/shared/server/paths";
 
 /** App package root (`apps/web` - parent of `src` or `dist`). */
 export const WEB_APP_ROOT = getAppRootFromMain();

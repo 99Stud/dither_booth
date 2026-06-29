@@ -1,0 +1,4 @@
+{
+  "extends": "@dither-booth/typescript-config/bun-dom.json",
+  "include": ["src/**/*.test.ts"]
+}

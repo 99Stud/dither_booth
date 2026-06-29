@@ -1,4 +1,4 @@
-import type { ReceiptTemplate } from "../routes/index";
+import type { ReceiptTemplate } from "#isomorphic/routes";
 
 export const RECEIPT_ELEMENT_ID = "receipt";
 export const RECEIPT_ELEMENT_SELECTOR = `#${RECEIPT_ELEMENT_ID}`;

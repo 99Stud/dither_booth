@@ -4,7 +4,7 @@ import {
   API_HEALTHZ_SERVICE,
   createHealthzPayload,
 } from "@dither-booth/shared/healthz";
-import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/runtime";
+import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
 import USB from "@node-escpos/usb-adapter";
 import {
   createHTTPHandler,

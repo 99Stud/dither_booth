@@ -1,4 +1,4 @@
-import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/runtime";
+import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
 import { serve } from "bun";
 import { resolve } from "node:path";
 

@@ -1,4 +1,4 @@
-import { getProductionEntryAppRoot } from "@dither-booth/shared/paths";
+import { getProductionEntryAppRoot } from "@dither-booth/shared/server/paths";
 
 const appRoot = getProductionEntryAppRoot(import.meta.url);
 

@@ -2,23 +2,30 @@
   "name": "@dither-booth/shared",
   "private": true,
   "type": "module",
+  "imports": {
+    "#browser/*": "./src/browser/*.ts",
+    "#internal/*": "./src/internal/*.ts",
+    "#isomorphic/*": "./src/isomorphic/*.ts",
+    "#server/*": "./src/server/*.ts"
+  },
   "exports": {
-    "./async": "./src/async/index.ts",
+    "./async": "./src/isomorphic/async.ts",
     "./browser/blob": "./src/browser/blob.ts",
     "./browser/image": "./src/browser/image.ts",
     "./browser/receipt-viewer": "./src/browser/receipt-viewer.ts",
     "./browser/storage": "./src/browser/storage.ts",
-    "./errors": "./src/errors/index.ts",
-    "./formatting": "./src/formatting/index.ts",
-    "./healthz": "./src/healthz/index.ts",
-    "./id": "./src/id/index.ts",
-    "./paths": "./src/paths/index.ts",
-    "./printing": "./src/printing/index.ts",
-    "./routes": "./src/routes/index.ts",
-    "./runtime": "./src/runtime/index.ts",
-    "./styles": "./src/styles/index.ts",
-    "./trpc": "./src/trpc/index.ts",
-    "./trpc/client": "./src/trpc/client.ts"
+    "./browser/trpc-client": "./src/browser/trpc-client.ts",
+    "./errors": "./src/isomorphic/errors.ts",
+    "./formatting": "./src/isomorphic/formatting.ts",
+    "./healthz": "./src/isomorphic/healthz.ts",
+    "./id": "./src/isomorphic/id.ts",
+    "./printing": "./src/isomorphic/printing.ts",
+    "./routes": "./src/isomorphic/routes.ts",
+    "./runtime": "./src/isomorphic/runtime.ts",
+    "./server/paths": "./src/server/paths.ts",
+    "./server/runtime": "./src/server/runtime.ts",
+    "./styles": "./src/isomorphic/styles.ts",
+    "./trpc-proxy": "./src/isomorphic/trpc-proxy.ts"
   },
   "scripts": {
     "update": "bun update -i",
@@ -26,7 +33,7 @@
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
-    "check-types": "tsc --noEmit -p tsconfig.json"
+    "check-types": "tsc --noEmit -p tsconfig.isomorphic.json && tsc --noEmit -p tsconfig.browser.json && tsc --noEmit -p tsconfig.server.json && tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
     "@tanstack/react-query": "5.101.2",

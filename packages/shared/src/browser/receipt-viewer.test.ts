@@ -3,7 +3,8 @@ import { describe, expect, test } from "bun:test";
 import {
   RECEIPT_VIEWER_PATH,
   RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM,
-} from "../routes/index";
+} from "#isomorphic/routes";
+
 import {
   installReceiptViewerNavigationBridge,
   isReceiptViewerRouteStateCommittedInPage,
