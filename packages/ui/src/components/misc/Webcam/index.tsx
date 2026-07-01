@@ -11,7 +11,6 @@ interface WebcamProps {
   onConstraintFallbackError?: UseUserMediaParams["onConstraintFallbackError"];
   ref?: Ref<WebcamHandle>;
   showDebugInfo?: boolean;
-  showPreview?: boolean;
 }
 
 const formatDebugTime = (timestamp: number) =>
@@ -28,7 +27,6 @@ export const Webcam: FC<WebcamProps> = ({
   onConstraintFallbackError,
   ref,
   showDebugInfo = false,
-  showPreview = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -64,11 +62,7 @@ export const Webcam: FC<WebcamProps> = ({
       )}
       <video
         ref={videoRef}
-        className={cn(
-          className,
-          "origin-center -scale-x-100",
-          !showPreview && "hidden",
-        )}
+        className={cn(className, "origin-center -scale-x-100")}
         autoPlay
         playsInline
         muted

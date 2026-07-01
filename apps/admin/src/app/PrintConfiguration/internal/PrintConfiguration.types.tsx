@@ -1,3 +1,4 @@
+import type { ReactFormExtendedApi } from "@tanstack/react-form";
 import type z from "zod";
 
 import type {
@@ -18,6 +19,48 @@ export type PrintConfigurationFormDitherModeCode =
   (typeof DITHER_MODE_CODE_OPTIONS)[number];
 export type PrintConfigurationFormColorSchemeCode =
   (typeof COLOR_SCHEME_CODE_OPTIONS)[number];
+export type PrintConfigurationTab = "dithering" | "receipt";
+export type PrintConfigurationField = keyof PrintConfigurationFormValues;
+export type PrintConfigurationPreviewSrcByTab = Partial<
+  Record<PrintConfigurationTab, string>
+>;
+export type PrintConfigurationInitialPreviewByTab = Record<
+  PrintConfigurationTab,
+  boolean
+>;
+export type PrintConfigurationPreviewSourceByTab = Partial<
+  Record<PrintConfigurationTab, Blob>
+>;
+export type PrintConfigurationPreviewRefreshSourceMode = "capture" | "reuse";
+export type PrintConfigurationPreviewRefreshRequest = {
+  requestId: number;
+  sourceMode: PrintConfigurationPreviewRefreshSourceMode;
+  tab: PrintConfigurationTab;
+};
+export type PrintConfigurationPreviewRefreshOptions = {
+  sourceMode: PrintConfigurationPreviewRefreshSourceMode;
+};
+export type PrintConfigurationSaveOptions = {
+  forceActivePreviewRefresh?: boolean;
+};
+export type PrintConfigurationEncodedImage = {
+  data: string;
+  mimeType: string;
+};
+export type PrintConfigurationFormApi = ReactFormExtendedApi<
+  PrintConfigurationFormValues,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any
+>;
 
 export type SliderFieldConfig = {
   formatValue: (value: number) => string;

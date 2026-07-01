@@ -42,6 +42,7 @@ type SelectProps<
   TOnServer extends undefined | FormAsyncValidateOrFn<TFormData>,
   TSubmitMeta,
 > = {
+  className?: string;
   form: ReactFormExtendedApi<
     TFormData,
     TOnMount,
@@ -96,7 +97,8 @@ export const SelectField = <
     TSubmitMeta
   >,
 ) => {
-  const { form, name, label, placeholder, options, ...selectProps } = props;
+  const { className, form, name, label, placeholder, options, ...selectProps } =
+    props;
 
   return (
     <form.Field
@@ -106,7 +108,11 @@ export const SelectField = <
         const isInvalid =
           field.state.meta.isTouched && !field.state.meta.isValid;
         return (
-          <Field orientation="responsive" data-invalid={isInvalid}>
+          <Field
+            orientation="responsive"
+            data-invalid={isInvalid}
+            className={className}
+          >
             <FieldContent>
               <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
               {isInvalid && <FieldError errors={field.state.meta.errors} />}

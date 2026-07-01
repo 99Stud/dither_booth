@@ -12,6 +12,7 @@ import z from "zod";
 
 import type {
   PrintConfigurationFormValues,
+  PrintConfigurationTab,
   SliderFieldConfig,
 } from "./PrintConfiguration.types";
 
@@ -81,7 +82,35 @@ export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValu
   };
 
 export const PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS = 500;
-export const PRINT_CONFIGURATION_PANEL_LOG_SOURCE = "admin.print-configuration";
+
+export const PRINT_CONFIGURATION_TABS = [
+  "dithering",
+  "receipt",
+] as const satisfies ReadonlyArray<PrintConfigurationTab>;
+
+export const DITHERING_PREVIEW_FIELDS = [
+  "ditherModeCode",
+  "colorSchemeCode",
+  "serpentine",
+  "exposure",
+  "saturation",
+  "shadows",
+  "highlights",
+] as const satisfies ReadonlyArray<keyof PrintConfigurationFormValues>;
+
+export const RECEIPT_PREVIEW_FIELDS = [
+  ...DITHERING_PREVIEW_FIELDS,
+  "template",
+  "threshold",
+] as const satisfies ReadonlyArray<keyof PrintConfigurationFormValues>;
+
+export const PREVIEW_FIELDS_BY_TAB = {
+  dithering: DITHERING_PREVIEW_FIELDS,
+  receipt: RECEIPT_PREVIEW_FIELDS,
+} satisfies Record<
+  PrintConfigurationTab,
+  ReadonlyArray<keyof PrintConfigurationFormValues>
+>;
 
 type PersistedPrintConfiguration = Omit<
   PrintConfigurationFormValues,
@@ -157,13 +186,5 @@ export const SLIDER_FIELD_CONFIGS = [
     min: 0,
     name: "highlights",
     step: 0.05,
-  },
-  {
-    formatValue: (value) => String(value),
-    label: "Threshold",
-    max: 255,
-    min: 0,
-    name: "threshold",
-    step: 1,
   },
 ] satisfies ReadonlyArray<SliderFieldConfig>;

@@ -20,7 +20,6 @@ export const Experience = () => {
       <div className="flex h-full items-center justify-center p-4">
         <Webcam
           showDebugInfo
-          showPreview
           ref={webcamRef}
           className="h-full"
           onCameraStateChange={reportUserMediaCameraStateChange}
