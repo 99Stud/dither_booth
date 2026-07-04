@@ -36,8 +36,8 @@
     "@opendisplay/epaper-dithering": "5.0.7",
     "@trpc/server": "11.18.0",
     "drizzle-orm": "0.45.2",
-    "puppeteer": "25.2.1",
-    "sharp": "0.35.2",
+    "puppeteer": "25.3.0",
+    "sharp": "0.35.3",
     "zod": "4.4.3"
   },
   "devDependencies": {
