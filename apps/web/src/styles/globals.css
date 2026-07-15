@@ -155,3 +155,25 @@
     @apply antialiased;
   }
 }
+
+@theme {
+  --animate-flashing: flashing 1s ease-in-out infinite;
+}
+
+@keyframes flashing {
+  0% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  75% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
