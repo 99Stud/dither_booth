@@ -18,13 +18,15 @@ export const printReceipt = publicProcedure
       });
     }
 
-    const rasterCmd = await prepareReceiptRasterCommand({ ctx, input });
+    const receiptRasterCmd = await prepareReceiptRasterCommand({ ctx, input });
 
-    await printRasterReceipt(printerUSBAdapter, rasterCmd).catch((error) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to print receipt.",
-        cause: error,
-      });
-    });
+    await printRasterReceipt(printerUSBAdapter, receiptRasterCmd).catch(
+      (error) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to print receipt.",
+          cause: error,
+        });
+      },
+    );
   });

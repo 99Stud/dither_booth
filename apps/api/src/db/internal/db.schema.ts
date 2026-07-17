@@ -1,4 +1,6 @@
+import { RARITY_TYPES } from "@dither-booth/shared/lottery";
 import { RECEIPT_TEMPLATES } from "@dither-booth/shared/routes";
+import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -69,3 +71,60 @@ export const printConfigTable = sqliteTable(
     ),
   ],
 );
+
+export const campaignTable = sqliteTable("campaign", {
+  id: text()
+    .primaryKey()
+    .notNull()
+    .$defaultFn(() => createId()),
+  name: text("name").notNull(),
+  lotteryId: text("lottery_id").references(() => lotteryTable.id),
+});
+
+export const lotteryTable = sqliteTable("lottery", {
+  id: text()
+    .primaryKey()
+    .notNull()
+    .$defaultFn(() => createId()),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+});
+
+export const prizeTable = sqliteTable(
+  "prize",
+  {
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
+    lotteryId: text("lottery_id")
+      .notNull()
+      .references(() => lotteryTable.id),
+    winDescription: text("win_description").notNull(),
+    weight: real("weight").notNull().default(1),
+    totalQuantity: integer("total_quantity").notNull().default(0),
+    remainingQuantity: integer("remaining_quantity").notNull().default(0),
+    rarity: text("rarity", { enum: RARITY_TYPES }).notNull().default("common"),
+  },
+  (table) => [
+    check("prize_weight_check", sql`${table.weight} > 0`),
+    check("prize_total_quantity_check", sql`${table.totalQuantity} >= 0`),
+    check(
+      "prize_remaining_quantity_check",
+      sql`${table.remainingQuantity} between 0 and ${table.totalQuantity}`,
+    ),
+  ],
+);
+
+export const DRAW_OUTCOMES = ["win", "loss"] as const;
+
+export const drawTable = sqliteTable("draw", {
+  id: text()
+    .primaryKey()
+    .notNull()
+    .$defaultFn(() => createId()),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+  lotteryId: text("lottery_id").references(() => lotteryTable.id),
+  prizeId: text("prize_id").references(() => prizeTable.id),
+});
