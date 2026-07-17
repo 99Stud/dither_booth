@@ -81,13 +81,25 @@ export const campaignTable = sqliteTable("campaign", {
   lotteryId: text("lottery_id").references(() => lotteryTable.id),
 });
 
-export const lotteryTable = sqliteTable("lottery", {
-  id: text()
-    .primaryKey()
-    .notNull()
-    .$defaultFn(() => createId()),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
-});
+export const lotteryTable = sqliteTable(
+  "lottery",
+  {
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    noWinWeight: real("no_win_weight").notNull().default(1),
+    winCooldownMinutes: integer("win_cooldown_minutes").notNull().default(5),
+  },
+  (table) => [
+    check("lottery_no_win_weight_check", sql`${table.noWinWeight} >= 0`),
+    check(
+      "lottery_win_cooldown_minutes_check",
+      sql`${table.winCooldownMinutes} >= 0`,
+    ),
+  ],
+);
 
 export const prizeTable = sqliteTable(
   "prize",
