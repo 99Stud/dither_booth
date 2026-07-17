@@ -22,6 +22,13 @@
       "when": 1790776740562,
       "tag": "0002_lottery_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790776766427,
+      "tag": "0003_lottery_weights",
+      "breakpoints": true
     }
   ]
 }
