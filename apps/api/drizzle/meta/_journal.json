@@ -15,6 +15,13 @@
       "when": 1784918714753,
       "tag": "0001_keen_adam_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790776740562,
+      "tag": "0002_lottery_tables",
+      "breakpoints": true
     }
   ]
 }
