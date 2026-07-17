@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "@dither-booth/ports": "workspace:*",
-    "@dither-booth/shared": "workspace:*"
+    "@dither-booth/shared": "workspace:*",
+    "figlet": "^1.11.0"
   },
   "devDependencies": {
     "@dither-booth/typescript-config": "workspace:*",

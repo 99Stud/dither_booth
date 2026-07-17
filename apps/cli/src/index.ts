@@ -36,7 +36,7 @@ const COMMANDS: Record<string, CommandHandler> = {
 // Commands that write to system locations and require elevated privileges.
 const ROOT_COMMANDS = new Set(["install", "ssd", "service"]);
 
-// Commands that show the mascot banner before running.
+// Commands that show the startup banner before running.
 const BANNER_COMMANDS = new Set(["install", "doctor"]);
 
 function parseColorMode(value: string | undefined): ColorMode {
