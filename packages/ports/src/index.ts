@@ -19,6 +19,7 @@ import {
 } from "./internal/ports.constants";
 
 export { ADMIN_BIND_HOST, API_BIND_HOST, WEB_BIND_HOST };
+export { isAllowedConfiguredOrigin } from "./internal/origin.utils";
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
   return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);

@@ -93,7 +93,7 @@ bun run db:studio
 
 - `db:generate` runs `drizzle-kit generate`. Use it after changing the Drizzle schema to create a SQL migration in `drizzle` from `drizzle.config.ts`.
 - `db:migrate` runs the internal migration script, applies pending migrations from `drizzle` to `data/dither-booth.sqlite`, logs success or failure, and closes the SQLite connection.
-- `db:seed:lottery` inserts a local enabled lottery (`dev_lottery`) plus sample prizes for Experience / dry-run testing. Skips if that lottery already exists; pass `--reset` to wipe draws/prizes/lotteries and reseed.
+- `db:seed:lottery` inserts a local event (`dev_campaign`), enabled lottery (`dev_lottery`), and sample prizes for Experience / admin / dry-run testing. Skips if that lottery already exists; pass `--reset` to wipe campaigns/draws/prizes/lotteries and reseed.
 - `db:studio` runs Drizzle Studio for inspecting or editing the local SQLite database during development.
 
 #### Seed lottery (dev)
@@ -104,19 +104,21 @@ After migrations:
 bun run db:seed:lottery
 ```
 
-Reset stock / wipe previous lottery rows and reseed:
+Reset stock / wipe previous event + lottery rows and reseed:
 
 ```bash
 bun run db:seed:lottery -- --reset
 ```
 
-Stable prize IDs (useful with `LOTTERY_FORCE_PRIZE_ID`):
+Stable IDs:
 
-| Id                    | Rarity    | Qty |
-| --------------------- | --------- | --- |
-| `dev_prize_common`    | common    | 100 |
-| `dev_prize_rare`      | rare      | 20  |
-| `dev_prize_legendary` | legendary | 8   |
+| Id                    | Role                |
+| --------------------- | ------------------- |
+| `dev_campaign`        | Event / campaign    |
+| `dev_lottery`         | Lottery             |
+| `dev_prize_common`    | Lot (common, 100)   |
+| `dev_prize_rare`      | Lot (rare, 20)      |
+| `dev_prize_legendary` | Lot (legendary, 8)  |
 
 Example forced win after seeding:
 
@@ -125,6 +127,23 @@ RECEIPT_PRINT_DRY_RUN=true \
 LOTTERY_FORCE_PRIZE_ID=dev_prize_legendary \
 bun run dev
 ```
+
+### Event admin (singleton campaign)
+
+The booth supports **one campaign (event) at a time**. Admin manages it from the Event page via `adminOriginProcedure` endpoints:
+
+| Procedure               | Role                                              |
+| ----------------------- | ------------------------------------------------- |
+| `getCurrentEvent`       | Aggregate campaign + lottery + lots, or `null`    |
+| `createEvent`           | Create campaign + lottery (rejects if one exists) |
+| `updateEvent`           | Rename campaign                                   |
+| `replaceEvent`          | Wipe event data, then create a new one            |
+| `updateLotterySettings` | Enable / odds / win cooldown                      |
+| `createLot` / `updateLot` / `deleteLot` / `restockLot` | Prize CRUD + restock |
+
+Runtime booth draw/status (`drawLottery`, `getLotteryStatus`) stay public. Print Configuration remains the global dither/template owner for now.
+
+**Future Appearance:** logo, shader colors, and a linked photo template will belong on the campaign (or a 1:1 event-config sibling), not on lottery. Lottery stays odds/stock only.
 
 
 ### Receipt Template Migrations

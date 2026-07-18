@@ -104,7 +104,9 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
 
     return fetch(upstreamUrl, {
       method: req.method,
-      headers: getProxiedRequestHeaders(req.headers),
+      headers: getProxiedRequestHeaders(req.headers, {
+        fallbackOrigin: url.origin,
+      }),
       body:
         req.method === "GET" || req.method === "HEAD" ? undefined : req.body,
     });
