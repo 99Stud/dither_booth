@@ -79,10 +79,11 @@ export const EventLotSheet: FC<EventLotSheetProps> = (props) => {
             void form.handleSubmit();
           }}
         >
+          <TextField form={form} name="title" label="Title" />
           <TextField
             form={form}
-            name="winDescription"
-            label="Win description"
+            name="winInstruction"
+            label="Win instruction"
           />
           <SelectField
             form={form}

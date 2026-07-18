@@ -12,7 +12,8 @@ function createForceDb({
     lotteryId: string;
     rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
     remainingQuantity: number;
-    winDescription: string;
+    title: string;
+    winInstruction: string;
   } | null;
 }) {
   const inserts: Array<{ lotteryId: string | null; prizeId: string | null }> =
@@ -85,7 +86,8 @@ describe("executeLotteryDraw force path", () => {
       lotteryId: "lottery-1",
       rarity: "rare" as const,
       remainingQuantity: 3,
-      winDescription: "Sticker pack",
+      title: "Sticker pack",
+      winInstruction: "Show this ticket at the bar",
     };
     const { db, getInserts } = createForceDb({ prize });
 
@@ -99,7 +101,8 @@ describe("executeLotteryDraw force path", () => {
       prize: {
         id: "prize-1",
         rarity: "rare",
-        winDescription: "Sticker pack",
+        title: "Sticker pack",
+        winInstruction: "Show this ticket at the bar",
       },
     });
     expect(getInserts()).toEqual([

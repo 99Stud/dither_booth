@@ -630,7 +630,7 @@ export const Experience = () => {
                             "mb-4",
                           )}
                         >
-                          {drawResult.prize.winDescription}
+                          {drawResult.prize.title}
                         </motion.p>
                         <motion.p
                           initial={{

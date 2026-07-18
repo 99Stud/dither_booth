@@ -2,7 +2,8 @@ import type { Rarity } from "@dither-booth/shared/lottery";
 
 export type EventLot = {
   id: string;
-  winDescription: string;
+  title: string;
+  winInstruction: string;
   weight: number;
   totalQuantity: number;
   remainingQuantity: number;
@@ -46,7 +47,8 @@ export type LotterySettingsFormValues = {
 };
 
 export type LotFormValues = {
-  winDescription: string;
+  title: string;
+  winInstruction: string;
   weight: number;
   totalQuantity: number;
   remainingQuantity: number;

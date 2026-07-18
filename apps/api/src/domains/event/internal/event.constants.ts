@@ -23,7 +23,8 @@ export const updateLotterySettingsInputSchema = z.object({
 });
 
 export const createLotInputSchema = z.object({
-  winDescription: z.string().trim().min(1).max(240),
+  title: z.string().trim().min(1).max(120),
+  winInstruction: z.string().trim().min(1).max(240),
   weight: z.number().gt(0),
   totalQuantity: z.number().int().min(0),
   remainingQuantity: z.number().int().min(0),
@@ -36,7 +37,8 @@ export const createLotInputSchema = z.object({
 export const updateLotInputSchema = z
   .object({
     lotId: z.string().min(1),
-    winDescription: z.string().trim().min(1).max(240),
+    title: z.string().trim().min(1).max(120),
+    winInstruction: z.string().trim().min(1).max(240),
     weight: z.number().gt(0),
     totalQuantity: z.number().int().min(0),
     remainingQuantity: z.number().int().min(0),

@@ -118,7 +118,8 @@ export const prizeTable = sqliteTable(
     lotteryId: text("lottery_id")
       .notNull()
       .references(() => lotteryTable.id),
-    winDescription: text("win_description").notNull(),
+    title: text("title").notNull(),
+    winInstruction: text("win_instruction").notNull(),
     weight: real("weight").notNull().default(1),
     totalQuantity: integer("total_quantity").notNull().default(0),
     remainingQuantity: integer("remaining_quantity").notNull().default(0),

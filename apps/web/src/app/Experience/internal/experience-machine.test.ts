@@ -17,7 +17,8 @@ const WIN_DRAW: DrawResult = {
   prize: {
     id: "prize-1",
     rarity: "legendary",
-    winDescription: "a free drink",
+    title: "a free drink",
+    winInstruction: "Présentez ce ticket au bar",
   },
 };
 

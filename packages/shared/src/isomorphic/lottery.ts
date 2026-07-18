@@ -23,7 +23,12 @@ export type DrawResult =
   | { outcome: "loss"; prize: null }
   | {
       outcome: "win";
-      prize: { id: string; rarity: Rarity; winDescription: string };
+      prize: {
+        id: string;
+        rarity: Rarity;
+        title: string;
+        winInstruction: string;
+      };
     };
 
 export type LotteryStatusRarityBreakdown = {
