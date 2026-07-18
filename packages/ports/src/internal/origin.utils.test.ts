@@ -18,10 +18,34 @@ describe("isAllowedConfiguredOrigin", () => {
     ).toBe(true);
   });
 
+  it("allows manifest machine hostnames on the same port", () => {
+    const hostnames = ["99framboises", "99framboises.local"];
+
+    expect(
+      isAllowedConfiguredOrigin(
+        "https://99framboises.local:3002",
+        adminLan,
+        hostnames,
+      ),
+    ).toBe(true);
+    expect(
+      isAllowedConfiguredOrigin(
+        "https://99framboises:3002",
+        adminLan,
+        hostnames,
+      ),
+    ).toBe(true);
+  });
+
   it("rejects missing or foreign origins", () => {
     expect(isAllowedConfiguredOrigin(undefined, adminLan)).toBe(false);
     expect(
       isAllowedConfiguredOrigin("https://evil.local:3002", adminLan),
+    ).toBe(false);
+    expect(
+      isAllowedConfiguredOrigin("https://evil.local:3002", adminLan, [
+        "99framboises.local",
+      ]),
     ).toBe(false);
     expect(
       isAllowedConfiguredOrigin("https://localhost:3999", adminLan),

@@ -8,7 +8,11 @@ import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 const ADMIN_ORIGIN = "https://admin.local";
 const ADMIN_LAN_ORIGIN = "https://192.168.1.10:3002";
 
-function createTestCaller(requestOrigin?: string, adminOrigin = ADMIN_ORIGIN) {
+function createTestCaller(
+  requestOrigin?: string,
+  adminOrigin = ADMIN_ORIGIN,
+  allowedHostnames: readonly string[] = [],
+) {
   const state = createInitialPuppeteerState();
   const restartResult = {
     ok: true,
@@ -17,6 +21,7 @@ function createTestCaller(requestOrigin?: string, adminOrigin = ADMIN_ORIGIN) {
   let restartCalls = 0;
   const context = {
     adminOrigin,
+    allowedHostnames,
     db: {} as TRPCContext["db"],
     mode: "production",
     page: undefined,
@@ -59,6 +64,19 @@ describe("restartPuppeteerReceiptViewer", () => {
     const { caller, getRestartCalls, restartResult } = createTestCaller(
       "https://localhost:3002",
       ADMIN_LAN_ORIGIN,
+    );
+
+    await expect(caller.restartPuppeteerReceiptViewer()).resolves.toBe(
+      restartResult,
+    );
+    expect(getRestartCalls()).toBe(1);
+  });
+
+  test("allows machine hostname from the TLS manifest", async () => {
+    const { caller, getRestartCalls, restartResult } = createTestCaller(
+      "https://99framboises.local:3002",
+      ADMIN_LAN_ORIGIN,
+      ["99framboises", "99framboises.local"],
     );
 
     await expect(caller.restartPuppeteerReceiptViewer()).resolves.toBe(

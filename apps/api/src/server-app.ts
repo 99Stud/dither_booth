@@ -1,5 +1,9 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import { getAdminOrigin, getPort } from "@dither-booth/ports";
+import {
+  getAdminOrigin,
+  getPort,
+  getWebTlsHostnames,
+} from "@dither-booth/ports";
 import {
   API_HEALTHZ_SERVICE,
   createHealthzPayload,
@@ -107,6 +111,9 @@ export async function runApiServer(options: {
   const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle();
 
   const adminOrigin = await getAdminOrigin({ repoRoot: API_REPO_ROOT });
+  const allowedHostnames = await getWebTlsHostnames({
+    repoRoot: API_REPO_ROOT,
+  });
   const processManager = getRuntimeProcessManager();
 
   const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
@@ -114,6 +121,7 @@ export async function runApiServer(options: {
 
     return {
       adminOrigin,
+      allowedHostnames,
       printerUSBAdapter,
       page,
       db,

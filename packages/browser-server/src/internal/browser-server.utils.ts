@@ -60,10 +60,12 @@ export function createHealthzRoute({
 }
 
 export function createWebSocketUpgradeRoute({
+  allowedHostnames = [],
   handler,
   publicOrigin,
   routePath,
 }: {
+  allowedHostnames?: readonly string[];
   handler: WebSocketRouteHandler;
   publicOrigin: string;
   routePath: string;
@@ -79,6 +81,7 @@ export function createWebSocketUpgradeRoute({
       !isAllowedConfiguredOrigin(
         req.headers.get("origin") ?? undefined,
         publicOrigin,
+        allowedHostnames,
       )
     ) {
       return new Response("WebSocket origin not allowed.", {

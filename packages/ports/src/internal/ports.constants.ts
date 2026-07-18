@@ -34,4 +34,5 @@ export const WEB_TLS_MANIFEST_SCHEMA = z.object({
   caPath: z.string(),
   certPath: z.string(),
   keyPath: z.string(),
+  hostnames: z.array(z.string().trim().min(1)).optional().default([]),
 });

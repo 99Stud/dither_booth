@@ -61,6 +61,8 @@ export type RunBrowserServerOptions = {
   mode: BrowserServerMode;
   port: number;
   publicOrigin: string;
+  /** Extra hostnames from the TLS manifest (machine name + `.local`). */
+  allowedHostnames?: readonly string[];
   routes?: Record<string, RouteHandler>;
   serverName: string;
   tlsCertPath: string;

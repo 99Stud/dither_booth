@@ -6,6 +6,7 @@ import {
   getPort,
   getWebOrigin,
   getWebTlsCertPath,
+  getWebTlsHostnames,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
 import { WEB_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
@@ -25,8 +26,12 @@ export async function runWebServer(options: {
   const tlsCertPath = getWebTlsCertPath({ repoRoot: WEB_REPO_ROOT });
   const tlsKeyPath = getWebTlsKeyPath({ repoRoot: WEB_REPO_ROOT });
   const webOrigin = await getWebOrigin({ repoRoot: WEB_REPO_ROOT });
+  const allowedHostnames = await getWebTlsHostnames({
+    repoRoot: WEB_REPO_ROOT,
+  });
 
   return await runBrowserServer({
+    allowedHostnames,
     apiOrigin,
     appRoot: WEB_APP_ROOT,
     bindHost: WEB_BIND_HOST,
