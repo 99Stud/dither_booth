@@ -55,6 +55,12 @@ From the repository root, apply all the migrations to the local SQLite database:
 bun run --filter @dither-booth/api db:migrate
 ```
 
+Optionally seed a local lottery + sample prizes for Experience testing:
+
+```bash
+bun run --filter @dither-booth/api db:seed:lottery
+```
+
 See the [API README](apps/api/README.md) for details about the database management.
 
 If `RECEIPT_TEMPLATES` changes in `packages/shared/src/routes/index.ts`, regenerate and apply the API DB migration so the `print_config.template` check constraint stays in sync. See the [API README](apps/api/README.md#receipt-template-migrations) for the exact workflow.

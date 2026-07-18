@@ -87,12 +87,45 @@ Use these commands from `apps/api`:
 ```bash
 bun run db:generate
 bun run db:migrate
+bun run db:seed:lottery
 bun run db:studio
 ```
 
 - `db:generate` runs `drizzle-kit generate`. Use it after changing the Drizzle schema to create a SQL migration in `drizzle` from `drizzle.config.ts`.
 - `db:migrate` runs the internal migration script, applies pending migrations from `drizzle` to `data/dither-booth.sqlite`, logs success or failure, and closes the SQLite connection.
+- `db:seed:lottery` inserts a local enabled lottery (`dev_lottery`) plus sample prizes for Experience / dry-run testing. Skips if that lottery already exists; pass `--reset` to wipe draws/prizes/lotteries and reseed.
 - `db:studio` runs Drizzle Studio for inspecting or editing the local SQLite database during development.
+
+#### Seed lottery (dev)
+
+After migrations:
+
+```bash
+bun run db:seed:lottery
+```
+
+Reset stock / wipe previous lottery rows and reseed:
+
+```bash
+bun run db:seed:lottery -- --reset
+```
+
+Stable prize IDs (useful with `LOTTERY_FORCE_PRIZE_ID`):
+
+| Id                    | Rarity    | Qty |
+| --------------------- | --------- | --- |
+| `dev_prize_common`    | common    | 100 |
+| `dev_prize_rare`      | rare      | 20  |
+| `dev_prize_legendary` | legendary | 8   |
+
+Example forced win after seeding:
+
+```bash
+RECEIPT_PRINT_DRY_RUN=true \
+LOTTERY_FORCE_PRIZE_ID=dev_prize_legendary \
+bun run dev
+```
+
 
 ### Receipt Template Migrations
 
