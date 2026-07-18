@@ -1,4 +1,4 @@
-import { receiptTemplateSchema } from "@dither-booth/shared/routes";
+import { photoReceiptTemplateSchema } from "@dither-booth/shared/routes";
 import { ColorScheme, DitherMode } from "@opendisplay/epaper-dithering";
 import z from "zod";
 
@@ -22,7 +22,7 @@ const PRINT_CONFIGURATION_FIELD_SCHEMAS = {
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
   threshold: z.number().int().min(0).max(255),
-  template: receiptTemplateSchema,
+  template: photoReceiptTemplateSchema,
 };
 
 export const UPDATE_PRINT_CONFIGURATION_SCHEMA = z.object({

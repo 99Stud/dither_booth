@@ -1,14 +1,17 @@
 import { type FC, useMemo } from "react";
 
+import { RECEIPT_ELEMENT_ID } from "@dither-booth/shared/browser/receipt-viewer";
 import type { Rarity } from "@dither-booth/shared/lottery";
-
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { cn } from "@dither-booth/shared/styles";
 import clsx from "clsx";
 
 import { LoserMark } from "#components/svg/LoserMark/index";
 import { WinnerMark } from "#components/svg/WinnerMark/index";
+import { receiptViewerRoute } from "#lib/router/index";
 import { formatBoothTicketNumber } from "#lib/ticket-ref";
+
+const WIN_INSTRUCTIONS_LINE = "Présentez ce ticket au bar";
 
 const formatWonAtDisplay = (iso: string): string | null => {
   const date = new Date(iso);
@@ -110,33 +113,21 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
   );
 };
 
-export const LotteryReceiptTemplate: FC<{
-  className?: string;
-  outcome: "win" | "loss";
-  lotLabel?: string | null;
-  lotRarity?: string | null;
-  description?: string | null;
-  /** ISO 8601 instant; shown below the ticket ref on wins. */
-  wonAtIso?: string | null;
-  instructionsLine?: string;
-  /** Six-digit serial; must match receipt footer when set (booth flow). */
-  ticketRef?: string;
-  ticketReady?: boolean;
-}> = (props) => {
+export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
+  const { className } = props;
   const {
-    className,
-    outcome,
+    outcome: outcomeParam,
     lotLabel,
     lotRarity,
-    description,
-    wonAtIso,
-    instructionsLine,
+    wonAt,
     ticketRef,
-    ticketReady,
-  } = props;
+  } = receiptViewerRoute.useSearch();
 
-  const ready = ticketReady ?? true;
-  const wonAtDisplay = wonAtIso ? formatWonAtDisplay(wonAtIso) : null;
+  const outcome = outcomeParam === "win" ? "win" : "loss";
+  const instructionsLine =
+    outcome === "win" ? WIN_INSTRUCTIONS_LINE : undefined;
+  const wonAtDisplay = wonAt ? formatWonAtDisplay(wonAt) : null;
+
   const ticketNumber = useMemo(() => {
     if (ticketRef && /^\d{6}$/.test(ticketRef)) {
       return formatBoothTicketNumber(ticketRef);
@@ -150,8 +141,8 @@ export const LotteryReceiptTemplate: FC<{
 
   return (
     <div
-      id="lottery-ticket"
-      data-ticket-ready={ready ? "true" : undefined}
+      id={RECEIPT_ELEMENT_ID}
+      data-ticket-ready="true"
       className={cn(
         "flex flex-col items-center gap-4",
         "bg-white text-black",
@@ -170,23 +161,12 @@ export const LotteryReceiptTemplate: FC<{
           </div>
           {lotLabel ? (
             <div
-              className={clsx(
-                "text-center text-3xl font-bold leading-tight",
-              )}
+              className={clsx("text-center text-3xl font-bold leading-tight")}
             >
               {lotLabel}
             </div>
           ) : null}
           {lotRarity ? <LotteryRarityStrip lotRarity={lotRarity} /> : null}
-          {description ? (
-            <div
-              className={clsx(
-                "w-full px-1 text-center font-mono text-[13px] font-normal leading-snug whitespace-pre-wrap",
-              )}
-            >
-              {description}
-            </div>
-          ) : null}
           {instructionsLine ? (
             <div
               className={clsx(

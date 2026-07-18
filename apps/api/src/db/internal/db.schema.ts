@@ -1,5 +1,5 @@
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
-import { RECEIPT_TEMPLATES } from "@dither-booth/shared/routes";
+import { PHOTO_RECEIPT_TEMPLATES } from "@dither-booth/shared/routes";
 import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
 import {
@@ -15,7 +15,7 @@ import {
   PRINT_CONFIG_SINGLETON_ID,
 } from "./db.constants";
 
-const RECEIPT_TEMPLATE_CHECK_VALUES = RECEIPT_TEMPLATES.map(
+const PHOTO_RECEIPT_TEMPLATE_CHECK_VALUES = PHOTO_RECEIPT_TEMPLATES.map(
   (template) => `'${template}'`,
 ).join(", ");
 
@@ -33,7 +33,7 @@ export const printConfigTable = sqliteTable(
     shadows: real("shadows").notNull().default(0),
     highlights: real("highlights").notNull().default(0),
     threshold: real("threshold").notNull().default(128),
-    template: text("template", { enum: RECEIPT_TEMPLATES })
+    template: text("template", { enum: PHOTO_RECEIPT_TEMPLATES })
       .notNull()
       .default(DEFAULT_RECEIPT_TEMPLATE),
   },
@@ -67,7 +67,7 @@ export const printConfigTable = sqliteTable(
     ),
     check(
       "print_config_template_check",
-      sql`${table.template} in (${sql.raw(RECEIPT_TEMPLATE_CHECK_VALUES)})`,
+      sql`${table.template} in (${sql.raw(PHOTO_RECEIPT_TEMPLATE_CHECK_VALUES)})`,
     ),
   ],
 );
@@ -134,9 +134,9 @@ export const drawTable = sqliteTable("draw", {
     .primaryKey()
     .notNull()
     .$defaultFn(() => createId()),
-  createdAt: text("created_at")
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`(datetime('now'))`),
+    .default(sql`(unixepoch())`),
   lotteryId: text("lottery_id").references(() => lotteryTable.id),
   prizeId: text("prize_id").references(() => prizeTable.id),
 });

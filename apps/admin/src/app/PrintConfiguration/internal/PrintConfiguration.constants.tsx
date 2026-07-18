@@ -5,8 +5,8 @@ import type {
 
 import { capitalize } from "@dither-booth/shared/formatting";
 import {
-  RECEIPT_TEMPLATES,
-  receiptTemplateSchema,
+  PHOTO_RECEIPT_TEMPLATES,
+  photoReceiptTemplateSchema,
 } from "@dither-booth/shared/routes";
 import z from "zod";
 
@@ -51,7 +51,7 @@ export const COLOR_SCHEME_CODE_FIELD_OPTIONS: Array<
 
 export const RECEIPT_TEMPLATE_FIELD_OPTIONS: Array<
   SelectFieldOption<SelectFieldValue<PrintConfigurationFormValues, "template">>
-> = RECEIPT_TEMPLATES.map((template) => ({
+> = PHOTO_RECEIPT_TEMPLATES.map((template) => ({
   label: capitalize(template),
   value: template,
 }));
@@ -65,7 +65,7 @@ export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
   threshold: z.number().int().min(0).max(255),
-  template: receiptTemplateSchema,
+  template: photoReceiptTemplateSchema,
 });
 
 export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValues =

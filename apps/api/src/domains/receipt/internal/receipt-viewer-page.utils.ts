@@ -2,6 +2,7 @@ import type { ElementHandle, Page } from "puppeteer";
 
 import {
   RECEIPT_ELEMENT_SELECTOR,
+  RECEIPT_TICKET_READY_SELECTOR,
   RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE,
   isReceiptViewerRouteStateCommittedInPage,
   navigateReceiptViewerInPage,
@@ -10,7 +11,8 @@ import {
 import {
   RECEIPT_VIEWER_PATH,
   RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM,
-  type ReceiptTemplate,
+  type PhotoReceiptTemplate,
+  type ReceiptViewerSearch,
 } from "@dither-booth/shared/routes";
 import { TRPCError } from "@trpc/server";
 
@@ -60,13 +62,14 @@ export async function runExclusiveReceiptViewerPageJob<T>(
 }
 
 const RECEIPT_VIEWER_NAVIGATION_TIMEOUT_MS = 3_000;
+const RECEIPT_TICKET_READY_TIMEOUT_MS = 3_000;
 
 function createReceiptViewerPageNavigationOptions(
-  template?: ReceiptTemplate,
+  search: ReceiptViewerSearch = {},
 ): ReceiptViewerRouteStateOptions {
   return {
+    ...search,
     receiptViewerPath: RECEIPT_VIEWER_PATH,
-    template,
     templateAttribute: RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE,
     templateSearchParam: RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM,
   };
@@ -76,13 +79,13 @@ type ReceiptViewerNavigationPage = Pick<Page, "evaluate" | "waitForFunction">;
 
 export async function navigateReceiptViewerClientSide({
   page,
-  template,
+  search = {},
 }: {
   page: ReceiptViewerNavigationPage;
-  template?: ReceiptTemplate;
+  search?: ReceiptViewerSearch;
 }): Promise<void> {
-  const navigationOptions = createReceiptViewerPageNavigationOptions(template);
-  const errorMessage = template
+  const navigationOptions = createReceiptViewerPageNavigationOptions(search);
+  const errorMessage = search.template
     ? "Failed to select receipt viewer template."
     : "Failed to reset receipt viewer route.";
 
@@ -103,17 +106,17 @@ export async function navigateReceiptViewerClientSide({
   }
 }
 
-export async function withReceiptViewerTemplate<T>({
+export async function withReceiptViewerSearch<T>({
   page,
   run,
-  template,
+  search,
 }: {
   page: ReceiptViewerNavigationPage;
   run: () => Promise<T>;
-  template: ReceiptTemplate;
+  search: ReceiptViewerSearch;
 }): Promise<T> {
   const actionResult = await attempt(async () => {
-    await navigateReceiptViewerClientSide({ page, template });
+    await navigateReceiptViewerClientSide({ page, search });
 
     return await run();
   });
@@ -143,6 +146,33 @@ type ReceiptImageData = {
   mimeType: string;
 };
 
+async function screenshotReceiptElement(
+  page: ReceiptScreenshotPage,
+): Promise<Uint8Array> {
+  const receiptHandle: ElementHandle = await page
+    .locator(RECEIPT_ELEMENT_SELECTOR)
+    .waitHandle()
+    .catch((error) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Receipt element was not found.",
+        cause: error,
+      });
+    });
+
+  return await receiptHandle
+    .screenshot({
+      optimizeForSpeed: true,
+    })
+    .catch((error) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to screenshot receipt element.",
+        cause: error,
+      });
+    });
+}
+
 export async function captureReceiptScreenshot({
   image,
   page,
@@ -150,10 +180,11 @@ export async function captureReceiptScreenshot({
 }: {
   image: ReceiptImageData;
   page: ReceiptScreenshotPage;
-  template: ReceiptTemplate;
+  template: PhotoReceiptTemplate;
 }): Promise<Uint8Array> {
-  return await withReceiptViewerTemplate({
+  return await withReceiptViewerSearch({
     page,
+    search: { template },
     run: async () => {
       const imageHandle: ElementHandle = await page
         .locator(RECEIPT_PHOTO_ELEMENT_SELECTOR)
@@ -196,29 +227,35 @@ export async function captureReceiptScreenshot({
         image,
       );
 
-      const receiptHandle: ElementHandle = await page
-        .locator(RECEIPT_ELEMENT_SELECTOR)
+      return await screenshotReceiptElement(page);
+    },
+  });
+}
+
+export async function captureLotteryTicketScreenshot({
+  page,
+  search,
+}: {
+  page: ReceiptScreenshotPage;
+  search: ReceiptViewerSearch & { template: "lottery" };
+}): Promise<Uint8Array> {
+  return await withReceiptViewerSearch({
+    page,
+    search,
+    run: async () => {
+      await page
+        .locator(RECEIPT_TICKET_READY_SELECTOR)
+        .setTimeout(RECEIPT_TICKET_READY_TIMEOUT_MS)
         .waitHandle()
         .catch((error) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Receipt element was not found.",
+            message: "Lottery ticket was not ready.",
             cause: error,
           });
         });
 
-      return await receiptHandle
-        .screenshot({
-          optimizeForSpeed: true,
-        })
-        .catch((error) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to screenshot receipt element.",
-            cause: error,
-          });
-        });
+      return await screenshotReceiptElement(page);
     },
-    template,
   });
 }

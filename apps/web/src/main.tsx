@@ -6,11 +6,11 @@
  */
 
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
-import { installReceiptViewerNavigationBridge } from "@dither-booth/shared/browser/receipt-viewer";
 import {
-  RECEIPT_VIEWER_PATH,
-  RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM,
-} from "@dither-booth/shared/routes";
+  buildReceiptViewerSearch,
+  installReceiptViewerNavigationBridge,
+} from "@dither-booth/shared/browser/receipt-viewer";
+import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
 import { Toaster } from "@dither-booth/ui/components/ui/sonner";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
@@ -36,12 +36,10 @@ declare module "@tanstack/react-router" {
 }
 
 installReceiptViewerNavigationBridge({
-  navigate: async ({ template } = {}) => {
+  navigate: async (options = {}) => {
     await router.navigate({
       to: RECEIPT_VIEWER_PATH,
-      search: template
-        ? { [RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM]: template }
-        : {},
+      search: buildReceiptViewerSearch(options),
     });
   },
 });
