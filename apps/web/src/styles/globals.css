@@ -148,12 +148,7 @@
     @apply border-border outline-ring/50;
   }
   html {
-    @apply min-h-dvh font-sans antialiased;
-    touch-action: manipulation;
-  }
-  body,
-  #root {
-    @apply min-h-dvh;
+    @apply font-sans antialiased;
   }
   body {
     @apply bg-background text-foreground;
@@ -165,6 +160,13 @@
   html.experience-shell #root,
   html.experience-shell main {
     @apply h-full overflow-hidden;
+  }
+  /* Kiosk shell only — do not lock #root height/overflow globally or receipt
+     screenshots (taller than the viewport) get clipped to empty white. */
+  html.kiosk-shell,
+  html.kiosk-shell body {
+    @apply h-dvh min-h-dvh overflow-hidden overscroll-none;
+    touch-action: manipulation;
   }
 }
 
