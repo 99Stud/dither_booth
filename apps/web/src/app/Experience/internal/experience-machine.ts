@@ -1,5 +1,11 @@
+import type { DrawResult } from "@dither-booth/shared/lottery";
+
 export const COUNTDOWN_START = 3;
-export const RESTART_COUNTDOWN_START = 5;
+export const LOTTERY_PENDING_MS = 5_000;
+export const LOTTERY_RESULT_DWELL_MS = 12_000;
+export const PRINT_SUCCESS_AUTO_RESET_MS =
+  LOTTERY_PENDING_MS + LOTTERY_RESULT_DWELL_MS;
+export const RESTART_COUNTDOWN_START = 12;
 
 export type ExperiencePhase =
   | "idle"
@@ -20,6 +26,7 @@ export interface ExperienceState {
   countdown: number | null;
   restartCountdown: number | null;
   showLotteryResult: boolean;
+  drawResult: DrawResult | null;
   nextPrintAttemptId: number;
   activePrintAttemptId: number | null;
 }
@@ -36,7 +43,11 @@ export type ExperienceAction =
   | { type: "lotteryRevealElapsed" }
   | { type: "autoResetElapsed" }
   | { type: "photoCaptured"; printAttemptId: number }
-  | { type: "printSucceeded"; printAttemptId: number }
+  | {
+      type: "printSucceeded";
+      printAttemptId: number;
+      drawResult: DrawResult;
+    }
   | { type: "printFailed"; printAttemptId: number };
 
 export const initialExperienceState: ExperienceState = {
@@ -44,6 +55,7 @@ export const initialExperienceState: ExperienceState = {
   countdown: null,
   restartCountdown: null,
   showLotteryResult: false,
+  drawResult: null,
   nextPrintAttemptId: 1,
   activePrintAttemptId: null,
 };
@@ -54,6 +66,7 @@ const beginReset = (state: ExperienceState): ExperienceState => ({
   countdown: null,
   restartCountdown: null,
   showLotteryResult: false,
+  drawResult: null,
   activePrintAttemptId: null,
 });
 
@@ -76,6 +89,7 @@ export const experienceReducer = (
         countdown: null,
         restartCountdown: null,
         showLotteryResult: false,
+        drawResult: null,
         activePrintAttemptId: null,
       };
     }
@@ -181,6 +195,7 @@ export const experienceReducer = (
         countdown: null,
         restartCountdown: null,
         showLotteryResult: false,
+        drawResult: action.drawResult,
         activePrintAttemptId: null,
       };
     }

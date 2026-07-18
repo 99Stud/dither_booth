@@ -9,22 +9,27 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
 import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { CircleIcon, DiamondIcon, StarIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Fragment, useCallback, useEffect, useReducer, useRef } from "react";
 
 import { InteractiveBackground } from "#components/misc/InteractiveBackground/index";
 import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { reportKioskError } from "#lib/logging/logging.utils";
-import { useTRPC } from "#lib/trpc/trpc.client";
+import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 
 import {
   experienceReducer,
   initialExperienceState,
+  LOTTERY_PENDING_MS,
+  PRINT_SUCCESS_AUTO_RESET_MS,
   type ExperiencePhase,
 } from "./internal/experience-machine";
+import {
+  formatLastWinAt,
+  getRarityReveal,
+} from "./internal/lottery-reveal.utils";
 
 const INTERACTIVE_BACKGROUND_OPTIONS = {
   fluidBackground: {
@@ -43,8 +48,6 @@ const {
 const COUNTDOWN_INTERVAL_MS = 1000;
 const RESTART_COUNTDOWN_INTERVAL_MS = 1000;
 const STRIKE_A_POSE_DURATION_SECONDS = 0;
-const PRINT_SUCCESS_AUTO_RESET_MS = 10000;
-const LOTTERY_RESULT_BUFFER_MS = 5000;
 
 const CAMERA_VISIBLE_PHASES = new Set<ExperiencePhase>([
   "cameraEntering",
@@ -72,12 +75,17 @@ export const Experience = () => {
   const {
     activePrintAttemptId,
     countdown,
+    drawResult,
     phase,
     restartCountdown,
     showLotteryResult,
   } = state;
 
   const trpc = useTRPC();
+
+  const { data: lotteryStatus } = useQuery(
+    trpc.getLotteryStatus.queryOptions(),
+  );
 
   const { mutateAsync: printReceiptImage } = useMutation(
     trpc.printReceipt.mutationOptions(),
@@ -128,14 +136,18 @@ export const Experience = () => {
           type: "photoCaptured",
           printAttemptId: activePrintAttemptId,
         });
-        await printReceiptImage(squarePhoto);
+        const nextDrawResult = await printReceiptImage(squarePhoto);
 
         if (cancelled) return;
 
         dispatch({
           type: "printSucceeded",
           printAttemptId: activePrintAttemptId,
+          drawResult: nextDrawResult,
         });
+        void queryClient.invalidateQueries(
+          trpc.getLotteryStatus.queryFilter(),
+        );
       } catch (error) {
         if (cancelled) return;
 
@@ -156,7 +168,7 @@ export const Experience = () => {
     return () => {
       cancelled = true;
     };
-  }, [activePrintAttemptId, printReceiptImage, takeSquarePhoto]);
+  }, [activePrintAttemptId, printReceiptImage, takeSquarePhoto, trpc.getLotteryStatus]);
 
   useEffect(() => {
     if (phase !== "countdown") return;
@@ -173,7 +185,7 @@ export const Experience = () => {
 
     const lotteryTimeoutId = window.setTimeout(() => {
       dispatch({ type: "lotteryRevealElapsed" });
-    }, LOTTERY_RESULT_BUFFER_MS);
+    }, LOTTERY_PENDING_MS);
     const resetTimeoutId = window.setTimeout(() => {
       dispatch({ type: "autoResetElapsed" });
     }, PRINT_SUCCESS_AUTO_RESET_MS);
@@ -183,6 +195,12 @@ export const Experience = () => {
       window.clearTimeout(resetTimeoutId);
     };
   }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "idle") return;
+
+    void queryClient.invalidateQueries(trpc.getLotteryStatus.queryFilter());
+  }, [phase, trpc.getLotteryStatus]);
 
   useEffect(() => {
     if (!showLotteryResult) return;
@@ -232,6 +250,16 @@ export const Experience = () => {
   const isCameraVisible = CAMERA_VISIBLE_PHASES.has(phase);
   const isPromptVisible = PROMPT_VISIBLE_PHASES.has(phase);
   const isPrintSuccessVisible = phase === "printSucceeded";
+
+  const remainingLots = lotteryStatus?.remainingLots ?? 0;
+  const rarityBreakdown = lotteryStatus?.rarityBreakdown ?? [];
+  const lastWinLabel = formatLastWinAt(lotteryStatus?.lastWinAt ?? null);
+  const totalDraws = lotteryStatus?.totalDraws ?? 0;
+  const winReveal =
+    drawResult?.outcome === "win"
+      ? getRarityReveal(drawResult.prize.rarity)
+      : null;
+  const WinIcon = winReveal?.Icon;
 
   return (
     <>
@@ -324,30 +352,28 @@ export const Experience = () => {
         </p>
         <div className={clsx("leading-none")}>
           <p className={clsx("mb-2")}>
-            <span className={clsx("font-bold")}>128</span> remaining lots
+            <span className={clsx("font-bold")}>{remainingLots}</span>{" "}
+            remaining lots
           </p>
-          <ul className={clsx("mb-4")}>
-            <li>
-              <p className={clsx("flex items-center justify-end gap-2")}>
-                <span className={clsx("font-bold")}>100x</span> common{" "}
-                <CircleIcon className={clsx("size-4.5", "stroke-3")} />
-              </p>
-            </li>
-            <li>
-              <p className={clsx("flex items-center justify-end gap-2")}>
-                <span className={clsx("font-bold")}>20x</span> rare
-                <DiamondIcon className={clsx("size-4.5", "stroke-3")} />
-              </p>
-            </li>
-            <li>
-              <p className={clsx("flex items-center justify-end gap-2")}>
-                <span className={clsx("font-bold")}>8x</span> legendary
-                <StarIcon className={clsx("size-4.5", "stroke-3")} />
-              </p>
-            </li>
-          </ul>
-          <p>last win: 5 minutes ago</p>
-          <p>total: 125 attempts</p>
+          {rarityBreakdown.length > 0 && (
+            <ul className={clsx("mb-4")}>
+              {rarityBreakdown.map((entry) => {
+                const { Icon, label } = getRarityReveal(entry.rarity);
+                return (
+                  <li key={entry.rarity}>
+                    <p className={clsx("flex items-center justify-end gap-2")}>
+                      <span className={clsx("font-bold")}>
+                        {entry.remaining}x
+                      </span>{" "}
+                      {label} <Icon className={clsx("size-4.5", "stroke-3")} />
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p>{lastWinLabel}</p>
+          <p>total: {totalDraws} attempts</p>
         </div>
       </motion.div>
       <motion.p
@@ -454,52 +480,72 @@ export const Experience = () => {
               <div className={clsx("mb-1", "flex items-center gap-2")}>
                 <AnimatePresence initial={false} mode="wait">
                   {showLotteryResult ? (
-                    <Fragment key="lottery-result">
-                      <motion.p
-                        initial={{ opacity: 0, translateX: 8, scale: 0.9 }}
-                        animate={{
-                          opacity: 1,
-                          translateX: 0,
-                          scale: 1,
-                        }}
-                        style={{ originX: 0.5, originY: 0.5 }}
-                        exit={{ opacity: 0, translateX: -8, scale: 0.9 }}
-                        className={clsx(
-                          "text-4xl leading-none font-bold uppercase",
-                        )}
-                      >
-                        lot - legendary
-                      </motion.p>
-                      <motion.span
-                        initial={{
-                          opacity: 0,
-                          rotate: -90,
-                          scale: 0,
-                          translateX: 8,
-                        }}
-                        animate={{
-                          rotate: 0,
-                          scale: 1,
-                          opacity: 1,
-                          translateX: 0,
-                        }}
-                        exit={{
-                          opacity: 0,
-                          rotate: -90,
-                          scale: 0,
-                          translateX: -8,
-                        }}
-                        style={{ originX: 0.5, originY: 0.5 }}
-                      >
-                        <StarIcon
+                    drawResult?.outcome === "win" && winReveal && WinIcon ? (
+                      <Fragment key="lottery-win">
+                        <motion.p
+                          initial={{ opacity: 0, translateX: 8, scale: 0.9 }}
+                          animate={{
+                            opacity: 1,
+                            translateX: 0,
+                            scale: 1,
+                          }}
+                          style={{ originX: 0.5, originY: 0.5 }}
+                          exit={{ opacity: 0, translateX: -8, scale: 0.9 }}
                           className={clsx(
-                            "size-6",
-                            "stroke-3",
-                            "-translate-y-0.5",
+                            "text-4xl leading-none font-bold uppercase",
                           )}
-                        />
-                      </motion.span>
-                    </Fragment>
+                        >
+                          lot - {winReveal.label}
+                        </motion.p>
+                        <motion.span
+                          initial={{
+                            opacity: 0,
+                            rotate: -90,
+                            scale: 0,
+                            translateX: 8,
+                          }}
+                          animate={{
+                            rotate: 0,
+                            scale: 1,
+                            opacity: 1,
+                            translateX: 0,
+                          }}
+                          exit={{
+                            opacity: 0,
+                            rotate: -90,
+                            scale: 0,
+                            translateX: -8,
+                          }}
+                          style={{ originX: 0.5, originY: 0.5 }}
+                        >
+                          <WinIcon
+                            className={clsx(
+                              "size-6",
+                              "stroke-3",
+                              "-translate-y-0.5",
+                            )}
+                          />
+                        </motion.span>
+                      </Fragment>
+                    ) : (
+                      <Fragment key="lottery-loss">
+                        <motion.p
+                          initial={{ opacity: 0, translateX: 8, scale: 0.9 }}
+                          animate={{
+                            opacity: 1,
+                            translateX: 0,
+                            scale: 1,
+                          }}
+                          style={{ originX: 0.5, originY: 0.5 }}
+                          exit={{ opacity: 0, translateX: -8, scale: 0.9 }}
+                          className={clsx(
+                            "text-4xl leading-none font-bold uppercase",
+                          )}
+                        >
+                          no lot this time
+                        </motion.p>
+                      </Fragment>
+                    )
                   ) : (
                     <Fragment key="lottery-pending">
                       <motion.p
@@ -541,59 +587,107 @@ export const Experience = () => {
                     className={clsx("flex flex-col items-end")}
                     key="lottery-success-details"
                   >
-                    <motion.p
-                      initial={{
-                        opacity: 0,
-                        translateX: 8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        translateX: 0,
-                        transition: { delay: 0.6 },
-                      }}
-                      exit={{ opacity: 0, translateX: -8 }}
-                      className={clsx(
-                        "mb-2",
-                        "flex items-center justify-end gap-2",
-                        "text-4xl leading-none",
-                      )}
-                    >
-                      congratulations, you just won a lot!
-                    </motion.p>
-                    <motion.p
-                      initial={{
-                        opacity: 0,
-                        translateX: 8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        translateX: 0,
-                        transition: { delay: 0.7 },
-                      }}
-                      exit={{ opacity: 0, translateX: -8 }}
-                      className={clsx(
-                        "text-4xl leading-none font-bold",
-                        "mb-4",
-                      )}
-                    >
-                      take your{" "}
-                      <span className={clsx("uppercase")}>winning</span> ticket
-                    </motion.p>
-                    <motion.p
-                      initial={{
-                        opacity: 0,
-                        translateX: 8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        translateX: 0,
-                        transition: { delay: 0.8 },
-                      }}
-                      exit={{ opacity: 0, translateX: -8 }}
-                      className={clsx("mb-6", "text-4xl leading-none")}
-                    >
-                      Thanks for playing with us!
-                    </motion.p>
+                    {drawResult?.outcome === "win" ? (
+                      <>
+                        <motion.p
+                          initial={{
+                            opacity: 0,
+                            translateX: 8,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            translateX: 0,
+                            transition: { delay: 0.6 },
+                          }}
+                          exit={{ opacity: 0, translateX: -8 }}
+                          className={clsx(
+                            "mb-2",
+                            "flex items-center justify-end gap-2",
+                            "text-4xl leading-none",
+                          )}
+                        >
+                          congratulations, you just won a lot!
+                        </motion.p>
+                        <motion.p
+                          initial={{
+                            opacity: 0,
+                            translateX: 8,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            translateX: 0,
+                            transition: { delay: 0.7 },
+                          }}
+                          exit={{ opacity: 0, translateX: -8 }}
+                          className={clsx(
+                            "text-4xl leading-none font-bold",
+                            "mb-4",
+                          )}
+                        >
+                          {drawResult.prize.winDescription}
+                        </motion.p>
+                        <motion.p
+                          initial={{
+                            opacity: 0,
+                            translateX: 8,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            translateX: 0,
+                            transition: { delay: 0.8 },
+                          }}
+                          exit={{ opacity: 0, translateX: -8 }}
+                          className={clsx(
+                            "mb-6",
+                            "text-4xl leading-none font-bold",
+                          )}
+                        >
+                          take your{" "}
+                          <span className={clsx("uppercase")}>winning</span>{" "}
+                          ticket
+                        </motion.p>
+                      </>
+                    ) : (
+                      <>
+                        <motion.p
+                          initial={{
+                            opacity: 0,
+                            translateX: 8,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            translateX: 0,
+                            transition: { delay: 0.6 },
+                          }}
+                          exit={{ opacity: 0, translateX: -8 }}
+                          className={clsx(
+                            "mb-2",
+                            "flex items-center justify-end gap-2",
+                            "text-4xl leading-none",
+                          )}
+                        >
+                          better luck next time
+                        </motion.p>
+                        <motion.p
+                          initial={{
+                            opacity: 0,
+                            translateX: 8,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            translateX: 0,
+                            transition: { delay: 0.7 },
+                          }}
+                          exit={{ opacity: 0, translateX: -8 }}
+                          className={clsx(
+                            "text-4xl leading-none font-bold",
+                            "mb-6",
+                          )}
+                        >
+                          take your ticket
+                        </motion.p>
+                      </>
+                    )}
                     <motion.div
                       initial={{
                         opacity: 0,

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
+import type { DrawResult } from "@dither-booth/shared/lottery";
+
 import {
   COUNTDOWN_START,
   experienceReducer,
@@ -8,6 +10,16 @@ import {
   type ExperienceAction,
   type ExperienceState,
 } from "./experience-machine";
+
+const LOSS_DRAW: DrawResult = { outcome: "loss", prize: null };
+const WIN_DRAW: DrawResult = {
+  outcome: "win",
+  prize: {
+    id: "prize-1",
+    rarity: "legendary",
+    winDescription: "a free drink",
+  },
+};
 
 const withPhase = (
   phase: ExperienceState["phase"],
@@ -87,12 +99,14 @@ describe("experienceReducer", () => {
     state = experienceReducer(state, {
       type: "printSucceeded",
       printAttemptId: 1,
+      drawResult: WIN_DRAW,
     });
     expect(state).toMatchObject({
       phase: "printSucceeded",
       activePrintAttemptId: null,
       showLotteryResult: false,
       restartCountdown: null,
+      drawResult: WIN_DRAW,
     });
   });
 
@@ -134,6 +148,7 @@ describe("experienceReducer", () => {
       experienceReducer(printingState, {
         type: "printSucceeded",
         printAttemptId: 999,
+        drawResult: LOSS_DRAW,
       }),
     ).toBe(printingState);
   });
@@ -150,6 +165,7 @@ describe("experienceReducer", () => {
       countdown: null,
       restartCountdown: null,
       showLotteryResult: false,
+      drawResult: null,
       activePrintAttemptId: null,
       nextPrintAttemptId: 2,
     });
@@ -205,6 +221,7 @@ describe("experienceReducer", () => {
         countdown: 2,
         restartCountdown: 4,
         showLotteryResult: true,
+        drawResult: WIN_DRAW,
         activePrintAttemptId: 3,
         nextPrintAttemptId: 4,
       });
@@ -215,6 +232,7 @@ describe("experienceReducer", () => {
         countdown: null,
         restartCountdown: null,
         showLotteryResult: false,
+        drawResult: null,
         activePrintAttemptId: null,
         nextPrintAttemptId: 4,
       });
@@ -246,7 +264,7 @@ describe("experienceReducer", () => {
       { type: "autoResetElapsed" },
       { type: "restartRequested" },
       { type: "photoCaptured", printAttemptId: 1 },
-      { type: "printSucceeded", printAttemptId: 1 },
+      { type: "printSucceeded", printAttemptId: 1, drawResult: LOSS_DRAW },
       { type: "printFailed", printAttemptId: 1 },
     ];
 

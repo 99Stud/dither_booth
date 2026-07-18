@@ -127,8 +127,6 @@ export const prizeTable = sqliteTable(
   ],
 );
 
-export const DRAW_OUTCOMES = ["win", "loss"] as const;
-
 export const drawTable = sqliteTable("draw", {
   id: text()
     .primaryKey()
