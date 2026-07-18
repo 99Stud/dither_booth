@@ -75,6 +75,7 @@ export async function getCurrentEventForDb(
       enabled: lottery.enabled,
       noWinWeight: lottery.noWinWeight,
       winCooldownMinutes: lottery.winCooldownMinutes,
+      printLoserTicket: lottery.printLoserTicket,
     },
     lots: prizes.map(mapLot),
   };
@@ -112,6 +113,7 @@ export async function createEventForDb(
     enabled: input.enabled,
     noWinWeight: input.noWinWeight,
     winCooldownMinutes: input.winCooldownMinutes,
+    printLoserTicket: input.printLoserTicket,
   });
 
   await db.insert(campaignTable).values({
@@ -177,6 +179,7 @@ export async function updateLotterySettingsForDb(
       enabled: input.enabled,
       noWinWeight: input.noWinWeight,
       winCooldownMinutes: input.winCooldownMinutes,
+      printLoserTicket: input.printLoserTicket,
     })
     .where(eq(lotteryTable.id, current.lottery.id));
 
@@ -187,6 +190,7 @@ export async function updateLotterySettingsForDb(
       enabled: input.enabled,
       noWinWeight: input.noWinWeight,
       winCooldownMinutes: input.winCooldownMinutes,
+      printLoserTicket: input.printLoserTicket,
     },
   };
 }

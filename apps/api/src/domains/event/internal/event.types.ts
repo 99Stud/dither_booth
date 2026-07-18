@@ -19,6 +19,7 @@ export type CurrentEvent = {
     enabled: boolean;
     noWinWeight: number;
     winCooldownMinutes: number;
+    printLoserTicket: boolean;
   };
   lots: EventLot[];
 };

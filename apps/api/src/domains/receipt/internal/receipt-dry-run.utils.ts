@@ -54,28 +54,28 @@ export async function previewReceiptRasters({
   previewDir = DEFAULT_RECEIPT_PREVIEW_DIR,
   ticketRef,
 }: {
-  lotteryRasterCmd: Buffer;
+  lotteryRasterCmd?: Buffer;
   openPaths?: (paths: string[]) => Promise<void>;
   photoRasterCmd: Buffer;
   previewDir?: string;
   ticketRef: string;
-}): Promise<{ lotteryPath: string; photoPath: string }> {
+}): Promise<{ lotteryPath: string | null; photoPath: string }> {
   await mkdir(previewDir, { recursive: true });
 
-  const [photoPng, lotteryPng] = await Promise.all([
-    gsV0RasterCommandToPngBuffer(photoRasterCmd),
-    gsV0RasterCommandToPngBuffer(lotteryRasterCmd),
-  ]);
-
+  const photoPng = await gsV0RasterCommandToPngBuffer(photoRasterCmd);
   const photoPath = join(previewDir, `photo-${ticketRef}.png`);
-  const lotteryPath = join(previewDir, `lottery-${ticketRef}.png`);
+  await Bun.write(photoPath, photoPng);
 
-  await Promise.all([
-    Bun.write(photoPath, photoPng),
-    Bun.write(lotteryPath, lotteryPng),
-  ]);
+  let lotteryPath: string | null = null;
 
-  await openPaths([photoPath, lotteryPath]);
+  if (lotteryRasterCmd) {
+    const lotteryPng = await gsV0RasterCommandToPngBuffer(lotteryRasterCmd);
+    lotteryPath = join(previewDir, `lottery-${ticketRef}.png`);
+    await Bun.write(lotteryPath, lotteryPng);
+  }
+
+  const paths = lotteryPath ? [photoPath, lotteryPath] : [photoPath];
+  await openPaths(paths);
 
   logKioskEvent("info", API_PRINTER_LOG_SOURCE, "receipt-print-dry-run", {
     details: {

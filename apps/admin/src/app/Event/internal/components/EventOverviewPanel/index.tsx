@@ -128,6 +128,12 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
             </span>
           </p>
           <p>
+            Print loser ticket:{" "}
+            <span className={clsx("font-medium")}>
+              {event.lottery.printLoserTicket ? "Yes" : "No"}
+            </span>
+          </p>
+          <p>
             Lots configured:{" "}
             <span className={clsx("font-medium")}>{event.lots.length}</span>
           </p>

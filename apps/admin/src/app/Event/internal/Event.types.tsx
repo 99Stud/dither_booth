@@ -19,6 +19,7 @@ export type CurrentEvent = {
     enabled: boolean;
     noWinWeight: number;
     winCooldownMinutes: number;
+    printLoserTicket: boolean;
   };
   lots: EventLot[];
 };
@@ -29,6 +30,7 @@ export type CreateEventFormValues = {
   name: string;
   noWinWeight: number;
   winCooldownMinutes: number;
+  printLoserTicket: boolean;
   enabled: boolean;
 };
 
@@ -40,6 +42,7 @@ export type LotterySettingsFormValues = {
   enabled: boolean;
   noWinWeight: number;
   winCooldownMinutes: number;
+  printLoserTicket: boolean;
 };
 
 export type LotFormValues = {

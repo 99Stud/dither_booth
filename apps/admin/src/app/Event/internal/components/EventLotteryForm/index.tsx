@@ -51,6 +51,7 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
     event.lottery.enabled,
     event.lottery.noWinWeight,
     event.lottery.winCooldownMinutes,
+    event.lottery.printLoserTicket,
     event.lottery.id,
   ]);
 
@@ -73,6 +74,11 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
           }}
         >
           <SwitchField form={form} name="enabled" label="Lottery enabled" />
+          <SwitchField
+            form={form}
+            name="printLoserTicket"
+            label="Print loser ticket"
+          />
           <NumberField form={form} name="noWinWeight" label="No-win weight" />
           <NumberField
             form={form}

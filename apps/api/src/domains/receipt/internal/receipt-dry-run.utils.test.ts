@@ -64,4 +64,25 @@ describe("previewReceiptRasters", () => {
       Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     );
   });
+
+  test("writes photo PNG only when lottery raster is omitted", async () => {
+    const previewDir = await mkdtemp(join(tmpdir(), "receipt-dry-run-"));
+    previewDirs.push(previewDir);
+
+    const opened: string[][] = [];
+    const rasterCmd = await createMonoRasterCommand();
+
+    const result = await previewReceiptRasters({
+      openPaths: async (paths) => {
+        opened.push(paths);
+      },
+      photoRasterCmd: rasterCmd,
+      previewDir,
+      ticketRef: "654321",
+    });
+
+    expect(result.photoPath).toBe(join(previewDir, "photo-654321.png"));
+    expect(result.lotteryPath).toBeNull();
+    expect(opened).toEqual([[result.photoPath]]);
+  });
 });

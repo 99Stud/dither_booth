@@ -87,6 +87,11 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
             label="Win cooldown (minutes)"
           />
           <SwitchField form={form} name="enabled" label="Enable lottery now" />
+          <SwitchField
+            form={form}
+            name="printLoserTicket"
+            label="Print loser ticket"
+          />
           <DialogFooter>
             <Button
               type="button"

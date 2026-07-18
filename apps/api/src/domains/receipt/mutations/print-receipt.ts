@@ -1,9 +1,11 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
+import { eq } from "drizzle-orm";
 
 import type { DrawResult } from "#domains/lottery/internal/lottery.types";
 
+import { lotteryTable } from "#db/internal/db.schema";
 import { LOTTERY_LOG_SOURCE } from "#domains/lottery/internal/lottery.constants";
 import { executeLotteryDraw } from "#domains/lottery/internal/lottery.draw";
 import { printRasterReceipt } from "#domains/printer/printer.service";
@@ -65,6 +67,44 @@ export const printReceipt = publicProcedure
         message: "Failed to execute lottery draw.",
         cause: error,
       });
+    }
+
+    const lottery = await ctx.db.query.lotteryTable.findFirst({
+      where: eq(lotteryTable.enabled, true),
+    });
+    const printLoserTicket = lottery?.printLoserTicket ?? false;
+    const shouldPrintLotteryTicket =
+      draw.outcome === "win" || printLoserTicket;
+
+    if (!shouldPrintLotteryTicket) {
+      if (dryRun) {
+        try {
+          await previewReceiptRasters({
+            photoRasterCmd: receiptRasterCmd,
+            ticketRef: createBoothTicketRef(),
+          });
+        } catch (error) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to preview receipt dry-run outputs.",
+            cause: error,
+          });
+        }
+
+        return draw;
+      }
+
+      await printRasterReceipt(printerUSBAdapter!, receiptRasterCmd).catch(
+        (error) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to print receipt.",
+            cause: error,
+          });
+        },
+      );
+
+      return draw;
     }
 
     const ticketRef = createBoothTicketRef();
