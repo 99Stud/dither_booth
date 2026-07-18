@@ -91,12 +91,19 @@ export const lotteryTable = sqliteTable(
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
     noWinWeight: real("no_win_weight").notNull().default(1),
     winCooldownMinutes: integer("win_cooldown_minutes").notNull().default(5),
+    printLoserTicket: integer("print_loser_ticket", { mode: "boolean" })
+      .notNull()
+      .default(false),
   },
   (table) => [
     check("lottery_no_win_weight_check", sql`${table.noWinWeight} >= 0`),
     check(
       "lottery_win_cooldown_minutes_check",
       sql`${table.winCooldownMinutes} >= 0`,
+    ),
+    check(
+      "lottery_print_loser_ticket_check",
+      sql`${table.printLoserTicket} in (0, 1)`,
     ),
   ],
 );

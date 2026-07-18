@@ -52,11 +52,13 @@ describe("event.service", () => {
         name: "Launch night",
         noWinWeight: 50,
         winCooldownMinutes: 5,
+        printLoserTicket: false,
         enabled: false,
       });
 
       expect(created.campaign.name).toBe("Launch night");
       expect(created.lottery.enabled).toBe(false);
+      expect(created.lottery.printLoserTicket).toBe(false);
       expect(created.lots).toEqual([]);
 
       await expect(
@@ -64,7 +66,8 @@ describe("event.service", () => {
           name: "Second event",
           noWinWeight: 1,
           winCooldownMinutes: 0,
-          enabled: true,
+        printLoserTicket: false,
+        enabled: true,
         }),
       ).rejects.toMatchObject({
         code: "CONFLICT",
@@ -82,6 +85,7 @@ describe("event.service", () => {
         name: "Old event",
         noWinWeight: 10,
         winCooldownMinutes: 5,
+        printLoserTicket: false,
         enabled: true,
       });
 
@@ -102,6 +106,7 @@ describe("event.service", () => {
         name: "New event",
         noWinWeight: 20,
         winCooldownMinutes: 0,
+        printLoserTicket: false,
         enabled: false,
       });
 
@@ -127,6 +132,7 @@ describe("event.service", () => {
         name: "Stock event",
         noWinWeight: 1,
         winCooldownMinutes: 0,
+        printLoserTicket: false,
         enabled: false,
       });
 
@@ -162,6 +168,7 @@ describe("event.service", () => {
         name: "Enable event",
         noWinWeight: 1,
         winCooldownMinutes: 0,
+        printLoserTicket: false,
         enabled: false,
       });
 
@@ -176,6 +183,7 @@ describe("event.service", () => {
         enabled: true,
         noWinWeight: 40,
         winCooldownMinutes: 5,
+        printLoserTicket: true,
       });
 
       expect(updated.lottery).toMatchObject({
@@ -183,6 +191,7 @@ describe("event.service", () => {
         enabled: true,
         noWinWeight: 40,
         winCooldownMinutes: 5,
+        printLoserTicket: true,
       });
 
       const orphan = await db.query.lotteryTable.findFirst({
@@ -202,6 +211,7 @@ describe("event.service", () => {
         name: "History event",
         noWinWeight: 1,
         winCooldownMinutes: 0,
+        printLoserTicket: false,
         enabled: false,
       });
 

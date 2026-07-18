@@ -7,6 +7,7 @@ export const createEventInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
   noWinWeight: z.number().min(0).default(50),
   winCooldownMinutes: z.number().int().min(0).default(5),
+  printLoserTicket: z.boolean().default(false),
   enabled: z.boolean().default(false),
 });
 
@@ -18,6 +19,7 @@ export const updateLotterySettingsInputSchema = z.object({
   enabled: z.boolean(),
   noWinWeight: z.number().min(0),
   winCooldownMinutes: z.number().int().min(0),
+  printLoserTicket: z.boolean(),
 });
 
 export const createLotInputSchema = z.object({
