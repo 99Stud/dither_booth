@@ -20,6 +20,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
+import { installKioskFullscreen } from "#lib/kiosk-fullscreen";
 import { router } from "#lib/router/index";
 import { TRPCProvider, queryClient, trpcClient } from "#lib/trpc/trpc.client";
 
@@ -27,6 +28,20 @@ import "./styles/globals.css";
 
 const isDevelopment =
   typeof process !== "undefined" && process.env.NODE_ENV === "development";
+
+const WEB_APP_MANIFEST_HREF = "/manifest.webmanifest";
+
+if (typeof document !== "undefined") {
+  let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "manifest";
+    document.head.appendChild(link);
+  }
+  link.href = WEB_APP_MANIFEST_HREF;
+
+  installKioskFullscreen();
+}
 
 initializeBrowserLogging();
 

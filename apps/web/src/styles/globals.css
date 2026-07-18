@@ -147,6 +147,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body,
+  #root {
+    @apply h-dvh min-h-dvh overflow-hidden overscroll-none;
+    touch-action: manipulation;
+  }
   body {
     @apply bg-background text-foreground;
   }

@@ -3,7 +3,10 @@ import { type FC } from "react";
 
 export const Root: FC = () => {
   return (
-    <main data-dither-route-status="ready">
+    <main
+      data-dither-route-status="ready"
+      className="relative min-h-dvh overflow-hidden"
+    >
       <Outlet />
     </main>
   );

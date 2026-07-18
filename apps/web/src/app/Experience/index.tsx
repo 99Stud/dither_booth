@@ -16,6 +16,7 @@ import { Fragment, useCallback, useEffect, useReducer, useRef } from "react";
 
 import { InteractiveBackground } from "#components/misc/InteractiveBackground/index";
 import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { requestKioskFullscreen } from "#lib/kiosk-fullscreen";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 
@@ -94,6 +95,7 @@ export const Experience = () => {
   const webcamRef = useRef<WebcamHandle>(null);
 
   const handleStartExperience = useCallback(() => {
+    void requestKioskFullscreen();
     dispatch({ type: "startRequested" });
   }, []);
 
