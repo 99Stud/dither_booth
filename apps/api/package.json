@@ -19,6 +19,7 @@
     "cert:caroot": "mkcert -CAROOT",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/db/internal/db.migrate.ts",
+    "db:seed:lottery": "bun src/db/internal/db.seed-lottery.ts",
     "db:studio": "drizzle-kit studio",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
