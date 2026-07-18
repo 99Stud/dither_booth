@@ -3,6 +3,7 @@ import type { WebcamHandle } from "@dither-booth/ui/components/misc/Webcam";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 
+import { requestKioskFullscreen } from "#lib/kiosk-fullscreen";
 import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 
 import {
@@ -48,6 +49,7 @@ export const useExperienceFlow = () => {
   usePrintAttempt({ activePrintAttemptId, dispatch, phase, webcamRef });
 
   const handleStartExperience = useCallback(() => {
+    void requestKioskFullscreen();
     dispatch({ type: "startRequested" });
   }, []);
 

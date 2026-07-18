@@ -148,7 +148,12 @@
     @apply border-border outline-ring/50;
   }
   html {
-    @apply font-sans antialiased;
+    @apply min-h-dvh font-sans antialiased;
+    touch-action: manipulation;
+  }
+  body,
+  #root {
+    @apply min-h-dvh;
   }
   body {
     @apply bg-background text-foreground;

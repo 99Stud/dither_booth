@@ -33,6 +33,7 @@ export const Root: FC = () => {
       onClick={enterFullscreen}
       ref={mainRef}
       data-dither-route-status="ready"
+      className="relative min-h-dvh overflow-hidden"
     >
       <Toaster />
       <Outlet />
