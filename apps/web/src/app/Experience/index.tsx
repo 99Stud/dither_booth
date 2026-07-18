@@ -8,7 +8,7 @@ import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/i
 import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
-import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
+import { takeSquarePhoto as captureSquarePhoto } from "@dither-booth/ui/lib/image-manipulation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
@@ -104,16 +104,13 @@ export const Experience = () => {
   }, []);
 
   const takeSquarePhoto = useCallback(async () => {
-    return await takeSquarePhotoAndFlipHorizontally(
-      WEB_CAMERA_LOG_SOURCE,
-      async () => {
-        if (!webcamRef.current) {
-          throw new Error("Camera is not available.");
-        }
+    return await captureSquarePhoto(WEB_CAMERA_LOG_SOURCE, async () => {
+      if (!webcamRef.current) {
+        throw new Error("Camera is not available.");
+      }
 
-        return await webcamRef.current.takePhoto();
-      },
-    );
+      return await webcamRef.current.takePhoto();
+    });
   }, []);
 
   useEffect(() => {

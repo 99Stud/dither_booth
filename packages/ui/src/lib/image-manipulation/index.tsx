@@ -1,11 +1,10 @@
 import { logKioskEvent } from "@dither-booth/logging";
 import {
-  flipBlobHorizontally,
   getBlobDimensions,
   resizeBlobToSquare,
 } from "@dither-booth/shared/browser/image";
 
-export const takeSquarePhotoAndFlipHorizontally = async (
+export const takeSquarePhoto = async (
   source: string,
   takePhoto: () => Promise<Blob>,
 ) => {
@@ -20,10 +19,10 @@ export const takeSquarePhotoAndFlipHorizontally = async (
   });
 
   if (width === height) {
-    return await flipBlobHorizontally(photo);
+    return photo;
   }
 
   logKioskEvent("info", source, "client-square-resize-requested");
 
-  return await flipBlobHorizontally(await resizeBlobToSquare(photo));
+  return await resizeBlobToSquare(photo);
 };

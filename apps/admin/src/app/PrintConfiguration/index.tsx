@@ -6,7 +6,7 @@ import {
   TabsTrigger,
 } from "@dither-booth/ui/components/ui/tabs";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
-import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
+import { takeSquarePhoto as captureSquarePhoto } from "@dither-booth/ui/lib/image-manipulation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
@@ -66,7 +66,7 @@ export const PrintConfiguration = () => {
     useMutation(trpc.generateReceipt.mutationOptions());
 
   const takeSquarePhoto = useCallback(async () => {
-    return await takeSquarePhotoAndFlipHorizontally(
+    return await captureSquarePhoto(
       PRINT_CONFIGURATION_LOG_SOURCE,
       async () => {
         if (!webcamRef.current) {
