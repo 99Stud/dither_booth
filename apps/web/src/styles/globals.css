@@ -147,18 +147,19 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html,
-  body,
-  #root {
-    @apply h-dvh min-h-dvh overflow-hidden overscroll-none;
-    touch-action: manipulation;
-  }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
     @apply antialiased;
+  }
+  /* Kiosk shell only — do not lock #root height/overflow globally or receipt
+     screenshots (taller than the viewport) get clipped to empty white. */
+  html.kiosk-shell,
+  html.kiosk-shell body {
+    @apply h-dvh min-h-dvh overflow-hidden overscroll-none;
+    touch-action: manipulation;
   }
 }
 
