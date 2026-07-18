@@ -110,6 +110,11 @@ export function getApiInternalOrigin() {
   return formatOrigin("http", API_BIND_HOST, getPort("API_PORT"));
 }
 
+/** Loopback HTTPS origin for server-side clients (e.g. Puppeteer). */
+export function getWebInternalOrigin() {
+  return formatOrigin("https", API_BIND_HOST, getPort("WEB_PORT"));
+}
+
 export async function getWebPublicIp(options: RepoPathOptions) {
   const manifestPath = getWebTlsManifestPath(options);
   const manifest = await readWebTlsManifest(options);

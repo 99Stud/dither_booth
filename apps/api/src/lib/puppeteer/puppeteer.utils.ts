@@ -1,5 +1,5 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import { getWebOrigin } from "@dither-booth/ports";
+import { getWebInternalOrigin } from "@dither-booth/ports";
 import { getErrorMessage } from "@dither-booth/shared/errors";
 import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
 import puppeteer from "puppeteer";
@@ -72,17 +72,15 @@ export function createFailedPuppeteerStage<
   };
 }
 
-export async function initializePuppeteerReceiptViewer({
-  repoRoot,
-}: {
-  repoRoot: string;
-}): Promise<PuppeteerReceiptViewer> {
+export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerReceiptViewer> {
   const state = createInitialPuppeteerState();
   let browser: PuppeteerReceiptViewer["browser"];
   let page: PuppeteerReceiptViewer["page"];
 
   try {
     browser = await puppeteer.launch({
+      // Local booth TLS uses mkcert; Chromium does not always trust that CA.
+      acceptInsecureCerts: true,
       handleSIGHUP: false,
       handleSIGINT: false,
       handleSIGTERM: false,
@@ -150,14 +148,22 @@ export async function initializePuppeteerReceiptViewer({
     let receiptViewerUrl: string | undefined;
 
     try {
-      const webOrigin = await getWebOrigin({ repoRoot });
-
-      if (!webOrigin) {
-        throw new Error("Web origin not found.");
-      }
-
+      // Loopback, not LAN public origin — same-host Chromium is flaky on LAN IP.
+      const webOrigin = getWebInternalOrigin();
       receiptViewerUrl = new URL(RECEIPT_VIEWER_PATH, webOrigin).toString();
-      await page.goto(receiptViewerUrl);
+      await page.goto(receiptViewerUrl, {
+        waitUntil: "domcontentloaded",
+      });
+
+      await page.waitForFunction(
+        () =>
+          typeof (
+            window as Window & {
+              __ditherReceiptViewer?: { navigate?: unknown };
+            }
+          ).__ditherReceiptViewer?.navigate === "function",
+        { timeout: 15_000 },
+      );
 
       state.navigation = {
         ok: true,

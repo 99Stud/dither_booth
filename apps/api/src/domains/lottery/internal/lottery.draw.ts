@@ -2,7 +2,14 @@ import { logKioskEvent } from "@dither-booth/logging";
 import { and, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
 
 import type { DB } from "#db/internal/db.types";
+
 import { drawTable, lotteryTable, prizeTable } from "#db/internal/db.schema";
+import {
+  getLotteryForceConfig,
+  type LotteryForceConfig,
+} from "#lib/runtime-flags/runtime-flags";
+
+import type { DrawResult } from "./lottery.types";
 
 import { LOTTERY_LOG_SOURCE } from "./lottery.constants";
 import {
@@ -10,12 +17,64 @@ import {
   isWithinWinCooldown,
   runLotteryDraw,
 } from "./lottery.engine";
-import type { DrawResult } from "./lottery.types";
 
 export async function executeLotteryDraw(params: {
   db: DB;
+  force?: LotteryForceConfig | null;
 }): Promise<DrawResult> {
   const { db } = params;
+  const force =
+    params.force === undefined ? getLotteryForceConfig() : params.force;
+
+  if (force?.outcome === "loss") {
+    const lottery = await db.query.lotteryTable.findFirst({
+      where: eq(lotteryTable.enabled, true),
+    });
+
+    await db
+      .insert(drawTable)
+      .values({ lotteryId: lottery?.id ?? null, prizeId: null });
+
+    logKioskEvent("info", LOTTERY_LOG_SOURCE, "lottery-draw-force-loss", {
+      details: {
+        lotteryId: lottery?.id ?? null,
+      },
+    });
+
+    return { outcome: "loss", prize: null };
+  }
+
+  if (force?.outcome === "win") {
+    const prize = await db.query.prizeTable.findFirst({
+      where: eq(prizeTable.id, force.prizeId),
+    });
+
+    if (!prize) {
+      throw new Error(`Forced lottery prize not found: ${force.prizeId}`);
+    }
+
+    await db.insert(drawTable).values({
+      lotteryId: prize.lotteryId,
+      prizeId: prize.id,
+    });
+
+    logKioskEvent("info", LOTTERY_LOG_SOURCE, "lottery-draw-force-win", {
+      details: {
+        lotteryId: prize.lotteryId,
+        prizeId: prize.id,
+        rarity: prize.rarity,
+      },
+    });
+
+    return {
+      outcome: "win",
+      prize: {
+        id: prize.id,
+        rarity: prize.rarity,
+        winDescription: prize.winDescription,
+      },
+    };
+  }
 
   const lottery = await db.query.lotteryTable.findFirst({
     where: eq(lotteryTable.enabled, true),

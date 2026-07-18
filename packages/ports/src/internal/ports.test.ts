@@ -7,6 +7,7 @@ import {
   getAdminOrigin,
   getApiInternalOrigin,
   getPort,
+  getWebInternalOrigin,
   getWebOrigin,
   getWebPublicIp,
   getWebTlsCaPath,
@@ -95,6 +96,12 @@ describe("@dither-booth/ports", () => {
     process.env.API_PORT = "4010";
 
     expect(getApiInternalOrigin()).toBe("http://127.0.0.1:4010");
+  });
+
+  it("uses fixed loopback host for web internal origin", () => {
+    process.env.WEB_PORT = "3443";
+
+    expect(getWebInternalOrigin()).toBe("https://127.0.0.1:3443");
   });
 
   it("uses fixed repo-local TLS paths", () => {

@@ -8,7 +8,9 @@ import {
 import {
   installReceiptViewerNavigationBridge,
   isReceiptViewerRouteStateCommittedInPage,
+  isReceiptViewerRouteStateCommittedViaBridgeInPage,
   navigateReceiptViewerInPage,
+  navigateReceiptViewerViaBridgeInPage,
   type ReceiptViewerNavigationBridge,
 } from "./receipt-viewer";
 
@@ -80,6 +82,7 @@ describe("receipt viewer page helpers", () => {
 
     await withFakeReceiptViewerWindow(fakeWindow, async () => {
       installReceiptViewerNavigationBridge({
+        isRouteStateCommitted: () => true,
         navigate: async ({ template } = {}) => {
           events.push(`navigate:${template ?? "root"}`);
         },
@@ -89,6 +92,35 @@ describe("receipt viewer page helpers", () => {
     });
 
     expect(events).toEqual(["navigate:tartines"]);
+  });
+
+  test("puppeteer-safe bridge helpers call into the installed bridge", async () => {
+    const events: string[] = [];
+    const fakeWindow = createFakeReceiptViewerWindow({
+      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=tartines`,
+      templateAttribute: "tartines",
+    });
+
+    await withFakeReceiptViewerWindow(fakeWindow, async () => {
+      installReceiptViewerNavigationBridge({
+        isRouteStateCommitted: (options = {}) => {
+          events.push(`committed:${options.template ?? "root"}`);
+          return options.template === "tartines";
+        },
+        navigate: async ({ template } = {}) => {
+          events.push(`navigate:${template ?? "root"}`);
+        },
+      });
+
+      await navigateReceiptViewerViaBridgeInPage({ template: "tartines" });
+      expect(
+        isReceiptViewerRouteStateCommittedViaBridgeInPage({
+          template: "tartines",
+        }),
+      ).toBe(true);
+    });
+
+    expect(events).toEqual(["navigate:tartines", "committed:tartines"]);
   });
 
   test("requires selected template URL and DOM state to match", async () => {
