@@ -408,12 +408,16 @@ export const Experience = () => {
           initial={false}
           animate={{
             left: isPrintSuccessVisible ? "4rem" : "50%",
+            top: isPrintSuccessVisible ? "50%" : "2rem",
+            bottom: isPrintSuccessVisible ? "auto" : "2rem",
+            height: isPrintSuccessVisible ? "52dvh" : "auto",
             translateX: isPrintSuccessVisible ? 0 : "-50%",
+            translateY: isPrintSuccessVisible ? "-50%" : 0,
             transition: {
               duration: 0.4,
             },
           }}
-          className={clsx("absolute top-8 bottom-8")}
+          className={clsx("absolute")}
         >
           <Webcam
             ref={webcamRef}
