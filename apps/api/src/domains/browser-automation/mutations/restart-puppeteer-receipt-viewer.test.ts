@@ -6,8 +6,9 @@ import { apiRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
 const ADMIN_ORIGIN = "https://admin.local";
+const ADMIN_LAN_ORIGIN = "https://192.168.1.10:3002";
 
-function createTestCaller(requestOrigin?: string) {
+function createTestCaller(requestOrigin?: string, adminOrigin = ADMIN_ORIGIN) {
   const state = createInitialPuppeteerState();
   const restartResult = {
     ok: true,
@@ -15,7 +16,7 @@ function createTestCaller(requestOrigin?: string) {
   };
   let restartCalls = 0;
   const context = {
-    adminOrigin: ADMIN_ORIGIN,
+    adminOrigin,
     db: {} as TRPCContext["db"],
     mode: "production",
     page: undefined,
@@ -47,6 +48,18 @@ describe("restartPuppeteerReceiptViewer", () => {
   test("allows requests from the admin origin", async () => {
     const { caller, getRestartCalls, restartResult } =
       createTestCaller(ADMIN_ORIGIN);
+
+    await expect(caller.restartPuppeteerReceiptViewer()).resolves.toBe(
+      restartResult,
+    );
+    expect(getRestartCalls()).toBe(1);
+  });
+
+  test("allows localhost on the same admin port as the LAN origin", async () => {
+    const { caller, getRestartCalls, restartResult } = createTestCaller(
+      "https://localhost:3002",
+      ADMIN_LAN_ORIGIN,
+    );
 
     await expect(caller.restartPuppeteerReceiptViewer()).resolves.toBe(
       restartResult,

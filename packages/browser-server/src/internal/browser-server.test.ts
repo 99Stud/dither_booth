@@ -137,6 +137,31 @@ describe("createWebSocketUpgradeRoute", () => {
     );
   });
 
+  it("allows localhost when public origin is the LAN host on the same port", async () => {
+    const upgrades: unknown[] = [];
+    const route = createWebSocketUpgradeRoute({
+      handler: {},
+      publicOrigin: "https://192.168.1.10:3002",
+      routePath: "/events",
+    });
+    const server = {
+      upgrade: (_req: Request, options: unknown) => {
+        upgrades.push(options);
+        return true;
+      },
+    } as unknown as Bun.Server<BrowserServerWebSocketData>;
+
+    const response = await route(
+      new Request("https://localhost:3002/events", {
+        headers: { Origin: "https://localhost:3002" },
+      }),
+      server,
+    );
+
+    expect(response).toBeUndefined();
+    expect(upgrades).toHaveLength(1);
+  });
+
   it("rejects requests without an origin", async () => {
     const route = createUpgradeRoute();
     const server = {
@@ -489,6 +514,23 @@ describe("getPublicAssetRoutes", () => {
 });
 
 describe("getProxiedRequestHeaders", () => {
+  it("fills missing Origin from the browser-facing request origin", () => {
+    const headers = getProxiedRequestHeaders(new Headers(), {
+      fallbackOrigin: "https://localhost:3002",
+    });
+
+    expect(headers.get("origin")).toBe("https://localhost:3002");
+  });
+
+  it("keeps an existing Origin instead of overwriting it", () => {
+    const headers = getProxiedRequestHeaders(
+      new Headers({ origin: "https://localhost:3002" }),
+      { fallbackOrigin: "https://192.168.1.10:3002" },
+    );
+
+    expect(headers.get("origin")).toBe("https://localhost:3002");
+  });
+
   it("drops spoofable proxy headers while preserving request metadata", () => {
     const headers = getProxiedRequestHeaders(
       new Headers({

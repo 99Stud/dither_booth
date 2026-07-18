@@ -12,6 +12,7 @@ import {
 import { API_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
 
 export const DEV_LOTTERY_ID = "dev_lottery";
+export const DEV_CAMPAIGN_ID = "dev_campaign";
 
 export const DEV_PRIZE_IDS = {
   common: "dev_prize_common",
@@ -54,6 +55,7 @@ export type SeedDevLotteryResult =
   | { status: "skipped"; reason: "already_seeded" }
   | {
       status: "seeded";
+      campaignId: string;
       lotteryId: string;
       prizeIds: string[];
       reset: boolean;
@@ -67,6 +69,7 @@ async function clearLotteryData() {
     .where(sql`${campaignTable.lotteryId} is not null`);
   await db.delete(prizeTable);
   await db.delete(lotteryTable);
+  await db.delete(campaignTable);
 }
 
 export async function seedDevLottery(
@@ -100,8 +103,15 @@ export async function seedDevLottery(
     })),
   );
 
+  await db.insert(campaignTable).values({
+    id: DEV_CAMPAIGN_ID,
+    name: "Dev event",
+    lotteryId: DEV_LOTTERY_ID,
+  });
+
   return {
     status: "seeded",
+    campaignId: DEV_CAMPAIGN_ID,
     lotteryId: DEV_LOTTERY_ID,
     prizeIds: DEV_PRIZES.map((prize) => prize.id),
     reset,
@@ -133,6 +143,7 @@ if (import.meta.main) {
     } else {
       logKioskEvent("info", API_DB_MIGRATE_LOG_SOURCE, "lottery-seeded", {
         details: {
+          campaignId: result.campaignId,
           lotteryId: result.lotteryId,
           prizeIds: result.prizeIds,
           reset: result.reset,
@@ -140,7 +151,7 @@ if (import.meta.main) {
       });
       console.log(
         [
-          `Seeded lottery ${result.lotteryId}${result.reset ? " (reset)" : ""}.`,
+          `Seeded event ${result.campaignId} + lottery ${result.lotteryId}${result.reset ? " (reset)" : ""}.`,
           `Prizes: ${result.prizeIds.join(", ")}`,
           `Force a win with LOTTERY_FORCE_PRIZE_ID=${DEV_PRIZE_IDS.legendary}`,
         ].join("\n"),

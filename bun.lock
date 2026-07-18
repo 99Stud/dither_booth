@@ -116,6 +116,7 @@
     "packages/browser-server": {
       "name": "@dither-booth/browser-server",
       "dependencies": {
+        "@dither-booth/ports": "workspace:*",
         "@dither-booth/shared": "workspace:*",
         "bun-plugin-tailwind": "0.1.2",
       },
