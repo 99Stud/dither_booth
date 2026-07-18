@@ -1,7 +1,7 @@
 import type { WebcamHandle } from "@dither-booth/ui/components/misc/Webcam";
 import type { Dispatch, RefObject } from "react";
 
-import { takeSquarePhoto as captureSquarePhoto } from "@dither-booth/ui/lib/image-manipulation";
+import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 
@@ -39,7 +39,7 @@ export const usePrintAttempt = ({
   );
 
   const takeSquarePhoto = useCallback(async () => {
-    return await captureSquarePhoto(
+    return await takeSquarePhotoAndFlipHorizontally(
       WEB_CAMERA_LOG_SOURCE,
       async () => {
         if (!webcamRef.current) {
