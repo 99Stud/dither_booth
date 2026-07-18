@@ -1,7 +1,5 @@
-import type {
-  ReceiptTemplate,
-  ReceiptViewerSearch,
-} from "#isomorphic/routes";
+import type { ReceiptTemplate, ReceiptViewerSearch } from "#isomorphic/routes";
+
 import {
   RECEIPT_VIEWER_PATH,
   RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM,
@@ -17,6 +15,7 @@ export const RECEIPT_VIEWER_TEMPLATE_SELECTOR = `[${RECEIPT_VIEWER_TEMPLATE_ATTR
 export type ReceiptViewerNavigationOptions = ReceiptViewerSearch;
 
 export type ReceiptViewerNavigationBridge = {
+  isRouteStateCommitted: (options?: ReceiptViewerNavigationOptions) => boolean;
   navigate: (options?: ReceiptViewerNavigationOptions) => Promise<void>;
 };
 
@@ -31,9 +30,7 @@ type ReceiptViewerElement = {
 };
 
 type ReceiptViewerPageWindow = {
-  __ditherReceiptViewer?: {
-    navigate?: ReceiptViewerNavigationBridge["navigate"];
-  };
+  __ditherReceiptViewer?: ReceiptViewerNavigationBridge;
   document: {
     querySelector: (selector: string) => ReceiptViewerElement | null;
   };
@@ -148,6 +145,42 @@ export function isReceiptViewerRouteStateCommittedInPage(
   }
 
   return !searchParams.has(templateSearchParam) && receiptViewerTemplate === "";
+}
+
+/**
+ * Puppeteer-safe: only touches `window` + the options arg (no module closures).
+ * Call this from page.evaluate / waitForFunction.
+ */
+export async function navigateReceiptViewerViaBridgeInPage(
+  options: ReceiptViewerSearch = {},
+): Promise<void> {
+  const receiptViewer = window.__ditherReceiptViewer;
+
+  if (typeof receiptViewer?.navigate !== "function") {
+    throw new Error("Receipt viewer navigation bridge is unavailable.");
+  }
+
+  await receiptViewer.navigate(options);
+
+  if (window.location.pathname !== "/receipt-viewer") {
+    throw new Error("Receipt viewer route did not match after navigation.");
+  }
+}
+
+/**
+ * Puppeteer-safe: only touches `window` + the options arg (no module closures).
+ * Call this from page.waitForFunction.
+ */
+export function isReceiptViewerRouteStateCommittedViaBridgeInPage(
+  options: ReceiptViewerSearch = {},
+): boolean {
+  const receiptViewer = window.__ditherReceiptViewer;
+
+  if (typeof receiptViewer?.isRouteStateCommitted !== "function") {
+    return false;
+  }
+
+  return receiptViewer.isRouteStateCommitted(options);
 }
 
 export type { ReceiptTemplate };

@@ -159,6 +159,7 @@ describe("withReceiptViewerSearch", () => {
     expect(events).toEqual([
       "evaluate:tartines",
       "wait:tartines",
+      "evaluate:tartines", // navigation failure diagnostics
       "evaluate:root",
       "wait:root",
     ]);

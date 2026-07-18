@@ -7,6 +7,7 @@
 
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import {
+  RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE,
   buildReceiptViewerSearch,
   installReceiptViewerNavigationBridge,
 } from "@dither-booth/shared/browser/receipt-viewer";
@@ -35,11 +36,48 @@ declare module "@tanstack/react-router" {
   }
 }
 
+const RECEIPT_VIEWER_SEARCH_KEYS = [
+  "template",
+  "outcome",
+  "prizeId",
+  "lotLabel",
+  "lotRarity",
+  "wonAt",
+  "ticketRef",
+] as const;
+
 installReceiptViewerNavigationBridge({
+  isRouteStateCommitted: (options = {}) => {
+    const expected = buildReceiptViewerSearch(options);
+    const { pathname, search } = router.state.location;
+
+    if (pathname !== RECEIPT_VIEWER_PATH) {
+      return false;
+    }
+
+    for (const key of RECEIPT_VIEWER_SEARCH_KEYS) {
+      if (search[key] !== expected[key]) {
+        return false;
+      }
+    }
+
+    const templateAttribute =
+      document
+        .querySelector(`[${RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE}]`)
+        ?.getAttribute(RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE) ?? null;
+
+    if (expected.template) {
+      return templateAttribute === expected.template;
+    }
+
+    return templateAttribute === "";
+  },
   navigate: async (options = {}) => {
+    const search = buildReceiptViewerSearch(options);
+    // Function form ignores previous params so lottery fields cannot leak/stick.
     await router.navigate({
       to: RECEIPT_VIEWER_PATH,
-      search: buildReceiptViewerSearch(options),
+      search: () => search,
     });
   },
 });

@@ -23,6 +23,32 @@ bun run build
 bun run start
 ```
 
+### Printer dry-run and lottery force (dev only)
+
+These flags are read from the API process env. They must not be enabled when `NODE_ENV=production`.
+
+| Env                                 | Role                                                                                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RECEIPT_PRINT_DRY_RUN=true`        | Skip USB printer init and USB writes. Still needs a running web app (Puppeteer loads `/receipt-viewer`). Builds photo + lottery tickets, writes PNGs to `tmp/receipt-previews/`, and opens them. |
+| `LOTTERY_FORCE_OUTCOME=win\|loss`   | Optional. Force the lottery draw outcome.                                                                                                   |
+| `LOTTERY_FORCE_PRIZE_ID=<prize id>` | Optional. Force that prize (implies win). Required when forcing a win.                                                                      |
+
+Rules:
+
+- `LOTTERY_FORCE_PRIZE_ID` alone forces a win for that prize.
+- `LOTTERY_FORCE_OUTCOME=win` requires `LOTTERY_FORCE_PRIZE_ID`.
+- `LOTTERY_FORCE_OUTCOME=loss` cannot be combined with `LOTTERY_FORCE_PRIZE_ID`.
+- Forced wins bypass cooldown and weights, do not decrement prize stock, and still insert a `draw` row.
+
+Example:
+
+```bash
+RECEIPT_PRINT_DRY_RUN=true \
+LOTTERY_FORCE_OUTCOME=win \
+LOTTERY_FORCE_PRIZE_ID=your_prize_cuid \
+bun run dev
+```
+
 ### Check code quality
 
 ```bash

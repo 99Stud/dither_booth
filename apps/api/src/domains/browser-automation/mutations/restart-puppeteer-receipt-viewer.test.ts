@@ -30,6 +30,7 @@ function createTestCaller(requestOrigin?: string) {
 
         return restartResult;
       },
+      whenReady: async () => ({ state }),
     },
     puppeteerState: state,
     requestOrigin,

@@ -19,6 +19,7 @@ import { API_REPO_ROOT } from "#lib/constants";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import { getRuntimeProcessManager } from "#lib/process-manager/process-manager.utils";
 import { createPuppeteerReceiptViewerLifecycle } from "#lib/puppeteer/puppeteer-lifecycle.utils";
+import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 import {
   API_SERVER_BIND_HOST,
   API_SERVER_LOG_SOURCE,
@@ -75,19 +76,35 @@ export async function runApiServer(options: {
 
   await ensureDefaultPrintConfiguration();
 
+  const receiptPrintDryRun = isReceiptPrintDryRun();
   let printerUSBAdapter: USB | undefined;
-  try {
-    printerUSBAdapter = new USB();
-  } catch (error) {
-    logKioskEvent("error", API_PRINTER_LOG_SOURCE, "printer-init-failed", {
-      error: getKioskErrorDiagnostics(error, "Printer initialization failed."),
-    });
+
+  if (receiptPrintDryRun) {
+    logKioskEvent(
+      "info",
+      API_PRINTER_LOG_SOURCE,
+      "receipt-print-dry-run-enabled",
+      {
+        details: {
+          message:
+            "RECEIPT_PRINT_DRY_RUN is enabled; skipping USB printer initialization.",
+        },
+      },
+    );
+  } else {
+    try {
+      printerUSBAdapter = new USB();
+    } catch (error) {
+      logKioskEvent("error", API_PRINTER_LOG_SOURCE, "printer-init-failed", {
+        error: getKioskErrorDiagnostics(
+          error,
+          "Printer initialization failed.",
+        ),
+      });
+    }
   }
 
-  const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle({
-    repoRoot: API_REPO_ROOT,
-  });
-  await puppeteerLifecycle.initialize();
+  const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle();
 
   const adminOrigin = await getAdminOrigin({ repoRoot: API_REPO_ROOT });
   const processManager = getRuntimeProcessManager();
@@ -173,6 +190,7 @@ export async function runApiServer(options: {
     trpcHandler(req, res);
   });
 
+  // Bind before Puppeteer init so the web proxy is not refused while Chrome starts.
   server.listen(getPort("API_PORT"), API_SERVER_BIND_HOST);
 
   const address = server.address();
@@ -187,6 +205,8 @@ export async function runApiServer(options: {
       },
     });
   }
+
+  await puppeteerLifecycle.initialize();
 
   let closePromise: Promise<void> | undefined;
 
