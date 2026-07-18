@@ -1,3 +1,5 @@
+import type { DrawResult } from "@dither-booth/shared/lottery";
+
 import { Button } from "@dither-booth/ui/components/ui/button";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
@@ -9,8 +11,10 @@ import {
   kioskButtonClassName,
   kioskButtonLabelClassName,
 } from "../../Experience.styles";
+import { getRarityReveal } from "../../lottery-reveal.utils";
 
 interface PostPrintStageProps {
+  drawResult: DrawResult | null;
   entersInPlace: boolean;
   isVisible: boolean;
   onPlayLottery: () => void;
@@ -49,22 +53,43 @@ const CashMachineScreen = () => (
   </>
 );
 
-const LotteryResultsScreen = () => (
-  <>
-    <p className={clsx("mb-2", "text-6xl leading-none font-bold uppercase")}>
-      winner - A4 poster
-    </p>
-    <p className={clsx("mb-8", "text-5xl leading-none")}>
-      congratulations you won a{" "}
-      <span className={clsx("font-bold")}>legendary</span> lot!
-    </p>
-    <p className={clsx("text-5xl leading-none")}>
-      Thanks for playing with us! ♥︎
-    </p>
-  </>
-);
+const LotteryResultsScreen = ({
+  drawResult,
+}: {
+  drawResult: DrawResult | null;
+}) => {
+  if (drawResult?.outcome === "win") {
+    const winReveal = getRarityReveal(drawResult.prize.rarity);
+
+    return (
+      <>
+        <p className={clsx("mb-2", "text-6xl leading-none font-bold uppercase")}>
+          lot - {winReveal.label}
+        </p>
+        <p className={clsx("mb-8", "text-5xl leading-none")}>
+          congratulations, you just won a lot!
+        </p>
+        <p className={clsx("text-5xl leading-none font-bold")}>
+          {drawResult.prize.winDescription}
+        </p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p className={clsx("mb-2", "text-6xl leading-none font-bold uppercase")}>
+        no lot this time
+      </p>
+      <p className={clsx("text-5xl leading-none")}>
+        Thanks for playing with us! ♥︎
+      </p>
+    </>
+  );
+};
 
 export const PostPrintStage = ({
+  drawResult,
   entersInPlace,
   isVisible,
   onPlayLottery,
@@ -87,7 +112,9 @@ export const PostPrintStage = ({
           <ReceiptReadyScreen onPlayLottery={onPlayLottery} />
         )}
         {phase === "cashMachine" && <CashMachineScreen />}
-        {phase === "lotteryResults" && <LotteryResultsScreen />}
+        {phase === "lotteryResults" && (
+          <LotteryResultsScreen drawResult={drawResult} />
+        )}
       </motion.div>
     )}
   </AnimatePresence>

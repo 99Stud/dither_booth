@@ -1,3 +1,5 @@
+import type { LotteryStatus } from "@dither-booth/shared/lottery";
+
 import { NinetyNineStudOutlineLogo } from "@dither-booth/ui/components/svg/99StudOutlineLogo/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
 import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
@@ -5,12 +7,21 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 
 import { SLIDE_TRANSITION } from "../../Experience.motion";
+import { formatLastWinAt, getRarityReveal } from "../../lottery-reveal.utils";
 
-interface IntroChromeProps {
+export const IntroChrome = ({
+  isVisible,
+  lotteryStatus,
+}: {
   isVisible: boolean;
-}
+  lotteryStatus: LotteryStatus | undefined;
+}) => {
+  const remainingLots = lotteryStatus?.remainingLots ?? 0;
+  const rarityBreakdown = lotteryStatus?.rarityBreakdown ?? [];
+  const lastWinLabel = formatLastWinAt(lotteryStatus?.lastWinAt ?? null);
+  const totalDraws = lotteryStatus?.totalDraws ?? 0;
 
-export const IntroChrome = ({ isVisible }: IntroChromeProps) => (
+  return (
   <motion.div
     initial={false}
     animate={{ opacity: isVisible ? 1 : 0 }}
@@ -52,23 +63,28 @@ export const IntroChrome = ({ isVisible }: IntroChromeProps) => (
         <span className={clsx("animate-flashing")}>$</span> lottery
       </p>
       <div className={clsx("leading-none")}>
-        <ul>
-          <li>
-            <p className={clsx("flex items-center justify-end gap-2")}>
-              <span className={clsx("font-bold")}>100x</span>stickers
-            </p>
-          </li>
-          <li>
-            <p className={clsx("flex items-center justify-end gap-2")}>
-              <span className={clsx("font-bold")}>20x</span>posters
-            </p>
-          </li>
-          <li>
-            <p className={clsx("flex items-center justify-end gap-2")}>
-              <span className={clsx("font-bold")}>8x</span>water guns
-            </p>
-          </li>
-        </ul>
+        <p className={clsx("mb-2")}>
+          <span className={clsx("font-bold")}>{remainingLots}</span> remaining
+          lots
+        </p>
+        {rarityBreakdown.length > 0 && (
+          <ul className={clsx("mb-4")}>
+            {rarityBreakdown.map((entry) => {
+              const { Icon, label } = getRarityReveal(entry.rarity);
+
+              return (
+                <li key={entry.rarity}>
+                  <p className={clsx("flex items-center justify-end gap-2")}>
+                    <span className={clsx("font-bold")}>{entry.remaining}x</span>{" "}
+                    {label} <Icon className={clsx("size-4.5", "stroke-3")} />
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p>{lastWinLabel}</p>
+        <p>total: {totalDraws} attempts</p>
       </div>
     </div>
     <p
@@ -81,4 +97,5 @@ export const IntroChrome = ({ isVisible }: IntroChromeProps) => (
       legal_notice
     </p>
   </motion.div>
-);
+  );
+};

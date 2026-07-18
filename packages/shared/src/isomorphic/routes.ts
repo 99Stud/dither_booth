@@ -1,4 +1,4 @@
-import { raritySchema } from "#isomorphic/lottery";
+import { drawOutcomeSchema, raritySchema } from "#isomorphic/lottery";
 import z from "zod";
 
 export const RECEIPT_VIEWER_PATH = "/receipt-viewer";
@@ -15,8 +15,7 @@ export const RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM = "template";
 export const photoReceiptTemplateSchema = z.enum(PHOTO_RECEIPT_TEMPLATES);
 export const receiptTemplateSchema = z.enum(RECEIPT_TEMPLATES);
 
-export const DRAW_OUTCOME_SEARCH_VALUES = ["win", "loss"] as const;
-export const drawOutcomeSearchSchema = z.enum(DRAW_OUTCOME_SEARCH_VALUES);
+export const drawOutcomeSearchSchema = drawOutcomeSchema;
 
 export const RECEIPT_VIEWER_SEARCH_SCHEMA = z.object({
   [RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM]: receiptTemplateSchema.optional(),

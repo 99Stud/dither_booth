@@ -1,3 +1,5 @@
+import type { DrawResult } from "@dither-booth/shared/lottery";
+
 import { COUNTDOWN_START } from "./Experience.constants";
 
 export type ExperiencePhase =
@@ -20,6 +22,7 @@ export type ExperiencePhase =
 export interface ExperienceState {
   phase: ExperiencePhase;
   countdown: number | null;
+  drawResult: DrawResult | null;
   nextPrintAttemptId: number;
   activePrintAttemptId: number | null;
 }
@@ -35,12 +38,17 @@ export type ExperienceAction =
   | { type: "cashMachineElapsed" }
   | { type: "autoResetElapsed" }
   | { type: "photoCaptured"; printAttemptId: number }
-  | { type: "printSucceeded"; printAttemptId: number }
+  | {
+      type: "printSucceeded";
+      printAttemptId: number;
+      drawResult: DrawResult;
+    }
   | { type: "printFailed"; printAttemptId: number };
 
 export const initialExperienceState: ExperienceState = {
   phase: "idle",
   countdown: null,
+  drawResult: null,
   nextPrintAttemptId: 1,
   activePrintAttemptId: null,
 };
@@ -49,6 +57,7 @@ const beginReset = (state: ExperienceState): ExperienceState => ({
   ...state,
   phase: "resetting",
   countdown: null,
+  drawResult: null,
   activePrintAttemptId: null,
 });
 
@@ -72,6 +81,7 @@ export const experienceReducer = (
         ...state,
         phase: "introExiting",
         countdown: null,
+        drawResult: null,
         activePrintAttemptId: null,
       };
     }
@@ -203,6 +213,7 @@ export const experienceReducer = (
         ...state,
         phase: "cameraExiting",
         countdown: null,
+        drawResult: action.drawResult,
         activePrintAttemptId: null,
       };
     }

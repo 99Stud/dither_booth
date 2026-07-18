@@ -7,7 +7,7 @@ import { useCallback, useEffect } from "react";
 
 import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { reportKioskError } from "#lib/logging/logging.utils";
-import { useTRPC } from "#lib/trpc/trpc.client";
+import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 
 import type { ExperienceAction, ExperiencePhase } from "../Experience.machine";
 
@@ -68,14 +68,18 @@ export const usePrintAttempt = ({
           type: "photoCaptured",
           printAttemptId,
         });
-        await printReceiptImage(squarePhoto);
+        const drawResult = await printReceiptImage(squarePhoto);
 
         if (cancelled) return;
 
         dispatch({
           type: "printSucceeded",
           printAttemptId,
+          drawResult,
         });
+        void queryClient.invalidateQueries(
+          trpc.getLotteryStatus.queryFilter(),
+        );
       } catch (error) {
         if (cancelled) return;
 
@@ -96,7 +100,13 @@ export const usePrintAttempt = ({
     return () => {
       cancelled = true;
     };
-  }, [activePrintAttemptId, dispatch, printReceiptImage, takeSquarePhoto]);
+  }, [
+    activePrintAttemptId,
+    dispatch,
+    printReceiptImage,
+    takeSquarePhoto,
+    trpc.getLotteryStatus,
+  ]);
 
   // Stays a bespoke effect rather than a usePhaseTimeout call: it also restarts
   // on activePrintAttemptId, which the hook's phase-only deps cannot express.

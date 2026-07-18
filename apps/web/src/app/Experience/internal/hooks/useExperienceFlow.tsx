@@ -1,6 +1,9 @@
 import type { WebcamHandle } from "@dither-booth/ui/components/misc/Webcam";
 
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useReducer, useRef } from "react";
+
+import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 
 import {
   COUNTDOWN_INTERVAL_MS,
@@ -27,11 +30,14 @@ import { usePrintAttempt } from "./usePrintAttempt";
 import { useWebcamPrewarm } from "./useWebcamPrewarm";
 
 export const useExperienceFlow = () => {
+  const trpc = useTRPC();
+  const { data: lotteryStatus } = useQuery(trpc.getLotteryStatus.queryOptions());
+
   const [state, dispatch] = useReducer(
     experienceReducer,
     initialExperienceState,
   );
-  const { activePrintAttemptId, countdown, phase } = state;
+  const { activePrintAttemptId, countdown, drawResult, phase } = state;
 
   const webcamRef = useRef<WebcamHandle>(null);
 
@@ -48,6 +54,12 @@ export const useExperienceFlow = () => {
   const handlePlayLottery = useCallback(() => {
     dispatch({ type: "playLotteryRequested" });
   }, []);
+
+  useEffect(() => {
+    if (phase !== "idle") return;
+
+    void queryClient.invalidateQueries(trpc.getLotteryStatus.queryFilter());
+  }, [phase, trpc.getLotteryStatus]);
 
   useEffect(() => {
     if (phase !== "countdown") return;
@@ -113,7 +125,9 @@ export const useExperienceFlow = () => {
   return {
     captureFlashId,
     countdown,
+    drawResult,
     handleCameraAnimationComplete,
+    lotteryStatus,
     handlePlayLottery,
     handlePromptAnimationComplete,
     handleStartButtonAnimationComplete,

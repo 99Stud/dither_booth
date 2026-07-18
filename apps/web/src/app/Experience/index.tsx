@@ -13,6 +13,7 @@ export const Experience = () => {
   const {
     captureFlashId,
     countdown,
+    drawResult,
     handleCameraAnimationComplete,
     handlePlayLottery,
     handlePromptAnimationComplete,
@@ -26,6 +27,7 @@ export const Experience = () => {
     isStartButtonAtOrigin,
     isStartButtonVisible,
     isStartDisabled,
+    lotteryStatus,
     phase,
     promptText,
     webcamRef,
@@ -35,7 +37,10 @@ export const Experience = () => {
     <>
       <InteractiveBackground options={KIOSK_INTERACTIVE_BACKGROUND_OPTIONS} />
       <CaptureFlash captureId={captureFlashId} />
-      <IntroChrome isVisible={isIntroDecorationsVisible} />
+      <IntroChrome
+        isVisible={isIntroDecorationsVisible}
+        lotteryStatus={lotteryStatus}
+      />
       <StartExperienceButton
         disabled={isStartDisabled}
         isAtOrigin={isStartButtonAtOrigin}
@@ -54,6 +59,7 @@ export const Experience = () => {
           webcamRef={webcamRef}
         />
         <PostPrintStage
+          drawResult={drawResult}
           entersInPlace={isPostPrintEnteringInPlace}
           isVisible={isPostPrintVisible}
           onPlayLottery={handlePlayLottery}

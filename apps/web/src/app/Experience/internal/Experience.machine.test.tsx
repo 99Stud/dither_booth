@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
+import type { DrawResult } from "@dither-booth/shared/lottery";
+
 import { COUNTDOWN_START } from "./Experience.constants";
 import {
   experienceReducer,
@@ -7,6 +9,16 @@ import {
   type ExperienceAction,
   type ExperienceState,
 } from "./Experience.machine";
+
+const LOSS_DRAW: DrawResult = { outcome: "loss", prize: null };
+const WIN_DRAW: DrawResult = {
+  outcome: "win",
+  prize: {
+    id: "prize-1",
+    rarity: "legendary",
+    winDescription: "a free drink",
+  },
+};
 
 const withPhase = (
   phase: ExperienceState["phase"],
@@ -86,10 +98,12 @@ describe("experienceReducer", () => {
     state = experienceReducer(state, {
       type: "printSucceeded",
       printAttemptId: 1,
+      drawResult: WIN_DRAW,
     });
     expect(state).toMatchObject({
       phase: "cameraExiting",
       activePrintAttemptId: null,
+      drawResult: WIN_DRAW,
     });
 
     state = experienceReducer(state, { type: "cameraAnimationCompleted" });
@@ -146,6 +160,7 @@ describe("experienceReducer", () => {
       experienceReducer(printingState, {
         type: "printSucceeded",
         printAttemptId: 999,
+        drawResult: LOSS_DRAW,
       }),
     ).toBe(printingState);
   });
@@ -160,6 +175,7 @@ describe("experienceReducer", () => {
     expect(failedCaptureState).toMatchObject({
       phase: "resetting",
       countdown: null,
+      drawResult: null,
       activePrintAttemptId: null,
       nextPrintAttemptId: 2,
     });
@@ -243,7 +259,7 @@ describe("experienceReducer", () => {
       { type: "cashMachineElapsed" },
       { type: "autoResetElapsed" },
       { type: "photoCaptured", printAttemptId: 1 },
-      { type: "printSucceeded", printAttemptId: 1 },
+      { type: "printSucceeded", printAttemptId: 1, drawResult: LOSS_DRAW },
       { type: "printFailed", printAttemptId: 1 },
     ];
 
