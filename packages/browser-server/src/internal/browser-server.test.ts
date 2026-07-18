@@ -162,6 +162,32 @@ describe("createWebSocketUpgradeRoute", () => {
     expect(upgrades).toHaveLength(1);
   });
 
+  it("allows machine hostname aliases from the TLS manifest", async () => {
+    const upgrades: unknown[] = [];
+    const route = createWebSocketUpgradeRoute({
+      allowedHostnames: ["99framboises", "99framboises.local"],
+      handler: {},
+      publicOrigin: "https://192.168.1.10:3002",
+      routePath: "/events",
+    });
+    const server = {
+      upgrade: (_req: Request, options: unknown) => {
+        upgrades.push(options);
+        return true;
+      },
+    } as unknown as Bun.Server<BrowserServerWebSocketData>;
+
+    const response = await route(
+      new Request("https://99framboises.local:3002/events", {
+        headers: { Origin: "https://99framboises.local:3002" },
+      }),
+      server,
+    );
+
+    expect(response).toBeUndefined();
+    expect(upgrades).toHaveLength(1);
+  });
+
   it("rejects requests without an origin", async () => {
     const route = createUpgradeRoute();
     const server = {

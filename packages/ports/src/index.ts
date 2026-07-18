@@ -19,6 +19,7 @@ import {
 } from "./internal/ports.constants";
 
 export { ADMIN_BIND_HOST, API_BIND_HOST, WEB_BIND_HOST };
+export { getMachineCertificateHostnames } from "./internal/hostname.utils";
 export { isAllowedConfiguredOrigin } from "./internal/origin.utils";
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
@@ -78,6 +79,7 @@ async function readWebTlsManifest(options: RepoPathOptions) {
     caPath: manifest.data.caPath,
     certPath: manifest.data.certPath,
     keyPath: manifest.data.keyPath,
+    hostnames: manifest.data.hostnames,
   };
 }
 
@@ -140,6 +142,13 @@ export async function getWebTlsCaPath(options: RepoPathOptions) {
   }
 
   return manifest.caPath;
+}
+
+/** Machine hostnames recorded in the TLS manifest (bare + `.local`). */
+export async function getWebTlsHostnames(options: RepoPathOptions) {
+  const manifest = await readWebTlsManifest(options);
+
+  return manifest?.hostnames ?? [];
 }
 
 export async function getWebOrigin(options: RepoPathOptions) {

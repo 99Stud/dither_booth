@@ -12,6 +12,7 @@ import {
   getWebPublicIp,
   getWebTlsCaPath,
   getWebTlsCertPath,
+  getWebTlsHostnames,
   getWebTlsKeyPath,
   getWebTlsManifestPath,
 } from "../index";
@@ -66,6 +67,7 @@ async function writeManifest(
   manifestPath: string,
   publicIp: string,
   tlsPaths: { caPath: string; certPath: string; keyPath: string },
+  hostnames: string[] = [],
 ) {
   await writeRawManifest(
     manifestPath,
@@ -74,6 +76,7 @@ async function writeManifest(
         caPath: tlsPaths.caPath,
         certPath: tlsPaths.certPath,
         generatedAt: "2026-04-13T00:00:00.000Z",
+        hostnames,
         keyPath: tlsPaths.keyPath,
         publicIp,
       },
@@ -162,6 +165,41 @@ describe("@dither-booth/ports", () => {
     expect(await getAdminOrigin(repoPathOptions)).toBe(
       "https://192.168.1.43:3444",
     );
+  });
+
+  it("reads machine hostnames from the TLS manifest", async () => {
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
+
+    await writeManifest(
+      manifestPath,
+      "192.168.1.42",
+      { caPath, certPath, keyPath },
+      ["99framboises", "99framboises.local"],
+    );
+
+    expect(await getWebTlsHostnames(repoPathOptions)).toEqual([
+      "99framboises",
+      "99framboises.local",
+    ]);
+  });
+
+  it("defaults missing hostnames to an empty list", async () => {
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
+
+    await writeRawManifest(
+      manifestPath,
+      `${JSON.stringify({
+        caPath,
+        certPath,
+        generatedAt: "2026-04-13T00:00:00.000Z",
+        keyPath,
+        publicIp: "192.168.1.42",
+      })}\n`,
+    );
+
+    expect(await getWebTlsHostnames(repoPathOptions)).toEqual([]);
   });
 
   it("formats IPv6 web origins with brackets", async () => {

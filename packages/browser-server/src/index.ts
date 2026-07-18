@@ -136,6 +136,7 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     Object.entries(webSocketRoutes).map(([routePath, handler]) => [
       routePath,
       createWebSocketUpgradeRoute({
+        allowedHostnames: options.allowedHostnames,
         handler,
         publicOrigin: options.publicOrigin,
         routePath,
