@@ -48,13 +48,19 @@ describe("previewReceiptRasters", () => {
       ticketRef: "123456",
     });
 
-    expect(result.photoPath).toBe(join(previewDir, "photo-123456.png"));
-    expect(result.lotteryPath).toBe(join(previewDir, "lottery-123456.png"));
-    expect(opened).toEqual([[result.photoPath, result.lotteryPath]]);
+    const { photoPath, lotteryPath } = result;
+
+    expect(photoPath).toBe(join(previewDir, "photo-123456.png"));
+    expect(lotteryPath).toBe(join(previewDir, "lottery-123456.png"));
+    if (lotteryPath === null) {
+      throw new Error("expected lottery preview path");
+    }
+
+    expect(opened).toEqual([[photoPath, lotteryPath]]);
 
     const [photoBytes, lotteryBytes] = await Promise.all([
-      readFile(result.photoPath),
-      readFile(result.lotteryPath),
+      readFile(photoPath),
+      readFile(lotteryPath),
     ]);
 
     expect(photoBytes.subarray(0, 8)).toEqual(
