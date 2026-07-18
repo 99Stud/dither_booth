@@ -90,7 +90,8 @@ describe("event.service", () => {
       });
 
       const withLot = await createLotForDb(db, {
-        winDescription: "sticker",
+        title: "sticker",
+        winInstruction: "Show this ticket at the bar",
         weight: 1,
         totalQuantity: 5,
         remainingQuantity: 5,
@@ -137,7 +138,8 @@ describe("event.service", () => {
       });
 
       const withLot = await createLotForDb(db, {
-        winDescription: "drink",
+        title: "drink",
+        winInstruction: "Show this ticket at the bar",
         weight: 2,
         totalQuantity: 3,
         remainingQuantity: 1,
@@ -216,7 +218,8 @@ describe("event.service", () => {
       });
 
       const withLot = await createLotForDb(db, {
-        winDescription: "legendary prize",
+        title: "legendary prize",
+        winInstruction: "Show this ticket at the bar",
         weight: 1,
         totalQuantity: 1,
         remainingQuantity: 1,

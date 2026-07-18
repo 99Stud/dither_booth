@@ -85,7 +85,7 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Description</TableHead>
+                    <TableHead>Title</TableHead>
                     <TableHead>Rarity</TableHead>
                     <TableHead>Weight</TableHead>
                     <TableHead>Remaining</TableHead>
@@ -96,7 +96,7 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
                 <TableBody>
                   {event.lots.map((lot) => (
                     <TableRow key={lot.id}>
-                      <TableCell>{lot.winDescription}</TableCell>
+                      <TableCell>{lot.title}</TableCell>
                       <TableCell>{capitalize(lot.rarity)}</TableCell>
                       <TableCell>{lot.weight}</TableCell>
                       <TableCell>{lot.remainingQuantity}</TableCell>
@@ -152,7 +152,7 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
             <AlertDialogDescription>
               This removes{" "}
               <span className={clsx("font-medium")}>
-                {lotToDelete?.winDescription}
+                {lotToDelete?.title}
               </span>{" "}
               from the lottery. Lots with draw history cannot be deleted.
             </AlertDialogDescription>

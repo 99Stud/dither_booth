@@ -8,14 +8,16 @@ const prizes = [
     weight: 1,
     remainingQuantity: 1,
     rarity: "common" as const,
-    winDescription: "Prize A",
+    title: "Prize A",
+    winInstruction: "Show this ticket at the bar",
   },
   {
     id: "prize-b",
     weight: 1,
     remainingQuantity: 1,
     rarity: "rare" as const,
-    winDescription: "Prize B",
+    title: "Prize B",
+    winInstruction: "Show this ticket at the bar",
   },
 ];
 
@@ -25,7 +27,12 @@ describe("runLotteryDraw", () => {
 
     expect(result).toEqual({
       outcome: "win",
-      prize: { id: "prize-a", rarity: "common", winDescription: "Prize A" },
+      prize: {
+        id: "prize-a",
+        rarity: "common",
+        title: "Prize A",
+        winInstruction: "Show this ticket at the bar",
+      },
     });
   });
 
@@ -35,7 +42,12 @@ describe("runLotteryDraw", () => {
 
     expect(result).toEqual({
       outcome: "win",
-      prize: { id: "prize-b", rarity: "rare", winDescription: "Prize B" },
+      prize: {
+        id: "prize-b",
+        rarity: "rare",
+        title: "Prize B",
+        winInstruction: "Show this ticket at the bar",
+      },
     });
   });
 
@@ -58,7 +70,12 @@ describe("runLotteryDraw", () => {
 
     expect(result).toEqual({
       outcome: "win",
-      prize: { id: "prize-b", rarity: "rare", winDescription: "Prize B" },
+      prize: {
+        id: "prize-b",
+        rarity: "rare",
+        title: "Prize B",
+        winInstruction: "Show this ticket at the bar",
+      },
     });
   });
 

@@ -11,8 +11,6 @@ import { WinnerMark } from "#components/svg/WinnerMark/index";
 import { receiptViewerRoute } from "#lib/router/index";
 import { formatBoothTicketNumber } from "#lib/ticket-ref";
 
-const WIN_INSTRUCTIONS_LINE = "Présentez ce ticket au bar";
-
 const formatWonAtDisplay = (iso: string): string | null => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
@@ -117,7 +115,8 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
   const { className } = props;
   const {
     outcome: outcomeParam,
-    lotLabel,
+    title,
+    winInstruction,
     lotRarity,
     wonAt,
     ticketRef,
@@ -125,7 +124,7 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
 
   const outcome = outcomeParam === "win" ? "win" : "loss";
   const instructionsLine =
-    outcome === "win" ? WIN_INSTRUCTIONS_LINE : undefined;
+    outcome === "win" ? winInstruction : undefined;
   const wonAtDisplay = wonAt ? formatWonAtDisplay(wonAt) : null;
 
   const ticketNumber = useMemo(() => {
@@ -159,11 +158,11 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
           <div className="flex w-full flex-col items-center gap-1 px-1">
             <WinnerMark className="h-auto max-h-22 w-full max-w-full" />
           </div>
-          {lotLabel ? (
+          {title ? (
             <div
               className={clsx("text-center text-3xl font-bold leading-tight")}
             >
-              {lotLabel}
+              {title}
             </div>
           ) : null}
           {lotRarity ? <LotteryRarityStrip lotRarity={lotRarity} /> : null}

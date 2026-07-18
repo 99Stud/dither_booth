@@ -45,7 +45,8 @@ declare const window: ReceiptViewerPageWindow;
 const LOTTERY_SEARCH_KEYS = [
   "outcome",
   "prizeId",
-  "lotLabel",
+  "title",
+  "winInstruction",
   "lotRarity",
   "wonAt",
   "ticketRef",

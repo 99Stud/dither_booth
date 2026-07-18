@@ -20,10 +20,13 @@ export const DEV_PRIZE_IDS = {
   legendary: "dev_prize_legendary",
 } as const;
 
+const DEFAULT_WIN_INSTRUCTION = "Présentez ce ticket au bar";
+
 const DEV_PRIZES = [
   {
     id: DEV_PRIZE_IDS.common,
-    winDescription: "a 99stud sticker",
+    title: "a 99stud sticker",
+    winInstruction: DEFAULT_WIN_INSTRUCTION,
     weight: 40,
     totalQuantity: 100,
     remainingQuantity: 100,
@@ -31,7 +34,8 @@ const DEV_PRIZES = [
   },
   {
     id: DEV_PRIZE_IDS.rare,
-    winDescription: "an El Tony Mate",
+    title: "an El Tony Mate",
+    winInstruction: DEFAULT_WIN_INSTRUCTION,
     weight: 8,
     totalQuantity: 20,
     remainingQuantity: 20,
@@ -39,7 +43,8 @@ const DEV_PRIZES = [
   },
   {
     id: DEV_PRIZE_IDS.legendary,
-    winDescription: "a free drink at the bar",
+    title: "a free drink at the bar",
+    winInstruction: DEFAULT_WIN_INSTRUCTION,
     weight: 2,
     totalQuantity: 8,
     remainingQuantity: 8,

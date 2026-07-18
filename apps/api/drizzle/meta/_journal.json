@@ -43,6 +43,13 @@
       "when": 1790776989216,
       "tag": "0005_print_loser_ticket",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790777167272,
+      "tag": "0006_prize_title_win_instruction",
+      "breakpoints": true
     }
   ]
 }

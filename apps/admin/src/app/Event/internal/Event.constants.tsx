@@ -38,7 +38,8 @@ export const LOTTERY_SETTINGS_FORM_SCHEMA = z.object({
 
 export const LOT_FORM_SCHEMA = z
   .object({
-    winDescription: z.string().trim().min(1).max(240),
+    title: z.string().trim().min(1).max(120),
+    winInstruction: z.string().trim().min(1).max(240),
     weight: z.number().gt(0),
     totalQuantity: z.number().int().min(0),
     remainingQuantity: z.number().int().min(0),
@@ -68,7 +69,8 @@ export const DEFAULT_CREATE_EVENT_FORM_VALUES: CreateEventFormValues = {
 };
 
 export const DEFAULT_LOT_FORM_VALUES: LotFormValues = {
-  winDescription: "",
+  title: "",
+  winInstruction: "Présentez ce ticket au bar",
   weight: 1,
   totalQuantity: 1,
   remainingQuantity: 1,
@@ -98,7 +100,8 @@ export const getUpdateEventNameFormValues = (event: {
 });
 
 export const getLotFormValues = (lot: LotFormValues): LotFormValues => ({
-  winDescription: lot.winDescription,
+  title: lot.title,
+  winInstruction: lot.winInstruction,
   weight: lot.weight,
   totalQuantity: lot.totalQuantity,
   remainingQuantity: lot.remainingQuantity,

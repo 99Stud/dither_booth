@@ -69,8 +69,11 @@ const LotteryResultsScreen = ({
         <p className={clsx("mb-8", "text-5xl leading-none")}>
           congratulations, you just won a lot!
         </p>
-        <p className={clsx("text-5xl leading-none font-bold")}>
-          {drawResult.prize.winDescription}
+        <p className={clsx("mb-4", "text-5xl leading-none font-bold")}>
+          {drawResult.prize.title}
+        </p>
+        <p className={clsx("text-5xl leading-none")}>
+          {drawResult.prize.winInstruction}
         </p>
       </>
     );

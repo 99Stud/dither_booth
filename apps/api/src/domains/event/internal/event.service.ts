@@ -22,7 +22,8 @@ import type { CurrentEvent, EventLot } from "./event.types";
 
 function mapLot(prize: {
   id: string;
-  winDescription: string;
+  title: string;
+  winInstruction: string;
   weight: number;
   totalQuantity: number;
   remainingQuantity: number;
@@ -30,7 +31,8 @@ function mapLot(prize: {
 }): EventLot {
   return {
     id: prize.id,
-    winDescription: prize.winDescription,
+    title: prize.title,
+    winInstruction: prize.winInstruction,
     weight: prize.weight,
     totalQuantity: prize.totalQuantity,
     remainingQuantity: prize.remainingQuantity,
@@ -203,7 +205,8 @@ export async function createLotForDb(
 
   await db.insert(prizeTable).values({
     lotteryId: current.lottery.id,
-    winDescription: input.winDescription,
+    title: input.title,
+    winInstruction: input.winInstruction,
     weight: input.weight,
     totalQuantity: input.totalQuantity,
     remainingQuantity: input.remainingQuantity,
@@ -236,7 +239,8 @@ export async function updateLotForDb(
   await db
     .update(prizeTable)
     .set({
-      winDescription: input.winDescription,
+      title: input.title,
+      winInstruction: input.winInstruction,
       weight: input.weight,
       totalQuantity: input.totalQuantity,
       remainingQuantity: input.remainingQuantity,

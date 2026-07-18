@@ -27,7 +27,8 @@ type DrawablePrize = {
   weight: number;
   remainingQuantity: number;
   rarity: Rarity;
-  winDescription: string;
+  title: string;
+  winInstruction: string;
 };
 
 export const runLotteryDraw = (params: {
@@ -62,7 +63,8 @@ export const runLotteryDraw = (params: {
         prize: {
           id: prize.id,
           rarity: prize.rarity,
-          winDescription: prize.winDescription,
+          title: prize.title,
+          winInstruction: prize.winInstruction,
         },
       };
     }

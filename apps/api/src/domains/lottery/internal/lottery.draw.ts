@@ -71,7 +71,8 @@ export async function executeLotteryDraw(params: {
       prize: {
         id: prize.id,
         rarity: prize.rarity,
-        winDescription: prize.winDescription,
+        title: prize.title,
+        winInstruction: prize.winInstruction,
       },
     };
   }
