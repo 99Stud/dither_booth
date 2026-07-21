@@ -22,6 +22,7 @@ const PRINT_CONFIGURATION_FIELD_SCHEMAS = {
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
   threshold: z.number().int().min(0).max(255),
+  rotation: z.number().int().min(0).max(360),
   template: receiptTemplateSchema,
 };
 
@@ -34,5 +35,6 @@ export const UPDATE_PRINT_CONFIGURATION_SCHEMA = z.object({
   shadows: PRINT_CONFIGURATION_FIELD_SCHEMAS.shadows.optional(),
   highlights: PRINT_CONFIGURATION_FIELD_SCHEMAS.highlights.optional(),
   threshold: PRINT_CONFIGURATION_FIELD_SCHEMAS.threshold.optional(),
+  rotation: PRINT_CONFIGURATION_FIELD_SCHEMAS.rotation.optional(),
   template: PRINT_CONFIGURATION_FIELD_SCHEMAS.template.optional(),
 });

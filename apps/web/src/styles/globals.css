@@ -147,12 +147,19 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply font-sans antialiased;
+  }
   body {
     @apply bg-background text-foreground;
   }
-  html {
-    @apply font-sans;
-    @apply antialiased;
+  html.experience-shell {
+    @apply h-full overflow-hidden overscroll-none;
+  }
+  html.experience-shell body,
+  html.experience-shell #root,
+  html.experience-shell main {
+    @apply h-full overflow-hidden;
   }
 }
 

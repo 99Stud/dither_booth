@@ -65,6 +65,7 @@ export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
   threshold: z.number().int().min(0).max(255),
+  rotation: z.number().int().min(0).max(360),
   template: receiptTemplateSchema,
 });
 
@@ -78,6 +79,7 @@ export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValu
     shadows: 0,
     highlights: 0,
     threshold: 128,
+    rotation: 0,
     template: "tartines",
   };
 
@@ -96,6 +98,7 @@ export const DITHERING_PREVIEW_FIELDS = [
   "saturation",
   "shadows",
   "highlights",
+  "rotation",
 ] as const satisfies ReadonlyArray<keyof PrintConfigurationFormValues>;
 
 export const RECEIPT_PREVIEW_FIELDS = [
@@ -138,6 +141,7 @@ export const getPrintConfigurationFormValues = (
     shadows: printConfiguration.shadows,
     highlights: printConfiguration.highlights,
     threshold: printConfiguration.threshold,
+    rotation: printConfiguration.rotation,
     template: printConfiguration.template,
   };
 };
@@ -151,9 +155,8 @@ export const SLIDER_FIELD_CONFIGS = [
         : stops.toFixed(1);
 
       const signedStops = stops > 0 ? `+${formattedStops}` : formattedStops;
-      const stopLabel = Math.abs(stops) === 1 ? "stop" : "stops";
 
-      return `${signedStops} ${stopLabel}`;
+      return `${signedStops} EV`;
     },
     label: "Exposure",
     max: 2,

@@ -42,7 +42,7 @@ const {
 
 const COUNTDOWN_INTERVAL_MS = 1000;
 const RESTART_COUNTDOWN_INTERVAL_MS = 1000;
-const STRIKE_A_POSE_DURATION_SECONDS = 0;
+const STRIKE_A_POSE_DURATION_SECONDS = 1;
 const PRINT_SUCCESS_AUTO_RESET_MS = 10000;
 const LOTTERY_RESULT_BUFFER_MS = 5000;
 
@@ -84,6 +84,13 @@ export const Experience = () => {
   );
 
   const webcamRef = useRef<WebcamHandle>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.add("experience-shell");
+    return () => {
+      document.documentElement.classList.remove("experience-shell");
+    };
+  }, []);
 
   const handleStartExperience = useCallback(() => {
     dispatch({ type: "startRequested" });
@@ -239,7 +246,7 @@ export const Experience = () => {
       <motion.div
         animate={{ opacity: isIntroDecorationsVisible ? 1 : 0 }}
         className={clsx(
-          "fixed top-16 left-16 z-10",
+          "fixed top-14 left-14 z-10",
           "flex flex-col gap-2",
           "font-bit text-white/90 text-shadow-[0_0_4px_rgb(255,255,255)]",
         )}
@@ -293,7 +300,7 @@ export const Experience = () => {
       <motion.div
         animate={{ opacity: isIntroDecorationsVisible ? 1 : 0 }}
         className={clsx(
-          "fixed bottom-16 left-16 z-10",
+          "fixed bottom-14 left-14 z-10",
           "flex items-center gap-4",
         )}
       >
@@ -314,7 +321,7 @@ export const Experience = () => {
       <motion.div
         animate={{ opacity: isIntroDecorationsVisible ? 1 : 0 }}
         className={clsx(
-          "fixed top-16 right-16 z-10",
+          "fixed top-14 right-14 z-10",
           "text-end font-bit text-3xl text-white/90",
           "text-shadow-[0_0_4px_rgb(255,255,255)]",
         )}
@@ -353,7 +360,7 @@ export const Experience = () => {
       <motion.p
         animate={{ opacity: isIntroDecorationsVisible ? 1 : 0 }}
         className={clsx(
-          "fixed right-16 bottom-12 z-10",
+          "fixed right-14 bottom-10 z-10",
           "font-bit text-3xl text-white/90",
           "text-shadow-[0_0_4px_rgb(255,255,255)]",
         )}
@@ -363,8 +370,7 @@ export const Experience = () => {
       <motion.div
         initial={false}
         className={clsx(
-          "relative py-8",
-          "h-dvh w-dvw",
+          "fixed inset-0 py-8",
           "flex items-center justify-center",
           "font-bit text-white/90 text-shadow-[0_0_4px_rgb(255,255,255)]",
         )}
@@ -385,12 +391,12 @@ export const Experience = () => {
               duration: 0.4,
             },
           }}
-          className={clsx("absolute top-8 bottom-8")}
+          className={clsx("absolute top-8 bottom-8 aspect-square")}
         >
           <Webcam
             ref={webcamRef}
             className={clsx(
-              "h-full",
+              "h-full w-full max-w-none",
               "shadow-[0px_0px_24px_0px_rgba(0,0,0,0.5)]",
             )}
             onCameraStateChange={reportUserMediaCameraStateChange}
@@ -441,7 +447,7 @@ export const Experience = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
               className={clsx(
-                "absolute top-8 right-16 z-10",
+                "absolute top-8 right-14 z-10",
                 "flex flex-col items-end",
               )}
             >

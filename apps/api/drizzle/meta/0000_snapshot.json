@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "41e4af8c-1f8a-46c1-bb52-3d46b1a9fb70",
+  "id": "c9dc7160-a1eb-421f-95ab-9216e8c6d156",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "print_config": {
@@ -73,11 +73,19 @@
         },
         "threshold": {
           "name": "threshold",
-          "type": "real",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": 128
+        },
+        "rotation": {
+          "name": "rotation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "template": {
           "name": "template",
@@ -128,6 +136,10 @@
         "print_config_threshold_check": {
           "name": "print_config_threshold_check",
           "value": "\"print_config\".\"threshold\" between 0 and 255"
+        },
+        "print_config_rotation_check": {
+          "name": "print_config_rotation_check",
+          "value": "\"print_config\".\"rotation\" between 0 and 360"
         },
         "print_config_template_check": {
           "name": "print_config_template_check",

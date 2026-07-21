@@ -30,7 +30,8 @@ export const printConfigTable = sqliteTable(
     saturation: real("saturation").notNull().default(1),
     shadows: real("shadows").notNull().default(0),
     highlights: real("highlights").notNull().default(0),
-    threshold: real("threshold").notNull().default(128),
+    threshold: integer("threshold").notNull().default(128),
+    rotation: integer("rotation").notNull().default(0),
     template: text("template", { enum: RECEIPT_TEMPLATES })
       .notNull()
       .default(DEFAULT_RECEIPT_TEMPLATE),
@@ -62,6 +63,10 @@ export const printConfigTable = sqliteTable(
     check(
       "print_config_threshold_check",
       sql`${table.threshold} between 0 and 255`,
+    ),
+    check(
+      "print_config_rotation_check",
+      sql`${table.rotation} between 0 and 360`,
     ),
     check(
       "print_config_template_check",
