@@ -9,6 +9,18 @@ The software stack is also split into three main applications: a web app running
 - [Web app](apps/web/README.md): iPad-facing kiosk app commands and infrastructure notes.
 - [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
 - [API](apps/api/README.md): backend service, database management, and local HTTPS helper commands.
+- [CLI](apps/cli/README.md): `booth` provisioning CLI for installing and managing the Raspberry Pi.
+
+## Provisioning CLI
+
+For first-time Raspberry Pi setup, the `booth` CLI automates the manual steps below (Bun install, dependencies, SSD mount, database, certificate, and a systemd service). It is a standalone binary, so the Pi needs no runtime installed in advance:
+
+```bash
+curl -fsSL https://github.com/99stud/dither_booth/releases/latest/download/install.sh | sudo bash
+sudo booth install
+```
+
+See the [CLI README](apps/cli/README.md) for all commands and options. The rest of this document describes the manual setup the CLI performs.
 
 ## Bun
 
