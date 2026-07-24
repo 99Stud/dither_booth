@@ -1,14 +1,19 @@
-import type { CommandContext } from "#internal/context";
+import { defineCommand } from "citty";
 
-import { bunCommand } from "#commands/bun";
-import { certCommand, certCopyCommand } from "#commands/cert";
-import { dbCommand } from "#commands/db";
-import { doctorCommand } from "#commands/doctor";
-import { repoCommand } from "#commands/repo";
-import { serviceCommand } from "#commands/service";
-import { ssdCommand } from "#commands/ssd";
+import type { BoothContext } from "#internal/context";
+
+import { runBunCommand } from "#commands/bun";
+import { runCertCommand, runCertCopyCommand } from "#commands/cert";
+import { runDbCommand } from "#commands/db";
+import { runDoctorCommand } from "#commands/doctor";
+import { runRepoCommand } from "#commands/repo";
+import { runServiceCommand } from "#commands/service";
+import { runSsdCommand } from "#commands/ssd";
+import { requireRoot } from "#internal/args";
+import { printCommandBanner } from "#internal/banner";
+import { buildBoothContext } from "#internal/context";
 import { run } from "#internal/system";
-import { heading, ok, step, warn } from "#internal/ui";
+import { heading, ok, runBoothTask, step, warn } from "#internal/ui";
 
 const APT_PACKAGES = [
   "git",
@@ -43,23 +48,39 @@ async function aptInstall(): Promise<void> {
   ok("System packages installed");
 }
 
-export async function installCommand(context: CommandContext): Promise<void> {
+export async function runInstallCommand(context: BoothContext): Promise<void> {
   heading("Dither Booth full install");
 
   await aptInstall();
-  await bunCommand(context);
-  await repoCommand(context);
-  await ssdCommand(context);
-  await dbCommand(context);
-  await certCommand(context);
-  await serviceCommand(context);
-  await certCopyCommand(context);
+  await runBunCommand(context);
+  await runRepoCommand(context);
+  await runSsdCommand(context);
+  await runDbCommand(context);
+  await runCertCommand(context);
+  await runServiceCommand(context);
+  await runCertCopyCommand(context);
 
   try {
-    await doctorCommand(context);
+    await runDoctorCommand(context);
   } catch {
     warn("Some health checks did not pass yet. Re-run `booth doctor` shortly.");
   }
 
   ok("Install complete");
 }
+
+export default defineCommand({
+  meta: {
+    name: "install",
+    description: "Full first-time provisioning (runs every setup step)",
+  },
+  async setup() {
+    requireRoot("install");
+    printCommandBanner("install");
+  },
+  async run() {
+    await runBoothTask(async () => {
+      await runInstallCommand(buildBoothContext());
+    });
+  },
+});

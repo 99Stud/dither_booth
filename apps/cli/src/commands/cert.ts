@@ -1,10 +1,22 @@
-import type { CommandContext } from "#internal/context";
+import { defineCommand } from "citty";
+
+import type { BoothContext } from "#internal/context";
 
 import { SERVICE_USER } from "#internal/config";
-import { capture, detectLanIp, run } from "#internal/system";
-import { command, fail, heading, info, ok, plain, step } from "#internal/ui";
+import { buildBoothContext } from "#internal/context";
+import { capture, detectLanIp, run, SilentExit } from "#internal/system";
+import {
+  command,
+  fail,
+  heading,
+  info,
+  ok,
+  plain,
+  runBoothTask,
+  step,
+} from "#internal/ui";
 
-export async function certCommand(context: CommandContext): Promise<void> {
+export async function runCertCommand(context: BoothContext): Promise<void> {
   const { repoRoot } = context;
 
   heading("Generate TLS certificate");
@@ -13,9 +25,9 @@ export async function certCommand(context: CommandContext): Promise<void> {
 
   if (!ip) {
     fail(
-      "Could not determine LAN IP. Pass it explicitly: `booth cert <LAN_IP>`.",
+      "Could not determine LAN IP. Pass it explicitly: `booth cert generate <LAN_IP>`.",
     );
-    throw new Error("cert-missing-ip");
+    throw new SilentExit(1);
   }
 
   step(`Generating certificate for ${ip}`);
@@ -29,14 +41,14 @@ export async function certCommand(context: CommandContext): Promise<void> {
 
 // Prints a ready-to-paste scp command so the operator can copy the mkcert root
 // CA from this Pi to their own machine and trust it.
-export async function certCopyCommand(context: CommandContext): Promise<void> {
+export async function runCertCopyCommand(context: BoothContext): Promise<void> {
   heading("Copy root CA to your machine");
 
   const caroot = await capture(["mkcert", "-CAROOT"], { allowFailure: true });
 
   if (caroot.exitCode !== 0) {
-    fail("mkcert is not available. Install it, then re-run `booth cert:copy`.");
-    throw new Error("cert-copy-no-mkcert");
+    fail("mkcert is not available. Install it, then re-run `booth cert copy`.");
+    throw new SilentExit(1);
   }
 
   const rootCaPath = `${caroot.stdout.trim()}/rootCA.pem`;
@@ -54,3 +66,55 @@ export async function certCopyCommand(context: CommandContext): Promise<void> {
 
   ok("Copy command ready");
 }
+
+const certGenerateCommand = defineCommand({
+  meta: {
+    name: "generate",
+    description: "Generate the TLS certificate (auto-detects LAN IP)",
+  },
+  args: {
+    ip: {
+      type: "positional",
+      description: "LAN IP for the certificate (auto-detected when omitted)",
+      required: false,
+    },
+  },
+  async run({ args }) {
+    await runBoothTask(async () => {
+      await runCertCommand(buildBoothContext({ ip: args.ip }));
+    });
+  },
+});
+
+const certCopyCommand = defineCommand({
+  meta: {
+    name: "copy",
+    description: "Print scp command to copy the mkcert root CA",
+  },
+  args: {
+    ip: {
+      type: "positional",
+      description: "Optional Pi LAN IP for the scp hint",
+      required: false,
+    },
+  },
+  async run({ args }) {
+    await runBoothTask(async () => {
+      await runCertCopyCommand(buildBoothContext({ ip: args.ip }));
+    });
+  },
+});
+
+// Parent has no `run` — Citty would also invoke parent run after a subcommand.
+// `default: "generate"` makes `booth cert` and `booth cert <ip>` work.
+export default defineCommand({
+  meta: {
+    name: "cert",
+    description: "TLS certificate helpers",
+  },
+  default: "generate",
+  subCommands: {
+    generate: certGenerateCommand,
+    copy: certCopyCommand,
+  },
+});

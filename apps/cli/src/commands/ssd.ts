@@ -1,13 +1,25 @@
-import type { CommandContext } from "#internal/context";
+import { defineCommand } from "citty";
 
+import type { BoothContext } from "#internal/context";
+
+import { requireRoot } from "#internal/args";
 import {
   API_DATA_RELATIVE,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
 } from "#internal/config";
-import { confirm } from "#internal/prompt";
-import { capture, run } from "#internal/system";
-import { fail, heading, info, ok, step, warn } from "#internal/ui";
+import { buildBoothContext } from "#internal/context";
+import { capture, run, SilentExit } from "#internal/system";
+import {
+  confirm,
+  fail,
+  heading,
+  info,
+  ok,
+  runBoothTask,
+  step,
+  warn,
+} from "#internal/ui";
 
 type BlockDevice = {
   name: string;
@@ -98,7 +110,7 @@ async function isSymlink(path: string): Promise<boolean> {
   return result.exitCode === 0;
 }
 
-export async function ssdCommand(context: CommandContext): Promise<void> {
+export async function runSsdCommand(context: BoothContext): Promise<void> {
   const { repoRoot, assumeYes } = context;
 
   heading("Mount SSD and relocate data");
@@ -110,7 +122,7 @@ export async function ssdCommand(context: CommandContext): Promise<void> {
     fail(
       "Could not determine the SSD partition automatically. List devices with `lsblk -f`, format the SSD as ext4, then set BOOTH_SSD_DEVICE=/dev/sdX1 and retry.",
     );
-    throw new Error("ssd-device-not-found");
+    throw new SilentExit(1);
   }
 
   const devicePath = `/dev/${partition.name}`;
@@ -119,12 +131,12 @@ export async function ssdCommand(context: CommandContext): Promise<void> {
     fail(
       `${devicePath} is not ext4 (found ${partition.fstype ?? "no filesystem"}). Format it as ext4 first; this command never formats disks.`,
     );
-    throw new Error("ssd-not-ext4");
+    throw new SilentExit(1);
   }
 
   if (!partition.uuid) {
     fail(`Could not read UUID for ${devicePath}.`);
-    throw new Error("ssd-no-uuid");
+    throw new SilentExit(1);
   }
 
   info(`Selected ${devicePath} (ext4, ${partition.size ?? "unknown size"})`);
@@ -186,3 +198,18 @@ export async function ssdCommand(context: CommandContext): Promise<void> {
 
   ok("SSD mounted and database relocated");
 }
+
+export default defineCommand({
+  meta: {
+    name: "ssd",
+    description: "Mount the SSD and relocate the database onto it",
+  },
+  async setup() {
+    requireRoot("ssd");
+  },
+  async run() {
+    await runBoothTask(async () => {
+      await runSsdCommand(buildBoothContext());
+    });
+  },
+});

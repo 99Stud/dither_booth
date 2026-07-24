@@ -1,9 +1,12 @@
-import type { CommandContext } from "#internal/context";
+import { defineCommand } from "citty";
 
+import type { BoothContext } from "#internal/context";
+
+import { buildBoothContext } from "#internal/context";
 import { run } from "#internal/system";
-import { heading, ok, step } from "#internal/ui";
+import { heading, ok, runBoothTask, step } from "#internal/ui";
 
-export async function dbCommand(context: CommandContext): Promise<void> {
+export async function runDbCommand(context: BoothContext): Promise<void> {
   const { repoRoot } = context;
 
   heading("Apply database migrations");
@@ -17,3 +20,15 @@ export async function dbCommand(context: CommandContext): Promise<void> {
 
   ok("Database migrated and seeded");
 }
+
+export default defineCommand({
+  meta: {
+    name: "db",
+    description: "Apply database migrations and seed defaults",
+  },
+  async run() {
+    await runBoothTask(async () => {
+      await runDbCommand(buildBoothContext());
+    });
+  },
+});

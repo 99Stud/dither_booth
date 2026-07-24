@@ -4,9 +4,11 @@ import {
   apiHealthzPayloadSchema,
   webHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
+import { defineCommand } from "citty";
 
-import type { CommandContext } from "#internal/context";
+import type { BoothContext } from "#internal/context";
 
+import { printCommandBanner } from "#internal/banner";
 import {
   API_DATA_RELATIVE,
   PM2_PROCESS_NAMES,
@@ -14,13 +16,14 @@ import {
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
 } from "#internal/config";
+import { buildBoothContext } from "#internal/context";
 import {
   capture,
   commandExists,
   detectLanIp,
   SilentExit,
 } from "#internal/system";
-import { fail, heading, ok, plain, warn } from "#internal/ui";
+import { fail, heading, ok, plain, runBoothTask, warn } from "#internal/ui";
 
 type CheckStatus = "pass" | "warn" | "fail";
 
@@ -203,7 +206,7 @@ function printResults(results: CheckResult[]): void {
   }
 }
 
-export async function doctorCommand(context: CommandContext): Promise<void> {
+export async function runDoctorCommand(context: BoothContext): Promise<void> {
   const { repoRoot } = context;
 
   heading("Health checks");
@@ -254,3 +257,18 @@ export async function doctorCommand(context: CommandContext): Promise<void> {
     `All critical checks passed${warned > 0 ? `, ${warned} warning(s)` : ""}.`,
   );
 }
+
+export default defineCommand({
+  meta: {
+    name: "doctor",
+    description: "Run health checks on the booth",
+  },
+  async setup() {
+    printCommandBanner("doctor");
+  },
+  async run() {
+    await runBoothTask(async () => {
+      await runDoctorCommand(buildBoothContext());
+    });
+  },
+});

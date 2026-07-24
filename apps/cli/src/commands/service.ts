@@ -1,8 +1,12 @@
-import type { CommandContext } from "#internal/context";
+import { defineCommand } from "citty";
 
+import type { BoothContext } from "#internal/context";
+
+import { requireRoot } from "#internal/args";
 import { SERVICE_NAME, SERVICE_PATH, SERVICE_USER } from "#internal/config";
+import { buildBoothContext } from "#internal/context";
 import { run } from "#internal/system";
-import { heading, info, ok, step } from "#internal/ui";
+import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
 function buildUnit(repoRoot: string): string {
   // oneshot + RemainAfterExit wraps PM2: systemd triggers the PM2 process list
@@ -27,7 +31,7 @@ WantedBy=multi-user.target
 `;
 }
 
-export async function serviceCommand(context: CommandContext): Promise<void> {
+export async function runServiceCommand(context: BoothContext): Promise<void> {
   const { repoRoot } = context;
 
   heading("Install systemd service");
@@ -52,3 +56,18 @@ export async function serviceCommand(context: CommandContext): Promise<void> {
 
   ok(`${SERVICE_NAME} enabled`);
 }
+
+export default defineCommand({
+  meta: {
+    name: "service",
+    description: "Install and enable the ditherbooth systemd service",
+  },
+  async setup() {
+    requireRoot("service");
+  },
+  async run() {
+    await runBoothTask(async () => {
+      await runServiceCommand(buildBoothContext());
+    });
+  },
+});

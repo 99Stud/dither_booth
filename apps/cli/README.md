@@ -4,6 +4,8 @@
 
 The binary is standalone (compiled with `bun build --compile`), so the Pi does not need Bun or Node installed beforehand to run the CLI itself.
 
+Stack: [Citty](https://github.com/unjs/citty) (commands), [Clack](https://www.npmjs.com/package/@clack/prompts) (UI), [@bomb.sh/tab](https://bomb.sh/docs/tab/) (shell completions).
+
 ## Requirements
 
 - 64-bit Raspberry Pi OS (Linux `arm64`) or Linux `x64` for dev/testing. 32-bit Pi OS is not supported (Bun has no 32-bit ARM target).
@@ -26,27 +28,38 @@ booth doctor            # health checks
 
 ### Commands
 
-| Command     | Description                                                                         |
-| ----------- | ----------------------------------------------------------------------------------- |
-| `install`   | Full provisioning: apt deps, Bun, repo, SSD, db, cert, service, doctor (needs root) |
-| `bun`       | Install the Bun runtime if missing                                                  |
-| `repo`      | Clone/pull repo into `/opt/dither-booth`, install deps, build, reinstall Puppeteer  |
-| `ssd`       | Mount the SSD and relocate the database onto it (needs root)                        |
-| `db`        | Apply migrations and seed the default print configuration                           |
-| `cert [ip]` | Generate the TLS certificate (auto-detects LAN IP when omitted)                     |
-| `cert:copy` | Print the `scp` command to copy the mkcert root CA to your machine                  |
-| `service`   | Install and enable the `ditherbooth.service` systemd unit (needs root)              |
-| `doctor`    | Check SSD mount, data symlink, Bun, cert IP, PM2 processes, and healthz             |
+| Command              | Description                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| `install`            | Full provisioning: apt deps, Bun, repo, SSD, db, cert, service, doctor (needs root) |
+| `bun`                | Install the Bun runtime if missing                                                  |
+| `repo`               | Clone/pull repo into `/opt/dither-booth`, install deps, build, reinstall Puppeteer  |
+| `ssd`                | Mount the SSD and relocate the database onto it (needs root)                        |
+| `db`                 | Apply migrations and seed the default print configuration                           |
+| `cert`               | Generate the TLS certificate (same as `cert generate`; auto-detects LAN IP)         |
+| `cert generate [ip]` | Generate the TLS certificate for an explicit or auto-detected LAN IP                |
+| `cert copy`          | Print the `scp` command to copy the mkcert root CA to your machine                  |
+| `service`            | Install and enable the `ditherbooth.service` systemd unit (needs root)              |
+| `doctor`             | Check SSD mount, data symlink, Bun, cert IP, PM2 processes, and healthz             |
 
 ### Options
 
-| Option          | Description                                          |
-| --------------- | ---------------------------------------------------- |
-| `-y, --yes`     | Assume yes for destructive prompts (non-interactive) |
-| `--color=WHEN`  | `auto` (default), `always`, or `never`               |
-| `--no-banner`   | Suppress the startup banner                          |
-| `-h, --help`    | Show help                                            |
-| `-v, --version` | Show version                                         |
+| Option                       | Description                                          |
+| ---------------------------- | ---------------------------------------------------- |
+| `-y, --yes`                  | Assume yes for destructive prompts (non-interactive) |
+| `--color=WHEN`               | `auto` (default), `always`, or `never`               |
+| `--no-banner` / `--noBanner` | Suppress the startup banner                          |
+| `-h, --help`                 | Show help                                            |
+| `-v, --version`              | Show version                                         |
+
+### Shell completions
+
+```bash
+# zsh example — write the script once, then source it from ~/.zshrc
+booth complete zsh > ~/.booth-complete.zsh
+echo 'source ~/.booth-complete.zsh' >> ~/.zshrc
+```
+
+Also supports `bash`, `fish`, and `powershell` via `booth complete <shell>`.
 
 ### Environment overrides
 
@@ -62,7 +75,7 @@ booth doctor            # health checks
 ## Development
 
 ```bash
-bun run dev -- --help          # run from source
+bun run --filter @dither-booth/cli dev -- --help
 bun run --filter @dither-booth/cli check-types
 bun run --filter @dither-booth/cli build   # compile arm64 + x64 into dist/
 ```

@@ -1,9 +1,12 @@
-import type { CommandContext } from "#internal/context";
+import { defineCommand } from "citty";
 
+import type { BoothContext } from "#internal/context";
+
+import { buildBoothContext } from "#internal/context";
 import { capture, commandExists, run } from "#internal/system";
-import { heading, info, ok, step } from "#internal/ui";
+import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
-export async function bunCommand(_context: CommandContext): Promise<void> {
+export async function runBunCommand(_context: BoothContext): Promise<void> {
   heading("Install Bun");
 
   if (await commandExists("bun")) {
@@ -20,3 +23,15 @@ export async function bunCommand(_context: CommandContext): Promise<void> {
   );
   ok("Bun installed");
 }
+
+export default defineCommand({
+  meta: {
+    name: "bun",
+    description: "Install Bun runtime if missing",
+  },
+  async run() {
+    await runBoothTask(async () => {
+      await runBunCommand(buildBoothContext());
+    });
+  },
+});

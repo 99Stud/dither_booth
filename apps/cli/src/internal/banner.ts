@@ -4,6 +4,8 @@ import standardFont from "figlet/importable-fonts/Standard.js";
 import type { ColorName } from "#internal/color";
 
 import { colorize, isColorEnabled } from "#internal/color";
+import { getSession } from "#internal/session";
+import { intro } from "#internal/ui";
 
 export type BannerOptions = {
   noBanner?: boolean;
@@ -46,8 +48,8 @@ export function renderBanner(options: BannerOptions = {}): string {
 
   const title = figletText("Dither booth");
   const tagline = isColorEnabled()
-    ? colorize("raspberry pi provisioning toolkit", "gray")
-    : "raspberry pi provisioning toolkit";
+    ? colorize("raspberry pi provision and manage toolkit", "gray")
+    : "raspberry pi provision and manage toolkit";
 
   const lines = [colorLines(title, "orange"), "", renderSubtitle(), tagline];
 
@@ -60,4 +62,9 @@ export function printBanner(options: BannerOptions = {}): void {
   if (banner.length > 0) {
     process.stdout.write(banner);
   }
+}
+
+export function printCommandBanner(title: string): void {
+  printBanner({ noBanner: getSession().noBanner });
+  intro(title);
 }

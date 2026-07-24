@@ -1,8 +1,11 @@
-import type { CommandContext } from "#internal/context";
+import { defineCommand } from "citty";
+
+import type { BoothContext } from "#internal/context";
 
 import { REPO_GIT_URL } from "#internal/config";
+import { buildBoothContext } from "#internal/context";
 import { capture, run } from "#internal/system";
-import { heading, info, ok, step } from "#internal/ui";
+import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
 async function isDir(path: string): Promise<boolean> {
   const result = await capture(["bash", "-lc", `test -d "${path}"`], {
@@ -12,7 +15,7 @@ async function isDir(path: string): Promise<boolean> {
   return result.exitCode === 0;
 }
 
-export async function repoCommand(context: CommandContext): Promise<void> {
+export async function runRepoCommand(context: BoothContext): Promise<void> {
   const { repoRoot } = context;
 
   heading("Sync repository");
@@ -39,3 +42,15 @@ export async function repoCommand(context: CommandContext): Promise<void> {
   info(`Repository ready at ${repoRoot}`);
   ok("Repository synced and built");
 }
+
+export default defineCommand({
+  meta: {
+    name: "repo",
+    description: "Clone/pull repo, install deps, build, reinstall Puppeteer",
+  },
+  async run() {
+    await runBoothTask(async () => {
+      await runRepoCommand(buildBoothContext());
+    });
+  },
+});

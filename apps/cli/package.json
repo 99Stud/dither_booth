@@ -20,8 +20,11 @@
     "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@bomb.sh/tab": "^0.0.21",
+    "@clack/prompts": "^1.7.0",
     "@dither-booth/ports": "workspace:*",
     "@dither-booth/shared": "workspace:*",
+    "citty": "^0.2.2",
     "figlet": "^1.11.0"
   },
   "devDependencies": {
