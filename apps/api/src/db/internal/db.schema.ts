@@ -40,11 +40,11 @@ export const printConfigTable = sqliteTable(
     check("print_config_singleton_check", sql`${table.id} = 1`),
     check(
       "print_config_dither_mode_code_check",
-      sql`${table.ditherModeCode} between 0 and 8`,
+      sql`${table.ditherModeCode} between 0 and 9`,
     ),
     check(
       "print_config_color_scheme_code_check",
-      sql`${table.colorSchemeCode} in (0, 5, 6, 7)`,
+      sql`${table.colorSchemeCode} in (0, 5, 6, 9)`,
     ),
     check("print_config_serpentine_check", sql`${table.serpentine} in (0, 1)`),
     check(

@@ -3,7 +3,16 @@ import { ColorScheme, DitherMode } from "@opendisplay/epaper-dithering";
 import z from "zod";
 
 export const DITHER_MODE_OPTIONS = [
-  0, 1, 2, 3, 4, 5, 6, 7, 8,
+  DitherMode.NONE,
+  DitherMode.BURKES,
+  DitherMode.ORDERED,
+  DitherMode.FLOYD_STEINBERG,
+  DitherMode.ATKINSON,
+  DitherMode.STUCKI,
+  DitherMode.SIERRA,
+  DitherMode.SIERRA_LITE,
+  DitherMode.JARVIS_JUDICE_NINKE,
+  DitherMode.DIZZY,
 ] satisfies Array<DitherMode>;
 
 export const COLOR_SCHEME_CODE_OPTIONS = [

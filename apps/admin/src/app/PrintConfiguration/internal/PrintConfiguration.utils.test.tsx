@@ -78,8 +78,8 @@ describe("PrintConfiguration utils", () => {
     );
     expect(
       getPrintConfigurationFormValues({
-        colorSchemeCode: 7,
-        ditherModeCode: 8,
+        colorSchemeCode: 9,
+        ditherModeCode: 9,
         exposure: 1.5,
         highlights: 0.25,
         rotation: 45,
@@ -90,8 +90,8 @@ describe("PrintConfiguration utils", () => {
         threshold: 90,
       }),
     ).toEqual({
-      colorSchemeCode: 7,
-      ditherModeCode: 8,
+      colorSchemeCode: 9,
+      ditherModeCode: 9,
       exposure: 1.5,
       highlights: 0.25,
       rotation: 45,

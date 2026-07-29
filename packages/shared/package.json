@@ -36,12 +36,12 @@
     "check-types": "tsc --noEmit -p tsconfig.isomorphic.json && tsc --noEmit -p tsconfig.browser.json && tsc --noEmit -p tsconfig.server.json && tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
-    "@tanstack/react-query": "5.101.3",
+    "@tanstack/react-query": "5.101.4",
     "@trpc/client": "11.18.0",
     "@trpc/server": "11.18.0",
     "@trpc/tanstack-react-query": "11.18.0",
     "clsx": "2.1.1",
-    "react": "19.2.7",
+    "react": "19.2.8",
     "tailwind-merge": "3.6.0",
     "zod": "4.4.3"
   },

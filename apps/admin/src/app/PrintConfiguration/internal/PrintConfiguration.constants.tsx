@@ -18,7 +18,7 @@ import type {
 
 export const PRINT_CONFIGURATION_LOG_SOURCE = "admin.print-configuration";
 
-export const DITHER_MODE_CODE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
+export const DITHER_MODE_CODE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 export const DITHER_MODE_CODE_SCHEMA = z.literal(DITHER_MODE_CODE_OPTIONS);
 export const DITHER_MODE_CODE_FIELD_OPTIONS: Array<
   SelectFieldOption<
@@ -34,9 +34,10 @@ export const DITHER_MODE_CODE_FIELD_OPTIONS: Array<
   { label: "Sierra", value: 6 },
   { label: "Sierra Lite", value: 7 },
   { label: "Jarvis-Judice-Ninke", value: 8 },
+  { label: "Dizzy", value: 9 },
 ];
 
-export const COLOR_SCHEME_CODE_OPTIONS = [0, 5, 6, 7] as const;
+export const COLOR_SCHEME_CODE_OPTIONS = [0, 5, 6, 9] as const;
 export const COLOR_SCHEME_CODE_SCHEMA = z.literal(COLOR_SCHEME_CODE_OPTIONS);
 export const COLOR_SCHEME_CODE_FIELD_OPTIONS: Array<
   SelectFieldOption<
@@ -45,8 +46,8 @@ export const COLOR_SCHEME_CODE_FIELD_OPTIONS: Array<
 > = [
   { label: "Mono", value: 0 },
   { label: "Grayscale 4", value: 5 },
-  { label: "Grayscale 8", value: 6 },
-  { label: "Grayscale 16", value: 7 },
+  { label: "Grayscale 16", value: 6 },
+  { label: "Grayscale 8", value: 9 },
 ];
 
 export const RECEIPT_TEMPLATE_FIELD_OPTIONS: Array<

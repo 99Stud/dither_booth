@@ -1,0 +1,161 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "50a7ecd7-b7ee-4937-b8ce-e65f3db8c34b",
+  "prevId": "c9dc7160-a1eb-421f-95ab-9216e8c6d156",
+  "tables": {
+    "print_config": {
+      "name": "print_config",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "dither_mode_code": {
+          "name": "dither_mode_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "color_scheme_code": {
+          "name": "color_scheme_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "serpentine": {
+          "name": "serpentine",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "exposure": {
+          "name": "exposure",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "saturation": {
+          "name": "saturation",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "shadows": {
+          "name": "shadows",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "highlights": {
+          "name": "highlights",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "threshold": {
+          "name": "threshold",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 128
+        },
+        "rotation": {
+          "name": "rotation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "template": {
+          "name": "template",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'tartines'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "print_config_singleton_check": {
+          "name": "print_config_singleton_check",
+          "value": "\"print_config\".\"id\" = 1"
+        },
+        "print_config_dither_mode_code_check": {
+          "name": "print_config_dither_mode_code_check",
+          "value": "\"print_config\".\"dither_mode_code\" between 0 and 9"
+        },
+        "print_config_color_scheme_code_check": {
+          "name": "print_config_color_scheme_code_check",
+          "value": "\"print_config\".\"color_scheme_code\" in (0, 5, 6, 9)"
+        },
+        "print_config_serpentine_check": {
+          "name": "print_config_serpentine_check",
+          "value": "\"print_config\".\"serpentine\" in (0, 1)"
+        },
+        "print_config_exposure_check": {
+          "name": "print_config_exposure_check",
+          "value": "\"print_config\".\"exposure\" > 0 and \"print_config\".\"exposure\" <= 4"
+        },
+        "print_config_saturation_check": {
+          "name": "print_config_saturation_check",
+          "value": "\"print_config\".\"saturation\" between 0 and 4"
+        },
+        "print_config_shadows_check": {
+          "name": "print_config_shadows_check",
+          "value": "\"print_config\".\"shadows\" between 0 and 1"
+        },
+        "print_config_highlights_check": {
+          "name": "print_config_highlights_check",
+          "value": "\"print_config\".\"highlights\" between 0 and 1"
+        },
+        "print_config_threshold_check": {
+          "name": "print_config_threshold_check",
+          "value": "\"print_config\".\"threshold\" between 0 and 255"
+        },
+        "print_config_rotation_check": {
+          "name": "print_config_rotation_check",
+          "value": "\"print_config\".\"rotation\" between 0 and 360"
+        },
+        "print_config_template_check": {
+          "name": "print_config_template_check",
+          "value": "\"print_config\".\"template\" in ('tartines', 'heirvey')"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
