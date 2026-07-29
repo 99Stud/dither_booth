@@ -1,5 +1,4 @@
-export const COUNTDOWN_START = 3;
-export const RESTART_COUNTDOWN_START = 5;
+import { COUNTDOWN_START } from "./Experience.constants";
 
 export type ExperiencePhase =
   | "idle"
@@ -10,7 +9,10 @@ export type ExperiencePhase =
   | "smile"
   | "capturing"
   | "printing"
-  | "printSucceeded"
+  | "cameraExiting"
+  | "receiptReady"
+  | "cashMachine"
+  | "lotteryResults"
   | "resetting"
   | "resettingButtonRepositioning"
   | "resettingButtonRevealing";
@@ -18,22 +20,19 @@ export type ExperiencePhase =
 export interface ExperienceState {
   phase: ExperiencePhase;
   countdown: number | null;
-  restartCountdown: number | null;
-  showLotteryResult: boolean;
   nextPrintAttemptId: number;
   activePrintAttemptId: number | null;
 }
 
 export type ExperienceAction =
   | { type: "startRequested" }
-  | { type: "restartRequested" }
+  | { type: "playLotteryRequested" }
   | { type: "startButtonAnimationCompleted" }
   | { type: "cameraAnimationCompleted" }
   | { type: "promptAnimationCompleted" }
-  | { type: "promptTextAnimationCompleted" }
   | { type: "countdownTicked" }
-  | { type: "restartCountdownTicked" }
-  | { type: "lotteryRevealElapsed" }
+  | { type: "smileElapsed" }
+  | { type: "cashMachineElapsed" }
   | { type: "autoResetElapsed" }
   | { type: "photoCaptured"; printAttemptId: number }
   | { type: "printSucceeded"; printAttemptId: number }
@@ -42,8 +41,6 @@ export type ExperienceAction =
 export const initialExperienceState: ExperienceState = {
   phase: "idle",
   countdown: null,
-  restartCountdown: null,
-  showLotteryResult: false,
   nextPrintAttemptId: 1,
   activePrintAttemptId: null,
 };
@@ -52,10 +49,11 @@ const beginReset = (state: ExperienceState): ExperienceState => ({
   ...state,
   phase: "resetting",
   countdown: null,
-  restartCountdown: null,
-  showLotteryResult: false,
   activePrintAttemptId: null,
 });
+
+const canAutoReset = (phase: ExperiencePhase) =>
+  phase === "receiptReady" || phase === "lotteryResults";
 
 const hasMatchingPrintAttempt = (
   state: ExperienceState,
@@ -74,17 +72,36 @@ export const experienceReducer = (
         ...state,
         phase: "introExiting",
         countdown: null,
-        restartCountdown: null,
-        showLotteryResult: false,
         activePrintAttemptId: null,
       };
     }
 
-    case "restartRequested":
     case "autoResetElapsed": {
-      if (state.phase !== "printSucceeded") return state;
+      if (!canAutoReset(state.phase)) return state;
 
-      return beginReset(state);
+      // Camera already exited during cameraExiting — skip resetting wait.
+      return {
+        ...beginReset(state),
+        phase: "resettingButtonRepositioning",
+      };
+    }
+
+    case "playLotteryRequested": {
+      if (state.phase !== "receiptReady") return state;
+
+      return {
+        ...state,
+        phase: "cashMachine",
+      };
+    }
+
+    case "cashMachineElapsed": {
+      if (state.phase !== "cashMachine") return state;
+
+      return {
+        ...state,
+        phase: "lotteryResults",
+      };
     }
 
     case "startButtonAnimationCompleted": {
@@ -106,6 +123,13 @@ export const experienceReducer = (
     case "cameraAnimationCompleted": {
       if (state.phase === "cameraEntering") {
         return { ...state, phase: "promptEntering" };
+      }
+
+      if (state.phase === "cameraExiting") {
+        return {
+          ...state,
+          phase: "receiptReady",
+        };
       }
 
       if (state.phase === "resetting") {
@@ -142,7 +166,7 @@ export const experienceReducer = (
       };
     }
 
-    case "promptTextAnimationCompleted": {
+    case "smileElapsed": {
       if (state.phase !== "smile") return state;
 
       return {
@@ -177,10 +201,8 @@ export const experienceReducer = (
 
       return {
         ...state,
-        phase: "printSucceeded",
+        phase: "cameraExiting",
         countdown: null,
-        restartCountdown: null,
-        showLotteryResult: false,
         activePrintAttemptId: null,
       };
     }
@@ -194,34 +216,6 @@ export const experienceReducer = (
       }
 
       return beginReset(state);
-    }
-
-    case "lotteryRevealElapsed": {
-      if (state.phase !== "printSucceeded" || state.showLotteryResult) {
-        return state;
-      }
-
-      return {
-        ...state,
-        showLotteryResult: true,
-        restartCountdown: RESTART_COUNTDOWN_START,
-      };
-    }
-
-    case "restartCountdownTicked": {
-      if (
-        state.phase !== "printSucceeded" ||
-        !state.showLotteryResult ||
-        state.restartCountdown === null
-      ) {
-        return state;
-      }
-
-      return {
-        ...state,
-        restartCountdown:
-          state.restartCountdown <= 1 ? null : state.restartCountdown - 1,
-      };
     }
   }
 };

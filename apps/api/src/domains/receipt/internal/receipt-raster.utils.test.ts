@@ -190,4 +190,66 @@ describe("runExclusiveReceiptViewerPageJob", () => {
 
     expect(events).toEqual(["first:start", "first:end", "second:start"]);
   });
+
+  test("rejects the caller on timeout without waiting for the job", async () => {
+    const orphanRelease = createDeferred<void>();
+    let thrown: unknown;
+
+    const timedOut = runExclusiveReceiptViewerPageJob(
+      async () => {
+        await orphanRelease.promise;
+      },
+      { timeoutMessage: "Receipt screenshot timed out.", timeoutMs: 10 },
+    ).catch((error: unknown) => {
+      thrown = error;
+    });
+
+    // The caller gives up while the job is still running.
+    await timedOut;
+
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe("Receipt screenshot timed out.");
+
+    orphanRelease.resolve();
+  });
+
+  // Puppeteer work cannot be cancelled, and a timed-out job still resets the
+  // shared page to its root route when it finishes. Releasing the slot at the
+  // timeout would let that orphan steer the page under the following job.
+  test("holds the queue until a timed-out job actually settles", async () => {
+    const events: string[] = [];
+    const orphanRelease = createDeferred<void>();
+
+    const timedOut = runExclusiveReceiptViewerPageJob(
+      async () => {
+        events.push("orphan:start");
+        await orphanRelease.promise;
+        events.push("orphan:end");
+      },
+      { timeoutMessage: "Receipt screenshot timed out.", timeoutMs: 10 },
+    ).catch(() => {
+      events.push("caller:gave-up");
+    });
+
+    await timedOut;
+
+    const nextJob = runExclusiveReceiptViewerPageJob(async () => {
+      events.push("next:start");
+    });
+
+    await flushMicrotasks();
+
+    // Caller already gave up, but the orphan still owns the page.
+    expect(events).toEqual(["orphan:start", "caller:gave-up"]);
+
+    orphanRelease.resolve();
+    await nextJob;
+
+    expect(events).toEqual([
+      "orphan:start",
+      "caller:gave-up",
+      "orphan:end",
+      "next:start",
+    ]);
+  });
 });

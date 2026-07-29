@@ -7,7 +7,10 @@ import type {
 
 import { createThreeEnvironment } from "#lib/three/index";
 
-type InteractiveBackgroundOptions = Omit<ThreeEnvironmentOptions, "container">;
+export type InteractiveBackgroundOptions = Omit<
+  ThreeEnvironmentOptions,
+  "container"
+>;
 
 interface InteractiveBackgroundProps {
   className?: string;

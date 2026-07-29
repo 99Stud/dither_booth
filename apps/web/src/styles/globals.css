@@ -165,6 +165,11 @@
 
 @theme {
   --animate-flashing: flashing 1s ease-in-out infinite;
+
+  --text-shadow-glow: 0 0 4px rgb(255 255 255);
+  --drop-shadow-glow: 0 0 8px rgb(255 255 255 / 0.75);
+  --shadow-glow: 0 0 24px 0 rgb(255 255 255 / 0.5);
+  --shadow-soft: 0 0 24px 0 rgb(0 0 0 / 0.5);
 }
 
 @keyframes flashing {

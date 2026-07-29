@@ -1,13 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
+import { COUNTDOWN_START } from "./Experience.constants";
 import {
-  COUNTDOWN_START,
   experienceReducer,
   initialExperienceState,
-  RESTART_COUNTDOWN_START,
   type ExperienceAction,
   type ExperienceState,
-} from "./experience-machine";
+} from "./Experience.machine";
 
 const withPhase = (
   phase: ExperienceState["phase"],
@@ -34,7 +33,7 @@ const enterCapturing = (): ExperienceState => {
       { length: COUNTDOWN_START },
       (): ExperienceAction => ({ type: "countdownTicked" }),
     ),
-    { type: "promptTextAnimationCompleted" },
+    { type: "smileElapsed" },
   );
 
   expect(state.phase).toBe("capturing");
@@ -42,7 +41,7 @@ const enterCapturing = (): ExperienceState => {
 };
 
 describe("experienceReducer", () => {
-  it("runs the complete successful experience flow", () => {
+  it("runs the complete successful experience flow through lottery results", () => {
     let state = withPhase("idle");
 
     state = experienceReducer(state, { type: "startRequested" });
@@ -70,7 +69,7 @@ describe("experienceReducer", () => {
     expect(state).toMatchObject({ phase: "smile", countdown: null });
 
     state = experienceReducer(state, {
-      type: "promptTextAnimationCompleted",
+      type: "smileElapsed",
     });
     expect(state).toMatchObject({
       phase: "capturing",
@@ -89,17 +88,30 @@ describe("experienceReducer", () => {
       printAttemptId: 1,
     });
     expect(state).toMatchObject({
-      phase: "printSucceeded",
+      phase: "cameraExiting",
       activePrintAttemptId: null,
-      showLotteryResult: false,
-      restartCountdown: null,
     });
+
+    state = experienceReducer(state, { type: "cameraAnimationCompleted" });
+    expect(state).toMatchObject({
+      phase: "receiptReady",
+      activePrintAttemptId: null,
+    });
+
+    state = experienceReducer(state, { type: "playLotteryRequested" });
+    expect(state.phase).toBe("cashMachine");
+
+    state = experienceReducer(state, { type: "cashMachineElapsed" });
+    expect(state.phase).toBe("lotteryResults");
+
+    state = experienceReducer(state, { type: "autoResetElapsed" });
+    expect(state.phase).toBe("resettingButtonRepositioning");
   });
 
-  it("starts only one print attempt for duplicate pose completions", () => {
+  it("starts only one print attempt for duplicate smile elapsed events", () => {
     const capturingState = enterCapturing();
     const duplicateState = experienceReducer(capturingState, {
-      type: "promptTextAnimationCompleted",
+      type: "smileElapsed",
     });
 
     expect(duplicateState).toBe(capturingState);
@@ -148,8 +160,6 @@ describe("experienceReducer", () => {
     expect(failedCaptureState).toMatchObject({
       phase: "resetting",
       countdown: null,
-      restartCountdown: null,
-      showLotteryResult: false,
       activePrintAttemptId: null,
       nextPrintAttemptId: 2,
     });
@@ -170,81 +180,68 @@ describe("experienceReducer", () => {
     });
   });
 
-  it("reveals the lottery result and advances its countdown", () => {
-    let state = experienceReducer(withPhase("printSucceeded"), {
-      type: "lotteryRevealElapsed",
+  it("auto-resets from receiptReady without playing the lottery", () => {
+    const successState = withPhase("receiptReady", {
+      countdown: 2,
+      activePrintAttemptId: 3,
+      nextPrintAttemptId: 4,
     });
 
+    let state = experienceReducer(successState, { type: "autoResetElapsed" });
     expect(state).toMatchObject({
-      showLotteryResult: true,
-      restartCountdown: RESTART_COUNTDOWN_START,
+      phase: "resettingButtonRepositioning",
+      countdown: null,
+      activePrintAttemptId: null,
+      nextPrintAttemptId: 4,
     });
 
-    for (
-      let remaining = RESTART_COUNTDOWN_START - 1;
-      remaining >= 1;
-      remaining -= 1
-    ) {
-      state = experienceReducer(state, { type: "restartCountdownTicked" });
-      expect(state.restartCountdown).toBe(remaining);
-    }
+    state = experienceReducer(state, {
+      type: "startButtonAnimationCompleted",
+    });
+    expect(state.phase).toBe("resettingButtonRevealing");
 
-    state = experienceReducer(state, { type: "restartCountdownTicked" });
-    expect(state.restartCountdown).toBeNull();
-
-    const completedState = state;
-    expect(experienceReducer(state, { type: "restartCountdownTicked" })).toBe(
-      completedState,
-    );
+    state = experienceReducer(state, {
+      type: "startButtonAnimationCompleted",
+    });
+    expect(state.phase).toBe("idle");
   });
 
-  it.each(["restartRequested", "autoResetElapsed"] as const)(
-    "runs the complete reset animation chain for %s",
-    (type) => {
-      const successState = withPhase("printSucceeded", {
-        countdown: 2,
-        restartCountdown: 4,
-        showLotteryResult: true,
-        activePrintAttemptId: 3,
-        nextPrintAttemptId: 4,
-      });
+  it("runs the complete reset animation chain from lotteryResults", () => {
+    const lotteryState = withPhase("lotteryResults", {
+      countdown: 2,
+      activePrintAttemptId: 3,
+      nextPrintAttemptId: 4,
+    });
 
-      let state = experienceReducer(successState, { type });
-      expect(state).toMatchObject({
-        phase: "resetting",
-        countdown: null,
-        restartCountdown: null,
-        showLotteryResult: false,
-        activePrintAttemptId: null,
-        nextPrintAttemptId: 4,
-      });
+    let state = experienceReducer(lotteryState, { type: "autoResetElapsed" });
+    expect(state).toMatchObject({
+      phase: "resettingButtonRepositioning",
+      countdown: null,
+      activePrintAttemptId: null,
+      nextPrintAttemptId: 4,
+    });
 
-      state = experienceReducer(state, { type: "cameraAnimationCompleted" });
-      expect(state.phase).toBe("resettingButtonRepositioning");
+    state = experienceReducer(state, {
+      type: "startButtonAnimationCompleted",
+    });
+    expect(state.phase).toBe("resettingButtonRevealing");
 
-      state = experienceReducer(state, {
-        type: "startButtonAnimationCompleted",
-      });
-      expect(state.phase).toBe("resettingButtonRevealing");
-
-      state = experienceReducer(state, {
-        type: "startButtonAnimationCompleted",
-      });
-      expect(state.phase).toBe("idle");
-    },
-  );
+    state = experienceReducer(state, {
+      type: "startButtonAnimationCompleted",
+    });
+    expect(state.phase).toBe("idle");
+  });
 
   it("ignores events that are invalid for the current phase", () => {
     const idleState = withPhase("idle");
     const invalidActions: ExperienceAction[] = [
       { type: "cameraAnimationCompleted" },
       { type: "promptAnimationCompleted" },
-      { type: "promptTextAnimationCompleted" },
+      { type: "smileElapsed" },
       { type: "countdownTicked" },
-      { type: "restartCountdownTicked" },
-      { type: "lotteryRevealElapsed" },
+      { type: "playLotteryRequested" },
+      { type: "cashMachineElapsed" },
       { type: "autoResetElapsed" },
-      { type: "restartRequested" },
       { type: "photoCaptured", printAttemptId: 1 },
       { type: "printSucceeded", printAttemptId: 1 },
       { type: "printFailed", printAttemptId: 1 },
@@ -253,5 +250,36 @@ describe("experienceReducer", () => {
     for (const action of invalidActions) {
       expect(experienceReducer(idleState, action)).toBe(idleState);
     }
+  });
+
+  it("treats duplicate animation-complete events as no-ops after transition", () => {
+    const afterStartButton = experienceReducer(withPhase("introExiting"), {
+      type: "startButtonAnimationCompleted",
+    });
+    expect(afterStartButton.phase).toBe("cameraEntering");
+    expect(
+      experienceReducer(afterStartButton, {
+        type: "startButtonAnimationCompleted",
+      }),
+    ).toBe(afterStartButton);
+
+    const afterCamera = experienceReducer(afterStartButton, {
+      type: "cameraAnimationCompleted",
+    });
+    expect(afterCamera.phase).toBe("promptEntering");
+    expect(
+      experienceReducer(afterCamera, { type: "cameraAnimationCompleted" }),
+    ).toBe(afterCamera);
+
+    const afterPrompt = experienceReducer(afterCamera, {
+      type: "promptAnimationCompleted",
+    });
+    expect(afterPrompt).toMatchObject({
+      phase: "countdown",
+      countdown: COUNTDOWN_START,
+    });
+    expect(
+      experienceReducer(afterPrompt, { type: "promptAnimationCompleted" }),
+    ).toBe(afterPrompt);
   });
 });

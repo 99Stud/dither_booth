@@ -1,3 +1,4 @@
+import { Toaster } from "@dither-booth/ui/components/ui/sonner";
 import { Outlet } from "@tanstack/react-router";
 import { useRef, type FC } from "react";
 
@@ -33,6 +34,7 @@ export const Root: FC = () => {
       ref={mainRef}
       data-dither-route-status="ready"
     >
+      <Toaster />
       <Outlet />
     </main>
   );
