@@ -213,8 +213,7 @@ export const usePrintConfigurationPreview = ({
       );
 
       if (
-        request.requestId !==
-        latestPreviewRequestIdByTabRef.current[previewTab]
+        request.requestId !== latestPreviewRequestIdByTabRef.current[previewTab]
       ) {
         return;
       }

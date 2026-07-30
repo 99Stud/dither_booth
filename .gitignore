@@ -40,3 +40,6 @@ logs/pm2/*.log
 
 # Cache
 .cache
+
+# Temporary files
+temp

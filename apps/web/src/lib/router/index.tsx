@@ -15,6 +15,7 @@ import {
   RootErrorScreen,
   RootNotFoundScreen,
 } from "#app/Root/internal/components/RootErrorBoundary/index";
+import { Sandbox } from "#app/Sandbox/index";
 
 const rootRoute = createRootRoute({
   component: Root,
@@ -35,7 +36,13 @@ export const receiptViewerRoute = createRoute({
   validateSearch: RECEIPT_VIEWER_SEARCH_SCHEMA,
 });
 
-const routes = [experienceRoute, receiptViewerRoute];
+export const sandboxRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sandbox",
+  component: Sandbox,
+});
+
+const routes = [experienceRoute, receiptViewerRoute, sandboxRoute];
 
 const routeTree = rootRoute.addChildren(routes);
 
