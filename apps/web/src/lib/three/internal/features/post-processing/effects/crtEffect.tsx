@@ -29,8 +29,8 @@ type Vector2Node = Node<"vec2">;
 
 function createCrtUniforms() {
   return {
-    uWarpX: uniform(0.031),
-    uWarpY: uniform(0.041),
+    uWarpX: uniform(0.011),
+    uWarpY: uniform(0.021),
     uHardScan: uniform(-8.0),
     uHardPix: uniform(-3.0),
     uMaskDark: uniform(0.5),

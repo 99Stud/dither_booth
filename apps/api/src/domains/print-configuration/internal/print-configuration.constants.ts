@@ -3,7 +3,16 @@ import { ColorScheme, DitherMode } from "@opendisplay/epaper-dithering";
 import z from "zod";
 
 export const DITHER_MODE_OPTIONS = [
-  0, 1, 2, 3, 4, 5, 6, 7, 8,
+  DitherMode.NONE,
+  DitherMode.BURKES,
+  DitherMode.ORDERED,
+  DitherMode.FLOYD_STEINBERG,
+  DitherMode.ATKINSON,
+  DitherMode.STUCKI,
+  DitherMode.SIERRA,
+  DitherMode.SIERRA_LITE,
+  DitherMode.JARVIS_JUDICE_NINKE,
+  DitherMode.DIZZY,
 ] satisfies Array<DitherMode>;
 
 export const COLOR_SCHEME_CODE_OPTIONS = [
@@ -22,6 +31,7 @@ const PRINT_CONFIGURATION_FIELD_SCHEMAS = {
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
   threshold: z.number().int().min(0).max(255),
+  rotation: z.number().int().min(0).max(360),
   template: receiptTemplateSchema,
 };
 
@@ -34,5 +44,6 @@ export const UPDATE_PRINT_CONFIGURATION_SCHEMA = z.object({
   shadows: PRINT_CONFIGURATION_FIELD_SCHEMAS.shadows.optional(),
   highlights: PRINT_CONFIGURATION_FIELD_SCHEMAS.highlights.optional(),
   threshold: PRINT_CONFIGURATION_FIELD_SCHEMAS.threshold.optional(),
+  rotation: PRINT_CONFIGURATION_FIELD_SCHEMAS.rotation.optional(),
   template: PRINT_CONFIGURATION_FIELD_SCHEMAS.template.optional(),
 });
