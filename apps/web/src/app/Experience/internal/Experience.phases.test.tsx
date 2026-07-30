@@ -4,7 +4,12 @@ import type { ExperiencePhase } from "./Experience.machine";
 import type { ExperiencePhaseFlag } from "./Experience.phases";
 
 import { PROMPT_TEXT_BY_PHASE } from "./Experience.copy";
-import { PROMPT_TRANSITION, SLIDE_TRANSITION } from "./Experience.motion";
+import {
+  PROMPT_PANEL_LAYOUT_TRANSITION,
+  PROMPT_TEXT_TRANSITION,
+  PROMPT_TRANSITION,
+  SLIDE_TRANSITION,
+} from "./Experience.motion";
 import {
   AUTO_ADVANCE_ACTION_BY_PHASE,
   PHASE_FLAGS,
@@ -113,5 +118,17 @@ describe("PROMPT_TEXT_BY_PHASE", () => {
   // would be visible mid-fade.
   it("relies on the camera slide outlasting the prompt fade", () => {
     expect(PROMPT_TRANSITION.duration).toBeLessThan(SLIDE_TRANSITION.duration);
+  });
+
+  // `mode="wait"` sequences the caption swap: the outgoing caption exits, then
+  // the incoming one mounts and the panel resizes. Comparing either half to the
+  // fade on its own would miss the case where they add up past it and leave a
+  // width change running on a panel the user is no longer meant to see. The
+  // incoming caption's fade runs after the resize and is intentionally not
+  // covered — it is free to finish on an already invisible panel.
+  it("keeps the caption swap's panel resize inside the prompt fade", () => {
+    expect(
+      PROMPT_TEXT_TRANSITION.duration + PROMPT_PANEL_LAYOUT_TRANSITION.duration,
+    ).toBeLessThanOrEqual(PROMPT_TRANSITION.duration);
   });
 });

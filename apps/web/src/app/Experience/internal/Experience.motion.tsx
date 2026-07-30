@@ -13,6 +13,21 @@ export const PROMPT_TEXT_TRANSITION = {
   duration: 0.2,
 } as const satisfies Transition;
 
+/**
+ * Drives the prompt panel's width change when the caption swaps. The resize is
+ * the second half of a sequence — the outgoing caption exits over
+ * PROMPT_TEXT_TRANSITION, then the incoming one mounts and the panel resizes —
+ * so PROMPT_TEXT_TRANSITION + this has to stay inside PROMPT_TRANSITION,
+ * otherwise a resize could still be running on a panel that has already faded
+ * out. Only the resize is bounded: the incoming caption's own fade runs for
+ * another PROMPT_TEXT_TRANSITION after it and is free to outlast the panel fade,
+ * since a caption fading in on an invisible panel changes nothing on screen.
+ */
+export const PROMPT_PANEL_LAYOUT_TRANSITION = {
+  duration: 0.08,
+  ease: "easeOut",
+} as const satisfies Transition;
+
 export const FLASH_TRANSITION = {
   duration: 0.25,
   ease: "easeOut",
