@@ -4,6 +4,7 @@ import type { FC } from "react";
 import { RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE } from "@dither-booth/shared/browser/receipt-viewer";
 
 import { HeirveyReceiptTemplate } from "#components/receipt-templates/HeirveyReceiptTemplate/index";
+import { LotteryReceiptTemplate } from "#components/receipt-templates/LotteryReceiptTemplate/index";
 import { TartinesReceiptTemplate } from "#components/receipt-templates/TartinesReceiptTemplate/index";
 import { receiptViewerRoute } from "#lib/router/index";
 
@@ -14,6 +15,7 @@ type ReceiptTemplateComponent = FC<{
 const RECEIPT_TEMPLATE_COMPONENTS = {
   heirvey: HeirveyReceiptTemplate,
   tartines: TartinesReceiptTemplate,
+  lottery: LotteryReceiptTemplate,
 } satisfies Record<ReceiptTemplate, ReceiptTemplateComponent>;
 
 export const ReceiptViewer: FC = () => {

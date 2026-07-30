@@ -1,9 +1,14 @@
 import { ControlCenter } from "#app/ControlCenter/index";
+import { Event } from "#app/Event/index";
 import { PrintConfiguration } from "#app/PrintConfiguration/index";
 
 import type { RouteConfig } from "./router.types";
 
-export const ROUTE_KEYS = ["control-center", "print-configuration"] as const;
+export const ROUTE_KEYS = [
+  "control-center",
+  "event",
+  "print-configuration",
+] as const;
 
 export const ROUTES_CONFIG: RouteConfig = new Map([
   [
@@ -11,6 +16,13 @@ export const ROUTES_CONFIG: RouteConfig = new Map([
     {
       path: "/control-center",
       component: ControlCenter,
+    },
+  ],
+  [
+    "event",
+    {
+      path: "/event",
+      component: Event,
     },
   ],
   [

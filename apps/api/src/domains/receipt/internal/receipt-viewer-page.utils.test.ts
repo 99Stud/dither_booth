@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   navigateReceiptViewerClientSide,
   runExclusiveReceiptViewerPageJob,
-  withReceiptViewerTemplate,
+  withReceiptViewerSearch,
 } from "./receipt-viewer-page.utils";
 
 type Deferred<T> = {
@@ -71,7 +71,7 @@ describe("navigateReceiptViewerClientSide", () => {
 
     await navigateReceiptViewerClientSide({
       page,
-      template: "tartines",
+      search: { template: "tartines" },
     });
 
     expect(events).toEqual(["evaluate:tartines", "wait:tartines"]);
@@ -79,18 +79,18 @@ describe("navigateReceiptViewerClientSide", () => {
   });
 });
 
-describe("withReceiptViewerTemplate", () => {
+describe("withReceiptViewerSearch", () => {
   test("resets to the root receipt viewer route after success", async () => {
     const events: string[] = [];
     const page = createNavigationPage(events);
 
-    const value = await withReceiptViewerTemplate({
+    const value = await withReceiptViewerSearch({
       page,
       run: async () => {
         events.push("screenshot");
         return "ok";
       },
-      template: "tartines",
+      search: { template: "tartines" },
     });
 
     expect(value).toBe("ok");
@@ -110,13 +110,13 @@ describe("withReceiptViewerTemplate", () => {
     let thrown: unknown;
 
     try {
-      await withReceiptViewerTemplate({
+      await withReceiptViewerSearch({
         page,
         run: async () => {
           events.push("screenshot");
           throw screenshotError;
         },
-        template: "tartines",
+        search: { template: "tartines" },
       });
     } catch (error) {
       thrown = error;
@@ -141,14 +141,14 @@ describe("withReceiptViewerTemplate", () => {
     let thrown: unknown;
 
     try {
-      await withReceiptViewerTemplate({
+      await withReceiptViewerSearch({
         page,
         run: async () => {
           didRun = true;
           events.push("screenshot");
           return "ok";
         },
-        template: "tartines",
+        search: { template: "tartines" },
       });
     } catch (error) {
       thrown = error;
@@ -159,6 +159,7 @@ describe("withReceiptViewerTemplate", () => {
     expect(events).toEqual([
       "evaluate:tartines",
       "wait:tartines",
+      "evaluate:tartines", // navigation failure diagnostics
       "evaluate:root",
       "wait:root",
     ]);

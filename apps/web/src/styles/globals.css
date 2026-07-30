@@ -154,4 +154,33 @@
     @apply font-sans;
     @apply antialiased;
   }
+  /* Kiosk shell only — do not lock #root height/overflow globally or receipt
+     screenshots (taller than the viewport) get clipped to empty white. */
+  html.kiosk-shell,
+  html.kiosk-shell body {
+    @apply h-dvh min-h-dvh overflow-hidden overscroll-none;
+    touch-action: manipulation;
+  }
+}
+
+@theme {
+  --animate-flashing: flashing 1s ease-in-out infinite;
+}
+
+@keyframes flashing {
+  0% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  75% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }

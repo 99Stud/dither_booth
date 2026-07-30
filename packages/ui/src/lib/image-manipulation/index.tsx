@@ -5,7 +5,7 @@ import {
   resizeBlobToSquare,
 } from "@dither-booth/shared/browser/image";
 
-export const takeSquarePhotoAndFlipHorizontally = async (
+export const takeSquarePhoto = async (
   source: string,
   takePhoto: () => Promise<Blob>,
 ) => {
@@ -20,10 +20,19 @@ export const takeSquarePhotoAndFlipHorizontally = async (
   });
 
   if (width === height) {
-    return await flipBlobHorizontally(photo);
+    return photo;
   }
 
   logKioskEvent("info", source, "client-square-resize-requested");
 
-  return await flipBlobHorizontally(await resizeBlobToSquare(photo));
+  return await resizeBlobToSquare(photo);
+};
+
+/** Match Webcam preview (`-scale-x-100`) so the print matches what the guest saw. */
+export const takeSquarePhotoAndFlipHorizontally = async (
+  source: string,
+  takePhoto: () => Promise<Blob>,
+) => {
+  const squarePhoto = await takeSquarePhoto(source, takePhoto);
+  return await flipBlobHorizontally(squarePhoto);
 };

@@ -19,6 +19,8 @@ import {
 } from "./internal/ports.constants";
 
 export { ADMIN_BIND_HOST, API_BIND_HOST, WEB_BIND_HOST };
+export { getMachineCertificateHostnames } from "./internal/hostname.utils";
+export { isAllowedConfiguredOrigin } from "./internal/origin.utils";
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
   return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);
@@ -77,6 +79,7 @@ async function readWebTlsManifest(options: RepoPathOptions) {
     caPath: manifest.data.caPath,
     certPath: manifest.data.certPath,
     keyPath: manifest.data.keyPath,
+    hostnames: manifest.data.hostnames,
   };
 }
 
@@ -110,6 +113,11 @@ export function getApiInternalOrigin() {
   return formatOrigin("http", API_BIND_HOST, getPort("API_PORT"));
 }
 
+/** Loopback HTTPS origin for server-side clients (e.g. Puppeteer). */
+export function getWebInternalOrigin() {
+  return formatOrigin("https", API_BIND_HOST, getPort("WEB_PORT"));
+}
+
 export async function getWebPublicIp(options: RepoPathOptions) {
   const manifestPath = getWebTlsManifestPath(options);
   const manifest = await readWebTlsManifest(options);
@@ -134,6 +142,13 @@ export async function getWebTlsCaPath(options: RepoPathOptions) {
   }
 
   return manifest.caPath;
+}
+
+/** Machine hostnames recorded in the TLS manifest (bare + `.local`). */
+export async function getWebTlsHostnames(options: RepoPathOptions) {
+  const manifest = await readWebTlsManifest(options);
+
+  return manifest?.hostnames ?? [];
 }
 
 export async function getWebOrigin(options: RepoPathOptions) {

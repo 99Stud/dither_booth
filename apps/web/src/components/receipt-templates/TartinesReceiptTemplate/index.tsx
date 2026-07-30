@@ -1,5 +1,3 @@
-import type { FC } from "react";
-
 import { RECEIPT_ELEMENT_ID } from "@dither-booth/shared/browser/receipt-viewer";
 import { formatPrice } from "@dither-booth/shared/formatting";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
@@ -10,9 +8,25 @@ import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo
 import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { type FC, useMemo } from "react";
 
 import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index";
+const TARTINES_RECEIPT_TOTAL = 1999;
+
+const randomPriceSplit = (total: number): [number, number, number] => {
+  const minPrice = 1;
+  let remainder = total - 3 * minPrice;
+
+  const firstExtra = Math.floor(Math.random() * (remainder + 1));
+  remainder -= firstExtra;
+
+  const secondExtra = Math.floor(Math.random() * (remainder + 1));
+  remainder -= secondExtra;
+
+  return [minPrice + firstExtra, minPrice + secondExtra, minPrice + remainder];
+};
+
 interface TartinesReceiptTemplateProps {
   className?: string;
 }
@@ -21,6 +35,10 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
   className,
 }) => {
   const today = new Date();
+  const [studPrice, matePrice, ginettePrice] = useMemo(
+    () => randomPriceSplit(TARTINES_RECEIPT_TOTAL),
+    [],
+  );
 
   return (
     <div
@@ -72,19 +90,20 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
           ITEMS
         </p>
         <div className={clsx("flex flex-col gap-4", "font-bold")}>
+          <ReceiptItem quantity={1} name="99stud" price={studPrice} />
+          <ReceiptItem quantity={1} name="El Tony Mate" price={matePrice} />
           <ReceiptItem
             quantity={1}
-            name="99stud 99stud 99stud 99stud 99stud"
-            price={10}
+            name="Épicerie Ginette"
+            price={ginettePrice}
           />
-          <ReceiptItem quantity={1} name="El Tony Mate" price={10} />
         </div>
       </div>
       <DashedLine className={clsx("mb-6")} />
       <div className={clsx("flex items-center justify-between")}>
         <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
         <p className={clsx("font-mono text-3xl font-medium tabular-nums")}>
-          {formatPrice(20)}
+          {formatPrice(TARTINES_RECEIPT_TOTAL)}
         </p>
       </div>
       <DashedLine className={clsx("mt-6")} />

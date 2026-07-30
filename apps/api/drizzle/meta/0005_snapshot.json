@@ -1,0 +1,419 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "511beb7f-9cb2-4b8f-894d-b89334715dda",
+  "prevId": "8d74a8ee-ae7e-49b4-b4f6-fbedcbb0215f",
+  "tables": {
+    "campaign": {
+      "name": "campaign",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lottery_id": {
+          "name": "lottery_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "campaign_lottery_id_lottery_id_fk": {
+          "name": "campaign_lottery_id_lottery_id_fk",
+          "tableFrom": "campaign",
+          "tableTo": "lottery",
+          "columnsFrom": [
+            "lottery_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "draw": {
+      "name": "draw",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch())"
+        },
+        "lottery_id": {
+          "name": "lottery_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "prize_id": {
+          "name": "prize_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "draw_lottery_id_lottery_id_fk": {
+          "name": "draw_lottery_id_lottery_id_fk",
+          "tableFrom": "draw",
+          "tableTo": "lottery",
+          "columnsFrom": [
+            "lottery_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "draw_prize_id_prize_id_fk": {
+          "name": "draw_prize_id_prize_id_fk",
+          "tableFrom": "draw",
+          "tableTo": "prize",
+          "columnsFrom": [
+            "prize_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "lottery": {
+      "name": "lottery",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "no_win_weight": {
+          "name": "no_win_weight",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "win_cooldown_minutes": {
+          "name": "win_cooldown_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 5
+        },
+        "print_loser_ticket": {
+          "name": "print_loser_ticket",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "lottery_no_win_weight_check": {
+          "name": "lottery_no_win_weight_check",
+          "value": "\"no_win_weight\" >= 0"
+        },
+        "lottery_win_cooldown_minutes_check": {
+          "name": "lottery_win_cooldown_minutes_check",
+          "value": "\"win_cooldown_minutes\" >= 0"
+        },
+        "lottery_print_loser_ticket_check": {
+          "name": "lottery_print_loser_ticket_check",
+          "value": "\"print_loser_ticket\" in (0, 1)"
+        }
+      }
+    },
+    "print_config": {
+      "name": "print_config",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "dither_mode_code": {
+          "name": "dither_mode_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "color_scheme_code": {
+          "name": "color_scheme_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "serpentine": {
+          "name": "serpentine",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "exposure": {
+          "name": "exposure",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "saturation": {
+          "name": "saturation",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "shadows": {
+          "name": "shadows",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "highlights": {
+          "name": "highlights",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "threshold": {
+          "name": "threshold",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 128
+        },
+        "template": {
+          "name": "template",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'tartines'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "print_config_singleton_check": {
+          "name": "print_config_singleton_check",
+          "value": "\"print_config\".\"id\" = 1"
+        },
+        "print_config_dither_mode_code_check": {
+          "name": "print_config_dither_mode_code_check",
+          "value": "\"print_config\".\"dither_mode_code\" between 0 and 8"
+        },
+        "print_config_color_scheme_code_check": {
+          "name": "print_config_color_scheme_code_check",
+          "value": "\"print_config\".\"color_scheme_code\" in (0, 5, 6, 7)"
+        },
+        "print_config_serpentine_check": {
+          "name": "print_config_serpentine_check",
+          "value": "\"print_config\".\"serpentine\" in (0, 1)"
+        },
+        "print_config_exposure_check": {
+          "name": "print_config_exposure_check",
+          "value": "\"print_config\".\"exposure\" > 0 and \"print_config\".\"exposure\" <= 4"
+        },
+        "print_config_saturation_check": {
+          "name": "print_config_saturation_check",
+          "value": "\"print_config\".\"saturation\" between 0 and 4"
+        },
+        "print_config_shadows_check": {
+          "name": "print_config_shadows_check",
+          "value": "\"print_config\".\"shadows\" between 0 and 1"
+        },
+        "print_config_highlights_check": {
+          "name": "print_config_highlights_check",
+          "value": "\"print_config\".\"highlights\" between 0 and 1"
+        },
+        "print_config_threshold_check": {
+          "name": "print_config_threshold_check",
+          "value": "\"print_config\".\"threshold\" between 0 and 255"
+        },
+        "print_config_template_check": {
+          "name": "print_config_template_check",
+          "value": "\"print_config\".\"template\" in ('tartines', 'heirvey')"
+        }
+      }
+    },
+    "prize": {
+      "name": "prize",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lottery_id": {
+          "name": "lottery_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "win_instruction": {
+          "name": "win_instruction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "weight": {
+          "name": "weight",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "total_quantity": {
+          "name": "total_quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "remaining_quantity": {
+          "name": "remaining_quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "rarity": {
+          "name": "rarity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'common'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "prize_lottery_id_lottery_id_fk": {
+          "name": "prize_lottery_id_lottery_id_fk",
+          "tableFrom": "prize",
+          "tableTo": "lottery",
+          "columnsFrom": [
+            "lottery_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "prize_weight_check": {
+          "name": "prize_weight_check",
+          "value": "\"prize\".\"weight\" > 0"
+        },
+        "prize_total_quantity_check": {
+          "name": "prize_total_quantity_check",
+          "value": "\"prize\".\"total_quantity\" >= 0"
+        },
+        "prize_remaining_quantity_check": {
+          "name": "prize_remaining_quantity_check",
+          "value": "\"prize\".\"remaining_quantity\" between 0 and \"prize\".\"total_quantity\""
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
