@@ -17,6 +17,14 @@ import {
 
 let printerJobQueue: Promise<void> = Promise.resolve();
 
+/**
+ * The `await previousJob` wait below is deliberately unbounded, so a job that
+ * queued behind a slow one can still start printing after the kiosk gave up on
+ * it and reset — user A's receipt in front of user B. Bounding the *wait* would
+ * make it worse: it rejects the fresh waiter while the stale job prints anyway.
+ * Closing this properly needs the client to send its remaining budget and this
+ * function to re-check it after the wait, immediately before touching USB.
+ */
 export async function runExclusivePrinterJob<T>(
   job: () => Promise<T>,
 ): Promise<T> {

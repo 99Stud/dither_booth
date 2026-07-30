@@ -16,6 +16,14 @@ import {
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 
+/**
+ * Caps the puppeteer stage, whose navigation and element lookups are already
+ * bounded individually but whose screenshot is not. The sharp stages around it
+ * stay unbounded on purpose — see PRINT_ATTEMPT_TIMEOUT_MS for the budget this
+ * feeds and what it does and does not cover.
+ */
+const RECEIPT_SCREENSHOT_TIMEOUT_MS = 12_000;
+
 export async function prepareReceiptRasterCommand({
   ctx,
   input,
@@ -81,15 +89,20 @@ export async function buildReceiptRasterCommand({
   try {
     const ditheredImageData = (await dithered.png().toBuffer()).toBase64();
 
-    const receiptScreenshot = await runExclusiveReceiptViewerPageJob(() =>
-      captureReceiptScreenshot({
-        image: {
-          data: ditheredImageData,
-          mimeType: "image/png",
-        },
-        page,
-        template: printConfiguration.template,
-      }),
+    const receiptScreenshot = await runExclusiveReceiptViewerPageJob(
+      () =>
+        captureReceiptScreenshot({
+          image: {
+            data: ditheredImageData,
+            mimeType: "image/png",
+          },
+          page,
+          template: printConfiguration.template,
+        }),
+      {
+        timeoutMessage: "Receipt screenshot timed out.",
+        timeoutMs: RECEIPT_SCREENSHOT_TIMEOUT_MS,
+      },
     );
 
     return await screenshotToGsV0RasterCommand(receiptScreenshot, {

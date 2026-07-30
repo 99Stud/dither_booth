@@ -1,5 +1,6 @@
 import type { ElementHandle, Page } from "puppeteer";
 
+import { withTimeout } from "@dither-booth/shared/async";
 import {
   RECEIPT_ELEMENT_SELECTOR,
   RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE,
@@ -40,8 +41,18 @@ async function attempt<T>(run: () => Promise<T>): Promise<AttemptResult<T>> {
 
 let receiptViewerPageJobQueue: Promise<void> = Promise.resolve();
 
+/**
+ * Serializes work against the shared receipt viewer page.
+ *
+ * `timeoutMs` bounds how long the *caller* waits, not the job itself: puppeteer
+ * work cannot be cancelled, so a timed-out job keeps running — and still resets
+ * the page to its root route when it finishes. The queue slot is therefore held
+ * until the job actually settles, so an orphan can never steer the shared page
+ * out from under whichever job picked up the slot next.
+ */
 export async function runExclusiveReceiptViewerPageJob<T>(
   job: () => Promise<T>,
+  options: { timeoutMessage?: string; timeoutMs?: number } = {},
 ): Promise<T> {
   const previousJob = receiptViewerPageJobQueue;
   let releaseCurrentJob: () => void = () => {};
@@ -52,11 +63,38 @@ export async function runExclusiveReceiptViewerPageJob<T>(
 
   await previousJob;
 
-  try {
-    return await job();
-  } finally {
-    releaseCurrentJob();
+  // The async wrapper turns a synchronous throw from `job` into a rejection, so
+  // the slot is always released exactly once.
+  const jobPromise = (async () => await job())();
+
+  // The slot follows the real work, not the caller. On timeout the caller below
+  // rejects immediately while this keeps the slot held until the orphaned page
+  // work settles. Also doubles as the rejection handler for a discarded job — do
+  // not simplify to `.finally`, which re-throws and would leave the rejection of
+  // a discarded job unhandled.
+  //
+  // The handlers must swallow their argument: `releaseCurrentJob` is a
+  // `Promise<void>` resolve typed as `() => void`, so passing it directly would
+  // hand it the job's value and a thenable `T` would make the queue adopt it
+  // instead of releasing the slot.
+  void jobPromise.then(
+    () => {
+      releaseCurrentJob();
+    },
+    () => {
+      releaseCurrentJob();
+    },
+  );
+
+  if (options.timeoutMs === undefined) {
+    return await jobPromise;
   }
+
+  return await withTimeout({
+    message: options.timeoutMessage ?? "Receipt viewer page job timed out.",
+    promise: jobPromise,
+    timeoutMs: options.timeoutMs,
+  });
 }
 
 const RECEIPT_VIEWER_NAVIGATION_TIMEOUT_MS = 3_000;

@@ -30,7 +30,8 @@ export const printConfigTable = sqliteTable(
     saturation: real("saturation").notNull().default(1),
     shadows: real("shadows").notNull().default(0),
     highlights: real("highlights").notNull().default(0),
-    threshold: real("threshold").notNull().default(128),
+    threshold: integer("threshold").notNull().default(128),
+    rotation: integer("rotation").notNull().default(0),
     template: text("template", { enum: RECEIPT_TEMPLATES })
       .notNull()
       .default(DEFAULT_RECEIPT_TEMPLATE),
@@ -39,11 +40,11 @@ export const printConfigTable = sqliteTable(
     check("print_config_singleton_check", sql`${table.id} = 1`),
     check(
       "print_config_dither_mode_code_check",
-      sql`${table.ditherModeCode} between 0 and 8`,
+      sql`${table.ditherModeCode} between 0 and 9`,
     ),
     check(
       "print_config_color_scheme_code_check",
-      sql`${table.colorSchemeCode} in (0, 5, 6, 7)`,
+      sql`${table.colorSchemeCode} in (0, 5, 6, 9)`,
     ),
     check("print_config_serpentine_check", sql`${table.serpentine} in (0, 1)`),
     check(
@@ -62,6 +63,10 @@ export const printConfigTable = sqliteTable(
     check(
       "print_config_threshold_check",
       sql`${table.threshold} between 0 and 255`,
+    ),
+    check(
+      "print_config_rotation_check",
+      sql`${table.rotation} between 0 and 360`,
     ),
     check(
       "print_config_template_check",

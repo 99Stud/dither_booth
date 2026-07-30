@@ -18,7 +18,7 @@ import type {
 
 export const PRINT_CONFIGURATION_LOG_SOURCE = "admin.print-configuration";
 
-export const DITHER_MODE_CODE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
+export const DITHER_MODE_CODE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 export const DITHER_MODE_CODE_SCHEMA = z.literal(DITHER_MODE_CODE_OPTIONS);
 export const DITHER_MODE_CODE_FIELD_OPTIONS: Array<
   SelectFieldOption<
@@ -34,9 +34,10 @@ export const DITHER_MODE_CODE_FIELD_OPTIONS: Array<
   { label: "Sierra", value: 6 },
   { label: "Sierra Lite", value: 7 },
   { label: "Jarvis-Judice-Ninke", value: 8 },
+  { label: "Dizzy", value: 9 },
 ];
 
-export const COLOR_SCHEME_CODE_OPTIONS = [0, 5, 6, 7] as const;
+export const COLOR_SCHEME_CODE_OPTIONS = [0, 5, 6, 9] as const;
 export const COLOR_SCHEME_CODE_SCHEMA = z.literal(COLOR_SCHEME_CODE_OPTIONS);
 export const COLOR_SCHEME_CODE_FIELD_OPTIONS: Array<
   SelectFieldOption<
@@ -45,8 +46,8 @@ export const COLOR_SCHEME_CODE_FIELD_OPTIONS: Array<
 > = [
   { label: "Mono", value: 0 },
   { label: "Grayscale 4", value: 5 },
-  { label: "Grayscale 8", value: 6 },
-  { label: "Grayscale 16", value: 7 },
+  { label: "Grayscale 16", value: 6 },
+  { label: "Grayscale 8", value: 9 },
 ];
 
 export const RECEIPT_TEMPLATE_FIELD_OPTIONS: Array<
@@ -65,6 +66,7 @@ export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
   threshold: z.number().int().min(0).max(255),
+  rotation: z.number().int().min(0).max(360),
   template: receiptTemplateSchema,
 });
 
@@ -78,6 +80,7 @@ export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValu
     shadows: 0,
     highlights: 0,
     threshold: 128,
+    rotation: 0,
     template: "tartines",
   };
 
@@ -96,6 +99,7 @@ export const DITHERING_PREVIEW_FIELDS = [
   "saturation",
   "shadows",
   "highlights",
+  "rotation",
 ] as const satisfies ReadonlyArray<keyof PrintConfigurationFormValues>;
 
 export const RECEIPT_PREVIEW_FIELDS = [
@@ -138,6 +142,7 @@ export const getPrintConfigurationFormValues = (
     shadows: printConfiguration.shadows,
     highlights: printConfiguration.highlights,
     threshold: printConfiguration.threshold,
+    rotation: printConfiguration.rotation,
     template: printConfiguration.template,
   };
 };
@@ -151,9 +156,8 @@ export const SLIDER_FIELD_CONFIGS = [
         : stops.toFixed(1);
 
       const signedStops = stops > 0 ? `+${formattedStops}` : formattedStops;
-      const stopLabel = Math.abs(stops) === 1 ? "stop" : "stops";
 
-      return `${signedStops} ${stopLabel}`;
+      return `${signedStops} EV`;
     },
     label: "Exposure",
     max: 2,
