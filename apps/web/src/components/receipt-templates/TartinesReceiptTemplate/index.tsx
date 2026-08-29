@@ -12,7 +12,11 @@ import { type FC, useMemo } from "react";
 
 import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index";
+
+import { pickWeightedReceiptItems } from "./items";
+
 const TARTINES_RECEIPT_TOTAL = 1999;
+const TARTINES_RECEIPT_ITEM_COUNT = 3;
 
 const randomPriceSplit = (total: number): [number, number, number] => {
   const minPrice = 1;
@@ -35,10 +39,17 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
   className,
 }) => {
   const today = new Date();
-  const [studPrice, matePrice, ginettePrice] = useMemo(
-    () => randomPriceSplit(TARTINES_RECEIPT_TOTAL),
-    [],
-  );
+  const items = useMemo(() => {
+    const prices = randomPriceSplit(TARTINES_RECEIPT_TOTAL);
+
+    return pickWeightedReceiptItems(TARTINES_RECEIPT_ITEM_COUNT).map(
+      (item, index) => ({
+        name: item.name,
+        quantity: item.quantity ?? 1,
+        price: prices[index] ?? 0,
+      }),
+    );
+  }, []);
 
   return (
     <div
@@ -79,9 +90,9 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
             "font-mono text-3xl font-light",
           )}
         >
-          <p>Épicerie de Ginette</p>
-          <p>24 Cr Albert Thomas</p>
-          <p>69008 Lyon</p>
+          <p>Opening Party</p>
+          <p>10 Rue du Gazomètre</p>
+          <p>69003 Lyon</p>
         </div>
       </div>
       <DashedLine />
@@ -90,13 +101,14 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
           ITEMS
         </p>
         <div className={clsx("flex flex-col gap-4", "font-bold")}>
-          <ReceiptItem quantity={1} name="99stud" price={studPrice} />
-          <ReceiptItem quantity={1} name="El Tony Mate" price={matePrice} />
-          <ReceiptItem
-            quantity={1}
-            name="Épicerie Ginette"
-            price={ginettePrice}
-          />
+          {items.map((item) => (
+            <ReceiptItem
+              key={item.name}
+              quantity={item.quantity}
+              name={item.name}
+              price={item.price}
+            />
+          ))}
         </div>
       </div>
       <DashedLine className={clsx("mb-6")} />
@@ -129,8 +141,8 @@ interface ReceiptItemProps {
 }
 const ReceiptItem: FC<ReceiptItemProps> = ({ quantity, name, price }) => {
   return (
-    <div className={clsx("flex items-center justify-between gap-12")}>
-      <div className={clsx("flex min-w-0 flex-1 items-center gap-4")}>
+    <div className={clsx("flex items-start justify-between gap-12")}>
+      <div className={clsx("flex min-w-0 flex-1 items-start gap-4")}>
         <p
           className={clsx(
             "shrink-0 font-mono text-3xl font-medium tabular-nums",
@@ -138,7 +150,7 @@ const ReceiptItem: FC<ReceiptItemProps> = ({ quantity, name, price }) => {
         >
           {quantity}x
         </p>
-        <p className={clsx("mt-1 min-w-0 truncate leading-[0.7]")}>{name}</p>
+        <p className={clsx("mt-1 min-w-0 leading-[0.7]")}>{name}</p>
       </div>
       <p
         className={clsx("shrink-0 font-mono text-3xl font-light tabular-nums")}
