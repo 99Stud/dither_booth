@@ -365,12 +365,12 @@ export const Experience = () => {
               duration: 0.4,
             },
           }}
-          className={clsx("absolute")}
+          className={clsx("absolute aspect-square")}
         >
           <Webcam
             ref={webcamRef}
             className={clsx(
-              "h-full",
+              "h-full w-full max-w-none",
               "shadow-[0px_0px_24px_0px_rgba(0,0,0,0.5)]",
             )}
             onCameraStateChange={reportUserMediaCameraStateChange}
