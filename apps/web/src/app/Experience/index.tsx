@@ -4,12 +4,11 @@ import {
 } from "@dither-booth/ui/components/misc/Webcam";
 import { NinetyNineStudOutlineLogo } from "@dither-booth/ui/components/svg/99StudOutlineLogo/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
-import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
 import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-manipulation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { Fragment, useCallback, useEffect, useReducer, useRef } from "react";
@@ -27,10 +26,7 @@ import {
   PRINT_SUCCESS_AUTO_RESET_MS,
   type ExperiencePhase,
 } from "./internal/experience-machine";
-import {
-  formatLastWinAt,
-  getRarityReveal,
-} from "./internal/lottery-reveal.utils";
+import { getRarityReveal } from "./internal/lottery-reveal.utils";
 
 const INTERACTIVE_BACKGROUND_OPTIONS = {
   fluidBackground: {
@@ -83,10 +79,6 @@ export const Experience = () => {
   } = state;
 
   const trpc = useTRPC();
-
-  const { data: lotteryStatus } = useQuery(
-    trpc.getLotteryStatus.queryOptions(),
-  );
 
   const { mutateAsync: printReceiptImage } = useMutation(
     trpc.printReceipt.mutationOptions(),
@@ -147,9 +139,7 @@ export const Experience = () => {
           printAttemptId: activePrintAttemptId,
           drawResult: nextDrawResult,
         });
-        void queryClient.invalidateQueries(
-          trpc.getLotteryStatus.queryFilter(),
-        );
+        void queryClient.invalidateQueries(trpc.getLotteryStatus.queryFilter());
       } catch (error) {
         if (cancelled) return;
 
@@ -170,7 +160,12 @@ export const Experience = () => {
     return () => {
       cancelled = true;
     };
-  }, [activePrintAttemptId, printReceiptImage, takeSquarePhoto, trpc.getLotteryStatus]);
+  }, [
+    activePrintAttemptId,
+    printReceiptImage,
+    takeSquarePhoto,
+    trpc.getLotteryStatus,
+  ]);
 
   useEffect(() => {
     if (phase !== "countdown") return;
@@ -253,10 +248,6 @@ export const Experience = () => {
   const isPromptVisible = PROMPT_VISIBLE_PHASES.has(phase);
   const isPrintSuccessVisible = phase === "printSucceeded";
 
-  const remainingLots = lotteryStatus?.remainingLots ?? 0;
-  const rarityBreakdown = lotteryStatus?.rarityBreakdown ?? [];
-  const lastWinLabel = formatLastWinAt(lotteryStatus?.lastWinAt ?? null);
-  const totalDraws = lotteryStatus?.totalDraws ?? 0;
   const winReveal =
     drawResult?.outcome === "win"
       ? getRarityReveal(drawResult.prize.rarity)
@@ -333,51 +324,8 @@ export const Experience = () => {
             "drop-shadow-[0px_0px_8px_rgba(255,255,255,0.75)]",
           )}
         />
-        <ElTonyMateLogo
-          className={clsx(
-            "fill-white/90",
-            "h-20",
-            "drop-shadow-[0px_0px_8px_rgba(255,255,255,0.75)]",
-          )}
-        />
       </motion.div>
-      <motion.div
-        animate={{ opacity: isIntroDecorationsVisible ? 1 : 0 }}
-        className={clsx(
-          "fixed top-16 right-16 z-10",
-          "text-end font-bit text-3xl text-white/90",
-          "text-shadow-[0_0_4px_rgb(255,255,255)]",
-        )}
-      >
-        <p className={clsx("mb-1", "text-4xl font-bold uppercase")}>
-          <span className={clsx("animate-flashing")}>$</span> lottery
-        </p>
-        <div className={clsx("leading-none")}>
-          <p className={clsx("mb-2")}>
-            <span className={clsx("font-bold")}>{remainingLots}</span>{" "}
-            remaining lots
-          </p>
-          {rarityBreakdown.length > 0 && (
-            <ul className={clsx("mb-4")}>
-              {rarityBreakdown.map((entry) => {
-                const { Icon, label } = getRarityReveal(entry.rarity);
-                return (
-                  <li key={entry.rarity}>
-                    <p className={clsx("flex items-center justify-end gap-2")}>
-                      <span className={clsx("font-bold")}>
-                        {entry.remaining}x
-                      </span>{" "}
-                      {label} <Icon className={clsx("size-4.5", "stroke-3")} />
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <p>{lastWinLabel}</p>
-          <p>total: {totalDraws} attempts</p>
-        </div>
-      </motion.div>
+
       <motion.p
         animate={{ opacity: isIntroDecorationsVisible ? 1 : 0 }}
         className={clsx(

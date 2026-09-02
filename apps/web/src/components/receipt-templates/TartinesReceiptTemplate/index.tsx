@@ -3,15 +3,10 @@ import { formatPrice } from "@dither-booth/shared/formatting";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { cn } from "@dither-booth/shared/styles";
 import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/index";
-import { NinetyNineStudQR } from "@dither-booth/ui/components/svg/99studQR/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
-import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { type FC, useMemo } from "react";
-
-import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
-import { TartinesLogo } from "#components/svg/TartinesLogo/index";
 
 import { pickWeightedReceiptItems } from "./items";
 
@@ -55,18 +50,29 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
     <div
       id={RECEIPT_ELEMENT_ID}
       className={cn(
-        "pt-16",
         "bg-background",
         "font-bit text-5xl leading-none",
         className,
       )}
       style={{ width: PRINT_WIDTH_PX }}
     >
-      <div className={clsx("relative", "mb-18")}>
-        <TartinesLogo className={clsx("absolute -top-16 left-4", "h-40")} />
-        <ElectroniqueLogo
-          className={clsx("absolute -bottom-18 left-4", "h-36")}
-        />
+      <div className={clsx("relative")}>
+        <p
+          className={clsx(
+            "absolute top-3 left-3",
+            "font-helvetica-black-italic text-7xl font-bold",
+          )}
+        >
+          OPENING
+        </p>
+        <p
+          className={clsx(
+            "absolute right-5 bottom-3",
+            "font-helvetica-black-italic text-7xl font-bold",
+          )}
+        >
+          PARTY
+        </p>
         <img
           id="booth-photo"
           className={clsx("w-full", "aspect-square")}
@@ -74,7 +80,7 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
           alt="booth photo"
         />
       </div>
-      <div className={clsx("pt-16", "flex flex-col gap-12")}>
+      <div className={clsx("pt-10", "flex flex-col gap-12")}>
         <div
           className={clsx(
             "flex items-center justify-between",
@@ -90,7 +96,6 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
             "font-mono text-3xl font-light",
           )}
         >
-          <p>Opening Party</p>
           <p>10 Rue du Gazomètre</p>
           <p>69003 Lyon</p>
         </div>
@@ -119,17 +124,15 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
         </p>
       </div>
       <DashedLine className={clsx("mt-6")} />
-      <div className={clsx("grid grid-cols-3 items-center gap-4")}>
-        <NinetyNineStudLogo className={clsx("h-20", "justify-self-start")} />
-        <DitherBoothLogo className={clsx("h-14", "justify-self-center")} />
-        <ElTonyMateLogo className={clsx("h-20", "justify-self-end")} />
+      <div className={clsx("flex items-center justify-evenly gap-4")}>
+        <NinetyNineStudLogo className={clsx("h-20")} />
+        <DitherBoothLogo className={clsx("h-14")} />
       </div>
       <DashedLine />
-      <NinetyNineStudQR className={clsx("mx-auto mb-8", "w-1/2")} />
       <p className={clsx("mb-4 text-center font-bold")}>
         ✦ Thanks for partying with us! ✦
       </p>
-      <p className={clsx("text-center text-3xl")}>STUD_DITHERBOOTH_611856</p>
+      <p className={clsx("text-center text-3xl")}>99STUD_DITHERBOOTH_611856</p>
     </div>
   );
 };

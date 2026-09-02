@@ -19,11 +19,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "HelveticaBlackItalic";
+  src: url("../fonts/Helvetica-BlackItalic-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+}
+
 :root {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-bit:
     "PPNeueBit", "IBM Plex Sans", "Geist Mono", ui-monospace, "SFMono-Regular",
     Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --font-helvetica-black-italic:
+    "HelveticaBlackItalic", "IBM Plex Sans", "Geist Mono", ui-monospace,
+    "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --font-mono:
     "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
     "Liberation Mono", monospace;
@@ -101,6 +112,7 @@
 @theme inline {
   --font-sans: var(--font-sans);
   --font-bit: var(--font-bit);
+  --font-helvetica-black-italic: var(--font-helvetica-black-italic);
   --font-mono: var(--font-mono);
   --font-heading: var(--font-heading);
   --color-sidebar-ring: var(--sidebar-ring);
