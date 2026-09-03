@@ -5,6 +5,8 @@ export interface ReceiptItemDefinition {
   rarity: ReceiptItemRarity;
   /** Printed quantity; defaults to 1 when omitted. */
   quantity?: number;
+  /** Fixed printed price; when omitted the item takes a share of the receipt total. */
+  price?: number;
 }
 
 /** Per-slot probability, in percent, that the drawn item belongs to a tier. */
@@ -21,7 +23,7 @@ export const TARTINES_RECEIPT_ITEMS: readonly ReceiptItemDefinition[] = [
   { name: "Illustrations", rarity: "common" },
   { name: "Bagage", rarity: "common" },
   { name: "Gazomètre", rarity: "common" },
-  { name: "Stage (non rémunéré)", rarity: "common" },
+  { name: "Stage (non rémunéré)", rarity: "common", price: 0 },
   { name: "Retours client", rarity: "common", quantity: 50 },
   { name: "AI slop", rarity: "uncommon" },
   { name: "Storyboard IA", rarity: "uncommon" },

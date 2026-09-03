@@ -13,17 +13,24 @@ import { pickWeightedReceiptItems } from "./items";
 const TARTINES_RECEIPT_TOTAL = 1999;
 const TARTINES_RECEIPT_ITEM_COUNT = 3;
 
-const randomPriceSplit = (total: number): [number, number, number] => {
+/** Splits `total` into `count` prices of at least 1, summing back to `total`. */
+const randomPriceSplit = (total: number, count: number): number[] => {
+  if (count <= 0) {
+    return [];
+  }
+
   const minPrice = 1;
-  let remainder = total - 3 * minPrice;
+  let remainder = total - count * minPrice;
 
-  const firstExtra = Math.floor(Math.random() * (remainder + 1));
-  remainder -= firstExtra;
+  return Array.from({ length: count }, (_, index) => {
+    if (index === count - 1) {
+      return minPrice + remainder;
+    }
 
-  const secondExtra = Math.floor(Math.random() * (remainder + 1));
-  remainder -= secondExtra;
-
-  return [minPrice + firstExtra, minPrice + secondExtra, minPrice + remainder];
+    const extra = Math.floor(Math.random() * (remainder + 1));
+    remainder -= extra;
+    return minPrice + extra;
+  });
 };
 
 interface TartinesReceiptTemplateProps {
@@ -35,15 +42,20 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
 }) => {
   const today = new Date();
   const items = useMemo(() => {
-    const prices = randomPriceSplit(TARTINES_RECEIPT_TOTAL);
-
-    return pickWeightedReceiptItems(TARTINES_RECEIPT_ITEM_COUNT).map(
-      (item, index) => ({
-        name: item.name,
-        quantity: item.quantity ?? 1,
-        price: prices[index] ?? 0,
-      }),
+    const picked = pickWeightedReceiptItems(TARTINES_RECEIPT_ITEM_COUNT);
+    // Items carrying a fixed price stay out of the split, so the free slots
+    // still add up to the printed total.
+    const prices = randomPriceSplit(
+      TARTINES_RECEIPT_TOTAL,
+      picked.filter((item) => item.price === undefined).length,
     );
+    let priceIndex = 0;
+
+    return picked.map((item) => ({
+      name: item.name,
+      quantity: item.quantity ?? 1,
+      price: item.price ?? prices[priceIndex++] ?? 0,
+    }));
   }, []);
 
   return (
@@ -56,31 +68,27 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
       )}
       style={{ width: PRINT_WIDTH_PX }}
     >
-      <div className={clsx("relative")}>
-        <p
-          className={clsx(
-            "absolute top-3 left-3",
-            "font-helvetica-black-italic text-7xl font-bold",
-          )}
-        >
-          OPENING
-        </p>
-        <p
-          className={clsx(
-            "absolute right-5 bottom-3",
-            "font-helvetica-black-italic text-7xl font-bold",
-          )}
-        >
-          PARTY
-        </p>
-        <img
-          id="booth-photo"
-          className={clsx("w-full", "aspect-square")}
-          src="https://picsum.photos/576"
-          alt="booth photo"
-        />
-      </div>
-      <div className={clsx("pt-10", "flex flex-col gap-12")}>
+      <p
+        className={clsx(
+          "translate-y-1 text-center text-8xl leading-none font-bold",
+        )}
+      >
+        OPENING
+      </p>
+      <img
+        id="booth-photo"
+        className={clsx("w-full", "aspect-square")}
+        src="https://picsum.photos/576"
+        alt="booth photo"
+      />
+      <p
+        className={clsx(
+          "translate-y-1 text-center text-8xl leading-none font-bold",
+        )}
+      >
+        PARTY
+      </p>
+      <div className={clsx("pt-12", "flex flex-col gap-12")}>
         <div
           className={clsx(
             "flex items-center justify-between",
