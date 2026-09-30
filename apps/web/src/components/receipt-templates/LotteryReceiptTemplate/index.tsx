@@ -1,10 +1,10 @@
-import { type FC, useMemo } from "react";
+import type { Rarity } from "@dither-booth/shared/lottery";
 
 import { RECEIPT_ELEMENT_ID } from "@dither-booth/shared/browser/receipt-viewer";
-import type { Rarity } from "@dither-booth/shared/lottery";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { cn } from "@dither-booth/shared/styles";
 import clsx from "clsx";
+import { type FC, useMemo } from "react";
 
 import { LoserMark } from "#components/svg/LoserMark/index";
 import { WinnerMark } from "#components/svg/WinnerMark/index";
@@ -79,7 +79,7 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
     <div
       className={clsx(
         "relative w-full overflow-hidden rounded-sm border-2 px-3 py-2.5",
-        "font-mono uppercase tracking-[0.2em]",
+        "font-mono tracking-[0.2em] uppercase",
         cfg.className,
       )}
     >
@@ -103,7 +103,7 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
             {cfg.label}
           </span>
         </div>
-        <span className="text-sm tabular-nums leading-none" aria-hidden>
+        <span className="text-sm leading-none tabular-nums" aria-hidden>
           {cfg.accent}
         </span>
       </div>
@@ -123,8 +123,7 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
   } = receiptViewerRoute.useSearch();
 
   const outcome = outcomeParam === "win" ? "win" : "loss";
-  const instructionsLine =
-    outcome === "win" ? winInstruction : undefined;
+  const instructionsLine = outcome === "win" ? winInstruction : undefined;
   const wonAtDisplay = wonAt ? formatWonAtDisplay(wonAt) : null;
 
   const ticketNumber = useMemo(() => {
@@ -160,7 +159,7 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
           </div>
           {title ? (
             <div
-              className={clsx("text-center text-3xl font-bold leading-tight")}
+              className={clsx("text-center text-3xl leading-tight font-bold")}
             >
               {title}
             </div>
@@ -191,7 +190,7 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
         {outcome === "win" && wonAtDisplay ? (
           <div
             className={clsx(
-              "text-center font-mono text-sm leading-snug tabular-nums text-black/80",
+              "text-center font-mono text-sm leading-snug text-black/80 tabular-nums",
             )}
           >
             {wonAtDisplay}

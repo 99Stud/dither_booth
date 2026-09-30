@@ -22,7 +22,9 @@ export const EventEmptyState: FC<EventEmptyStateProps> = (props) => {
     <div className={clsx("flex min-h-[60vh] items-center justify-center px-4")}>
       <Card className={clsx("w-full max-w-lg")}>
         <CardHeader>
-          <div className={clsx("mb-2 flex size-10 items-center justify-center")}>
+          <div
+            className={clsx("mb-2 flex size-10 items-center justify-center")}
+          >
             <Ticket className={clsx("size-6")} />
           </div>
           <CardTitle>No event yet</CardTitle>

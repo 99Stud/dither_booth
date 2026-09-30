@@ -66,8 +66,8 @@ describe("event.service", () => {
           name: "Second event",
           noWinWeight: 1,
           winCooldownMinutes: 0,
-        printLoserTicket: false,
-        enabled: true,
+          printLoserTicket: false,
+          enabled: true,
         }),
       ).rejects.toMatchObject({
         code: "CONFLICT",

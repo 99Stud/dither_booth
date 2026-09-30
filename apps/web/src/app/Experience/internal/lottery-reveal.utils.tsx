@@ -1,5 +1,11 @@
 import type { Rarity } from "@dither-booth/shared/lottery";
-import { CircleIcon, DiamondIcon, StarIcon, type LucideIcon } from "lucide-react";
+
+import {
+  CircleIcon,
+  DiamondIcon,
+  StarIcon,
+  type LucideIcon,
+} from "lucide-react";
 
 export const getRarityReveal = (
   rarity: Rarity,

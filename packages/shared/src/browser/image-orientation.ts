@@ -43,9 +43,15 @@ export const getJpegImageMetadata = (
       orientation = readExifOrientation(bytes, segmentStart, segmentEnd);
     }
 
-    if (isStartOfFrameMarker(marker) && width === undefined && height === undefined) {
-      height = ((bytes[segmentStart + 1] ?? 0) << 8) | (bytes[segmentStart + 2] ?? 0);
-      width = ((bytes[segmentStart + 3] ?? 0) << 8) | (bytes[segmentStart + 4] ?? 0);
+    if (
+      isStartOfFrameMarker(marker) &&
+      width === undefined &&
+      height === undefined
+    ) {
+      height =
+        ((bytes[segmentStart + 1] ?? 0) << 8) | (bytes[segmentStart + 2] ?? 0);
+      width =
+        ((bytes[segmentStart + 3] ?? 0) << 8) | (bytes[segmentStart + 4] ?? 0);
     }
 
     offset = segmentEnd;
@@ -184,7 +190,8 @@ const readExifOrientation = (
   const tiffOffset = segmentStart + 6;
   const littleEndian =
     bytes[tiffOffset] === 0x49 && bytes[tiffOffset + 1] === 0x49;
-  const bigEndian = bytes[tiffOffset] === 0x4d && bytes[tiffOffset + 1] === 0x4d;
+  const bigEndian =
+    bytes[tiffOffset] === 0x4d && bytes[tiffOffset + 1] === 0x4d;
 
   if (!littleEndian && !bigEndian) {
     return undefined;

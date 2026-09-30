@@ -1,10 +1,10 @@
+import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@dither-booth/ui/components/ui/tabs";
-import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
 import { useState } from "react";
 
@@ -14,9 +14,9 @@ import type { EventLot, EventTab } from "./internal/Event.types";
 
 import { EventCreateDialog } from "./internal/components/EventCreateDialog";
 import { EventEmptyState } from "./internal/components/EventEmptyState";
-import { EventLotteryForm } from "./internal/components/EventLotteryForm";
 import { EventLotSheet } from "./internal/components/EventLotSheet";
 import { EventLotsTable } from "./internal/components/EventLotsTable";
+import { EventLotteryForm } from "./internal/components/EventLotteryForm";
 import { EventOverviewPanel } from "./internal/components/EventOverviewPanel";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";

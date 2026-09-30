@@ -77,9 +77,7 @@ export const usePrintAttempt = ({
           printAttemptId,
           drawResult,
         });
-        void queryClient.invalidateQueries(
-          trpc.getLotteryStatus.queryFilter(),
-        );
+        void queryClient.invalidateQueries(trpc.getLotteryStatus.queryFilter());
       } catch (error) {
         if (cancelled) return;
 

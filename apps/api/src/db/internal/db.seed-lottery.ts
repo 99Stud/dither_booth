@@ -130,18 +130,13 @@ if (import.meta.main) {
     const result = await seedDevLottery({ reset });
 
     if (result.status === "skipped") {
-      logKioskEvent(
-        "info",
-        API_DB_MIGRATE_LOG_SOURCE,
-        "lottery-seed-skipped",
-        {
-          details: {
-            reason: result.reason,
-            lotteryId: DEV_LOTTERY_ID,
-            hint: "Pass --reset to wipe lottery data and reseed.",
-          },
+      logKioskEvent("info", API_DB_MIGRATE_LOG_SOURCE, "lottery-seed-skipped", {
+        details: {
+          reason: result.reason,
+          lotteryId: DEV_LOTTERY_ID,
+          hint: "Pass --reset to wipe lottery data and reseed.",
         },
-      );
+      });
       console.log(
         `Lottery already seeded (${DEV_LOTTERY_ID}). Pass --reset to wipe and reseed.`,
       );

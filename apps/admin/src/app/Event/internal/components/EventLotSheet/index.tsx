@@ -39,9 +39,7 @@ export const EventLotSheet: FC<EventLotSheetProps> = (props) => {
 
   const form = useForm({
     defaultValues:
-      mode === "edit" && lot
-        ? getLotFormValues(lot)
-        : DEFAULT_LOT_FORM_VALUES,
+      mode === "edit" && lot ? getLotFormValues(lot) : DEFAULT_LOT_FORM_VALUES,
     validators: {
       onChange: LOT_FORM_SCHEMA,
       onSubmit: LOT_FORM_SCHEMA,
@@ -55,9 +53,7 @@ export const EventLotSheet: FC<EventLotSheetProps> = (props) => {
   useEffect(() => {
     if (!open) return;
     form.reset(
-      mode === "edit" && lot
-        ? getLotFormValues(lot)
-        : DEFAULT_LOT_FORM_VALUES,
+      mode === "edit" && lot ? getLotFormValues(lot) : DEFAULT_LOT_FORM_VALUES,
     );
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset on open/lot only
   }, [open, mode, lot?.id]);
@@ -93,7 +89,11 @@ export const EventLotSheet: FC<EventLotSheetProps> = (props) => {
             options={RARITY_FIELD_OPTIONS}
           />
           <NumberField form={form} name="weight" label="Weight" />
-          <NumberField form={form} name="totalQuantity" label="Total quantity" />
+          <NumberField
+            form={form}
+            name="totalQuantity"
+            label="Total quantity"
+          />
           <NumberField
             form={form}
             name="remainingQuantity"

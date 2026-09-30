@@ -32,7 +32,9 @@ import { useWebcamPrewarm } from "./useWebcamPrewarm";
 
 export const useExperienceFlow = () => {
   const trpc = useTRPC();
-  const { data: lotteryStatus } = useQuery(trpc.getLotteryStatus.queryOptions());
+  const { data: lotteryStatus } = useQuery(
+    trpc.getLotteryStatus.queryOptions(),
+  );
 
   const [state, dispatch] = useReducer(
     experienceReducer,
