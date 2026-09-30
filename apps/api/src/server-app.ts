@@ -31,6 +31,7 @@ import {
 } from "#lib/server/server.constants";
 
 import { db } from "./db";
+import { applySqliteMigrations } from "./db/internal/db.migrate";
 import { ensureDefaultPrintConfiguration } from "./db/internal/db.seed";
 
 type ApiServerLifecycle = {
@@ -78,6 +79,7 @@ export async function runApiServer(options: {
     serverName: "runApiServer",
   });
 
+  applySqliteMigrations();
   await ensureDefaultPrintConfiguration();
 
   const receiptPrintDryRun = isReceiptPrintDryRun();
