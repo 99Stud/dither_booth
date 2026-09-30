@@ -71,6 +71,11 @@ export const restockLotInputSchema = z
     },
   );
 
+export const listDrawsInputSchema = z.object({
+  ticketRef: z.string().trim().min(1).optional(),
+  limit: z.number().int().min(1).max(100).default(50),
+});
+
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
 export type UpdateLotterySettingsInput = z.infer<
@@ -80,3 +85,4 @@ export type CreateLotInput = z.infer<typeof createLotInputSchema>;
 export type UpdateLotInput = z.infer<typeof updateLotInputSchema>;
 export type DeleteLotInput = z.infer<typeof deleteLotInputSchema>;
 export type RestockLotInput = z.infer<typeof restockLotInputSchema>;
+export type ListDrawsInput = z.infer<typeof listDrawsInputSchema>;

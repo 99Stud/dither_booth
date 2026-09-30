@@ -9,7 +9,8 @@ import { executeLotteryDraw } from "../internal/lottery.draw";
 export const drawLottery = publicProcedure.mutation(
   async ({ ctx }): Promise<DrawResult> => {
     try {
-      return await executeLotteryDraw({ db: ctx.db });
+      const { result } = await executeLotteryDraw({ db: ctx.db });
+      return result;
     } catch (error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

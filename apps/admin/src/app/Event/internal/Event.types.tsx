@@ -25,7 +25,7 @@ export type CurrentEvent = {
   lots: EventLot[];
 };
 
-export type EventTab = "overview" | "lottery" | "lots";
+export type EventTab = "overview" | "lottery" | "lots" | "draws";
 
 export type CreateEventFormValues = {
   name: string;

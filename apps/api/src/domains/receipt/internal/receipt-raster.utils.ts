@@ -33,10 +33,12 @@ export async function prepareReceiptRasterCommand({
   ctx,
   input,
   printConfiguration: printConfigurationOverride,
+  ticketRef,
 }: {
   ctx: Pick<TRPCContext, "db" | "page">;
   input: ConstructorParameters<typeof Response>[0];
   printConfiguration?: PrintConfigRow;
+  ticketRef?: string;
 }): Promise<Buffer> {
   const page = ctx.page;
 
@@ -71,6 +73,7 @@ export async function prepareReceiptRasterCommand({
     page,
     photoBuffer: inputBuffer,
     printConfiguration,
+    ticketRef,
   });
 }
 
@@ -78,10 +81,12 @@ export async function buildReceiptRasterCommand({
   page,
   photoBuffer,
   printConfiguration,
+  ticketRef,
 }: {
   page: Page;
   photoBuffer: Buffer<ArrayBuffer>;
   printConfiguration: PrintConfigRow;
+  ticketRef?: string;
 }): Promise<Buffer> {
   const deviceScaleFactor = page.viewport()?.deviceScaleFactor ?? 1;
 
@@ -107,6 +112,7 @@ export async function buildReceiptRasterCommand({
           },
           page,
           template: printConfiguration.template,
+          ticketRef,
         }),
       {
         timeoutMessage: "Receipt screenshot timed out.",
@@ -192,8 +198,3 @@ export async function buildLotteryTicketRasterCommand({
     });
   }
 }
-
-export const createBoothTicketRef = (): string =>
-  Math.floor(Math.random() * 1_000_000)
-    .toString()
-    .padStart(6, "0");

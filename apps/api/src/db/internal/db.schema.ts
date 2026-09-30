@@ -8,6 +8,7 @@ import {
   real,
   sqliteTable,
   text,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 import {
@@ -140,14 +141,19 @@ export const prizeTable = sqliteTable(
   ],
 );
 
-export const drawTable = sqliteTable("draw", {
-  id: text()
-    .primaryKey()
-    .notNull()
-    .$defaultFn(() => createId()),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  lotteryId: text("lottery_id").references(() => lotteryTable.id),
-  prizeId: text("prize_id").references(() => prizeTable.id),
-});
+export const drawTable = sqliteTable(
+  "draw",
+  {
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    lotteryId: text("lottery_id").references(() => lotteryTable.id),
+    prizeId: text("prize_id").references(() => prizeTable.id),
+    ticketRef: text("ticket_ref"),
+  },
+  (table) => [uniqueIndex("draw_ticket_ref_unique").on(table.ticketRef)],
+);

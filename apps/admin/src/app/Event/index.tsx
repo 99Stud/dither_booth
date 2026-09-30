@@ -13,6 +13,7 @@ import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/com
 import type { EventLot, EventTab } from "./internal/Event.types";
 
 import { EventCreateDialog } from "./internal/components/EventCreateDialog";
+import { EventDrawsTable } from "./internal/components/EventDrawsTable";
 import { EventEmptyState } from "./internal/components/EventEmptyState";
 import { EventLotSheet } from "./internal/components/EventLotSheet";
 import { EventLotsTable } from "./internal/components/EventLotsTable";
@@ -59,6 +60,7 @@ export const Event = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="lottery">Lottery</TabsTrigger>
             <TabsTrigger value="lots">Lots</TabsTrigger>
+            <TabsTrigger value="draws">Draws</TabsTrigger>
           </TabsList>
         )}
       </AppSidebarPageHeader>
@@ -112,6 +114,9 @@ export const Event = () => {
                   await deleteLotMutation.mutateAsync({ lotId });
                 }}
               />
+            </TabsContent>
+            <TabsContent value="draws" className={clsx("mt-0")}>
+              <EventDrawsTable />
             </TabsContent>
           </>
         )}

@@ -1,6 +1,7 @@
+import { parseBoothTicketRef } from "@dither-booth/shared/formatting";
 import { createId } from "@paralleldrive/cuid2";
 import { TRPCError } from "@trpc/server";
-import { and, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 
 import type { DB } from "#db/internal/db.types";
 
@@ -14,12 +15,13 @@ import {
 import type {
   CreateEventInput,
   CreateLotInput,
+  ListDrawsInput,
   RestockLotInput,
   UpdateEventInput,
   UpdateLotInput,
   UpdateLotterySettingsInput,
 } from "./event.constants";
-import type { CurrentEvent, EventLot } from "./event.types";
+import type { CurrentEvent, EventLot, ListDrawsResult } from "./event.types";
 
 function mapLot(prize: {
   id: string;
@@ -351,4 +353,56 @@ export async function restockLotForDb(
     });
   }
   return next;
+}
+
+export async function listDrawsForDb(
+  db: DB,
+  input: ListDrawsInput,
+): Promise<ListDrawsResult> {
+  const current = await getCurrentEventForDb(db);
+  if (!current) {
+    return { draws: [] };
+  }
+
+  const parsedTicketRef = input.ticketRef
+    ? parseBoothTicketRef(input.ticketRef)
+    : null;
+
+  if (input.ticketRef && !parsedTicketRef) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Invalid ticket number.",
+    });
+  }
+
+  const prizeTitleById = new Map(
+    current.lots.map((lot) => [lot.id, lot.title]),
+  );
+
+  const rows = parsedTicketRef
+    ? await db.query.drawTable.findMany({
+        where: and(
+          eq(drawTable.lotteryId, current.lottery.id),
+          eq(drawTable.ticketRef, parsedTicketRef),
+        ),
+        orderBy: [desc(drawTable.createdAt)],
+        limit: input.limit,
+      })
+    : await db.query.drawTable.findMany({
+        where: eq(drawTable.lotteryId, current.lottery.id),
+        orderBy: [desc(drawTable.createdAt)],
+        limit: input.limit,
+      });
+
+  return {
+    draws: rows.map((row) => ({
+      id: row.id,
+      ticketRef: row.ticketRef,
+      createdAt: row.createdAt.toISOString(),
+      outcome: row.prizeId ? "win" : "loss",
+      prizeTitle: row.prizeId
+        ? (prizeTitleById.get(row.prizeId) ?? null)
+        : null,
+    })),
+  };
 }
