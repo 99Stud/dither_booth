@@ -1,7 +1,7 @@
 import type { Page } from "puppeteer";
 
-import { LOTTERY_RECEIPT_TEMPLATE } from "@dither-booth/shared/routes";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
+import { LOTTERY_RECEIPT_TEMPLATE } from "@dither-booth/shared/routes";
 import { TRPCError } from "@trpc/server";
 
 import type { DrawResult } from "#domains/lottery/internal/lottery.types";
@@ -175,7 +175,8 @@ export async function buildLotteryTicketRasterCommand({
     }).catch((error) => {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to convert lottery ticket screenshot to raster command.",
+        message:
+          "Failed to convert lottery ticket screenshot to raster command.",
         cause: error,
       });
     });

@@ -73,8 +73,7 @@ export const printReceipt = publicProcedure
       where: eq(lotteryTable.enabled, true),
     });
     const printLoserTicket = lottery?.printLoserTicket ?? false;
-    const shouldPrintLotteryTicket =
-      draw.outcome === "win" || printLoserTicket;
+    const shouldPrintLotteryTicket = draw.outcome === "win" || printLoserTicket;
 
     if (!shouldPrintLotteryTicket) {
       if (dryRun) {

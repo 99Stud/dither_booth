@@ -75,7 +75,11 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
             name="remainingQuantity"
             label="Remaining quantity"
           />
-          <NumberField form={form} name="totalQuantity" label="Total quantity" />
+          <NumberField
+            form={form}
+            name="totalQuantity"
+            label="Total quantity"
+          />
           <DialogFooter>
             <Button
               type="button"

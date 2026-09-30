@@ -38,7 +38,11 @@ describe("runLotteryDraw", () => {
 
   test("picks the second prize slice on a mid roll", () => {
     // totalWeight = 4, roll = 0.3 * 4 = 1.2 -> lands in prize-b slice
-    const result = runLotteryDraw({ noWinWeight: 2, prizes, random: () => 0.3 });
+    const result = runLotteryDraw({
+      noWinWeight: 2,
+      prizes,
+      random: () => 0.3,
+    });
 
     expect(result).toEqual({
       outcome: "win",
@@ -53,7 +57,11 @@ describe("runLotteryDraw", () => {
 
   test("lands on the no-win slice on a high roll", () => {
     // totalWeight = 4, roll = 0.9 * 4 = 3.6 -> beyond both prize slices
-    const result = runLotteryDraw({ noWinWeight: 2, prizes, random: () => 0.9 });
+    const result = runLotteryDraw({
+      noWinWeight: 2,
+      prizes,
+      random: () => 0.9,
+    });
 
     expect(result).toEqual({ outcome: "loss", prize: null });
   });
@@ -61,10 +69,7 @@ describe("runLotteryDraw", () => {
   test("excludes out-of-stock prizes", () => {
     const result = runLotteryDraw({
       noWinWeight: 0,
-      prizes: [
-        { ...prizes[0]!, remainingQuantity: 0 },
-        { ...prizes[1]! },
-      ],
+      prizes: [{ ...prizes[0]!, remainingQuantity: 0 }, { ...prizes[1]! }],
       random: () => 0,
     });
 
@@ -122,24 +127,24 @@ describe("isWithinWinCooldown", () => {
   test("is true just inside the cooldown window", () => {
     const lastWinAt = new Date(now.getTime() - 4 * 60_000);
 
-    expect(
-      isWithinWinCooldown({ lastWinAt, now, winCooldownMinutes: 5 }),
-    ).toBe(true);
+    expect(isWithinWinCooldown({ lastWinAt, now, winCooldownMinutes: 5 })).toBe(
+      true,
+    );
   });
 
   test("is false just outside the cooldown window", () => {
     const lastWinAt = new Date(now.getTime() - 6 * 60_000);
 
-    expect(
-      isWithinWinCooldown({ lastWinAt, now, winCooldownMinutes: 5 }),
-    ).toBe(false);
+    expect(isWithinWinCooldown({ lastWinAt, now, winCooldownMinutes: 5 })).toBe(
+      false,
+    );
   });
 
   test("is false exactly at the cooldown boundary", () => {
     const lastWinAt = new Date(now.getTime() - 5 * 60_000);
 
-    expect(
-      isWithinWinCooldown({ lastWinAt, now, winCooldownMinutes: 5 }),
-    ).toBe(false);
+    expect(isWithinWinCooldown({ lastWinAt, now, winCooldownMinutes: 5 })).toBe(
+      false,
+    );
   });
 });

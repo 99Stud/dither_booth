@@ -1,7 +1,7 @@
 import type { SelectFieldOption } from "@dither-booth/ui/fields/SelectField";
 
-import { RARITY_TYPES } from "@dither-booth/shared/lottery";
 import { capitalize } from "@dither-booth/shared/formatting";
+import { RARITY_TYPES } from "@dither-booth/shared/lottery";
 import z from "zod";
 
 import type {
@@ -15,7 +15,11 @@ import type {
 
 export const EVENT_LOG_SOURCE = "admin.event";
 
-export const EVENT_TABS = ["overview", "lottery", "lots"] as const satisfies ReadonlyArray<EventTab>;
+export const EVENT_TABS = [
+  "overview",
+  "lottery",
+  "lots",
+] as const satisfies ReadonlyArray<EventTab>;
 
 export const CREATE_EVENT_FORM_SCHEMA = z.object({
   name: z.string().trim().min(1).max(120),

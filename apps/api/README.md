@@ -27,11 +27,11 @@ bun run start
 
 These flags are read from the API process env. They must not be enabled when `NODE_ENV=production`.
 
-| Env                                 | Role                                                                                                                                        |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Env                                 | Role                                                                                                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `RECEIPT_PRINT_DRY_RUN=true`        | Skip USB printer init and USB writes. Still needs a running web app (Puppeteer loads `/receipt-viewer`). Builds photo + lottery tickets, writes PNGs to `tmp/receipt-previews/`, and opens them. |
-| `LOTTERY_FORCE_OUTCOME=win\|loss`   | Optional. Force the lottery draw outcome.                                                                                                   |
-| `LOTTERY_FORCE_PRIZE_ID=<prize id>` | Optional. Force that prize (implies win). Required when forcing a win.                                                                      |
+| `LOTTERY_FORCE_OUTCOME=win\|loss`   | Optional. Force the lottery draw outcome.                                                                                                                                                        |
+| `LOTTERY_FORCE_PRIZE_ID=<prize id>` | Optional. Force that prize (implies win). Required when forcing a win.                                                                                                                           |
 
 Rules:
 
@@ -112,13 +112,13 @@ bun run db:seed:lottery -- --reset
 
 Stable IDs:
 
-| Id                    | Role                |
-| --------------------- | ------------------- |
-| `dev_campaign`        | Event / campaign    |
-| `dev_lottery`         | Lottery             |
-| `dev_prize_common`    | Lot (common, 100)   |
-| `dev_prize_rare`      | Lot (rare, 20)      |
-| `dev_prize_legendary` | Lot (legendary, 8)  |
+| Id                    | Role               |
+| --------------------- | ------------------ |
+| `dev_campaign`        | Event / campaign   |
+| `dev_lottery`         | Lottery            |
+| `dev_prize_common`    | Lot (common, 100)  |
+| `dev_prize_rare`      | Lot (rare, 20)     |
+| `dev_prize_legendary` | Lot (legendary, 8) |
 
 Example forced win after seeding:
 
@@ -132,19 +132,18 @@ bun run dev
 
 The booth supports **one campaign (event) at a time**. Admin manages it from the Event page via `adminOriginProcedure` endpoints:
 
-| Procedure               | Role                                              |
-| ----------------------- | ------------------------------------------------- |
-| `getCurrentEvent`       | Aggregate campaign + lottery + lots, or `null`    |
-| `createEvent`           | Create campaign + lottery (rejects if one exists) |
-| `updateEvent`           | Rename campaign                                   |
-| `replaceEvent`          | Wipe event data, then create a new one            |
-| `updateLotterySettings` | Enable / odds / win cooldown                      |
-| `createLot` / `updateLot` / `deleteLot` / `restockLot` | Prize CRUD + restock |
+| Procedure                                              | Role                                              |
+| ------------------------------------------------------ | ------------------------------------------------- |
+| `getCurrentEvent`                                      | Aggregate campaign + lottery + lots, or `null`    |
+| `createEvent`                                          | Create campaign + lottery (rejects if one exists) |
+| `updateEvent`                                          | Rename campaign                                   |
+| `replaceEvent`                                         | Wipe event data, then create a new one            |
+| `updateLotterySettings`                                | Enable / odds / win cooldown                      |
+| `createLot` / `updateLot` / `deleteLot` / `restockLot` | Prize CRUD + restock                              |
 
 Runtime booth draw/status (`drawLottery`, `getLotteryStatus`) stay public. Print Configuration remains the global dither/template owner for now.
 
 **Future Appearance:** logo, shader colors, and a linked photo template will belong on the campaign (or a 1:1 event-config sibling), not on lottery. Lottery stays odds/stock only.
-
 
 ### Receipt Template Migrations
 

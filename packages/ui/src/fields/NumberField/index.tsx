@@ -120,9 +120,10 @@ export const NumberField = <
               onChange={(event) => {
                 const nextValue = event.target.valueAsNumber;
                 field.handleChange(
-                  (Number.isNaN(nextValue)
-                    ? 0
-                    : nextValue) as NumberFieldValue<TFormData, TName>,
+                  (Number.isNaN(nextValue) ? 0 : nextValue) as NumberFieldValue<
+                    TFormData,
+                    TName
+                  >,
                 );
               }}
             />

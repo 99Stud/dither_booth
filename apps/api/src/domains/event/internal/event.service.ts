@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
 
 import type { DB } from "#db/internal/db.types";
+
 import {
   campaignTable,
   drawTable,
@@ -320,8 +321,7 @@ export async function restockLotForDb(
   }
 
   const totalQuantity =
-    input.totalQuantity ??
-    Math.max(lot.totalQuantity, input.remainingQuantity);
+    input.totalQuantity ?? Math.max(lot.totalQuantity, input.remainingQuantity);
 
   if (input.remainingQuantity > totalQuantity) {
     throw new TRPCError({

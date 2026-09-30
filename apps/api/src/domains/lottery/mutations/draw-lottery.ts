@@ -2,8 +2,9 @@ import { TRPCError } from "@trpc/server";
 
 import { publicProcedure } from "#internal/trpc";
 
-import { executeLotteryDraw } from "../internal/lottery.draw";
 import type { DrawResult } from "../internal/lottery.types";
+
+import { executeLotteryDraw } from "../internal/lottery.draw";
 
 export const drawLottery = publicProcedure.mutation(
   async ({ ctx }): Promise<DrawResult> => {

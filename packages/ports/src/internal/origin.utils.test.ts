@@ -10,12 +10,12 @@ describe("isAllowedConfiguredOrigin", () => {
   });
 
   it("allows localhost and 127.0.0.1 on the same port", () => {
-    expect(
-      isAllowedConfiguredOrigin("https://localhost:3002", adminLan),
-    ).toBe(true);
-    expect(
-      isAllowedConfiguredOrigin("https://127.0.0.1:3002", adminLan),
-    ).toBe(true);
+    expect(isAllowedConfiguredOrigin("https://localhost:3002", adminLan)).toBe(
+      true,
+    );
+    expect(isAllowedConfiguredOrigin("https://127.0.0.1:3002", adminLan)).toBe(
+      true,
+    );
   });
 
   it("allows manifest machine hostnames on the same port", () => {
@@ -39,19 +39,19 @@ describe("isAllowedConfiguredOrigin", () => {
 
   it("rejects missing or foreign origins", () => {
     expect(isAllowedConfiguredOrigin(undefined, adminLan)).toBe(false);
-    expect(
-      isAllowedConfiguredOrigin("https://evil.local:3002", adminLan),
-    ).toBe(false);
+    expect(isAllowedConfiguredOrigin("https://evil.local:3002", adminLan)).toBe(
+      false,
+    );
     expect(
       isAllowedConfiguredOrigin("https://evil.local:3002", adminLan, [
         "99framboises.local",
       ]),
     ).toBe(false);
-    expect(
-      isAllowedConfiguredOrigin("https://localhost:3999", adminLan),
-    ).toBe(false);
-    expect(
-      isAllowedConfiguredOrigin("http://localhost:3002", adminLan),
-    ).toBe(false);
+    expect(isAllowedConfiguredOrigin("https://localhost:3999", adminLan)).toBe(
+      false,
+    );
+    expect(isAllowedConfiguredOrigin("http://localhost:3002", adminLan)).toBe(
+      false,
+    );
   });
 });

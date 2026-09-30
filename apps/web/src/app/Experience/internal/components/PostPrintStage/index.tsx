@@ -63,7 +63,9 @@ const LotteryResultsScreen = ({
 
     return (
       <>
-        <p className={clsx("mb-2", "text-6xl leading-none font-bold uppercase")}>
+        <p
+          className={clsx("mb-2", "text-6xl leading-none font-bold uppercase")}
+        >
           lot - {winReveal.label}
         </p>
         <p className={clsx("mb-8", "text-5xl leading-none")}>

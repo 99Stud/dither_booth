@@ -1,5 +1,16 @@
 import type { FC } from "react";
 
+import { capitalize } from "@dither-booth/shared/formatting";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@dither-booth/ui/components/ui/alert-dialog";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
@@ -22,17 +33,6 @@ import {
   TableHeader,
   TableRow,
 } from "@dither-booth/ui/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@dither-booth/ui/components/ui/alert-dialog";
-import { capitalize } from "@dither-booth/shared/formatting";
 import clsx from "clsx";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
@@ -104,17 +104,13 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger
-                            render={
-                              <Button variant="ghost" size="icon-sm" />
-                            }
+                            render={<Button variant="ghost" size="icon-sm" />}
                           >
                             <MoreHorizontal />
                             <span className="sr-only">Open actions</span>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => onEditClick(lot)}
-                            >
+                            <DropdownMenuItem onClick={() => onEditClick(lot)}>
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -151,9 +147,7 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
             <AlertDialogTitle>Delete lot?</AlertDialogTitle>
             <AlertDialogDescription>
               This removes{" "}
-              <span className={clsx("font-medium")}>
-                {lotToDelete?.title}
-              </span>{" "}
+              <span className={clsx("font-medium")}>{lotToDelete?.title}</span>{" "}
               from the lottery. Lots with draw history cannot be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>

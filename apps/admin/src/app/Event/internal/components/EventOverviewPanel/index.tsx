@@ -61,9 +61,7 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
         </CardHeader>
         <CardContent className={clsx("flex flex-col gap-4")}>
           <div className={clsx("flex flex-wrap items-center gap-2")}>
-            <span
-              className={clsx("inline-flex items-center gap-2", "text-sm")}
-            >
+            <span className={clsx("inline-flex items-center gap-2", "text-sm")}>
               <StatusDot
                 size="md"
                 variant={event.lottery.enabled ? "success" : "neutral"}

@@ -1,8 +1,10 @@
 import type { LotteryStatus, Rarity } from "@dither-booth/shared/lottery";
+
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
 import { and, count, desc, eq, isNotNull } from "drizzle-orm";
 
 import type { DB } from "#db/internal/db.types";
+
 import { drawTable, lotteryTable, prizeTable } from "#db/internal/db.schema";
 
 export const EMPTY_LOTTERY_STATUS = {

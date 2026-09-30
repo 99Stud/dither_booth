@@ -5,9 +5,9 @@ CREATE TABLE `__new_lottery` (
 	`no_win_weight` real DEFAULT 1 NOT NULL,
 	`win_cooldown_minutes` integer DEFAULT 5 NOT NULL,
 	`print_loser_ticket` integer DEFAULT false NOT NULL,
-	CONSTRAINT "lottery_no_win_weight_check" CHECK("__new_lottery"."no_win_weight" >= 0),
-	CONSTRAINT "lottery_win_cooldown_minutes_check" CHECK("__new_lottery"."win_cooldown_minutes" >= 0),
-	CONSTRAINT "lottery_print_loser_ticket_check" CHECK("__new_lottery"."print_loser_ticket" in (0, 1))
+	CONSTRAINT "lottery_no_win_weight_check" CHECK("no_win_weight" >= 0),
+	CONSTRAINT "lottery_win_cooldown_minutes_check" CHECK("win_cooldown_minutes" >= 0),
+	CONSTRAINT "lottery_print_loser_ticket_check" CHECK("print_loser_ticket" in (0, 1))
 );
 --> statement-breakpoint
 INSERT INTO `__new_lottery`("id", "enabled", "no_win_weight", "win_cooldown_minutes") SELECT "id", "enabled", "no_win_weight", "win_cooldown_minutes" FROM `lottery`;--> statement-breakpoint

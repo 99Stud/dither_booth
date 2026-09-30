@@ -22,17 +22,19 @@ export const updateLotterySettingsInputSchema = z.object({
   printLoserTicket: z.boolean(),
 });
 
-export const createLotInputSchema = z.object({
-  title: z.string().trim().min(1).max(120),
-  winInstruction: z.string().trim().min(1).max(240),
-  weight: z.number().gt(0),
-  totalQuantity: z.number().int().min(0),
-  remainingQuantity: z.number().int().min(0),
-  rarity: raritySchema,
-}).refine((value) => value.remainingQuantity <= value.totalQuantity, {
-  message: "remainingQuantity must be <= totalQuantity",
-  path: ["remainingQuantity"],
-});
+export const createLotInputSchema = z
+  .object({
+    title: z.string().trim().min(1).max(120),
+    winInstruction: z.string().trim().min(1).max(240),
+    weight: z.number().gt(0),
+    totalQuantity: z.number().int().min(0),
+    remainingQuantity: z.number().int().min(0),
+    rarity: raritySchema,
+  })
+  .refine((value) => value.remainingQuantity <= value.totalQuantity, {
+    message: "remainingQuantity must be <= totalQuantity",
+    path: ["remainingQuantity"],
+  });
 
 export const updateLotInputSchema = z
   .object({

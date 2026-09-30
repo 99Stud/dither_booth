@@ -1,5 +1,6 @@
-import { drawOutcomeSchema, raritySchema } from "#isomorphic/lottery";
 import z from "zod";
+
+import { drawOutcomeSchema, raritySchema } from "#isomorphic/lottery";
 
 export const RECEIPT_VIEWER_PATH = "/receipt-viewer";
 

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "bun:test";
-
 import type { DrawResult } from "@dither-booth/shared/lottery";
+
+import { describe, expect, it } from "bun:test";
 
 import { COUNTDOWN_START } from "./Experience.constants";
 import {
