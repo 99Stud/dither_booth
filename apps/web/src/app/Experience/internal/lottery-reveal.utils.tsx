@@ -2,8 +2,10 @@ import type { Rarity } from "@dither-booth/shared/lottery";
 
 import {
   CircleIcon,
+  CrownIcon,
   DiamondIcon,
-  StarIcon,
+  SparkleIcon,
+  SquareIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -14,13 +16,13 @@ export const getRarityReveal = (
     case "common":
       return { label: "common", Icon: CircleIcon };
     case "uncommon":
-      return { label: "uncommon", Icon: CircleIcon };
+      return { label: "uncommon", Icon: SquareIcon };
     case "rare":
       return { label: "rare", Icon: DiamondIcon };
     case "epic":
-      return { label: "epic", Icon: DiamondIcon };
+      return { label: "epic", Icon: SparkleIcon };
     case "legendary":
-      return { label: "legendary", Icon: StarIcon };
+      return { label: "legendary", Icon: CrownIcon };
   }
 };
 

@@ -6,6 +6,7 @@ import { cn } from "@dither-booth/shared/styles";
 import clsx from "clsx";
 import { type FC, useMemo } from "react";
 
+import { getRarityReveal } from "#app/Experience/internal/lottery-reveal.utils";
 import { LoserMark } from "#components/svg/LoserMark/index";
 import { WinnerMark } from "#components/svg/WinnerMark/index";
 import { receiptViewerRoute } from "#lib/router/index";
@@ -25,62 +26,31 @@ const RARITY_UI: Record<
   {
     label: string;
     tier: string;
-    className: string;
-    accent: string;
   }
 > = {
-  common: {
-    label: "Commun",
-    tier: "T1",
-    className:
-      "border-stone-400/90 bg-stone-100/90 text-stone-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]",
-    accent: "●",
-  },
-  uncommon: {
-    label: "Peu commun",
-    tier: "T2",
-    className:
-      "border-emerald-500/70 bg-gradient-to-br from-emerald-50 to-green-50 text-emerald-950 shadow-[0_0_24px_rgba(16,185,129,0.2)]",
-    accent: "◆",
-  },
-  rare: {
-    label: "Rare",
-    tier: "T3",
-    className:
-      "border-sky-500/80 bg-gradient-to-br from-sky-100/90 to-cyan-50 text-sky-950 shadow-[0_0_28px_rgba(14,165,233,0.35)] ring-1 ring-sky-300/60",
-    accent: "✦",
-  },
-  epic: {
-    label: "Épique",
-    tier: "T4",
-    className:
-      "border-violet-500/80 bg-gradient-to-br from-violet-100/90 to-fuchsia-50 text-violet-950 shadow-[0_0_30px_rgba(139,92,246,0.4)] ring-1 ring-violet-300/60",
-    accent: "✧",
-  },
-  legendary: {
-    label: "Légendaire",
-    tier: "T5",
-    className:
-      "border-amber-400 bg-gradient-to-br from-amber-100 via-yellow-50 to-amber-200 text-amber-950 shadow-[0_0_32px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] ring-2 ring-amber-300/70",
-    accent: "✶",
-  },
+  common: { label: "Commun", tier: "T1" },
+  uncommon: { label: "Peu commun", tier: "T2" },
+  rare: { label: "Rare", tier: "T3" },
+  epic: { label: "Épique", tier: "T4" },
+  legendary: { label: "Légendaire", tier: "T5" },
 };
 
 const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
   const { lotRarity } = props;
-  const cfg = RARITY_UI[lotRarity as Rarity] ?? {
+  const knownRarity = RARITY_UI[lotRarity as Rarity];
+  const cfg = knownRarity ?? {
     label: lotRarity.replace(/_/g, " "),
     tier: "?",
-    className: "border-zinc-400 bg-zinc-100 text-zinc-900 shadow-inner",
-    accent: "◇",
   };
+  const RarityIcon = knownRarity
+    ? getRarityReveal(lotRarity as Rarity).Icon
+    : null;
 
   return (
     <div
       className={clsx(
-        "relative w-full overflow-hidden rounded-sm border-2 px-3 py-2.5",
-        "font-mono tracking-[0.2em] uppercase",
-        cfg.className,
+        "relative w-full overflow-hidden rounded-sm border-2 border-black px-3 py-2.5",
+        "bg-white font-mono tracking-[0.2em] text-black uppercase",
       )}
     >
       <div
@@ -103,9 +73,16 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
             {cfg.label}
           </span>
         </div>
-        <span className="text-sm leading-none tabular-nums" aria-hidden>
-          {cfg.accent}
-        </span>
+        {RarityIcon ? (
+          <RarityIcon
+            className="size-5 shrink-0 stroke-[2.5]"
+            aria-hidden
+          />
+        ) : (
+          <span className="text-sm leading-none" aria-hidden>
+            ◇
+          </span>
+        )}
       </div>
     </div>
   );
