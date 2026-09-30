@@ -9,6 +9,18 @@ The software stack is also split into three main applications: a web app running
 - [Web app](apps/web/README.md): iPad-facing kiosk app commands and infrastructure notes.
 - [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
 - [API](apps/api/README.md): backend service, database management, and local HTTPS helper commands.
+- [CLI](apps/cli/README.md): `booth` provisioning CLI for installing and managing the Raspberry Pi.
+
+## Provisioning CLI
+
+For first-time Raspberry Pi setup, the `booth` CLI automates the manual steps below (Bun install, dependencies, SSD mount, database, certificate, and a systemd service). It is a standalone binary, so the Pi needs no runtime installed in advance:
+
+```bash
+curl -fsSL https://github.com/99Stud/dither_booth/releases/latest/download/install.sh | sudo bash
+sudo booth install
+```
+
+See the [CLI README](apps/cli/README.md) for all commands and options. The rest of this document describes the manual setup the CLI performs.
 
 ## Bun
 
@@ -57,7 +69,7 @@ bun run --filter @dither-booth/api db:migrate
 
 See the [API README](apps/api/README.md) for details about the database management.
 
-If `RECEIPT_TEMPLATES` changes in `packages/shared/src/routes/index.ts`, regenerate and apply the API DB migration so the `print_config.template` check constraint stays in sync. See the [API README](apps/api/README.md#receipt-template-migrations) for the exact workflow.
+If `RECEIPT_TEMPLATES` changes in `packages/shared/src/isomorphic/routes.ts`, regenerate and apply the API DB migration so the `print_config.template` check constraint stays in sync. See the [API README](apps/api/README.md#receipt-template-migrations) for the exact workflow.
 
 ### 3. Install mkcert
 
@@ -132,11 +144,11 @@ Production with PM2:
 
 ```bash
 bun run build
-bun run start:pm2
-bun run list:pm2
+bun run pm2:start
+bun run pm2:list
 ```
 
-PM2 starts the already-built `dist/server.js` entry for each app. Use `bun run reload:pm2` after a new build, `bun run logs:pm2` to inspect process logs, and `bun run stop:pm2` to stop the managed apps. After confirming a good production state, run `bun run save:pm2` so PM2 can restore that process list on reboot.
+PM2 starts the already-built `dist/server.js` entry for each app. Use `bun run pm2:reload` after a new build, `bun run pm2:logs` to inspect process logs, and `bun run pm2:stop` to stop the managed apps. After confirming a good production state, run `bun run pm2:save` so PM2 can restore that process list on reboot. The `booth service` command installs a systemd unit that runs `pm2:start` and `pm2:save`.
 
 Health checks:
 

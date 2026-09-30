@@ -1,0 +1,4 @@
+{
+  "extends": "@dither-booth/typescript-config/bun.json",
+  "exclude": ["dist", "node_modules"]
+}
