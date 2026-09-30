@@ -1,6 +1,7 @@
 import type { Rarity } from "@dither-booth/shared/lottery";
 
 import { RECEIPT_ELEMENT_ID } from "@dither-booth/shared/browser/receipt-viewer";
+import { formatBoothTicketNumber } from "@dither-booth/shared/formatting";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { cn } from "@dither-booth/shared/styles";
 import clsx from "clsx";
@@ -10,7 +11,6 @@ import { getRarityReveal } from "#app/Experience/internal/lottery-reveal.utils";
 import { LoserMark } from "#components/svg/LoserMark/index";
 import { WinnerMark } from "#components/svg/WinnerMark/index";
 import { receiptViewerRoute } from "#lib/router/index";
-import { formatBoothTicketNumber } from "#lib/ticket-ref";
 
 const formatWonAtDisplay = (iso: string): string | null => {
   const date = new Date(iso);
@@ -74,10 +74,7 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
           </span>
         </div>
         {RarityIcon ? (
-          <RarityIcon
-            className="size-5 shrink-0 stroke-[2.5]"
-            aria-hidden
-          />
+          <RarityIcon className="size-5 shrink-0 stroke-[2.5]" aria-hidden />
         ) : (
           <span className="text-sm leading-none" aria-hidden>
             ◇
@@ -104,14 +101,8 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
   const wonAtDisplay = wonAt ? formatWonAtDisplay(wonAt) : null;
 
   const ticketNumber = useMemo(() => {
-    if (ticketRef && /^\d{6}$/.test(ticketRef)) {
-      return formatBoothTicketNumber(ticketRef);
-    }
-    return formatBoothTicketNumber(
-      Math.floor(Math.random() * 1_000_000)
-        .toString()
-        .padStart(6, "0"),
-    );
+    if (!ticketRef) return null;
+    return formatBoothTicketNumber(ticketRef);
   }, [ticketRef]);
 
   return (
@@ -161,9 +152,11 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
       <div className={clsx("w-full border border-dashed border-black")} />
 
       <div className={clsx("flex flex-col items-center gap-1")}>
-        <div className={clsx("text-center text-xl font-bold uppercase")}>
-          {ticketNumber}
-        </div>
+        {ticketNumber ? (
+          <div className={clsx("text-center text-xl font-bold uppercase")}>
+            {ticketNumber}
+          </div>
+        ) : null}
         {outcome === "win" && wonAtDisplay ? (
           <div
             className={clsx(

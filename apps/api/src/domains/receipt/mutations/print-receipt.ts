@@ -8,6 +8,7 @@ import type { DrawResult } from "#domains/lottery/internal/lottery.types";
 import { lotteryTable } from "#db/internal/db.schema";
 import { LOTTERY_LOG_SOURCE } from "#domains/lottery/internal/lottery.constants";
 import { executeLotteryDraw } from "#domains/lottery/internal/lottery.draw";
+import { createBoothTicketRef } from "#domains/lottery/internal/lottery.ticket-ref";
 import { printRasterReceipt } from "#domains/printer/printer.service";
 import { publicProcedure } from "#internal/trpc";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
@@ -16,8 +17,7 @@ import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 import { previewReceiptRasters } from "../internal/receipt-dry-run.utils";
 import {
   buildLotteryTicketRasterCommand,
-  createBoothTicketRef,
-  prepareReceiptRasterCommand,
+  buildReceiptRasterCommand,
 } from "../internal/receipt-raster.utils";
 
 export const printReceipt = publicProcedure
@@ -51,16 +51,27 @@ export const printReceipt = publicProcedure
       });
     }
 
-    const receiptRasterCmd = await prepareReceiptRasterCommand({
-      ctx: { ...ctx, page },
-      input,
+    const photoBuffer = Buffer.from(await new Response(input).arrayBuffer());
+
+    if (photoBuffer.byteLength === 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Photo input was empty.",
+      });
+    }
+
+    let ticketRef = createBoothTicketRef();
+    let receiptRasterCmd = await buildReceiptRasterCommand({
+      page,
+      photoBuffer,
       printConfiguration,
+      ticketRef,
     });
 
-    let draw: DrawResult;
+    let execution;
 
     try {
-      draw = await executeLotteryDraw({ db: ctx.db });
+      execution = await executeLotteryDraw({ db: ctx.db, ticketRef });
     } catch (error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -68,6 +79,18 @@ export const printReceipt = publicProcedure
         cause: error,
       });
     }
+
+    if (execution.ticketRef !== ticketRef) {
+      ticketRef = execution.ticketRef;
+      receiptRasterCmd = await buildReceiptRasterCommand({
+        page,
+        photoBuffer,
+        printConfiguration,
+        ticketRef,
+      });
+    }
+
+    const draw = execution.result;
 
     const lottery = await ctx.db.query.lotteryTable.findFirst({
       where: eq(lotteryTable.enabled, true),
@@ -80,7 +103,7 @@ export const printReceipt = publicProcedure
         try {
           await previewReceiptRasters({
             photoRasterCmd: receiptRasterCmd,
-            ticketRef: createBoothTicketRef(),
+            ticketRef,
           });
         } catch (error) {
           throw new TRPCError({
@@ -105,8 +128,6 @@ export const printReceipt = publicProcedure
 
       return draw;
     }
-
-    const ticketRef = createBoothTicketRef();
 
     let lotteryRasterCmd: Buffer;
 

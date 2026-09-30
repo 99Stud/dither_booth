@@ -4,6 +4,8 @@ import type { DB } from "#db/internal/db.types";
 
 import { executeLotteryDraw } from "./lottery.draw";
 
+const TICKET_REF_PATTERN = /^\d{6}$/;
+
 function createForceDb({
   prize,
 }: {
@@ -16,8 +18,11 @@ function createForceDb({
     winInstruction: string;
   } | null;
 }) {
-  const inserts: Array<{ lotteryId: string | null; prizeId: string | null }> =
-    [];
+  const inserts: Array<{
+    lotteryId: string | null;
+    prizeId: string | null;
+    ticketRef: string;
+  }> = [];
 
   const db = {
     insert: mock(() => ({
@@ -25,6 +30,7 @@ function createForceDb({
         async (values: {
           lotteryId: string | null;
           prizeId: string | null;
+          ticketRef: string;
         }) => {
           inserts.push(values);
         },
@@ -71,13 +77,20 @@ describe("executeLotteryDraw force path", () => {
   test("forces a loss without running the weighted draw", async () => {
     const { db, getInserts } = createForceDb({});
 
-    const result = await executeLotteryDraw({
+    const execution = await executeLotteryDraw({
       db,
       force: { outcome: "loss" },
     });
 
-    expect(result).toEqual({ outcome: "loss", prize: null });
-    expect(getInserts()).toEqual([{ lotteryId: "lottery-1", prizeId: null }]);
+    expect(execution.result).toEqual({ outcome: "loss", prize: null });
+    expect(execution.ticketRef).toMatch(TICKET_REF_PATTERN);
+    expect(getInserts()).toEqual([
+      {
+        lotteryId: "lottery-1",
+        prizeId: null,
+        ticketRef: execution.ticketRef,
+      },
+    ]);
   });
 
   test("forces a win for a prize id without decrementing stock", async () => {
@@ -91,22 +104,26 @@ describe("executeLotteryDraw force path", () => {
     };
     const { db, getInserts } = createForceDb({ prize });
 
-    const result = await executeLotteryDraw({
+    const execution = await executeLotteryDraw({
       db,
       force: { outcome: "win", prizeId: prize.id },
+      ticketRef: "123456",
     });
 
-    expect(result).toEqual({
-      outcome: "win",
-      prize: {
-        id: "prize-1",
-        rarity: "rare",
-        title: "Sticker pack",
-        winInstruction: "Show this ticket at the bar",
+    expect(execution).toEqual({
+      ticketRef: "123456",
+      result: {
+        outcome: "win",
+        prize: {
+          id: "prize-1",
+          rarity: "rare",
+          title: "Sticker pack",
+          winInstruction: "Show this ticket at the bar",
+        },
       },
     });
     expect(getInserts()).toEqual([
-      { lotteryId: "lottery-1", prizeId: "prize-1" },
+      { lotteryId: "lottery-1", prizeId: "prize-1", ticketRef: "123456" },
     ]);
     expect(db.transaction).not.toHaveBeenCalled();
   });

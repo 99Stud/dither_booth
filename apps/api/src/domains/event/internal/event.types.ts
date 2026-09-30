@@ -1,4 +1,4 @@
-import type { Rarity } from "@dither-booth/shared/lottery";
+import type { DrawOutcome, Rarity } from "@dither-booth/shared/lottery";
 
 export type EventLot = {
   id: string;
@@ -23,6 +23,18 @@ export type CurrentEvent = {
     printLoserTicket: boolean;
   };
   lots: EventLot[];
+};
+
+export type EventDraw = {
+  id: string;
+  ticketRef: string | null;
+  createdAt: string;
+  outcome: DrawOutcome;
+  prizeTitle: string | null;
+};
+
+export type ListDrawsResult = {
+  draws: EventDraw[];
 };
 
 /**

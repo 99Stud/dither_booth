@@ -17,12 +17,87 @@ import {
   isWithinWinCooldown,
   runLotteryDraw,
 } from "./lottery.engine";
+import {
+  createBoothTicketRef,
+  isUniqueTicketRefConstraintError,
+  TICKET_REF_ALLOCATION_ATTEMPTS,
+} from "./lottery.ticket-ref";
+
+export type LotteryDrawExecution = {
+  result: DrawResult;
+  ticketRef: string;
+};
+
+async function insertDraw(params: {
+  db: DB;
+  lotteryId: string | null;
+  prizeId: string | null;
+  ticketRef?: string;
+}): Promise<string> {
+  let ticketRef = params.ticketRef ?? createBoothTicketRef();
+
+  for (let attempt = 0; attempt < TICKET_REF_ALLOCATION_ATTEMPTS; attempt++) {
+    try {
+      await params.db.insert(drawTable).values({
+        lotteryId: params.lotteryId,
+        prizeId: params.prizeId,
+        ticketRef,
+      });
+      return ticketRef;
+    } catch (error) {
+      if (
+        !isUniqueTicketRefConstraintError(error) ||
+        attempt === TICKET_REF_ALLOCATION_ATTEMPTS - 1
+      ) {
+        throw error;
+      }
+      ticketRef = createBoothTicketRef();
+    }
+  }
+
+  throw new Error("Failed to allocate a unique ticket number.");
+}
+
+function insertDrawInTransaction(params: {
+  tx: Parameters<Parameters<DB["transaction"]>[0]>[0];
+  lotteryId: string;
+  prizeId: string | null;
+  ticketRef?: string;
+}): string {
+  let ticketRef = params.ticketRef ?? createBoothTicketRef();
+
+  for (let attempt = 0; attempt < TICKET_REF_ALLOCATION_ATTEMPTS; attempt++) {
+    try {
+      params.tx
+        .insert(drawTable)
+        .values({
+          lotteryId: params.lotteryId,
+          prizeId: params.prizeId,
+          ticketRef,
+        })
+        .run();
+      return ticketRef;
+    } catch (error) {
+      if (
+        !isUniqueTicketRefConstraintError(error) ||
+        attempt === TICKET_REF_ALLOCATION_ATTEMPTS - 1
+      ) {
+        throw error;
+      }
+      ticketRef = createBoothTicketRef();
+    }
+  }
+
+  throw new Error("Failed to allocate a unique ticket number.");
+}
 
 export async function executeLotteryDraw(params: {
   db: DB;
   force?: LotteryForceConfig | null;
-}): Promise<DrawResult> {
+  ticketRef?: string;
+}): Promise<LotteryDrawExecution> {
   const { db } = params;
+  const preferredTicketRef = params.ticketRef;
   const force =
     params.force === undefined ? getLotteryForceConfig() : params.force;
 
@@ -31,17 +106,21 @@ export async function executeLotteryDraw(params: {
       where: eq(lotteryTable.enabled, true),
     });
 
-    await db
-      .insert(drawTable)
-      .values({ lotteryId: lottery?.id ?? null, prizeId: null });
+    const ticketRef = await insertDraw({
+      db,
+      lotteryId: lottery?.id ?? null,
+      prizeId: null,
+      ticketRef: preferredTicketRef,
+    });
 
     logKioskEvent("info", LOTTERY_LOG_SOURCE, "lottery-draw-force-loss", {
       details: {
         lotteryId: lottery?.id ?? null,
+        ticketRef,
       },
     });
 
-    return { outcome: "loss", prize: null };
+    return { result: { outcome: "loss", prize: null }, ticketRef };
   }
 
   if (force?.outcome === "win") {
@@ -53,9 +132,11 @@ export async function executeLotteryDraw(params: {
       throw new Error(`Forced lottery prize not found: ${force.prizeId}`);
     }
 
-    await db.insert(drawTable).values({
+    const ticketRef = await insertDraw({
+      db,
       lotteryId: prize.lotteryId,
       prizeId: prize.id,
+      ticketRef: preferredTicketRef,
     });
 
     logKioskEvent("info", LOTTERY_LOG_SOURCE, "lottery-draw-force-win", {
@@ -63,16 +144,20 @@ export async function executeLotteryDraw(params: {
         lotteryId: prize.lotteryId,
         prizeId: prize.id,
         rarity: prize.rarity,
+        ticketRef,
       },
     });
 
     return {
-      outcome: "win",
-      prize: {
-        id: prize.id,
-        rarity: prize.rarity,
-        title: prize.title,
-        winInstruction: prize.winInstruction,
+      ticketRef,
+      result: {
+        outcome: "win",
+        prize: {
+          id: prize.id,
+          rarity: prize.rarity,
+          title: prize.title,
+          winInstruction: prize.winInstruction,
+        },
       },
     };
   }
@@ -81,12 +166,15 @@ export async function executeLotteryDraw(params: {
     where: eq(lotteryTable.enabled, true),
   });
 
-  const recordLoss = async (): Promise<DrawResult> => {
-    await db
-      .insert(drawTable)
-      .values({ lotteryId: lottery?.id ?? null, prizeId: null });
+  const recordLoss = async (): Promise<LotteryDrawExecution> => {
+    const ticketRef = await insertDraw({
+      db,
+      lotteryId: lottery?.id ?? null,
+      prizeId: null,
+      ticketRef: preferredTicketRef,
+    });
 
-    return { outcome: "loss", prize: null };
+    return { result: { outcome: "loss", prize: null }, ticketRef };
   };
 
   if (!lottery || !isLotteryOpen(lottery)) {
@@ -143,22 +231,31 @@ export async function executeLotteryDraw(params: {
       .all();
 
     if (decremented.length === 0) {
-      tx.insert(drawTable)
-        .values({ lotteryId: lottery.id, prizeId: null })
-        .run();
+      const ticketRef = insertDrawInTransaction({
+        tx,
+        lotteryId: lottery.id,
+        prizeId: null,
+        ticketRef: preferredTicketRef,
+      });
 
-      return false;
+      return { won: false, ticketRef };
     }
 
-    tx.insert(drawTable)
-      .values({ lotteryId: lottery.id, prizeId: wonPrizeId })
-      .run();
+    const ticketRef = insertDrawInTransaction({
+      tx,
+      lotteryId: lottery.id,
+      prizeId: wonPrizeId,
+      ticketRef: preferredTicketRef,
+    });
 
-    return true;
+    return { won: true, ticketRef };
   });
 
-  if (!committed) {
-    return { outcome: "loss", prize: null };
+  if (!committed.won) {
+    return {
+      result: { outcome: "loss", prize: null },
+      ticketRef: committed.ticketRef,
+    };
   }
 
   logKioskEvent("info", LOTTERY_LOG_SOURCE, "lottery-draw-win", {
@@ -166,8 +263,9 @@ export async function executeLotteryDraw(params: {
       lotteryId: lottery.id,
       prizeId: wonPrizeId,
       rarity: drawResult.prize.rarity,
+      ticketRef: committed.ticketRef,
     },
   });
 
-  return drawResult;
+  return { result: drawResult, ticketRef: committed.ticketRef };
 }

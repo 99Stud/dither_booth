@@ -250,14 +250,16 @@ export async function captureReceiptScreenshot({
   image,
   page,
   template,
+  ticketRef,
 }: {
   image: ReceiptImageData;
   page: ReceiptScreenshotPage;
   template: PhotoReceiptTemplate;
+  ticketRef?: string;
 }): Promise<Uint8Array> {
   return await withReceiptViewerSearch({
     page,
-    search: { template },
+    search: { template, ...(ticketRef ? { ticketRef } : {}) },
     run: async () => {
       const imageHandle: ElementHandle = await page
         .locator(RECEIPT_PHOTO_ELEMENT_SELECTOR)

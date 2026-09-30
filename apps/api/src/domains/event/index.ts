@@ -7,9 +7,11 @@ import { updateEvent } from "./mutations/update-event";
 import { updateLot } from "./mutations/update-lot";
 import { updateLotterySettings } from "./mutations/update-lottery-settings";
 import { getCurrentEvent } from "./queries/get-current-event";
+import { listDraws } from "./queries/list-draws";
 
 export const event = {
   getCurrentEvent,
+  listDraws,
   createEvent,
   updateEvent,
   replaceEvent,

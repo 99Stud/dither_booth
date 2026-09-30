@@ -19,6 +19,7 @@ export const EVENT_TABS = [
   "overview",
   "lottery",
   "lots",
+  "draws",
 ] as const satisfies ReadonlyArray<EventTab>;
 
 export const CREATE_EVENT_FORM_SCHEMA = z.object({

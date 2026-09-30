@@ -18,6 +18,7 @@ import {
   createLotForDb,
   deleteLotForDb,
   getCurrentEventForDb,
+  listDrawsForDb,
   replaceEventForDb,
   restockLotForDb,
   updateLotterySettingsForDb,
@@ -235,6 +236,79 @@ describe("event.service", () => {
       await expect(deleteLotForDb(db, lotId)).rejects.toMatchObject({
         code: "PRECONDITION_FAILED",
       });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("listDraws returns newest first, looks up a ticket, and misses unknown numbers", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      const event = await createEventForDb(db, {
+        name: "Draws event",
+        noWinWeight: 1,
+        winCooldownMinutes: 0,
+        printLoserTicket: false,
+        enabled: false,
+      });
+
+      const withLot = await createLotForDb(db, {
+        title: "sticker",
+        winInstruction: "Show this ticket at the bar",
+        weight: 1,
+        totalQuantity: 5,
+        remainingQuantity: 5,
+        rarity: "common",
+      });
+
+      const lotId = withLot.lots[0]!.id;
+
+      await db.insert(drawTable).values({
+        lotteryId: event.lottery.id,
+        prizeId: lotId,
+        ticketRef: "111111",
+        createdAt: new Date("2026-01-01T10:00:00.000Z"),
+      });
+      await db.insert(drawTable).values({
+        lotteryId: event.lottery.id,
+        prizeId: null,
+        ticketRef: "222222",
+        createdAt: new Date("2026-01-01T11:00:00.000Z"),
+      });
+
+      const latest = await listDrawsForDb(db, { limit: 50 });
+      expect(latest.draws.map((draw) => draw.ticketRef)).toEqual([
+        "222222",
+        "111111",
+      ]);
+      expect(latest.draws[0]).toMatchObject({
+        outcome: "loss",
+        prizeTitle: null,
+        ticketRef: "222222",
+      });
+      expect(latest.draws[1]).toMatchObject({
+        outcome: "win",
+        prizeTitle: "sticker",
+        ticketRef: "111111",
+      });
+
+      const lookup = await listDrawsForDb(db, {
+        ticketRef: "STUD_DITHERBOOTH_111111",
+        limit: 50,
+      });
+      expect(lookup.draws).toHaveLength(1);
+      expect(lookup.draws[0]).toMatchObject({
+        ticketRef: "111111",
+        outcome: "win",
+        prizeTitle: "sticker",
+      });
+
+      const miss = await listDrawsForDb(db, {
+        ticketRef: "999999",
+        limit: 50,
+      });
+      expect(miss.draws).toEqual([]);
     } finally {
       sqlite.close();
     }
