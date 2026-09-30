@@ -19,6 +19,12 @@ export const ditherImage = async (
 ) => {
   let image = sharp(buffer);
 
+  if (ditherConfiguration.rotation !== 0) {
+    image = image.rotate(ditherConfiguration.rotation, {
+      background: "#fff",
+    });
+  }
+
   if (options.width) {
     image = image.resize({
       width: options.width,

@@ -147,11 +147,45 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply font-sans antialiased;
+  }
   body {
     @apply bg-background text-foreground;
   }
-  html {
-    @apply font-sans;
-    @apply antialiased;
+  html.experience-shell {
+    @apply h-full overflow-hidden overscroll-none;
+  }
+  html.experience-shell body,
+  html.experience-shell #root,
+  html.experience-shell main {
+    @apply h-full overflow-hidden;
+  }
+}
+
+@theme {
+  --animate-flashing: flashing 1s ease-in-out infinite;
+
+  --text-shadow-glow: 0 0 4px rgb(255 255 255);
+  --drop-shadow-glow: 0 0 8px rgb(255 255 255 / 0.75);
+  --shadow-glow: 0 0 24px 0 rgb(255 255 255 / 0.5);
+  --shadow-soft: 0 0 24px 0 rgb(0 0 0 / 0.5);
+}
+
+@keyframes flashing {
+  0% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  75% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }

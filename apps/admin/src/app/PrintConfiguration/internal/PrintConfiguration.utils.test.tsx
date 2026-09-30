@@ -45,6 +45,12 @@ describe("PrintConfiguration utils", () => {
         exposure: 2,
       }),
     ).toEqual(["dithering", "receipt"]);
+    expect(
+      getChangedPreviewTabs(formValues, {
+        ...formValues,
+        rotation: 90,
+      }),
+    ).toEqual(["dithering", "receipt"]);
   });
 
   it("marks only the receipt tab dirty for receipt-only fields", () => {
@@ -72,10 +78,11 @@ describe("PrintConfiguration utils", () => {
     );
     expect(
       getPrintConfigurationFormValues({
-        colorSchemeCode: 7,
-        ditherModeCode: 8,
+        colorSchemeCode: 9,
+        ditherModeCode: 9,
         exposure: 1.5,
         highlights: 0.25,
+        rotation: 45,
         saturation: 2,
         serpentine: false,
         shadows: 0.5,
@@ -83,10 +90,11 @@ describe("PrintConfiguration utils", () => {
         threshold: 90,
       }),
     ).toEqual({
-      colorSchemeCode: 7,
-      ditherModeCode: 8,
+      colorSchemeCode: 9,
+      ditherModeCode: 9,
       exposure: 1.5,
       highlights: 0.25,
+      rotation: 45,
       saturation: 2,
       serpentine: false,
       shadows: 0.5,

@@ -89,6 +89,17 @@ export const PrintConfigurationFormFields: FC<
         formatValue={(value) => String(value)}
         disabled={isSliderFieldDisabled}
       />
+      <SliderField
+        key="rotation"
+        form={form}
+        name="rotation"
+        label="Rotation"
+        min={0}
+        max={360}
+        step={45}
+        formatValue={(value) => `${value}°`}
+        disabled={isSliderFieldDisabled}
+      />
     </div>
   );
 };

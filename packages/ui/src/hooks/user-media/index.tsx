@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type CapturePhotoOptions = Omit<
-  PhotoSettings,
-  "imageWidth" | "imageHeight"
->;
+import {
+  createPhotoCaptureCoordinator,
+  type CapturePhotoOptions,
+  type PhotoCaptureCoordinator,
+} from "./internal/user-media.capture";
+
+export type { CapturePhotoOptions } from "./internal/user-media.capture";
 
 export type CameraStatus = "error" | "initializing" | "ready" | "unsupported";
 
@@ -101,8 +104,8 @@ export const useUserMedia = (params: UseUserMediaParams) => {
   const onStreamRef = useRef(onStream);
   const captureInitializationRef = useRef<Promise<void> | undefined>(undefined);
   const captureInitializationErrorRef = useRef<unknown>(undefined);
-  const takePhotoRef = useRef<
-    ((photoSettings?: CapturePhotoOptions) => Promise<Blob>) | undefined
+  const photoCaptureCoordinatorRef = useRef<
+    PhotoCaptureCoordinator | undefined
   >(undefined);
 
   onCameraStateChangeRef.current = onCameraStateChange;
@@ -121,10 +124,10 @@ export const useUserMedia = (params: UseUserMediaParams) => {
     [],
   );
 
-  const clearTakePhoto = useCallback(() => {
+  const clearPhotoCapture = useCallback(() => {
     captureInitializationErrorRef.current = undefined;
     captureInitializationRef.current = undefined;
-    takePhotoRef.current = undefined;
+    photoCaptureCoordinatorRef.current = undefined;
   }, []);
 
   useEffect(() => {
@@ -144,13 +147,13 @@ export const useUserMedia = (params: UseUserMediaParams) => {
     );
   }, [cameraState]);
 
-  const takePhoto = useCallback(async (photoSettings?: CapturePhotoOptions) => {
+  const getPhotoCaptureCoordinator = useCallback(async () => {
     await captureInitializationRef.current;
 
-    const capturePhoto = takePhotoRef.current;
+    const photoCaptureCoordinator = photoCaptureCoordinatorRef.current;
 
-    if (capturePhoto) {
-      return capturePhoto(photoSettings);
+    if (photoCaptureCoordinator) {
+      return photoCaptureCoordinator;
     }
 
     const captureInitializationError = captureInitializationErrorRef.current;
@@ -166,6 +169,19 @@ export const useUserMedia = (params: UseUserMediaParams) => {
     throw new Error("Camera is not ready yet.");
   }, []);
 
+  const prewarmPhotoCapture = useCallback(async () => {
+    const photoCaptureCoordinator = await getPhotoCaptureCoordinator();
+    await photoCaptureCoordinator.prewarmPhotoCapture();
+  }, [getPhotoCaptureCoordinator]);
+
+  const takePhoto = useCallback(
+    async (photoSettings?: CapturePhotoOptions) => {
+      const photoCaptureCoordinator = await getPhotoCaptureCoordinator();
+      return await photoCaptureCoordinator.takePhoto(photoSettings);
+    },
+    [getPhotoCaptureCoordinator],
+  );
+
   useEffect(() => {
     let active: MediaStream | undefined;
     let cancelled = false;
@@ -173,7 +189,7 @@ export const useUserMedia = (params: UseUserMediaParams) => {
     updateCameraState("initializing");
 
     if (!window.isSecureContext) {
-      clearTakePhoto();
+      clearPhotoCapture();
       updateCameraState(
         "unsupported",
         "Camera access requires HTTPS or localhost.",
@@ -182,7 +198,7 @@ export const useUserMedia = (params: UseUserMediaParams) => {
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      clearTakePhoto();
+      clearPhotoCapture();
       updateCameraState(
         "unsupported",
         "This browser does not support camera capture.",
@@ -191,7 +207,7 @@ export const useUserMedia = (params: UseUserMediaParams) => {
     }
 
     if (typeof ImageCapture === "undefined") {
-      clearTakePhoto();
+      clearPhotoCapture();
       updateCameraState(
         "unsupported",
         "This browser does not support still photo capture.",
@@ -228,24 +244,25 @@ export const useUserMedia = (params: UseUserMediaParams) => {
 
               captureInitializationErrorRef.current = undefined;
               updateCameraState("ready");
-              takePhotoRef.current = async (
-                photoSettings?: CapturePhotoOptions,
-              ) => {
-                if (cancelled || track.readyState !== "live") {
-                  throw new DOMException(
-                    "Video track is no longer live.",
-                    "InvalidStateError",
-                  );
-                }
+              photoCaptureCoordinatorRef.current =
+                createPhotoCaptureCoordinator(
+                  async (photoSettings?: CapturePhotoOptions) => {
+                    if (cancelled || track.readyState !== "live") {
+                      throw new DOMException(
+                        "Video track is no longer live.",
+                        "InvalidStateError",
+                      );
+                    }
 
-                return await imageCapture.takePhoto(photoSettings);
-              };
+                    return await imageCapture.takePhoto(photoSettings);
+                  },
+                );
             })().catch((error) => {
               if (cancelled) {
                 return;
               }
 
-              takePhotoRef.current = undefined;
+              photoCaptureCoordinatorRef.current = undefined;
               captureInitializationErrorRef.current = error;
               updateCameraState(
                 "error",
@@ -257,25 +274,26 @@ export const useUserMedia = (params: UseUserMediaParams) => {
             onStreamRef.current(next);
           }
         } else {
-          clearTakePhoto();
+          clearPhotoCapture();
           updateCameraState("error", "Camera did not provide a video track.");
         }
       })
       .catch((e) => {
         if (cancelled) return;
-        clearTakePhoto();
+        clearPhotoCapture();
         updateCameraState("error", "Camera access failed.", e);
       });
 
     return () => {
       cancelled = true;
-      clearTakePhoto();
+      clearPhotoCapture();
       active?.getTracks().forEach((track) => track.stop());
     };
-  }, [clearTakePhoto, updateCameraState]);
+  }, [clearPhotoCapture, updateCameraState]);
 
   return {
     cameraState,
+    prewarmPhotoCapture,
     takePhoto,
   };
 };

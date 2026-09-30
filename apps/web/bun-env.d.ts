@@ -9,6 +9,35 @@ interface ImportMeta {
   readonly env?: ImportMetaEnv;
 }
 
+declare module "*.fnt" {
+  interface BmFontChar {
+    char: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    xoffset: number;
+    yoffset: number;
+    xadvance: number;
+  }
+
+  interface BmFontData {
+    common: {
+      lineHeight: number;
+      base: number;
+      scaleW: number;
+      scaleH: number;
+    };
+    distanceField: {
+      distanceRange: number;
+    };
+    chars: BmFontChar[];
+  }
+
+  const data: BmFontData;
+  export default data;
+}
+
 declare module "*.svg" {
   /**
    * A path to the SVG file

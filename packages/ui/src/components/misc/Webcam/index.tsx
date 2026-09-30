@@ -30,7 +30,7 @@ export const Webcam: FC<WebcamProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const { takePhoto, cameraState } = useUserMedia({
+  const { cameraState, prewarmPhotoCapture, takePhoto } = useUserMedia({
     onCameraStateChange,
     onConstraintFallbackError,
     onStream: (stream) => {
@@ -42,10 +42,11 @@ export const Webcam: FC<WebcamProps> = ({
   useImperativeHandle(
     ref,
     () => ({
-      takePhoto,
       cameraState,
+      prewarmPhotoCapture,
+      takePhoto,
     }),
-    [takePhoto, cameraState],
+    [cameraState, prewarmPhotoCapture, takePhoto],
   );
 
   return (

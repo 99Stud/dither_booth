@@ -12,7 +12,12 @@ export type PrintConfigurationFormValues = z.infer<PrintConfigurationSchema>;
 type PrintConfigurationFormValuesKeys = keyof PrintConfigurationFormValues;
 type PrintConfigurationSliderFieldName = Extract<
   PrintConfigurationFormValuesKeys,
-  "exposure" | "saturation" | "shadows" | "highlights" | "threshold"
+  | "exposure"
+  | "saturation"
+  | "shadows"
+  | "highlights"
+  | "threshold"
+  | "rotation"
 >;
 
 export type PrintConfigurationFormDitherModeCode =

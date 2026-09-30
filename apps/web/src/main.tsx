@@ -11,7 +11,6 @@ import {
   RECEIPT_VIEWER_PATH,
   RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM,
 } from "@dither-booth/shared/routes";
-import { Toaster } from "@dither-booth/ui/components/ui/sonner";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
@@ -57,7 +56,6 @@ createRoot(elem).render(
     <RootErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
-          <Toaster />
           <RouterProvider router={router} />
           {isDevelopment && <TanStackRouterDevtools router={router} />}
         </TRPCProvider>
