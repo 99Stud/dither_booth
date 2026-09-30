@@ -7,8 +7,8 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development PROCESS_MANAGER=turborepo turbo run dev -vvv",
-    "build": "NODE_ENV=production turbo run build",
+    "dev": "NODE_ENV=development PROCESS_MANAGER=turborepo turbo run dev --filter=!@dither-booth/cli -vvv",
+    "build": "NODE_ENV=production turbo run build --filter=!@dither-booth/cli",
     "start": "NODE_ENV=production PROCESS_MANAGER=turborepo turbo run start",
     "pm2:start": "pm2 startOrReload pm2.config.js --env production --update-env",
     "start-pm2:app": "pm2 startOrReload pm2.config.js --env production --update-env --only",

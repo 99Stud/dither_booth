@@ -70,7 +70,7 @@ bun run db:studio
 
 ### Receipt Template Migrations
 
-`RECEIPT_TEMPLATES` in `packages/shared/src/routes/index.ts` is the source of truth for receipt template names. The `print_config.template` database check constraint must accept exactly those strings, and its default must stay `tartines` unless the shared default is intentionally changed.
+`RECEIPT_TEMPLATES` in `packages/shared/src/isomorphic/routes.ts` is the source of truth for receipt template names. The `print_config.template` database check constraint must accept exactly those strings, and its default must stay `tartines` unless the shared default is intentionally changed.
 
 When `RECEIPT_TEMPLATES` changes, keep the Drizzle schema check derived from that constant, then run:
 

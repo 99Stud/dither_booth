@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Dither Booth CLI bootstrap installer.
 # Usage:
-#   curl -fsSL https://github.com/99stud/dither_booth/releases/latest/download/install.sh | sudo bash
+#   curl -fsSL https://github.com/99Stud/dither_booth/releases/latest/download/install.sh | sudo bash
 set -euo pipefail
 
-REPO="${BOOTH_REPO_SLUG:-99stud/dither_booth}"
+REPO="${BOOTH_REPO_SLUG:-99Stud/dither_booth}"
 VERSION="${BOOTH_VERSION:-latest}"
 INSTALL_DIR="${BOOTH_INSTALL_DIR:-/usr/local/bin}"
 BIN_NAME="booth"

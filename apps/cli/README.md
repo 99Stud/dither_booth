@@ -14,7 +14,7 @@ Stack: [Citty](https://github.com/unjs/citty) (commands), [Clack](https://www.np
 ## Install
 
 ```bash
-curl -fsSL https://github.com/99stud/dither_booth/releases/latest/download/install.sh | sudo bash
+curl -fsSL https://github.com/99Stud/dither_booth/releases/latest/download/install.sh | sudo bash
 ```
 
 This detects the architecture, downloads the matching `booth-linux-<arch>` binary, and installs it to `/usr/local/bin/booth`.
@@ -66,7 +66,7 @@ Also supports `bash`, `fish`, and `powershell` via `booth complete <shell>`.
 | Variable             | Default                                      | Purpose                                                        |
 | -------------------- | -------------------------------------------- | -------------------------------------------------------------- |
 | `BOOTH_REPO`         | `/opt/dither-booth`                          | Repo root location                                             |
-| `BOOTH_REPO_URL`     | `https://github.com/99stud/dither_booth.git` | Git clone URL                                                  |
+| `BOOTH_REPO_URL`     | `https://github.com/99Stud/dither_booth.git` | Git clone URL                                                  |
 | `BOOTH_SSD_DEVICE`   | auto-detected                                | Force the SSD partition (e.g. `/dev/sda1`)                     |
 | `BOOTH_SERVICE_USER` | `pi`                                         | System user for the service                                    |
 | `BOOTH_NO_BANNER`    | unset                                        | Disable the banner                                             |
@@ -79,5 +79,7 @@ bun run --filter @dither-booth/cli dev -- --help
 bun run --filter @dither-booth/cli check-types
 bun run --filter @dither-booth/cli build   # compile arm64 + x64 into dist/
 ```
+
+Root `bun run dev` and `bun run build` exclude this package. `dev` is not a long-running server, and `build` cross-compiles the Linux binaries used by the release workflow.
 
 The compiled binary cannot derive the repo location from its own path, so the repo root is resolved from `BOOTH_REPO` or the `/opt/dither-booth` default.

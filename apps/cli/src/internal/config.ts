@@ -2,7 +2,7 @@ export const CLI_VERSION = "0.2.0";
 
 export const DEFAULT_REPO_ROOT = "/opt/dither-booth";
 export const REPO_GIT_URL =
-  process.env.BOOTH_REPO_URL ?? "https://github.com/99stud/dither_booth.git";
+  process.env.BOOTH_REPO_URL ?? "https://github.com/99Stud/dither_booth.git";
 
 export const SSD_MOUNT_POINT = "/mnt/ssd";
 export const SSD_DATA_DIR = `${SSD_MOUNT_POINT}/dither-booth/data`;
