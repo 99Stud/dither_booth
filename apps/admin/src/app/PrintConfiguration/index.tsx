@@ -59,6 +59,10 @@ export const PrintConfiguration = () => {
     trpc.dither.mutationOptions(),
   );
 
+  const { mutateAsync: autoTuneDither, isPending: isAutoTuning } = useMutation(
+    trpc.autoTuneDither.mutationOptions(),
+  );
+
   const { mutateAsync: printReceiptImage, isPending: isPrintingReceipt } =
     useMutation(trpc.printReceipt.mutationOptions());
 
@@ -164,6 +168,40 @@ export const PrintConfiguration = () => {
     form.reset(DEFAULT_PRINT_CONFIGURATION_FORM_VALUES);
   }, [form, savePrintConfiguration]);
 
+  const autoTunePrintConfiguration = useCallback(async () => {
+    try {
+      const squarePhoto = await takeSquarePhoto();
+
+      if (!squarePhoto) {
+        throw new Error("Square photo is not available.");
+      }
+
+      const toneSettings = await autoTuneDither(squarePhoto);
+      const nextValues: PrintConfigurationFormValues = {
+        ...form.state.values,
+        exposure: toneSettings.exposure,
+        shadows: toneSettings.shadows,
+        highlights: toneSettings.highlights,
+      };
+
+      const wasPersisted = await savePrintConfiguration(nextValues, {
+        forceActivePreviewRefresh: true,
+      });
+
+      if (!wasPersisted) {
+        return;
+      }
+
+      form.reset(nextValues);
+    } catch (e) {
+      reportPrintConfigurationError(
+        e,
+        "auto-tune-dither-failed",
+        "Auto-tune failed.",
+      );
+    }
+  }, [autoTuneDither, form, savePrintConfiguration, takeSquarePhoto]);
+
   return (
     <Tabs
       className={clsx("gap-0")}
@@ -208,6 +246,11 @@ export const PrintConfiguration = () => {
             />
           </form>
           <PrintConfigurationActions
+            isAutoTuneDisabled={
+              isPersistingPrintConfiguration || isAutoTuning || isDithering
+            }
+            isAutoTuning={isAutoTuning}
+            onAutoTune={autoTunePrintConfiguration}
             isResetDisabled={isPersistingPrintConfiguration}
             isPrintReceiptDisabled={
               isPersistingPrintConfiguration || isPrintingReceipt

@@ -88,10 +88,8 @@ export async function buildReceiptRasterCommand({
   printConfiguration: PrintConfigRow;
   ticketRef?: string;
 }): Promise<Buffer> {
-  const deviceScaleFactor = page.viewport()?.deviceScaleFactor ?? 1;
-
   const dithered = await ditherImage(photoBuffer, printConfiguration, {
-    width: PRINT_WIDTH_PX * deviceScaleFactor,
+    width: PRINT_WIDTH_PX,
   }).catch((error) => {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
