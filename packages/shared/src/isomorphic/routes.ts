@@ -24,7 +24,7 @@ export const RECEIPT_VIEWER_SEARCH_SCHEMA = z.object({
   prizeId: z.string().optional(),
   title: z.string().optional(),
   winInstruction: z.string().optional(),
-  lotRarity: raritySchema.optional(),
+  prizeRarity: raritySchema.optional(),
   wonAt: z.string().optional(),
   ticketRef: z
     .string()

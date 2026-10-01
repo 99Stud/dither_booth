@@ -15,12 +15,12 @@ import {
 
 import {
   createEventForDb,
-  createLotForDb,
-  deleteLotForDb,
+  createPrizeForDb,
+  deletePrizeForDb,
   getCurrentEventForDb,
   listDrawsForDb,
   replaceEventForDb,
-  restockLotForDb,
+  restockPrizeForDb,
   updateLotterySettingsForDb,
 } from "./event.service";
 
@@ -60,7 +60,7 @@ describe("event.service", () => {
       expect(created.campaign.name).toBe("Launch night");
       expect(created.lottery.enabled).toBe(false);
       expect(created.lottery.printLoserTicket).toBe(false);
-      expect(created.lots).toEqual([]);
+      expect(created.prizes).toEqual([]);
 
       await expect(
         createEventForDb(db, {
@@ -90,7 +90,7 @@ describe("event.service", () => {
         enabled: true,
       });
 
-      const withLot = await createLotForDb(db, {
+      const withPrize = await createPrizeForDb(db, {
         title: "sticker",
         winInstruction: "Show this ticket at the bar",
         weight: 1,
@@ -101,7 +101,7 @@ describe("event.service", () => {
 
       await db.insert(drawTable).values({
         lotteryId: first.lottery.id,
-        prizeId: withLot.lots[0]!.id,
+        prizeId: withPrize.prizes[0]!.id,
       });
 
       const replaced = await replaceEventForDb(db, {
@@ -114,7 +114,7 @@ describe("event.service", () => {
 
       expect(replaced.campaign.name).toBe("New event");
       expect(replaced.lottery.id).not.toBe(first.lottery.id);
-      expect(replaced.lots).toEqual([]);
+      expect(replaced.prizes).toEqual([]);
 
       const current = await getCurrentEventForDb(db);
       expect(current?.campaign.name).toBe("New event");
@@ -126,7 +126,7 @@ describe("event.service", () => {
     }
   });
 
-  test("restockLot bumps total when remaining exceeds previous total", async () => {
+  test("restockPrize bumps total when remaining exceeds previous total", async () => {
     const { db, sqlite } = createTestDb();
 
     try {
@@ -138,7 +138,7 @@ describe("event.service", () => {
         enabled: false,
       });
 
-      const withLot = await createLotForDb(db, {
+      const withPrize = await createPrizeForDb(db, {
         title: "drink",
         winInstruction: "Show this ticket at the bar",
         weight: 2,
@@ -147,14 +147,14 @@ describe("event.service", () => {
         rarity: "rare",
       });
 
-      const lotId = withLot.lots[0]!.id;
-      const restocked = await restockLotForDb(db, {
-        lotId,
+      const prizeId = withPrize.prizes[0]!.id;
+      const restocked = await restockPrizeForDb(db, {
+        prizeId,
         remainingQuantity: 10,
       });
 
-      expect(restocked.lots[0]).toMatchObject({
-        id: lotId,
+      expect(restocked.prizes[0]).toMatchObject({
+        id: prizeId,
         remainingQuantity: 10,
         totalQuantity: 10,
       });
@@ -206,7 +206,7 @@ describe("event.service", () => {
     }
   });
 
-  test("deleteLot blocks prizes referenced by draws", async () => {
+  test("deletePrize blocks prizes referenced by draws", async () => {
     const { db, sqlite } = createTestDb();
 
     try {
@@ -218,7 +218,7 @@ describe("event.service", () => {
         enabled: false,
       });
 
-      const withLot = await createLotForDb(db, {
+      const withPrize = await createPrizeForDb(db, {
         title: "legendary prize",
         winInstruction: "Show this ticket at the bar",
         weight: 1,
@@ -227,13 +227,13 @@ describe("event.service", () => {
         rarity: "legendary",
       });
 
-      const lotId = withLot.lots[0]!.id;
+      const prizeId = withPrize.prizes[0]!.id;
       await db.insert(drawTable).values({
         lotteryId: event.lottery.id,
-        prizeId: lotId,
+        prizeId: prizeId,
       });
 
-      await expect(deleteLotForDb(db, lotId)).rejects.toMatchObject({
+      await expect(deletePrizeForDb(db, prizeId)).rejects.toMatchObject({
         code: "PRECONDITION_FAILED",
       });
     } finally {
@@ -253,7 +253,7 @@ describe("event.service", () => {
         enabled: false,
       });
 
-      const withLot = await createLotForDb(db, {
+      const withPrize = await createPrizeForDb(db, {
         title: "sticker",
         winInstruction: "Show this ticket at the bar",
         weight: 1,
@@ -262,11 +262,11 @@ describe("event.service", () => {
         rarity: "common",
       });
 
-      const lotId = withLot.lots[0]!.id;
+      const prizeId = withPrize.prizes[0]!.id;
 
       await db.insert(drawTable).values({
         lotteryId: event.lottery.id,
-        prizeId: lotId,
+        prizeId: prizeId,
         ticketRef: "111111",
         createdAt: new Date("2026-01-01T10:00:00.000Z"),
       });

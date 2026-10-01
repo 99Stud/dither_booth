@@ -35,15 +35,15 @@ const RARITY_UI: Record<
   legendary: { label: "Légendaire", tier: "T5" },
 };
 
-const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
-  const { lotRarity } = props;
-  const knownRarity = RARITY_UI[lotRarity as Rarity];
+const LotteryRarityStrip: FC<{ prizeRarity: string }> = (props) => {
+  const { prizeRarity } = props;
+  const knownRarity = RARITY_UI[prizeRarity as Rarity];
   const cfg = knownRarity ?? {
-    label: lotRarity.replace(/_/g, " "),
+    label: prizeRarity.replace(/_/g, " "),
     tier: "?",
   };
   const RarityIcon = knownRarity
-    ? getRarityReveal(lotRarity as Rarity).Icon
+    ? getRarityReveal(prizeRarity as Rarity).Icon
     : null;
 
   return (
@@ -91,7 +91,7 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
     outcome: outcomeParam,
     title,
     winInstruction,
-    lotRarity,
+    prizeRarity,
     wonAt,
     ticketRef,
   } = receiptViewerRoute.useSearch();
@@ -135,7 +135,9 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
               {title}
             </div>
           ) : null}
-          {lotRarity ? <LotteryRarityStrip lotRarity={lotRarity} /> : null}
+          {prizeRarity ? (
+            <LotteryRarityStrip prizeRarity={prizeRarity} />
+          ) : null}
           {instructionsLine ? (
             <div
               className={clsx(

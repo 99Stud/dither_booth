@@ -112,13 +112,13 @@ bun run db:seed:lottery -- --reset
 
 Stable IDs:
 
-| Id                    | Role               |
-| --------------------- | ------------------ |
-| `dev_campaign`        | Event / campaign   |
-| `dev_lottery`         | Lottery            |
-| `dev_prize_common`    | Lot (common, 100)  |
-| `dev_prize_rare`      | Lot (rare, 20)     |
-| `dev_prize_legendary` | Lot (legendary, 8) |
+| Id                    | Role                 |
+| --------------------- | -------------------- |
+| `dev_campaign`        | Event / campaign     |
+| `dev_lottery`         | Lottery              |
+| `dev_prize_common`    | Prize (common, 100)  |
+| `dev_prize_rare`      | Prize (rare, 20)     |
+| `dev_prize_legendary` | Prize (legendary, 8) |
 
 Example forced win after seeding:
 
@@ -132,14 +132,14 @@ bun run dev
 
 The booth supports **one campaign (event) at a time**. Admin manages it from the Event page via `adminOriginProcedure` endpoints:
 
-| Procedure                                              | Role                                              |
-| ------------------------------------------------------ | ------------------------------------------------- |
-| `getCurrentEvent`                                      | Aggregate campaign + lottery + lots, or `null`    |
-| `createEvent`                                          | Create campaign + lottery (rejects if one exists) |
-| `updateEvent`                                          | Rename campaign                                   |
-| `replaceEvent`                                         | Wipe event data, then create a new one            |
-| `updateLotterySettings`                                | Enable / odds / win cooldown                      |
-| `createLot` / `updateLot` / `deleteLot` / `restockLot` | Prize CRUD + restock                              |
+| Procedure                                                      | Role                                               |
+| -------------------------------------------------------------- | -------------------------------------------------- |
+| `getCurrentEvent`                                              | Aggregate campaign + lottery + prizes, or `null`  |
+| `createEvent`                                                  | Create campaign + lottery (rejects if one exists) |
+| `updateEvent`                                                  | Rename campaign                                    |
+| `replaceEvent`                                                 | Wipe event data, then create a new one             |
+| `updateLotterySettings`                                        | Enable / odds / win cooldown                       |
+| `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD + restock                               |
 
 Runtime booth draw/status (`drawLottery`, `getLotteryStatus`) stay public. Print Configuration remains the global dither/template owner for now.
 

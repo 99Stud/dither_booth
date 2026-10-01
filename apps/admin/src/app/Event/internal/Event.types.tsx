@@ -1,6 +1,6 @@
 import type { Rarity } from "@dither-booth/shared/lottery";
 
-export type EventLot = {
+export type EventPrize = {
   id: string;
   title: string;
   winInstruction: string;
@@ -22,10 +22,10 @@ export type CurrentEvent = {
     winCooldownMinutes: number;
     printLoserTicket: boolean;
   };
-  lots: EventLot[];
+  prizes: EventPrize[];
 };
 
-export type EventTab = "overview" | "lottery" | "lots" | "draws";
+export type EventTab = "overview" | "lottery" | "prizes" | "draws";
 
 export type CreateEventFormValues = {
   name: string;
@@ -46,7 +46,7 @@ export type LotterySettingsFormValues = {
   printLoserTicket: boolean;
 };
 
-export type LotFormValues = {
+export type PrizeFormValues = {
   title: string;
   winInstruction: string;
   weight: number;
@@ -55,7 +55,7 @@ export type LotFormValues = {
   rarity: Rarity;
 };
 
-export type RestockLotFormValues = {
+export type RestockPrizeFormValues = {
   remainingQuantity: number;
   totalQuantity: number;
 };

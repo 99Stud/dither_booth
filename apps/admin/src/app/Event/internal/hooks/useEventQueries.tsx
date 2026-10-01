@@ -68,47 +68,51 @@ export const useEventQueries = () => {
     },
   });
 
-  const createLotMutation = useMutation({
-    ...trpc.createLot.mutationOptions(),
+  const createPrizeMutation = useMutation({
+    ...trpc.createPrize.mutationOptions(),
     onSuccess: async () => {
-      toast.success("Lot added");
+      toast.success("Prize added");
       await invalidateCurrentEvent();
     },
     onError: (error) => {
-      reportEventError(error, "create-lot-failed", "Failed to add lot.");
+      reportEventError(error, "create-prize-failed", "Failed to add prize.");
     },
   });
 
-  const updateLotMutation = useMutation({
-    ...trpc.updateLot.mutationOptions(),
+  const updatePrizeMutation = useMutation({
+    ...trpc.updatePrize.mutationOptions(),
     onSuccess: async () => {
-      toast.success("Lot updated");
+      toast.success("Prize updated");
       await invalidateCurrentEvent();
     },
     onError: (error) => {
-      reportEventError(error, "update-lot-failed", "Failed to update lot.");
+      reportEventError(error, "update-prize-failed", "Failed to update prize.");
     },
   });
 
-  const deleteLotMutation = useMutation({
-    ...trpc.deleteLot.mutationOptions(),
+  const deletePrizeMutation = useMutation({
+    ...trpc.deletePrize.mutationOptions(),
     onSuccess: async () => {
-      toast.success("Lot deleted");
+      toast.success("Prize deleted");
       await invalidateCurrentEvent();
     },
     onError: (error) => {
-      reportEventError(error, "delete-lot-failed", "Failed to delete lot.");
+      reportEventError(error, "delete-prize-failed", "Failed to delete prize.");
     },
   });
 
-  const restockLotMutation = useMutation({
-    ...trpc.restockLot.mutationOptions(),
+  const restockPrizeMutation = useMutation({
+    ...trpc.restockPrize.mutationOptions(),
     onSuccess: async () => {
-      toast.success("Lot restocked");
+      toast.success("Prize restocked");
       await invalidateCurrentEvent();
     },
     onError: (error) => {
-      reportEventError(error, "restock-lot-failed", "Failed to restock lot.");
+      reportEventError(
+        error,
+        "restock-prize-failed",
+        "Failed to restock prize.",
+      );
     },
   });
 
@@ -118,9 +122,9 @@ export const useEventQueries = () => {
     updateEventMutation,
     replaceEventMutation,
     updateLotterySettingsMutation,
-    createLotMutation,
-    updateLotMutation,
-    deleteLotMutation,
-    restockLotMutation,
+    createPrizeMutation,
+    updatePrizeMutation,
+    deletePrizeMutation,
+    restockPrizeMutation,
   };
 };

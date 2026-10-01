@@ -22,7 +22,7 @@ export const updateLotterySettingsInputSchema = z.object({
   printLoserTicket: z.boolean(),
 });
 
-export const createLotInputSchema = z
+export const createPrizeInputSchema = z
   .object({
     title: z.string().trim().min(1).max(120),
     winInstruction: z.string().trim().min(1).max(240),
@@ -36,9 +36,9 @@ export const createLotInputSchema = z
     path: ["remainingQuantity"],
   });
 
-export const updateLotInputSchema = z
+export const updatePrizeInputSchema = z
   .object({
-    lotId: z.string().min(1),
+    prizeId: z.string().min(1),
     title: z.string().trim().min(1).max(120),
     winInstruction: z.string().trim().min(1).max(240),
     weight: z.number().gt(0),
@@ -51,13 +51,13 @@ export const updateLotInputSchema = z
     path: ["remainingQuantity"],
   });
 
-export const deleteLotInputSchema = z.object({
-  lotId: z.string().min(1),
+export const deletePrizeInputSchema = z.object({
+  prizeId: z.string().min(1),
 });
 
-export const restockLotInputSchema = z
+export const restockPrizeInputSchema = z
   .object({
-    lotId: z.string().min(1),
+    prizeId: z.string().min(1),
     remainingQuantity: z.number().int().min(0),
     totalQuantity: z.number().int().min(0).optional(),
   })
@@ -81,8 +81,8 @@ export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
 export type UpdateLotterySettingsInput = z.infer<
   typeof updateLotterySettingsInputSchema
 >;
-export type CreateLotInput = z.infer<typeof createLotInputSchema>;
-export type UpdateLotInput = z.infer<typeof updateLotInputSchema>;
-export type DeleteLotInput = z.infer<typeof deleteLotInputSchema>;
-export type RestockLotInput = z.infer<typeof restockLotInputSchema>;
+export type CreatePrizeInput = z.infer<typeof createPrizeInputSchema>;
+export type UpdatePrizeInput = z.infer<typeof updatePrizeInputSchema>;
+export type DeletePrizeInput = z.infer<typeof deletePrizeInputSchema>;
+export type RestockPrizeInput = z.infer<typeof restockPrizeInputSchema>;
 export type ListDrawsInput = z.infer<typeof listDrawsInputSchema>;

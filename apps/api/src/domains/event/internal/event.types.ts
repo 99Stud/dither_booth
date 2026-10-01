@@ -1,6 +1,6 @@
 import type { DrawOutcome, Rarity } from "@dither-booth/shared/lottery";
 
-export type EventLot = {
+export type EventPrize = {
   id: string;
   title: string;
   winInstruction: string;
@@ -22,7 +22,7 @@ export type CurrentEvent = {
     winCooldownMinutes: number;
     printLoserTicket: boolean;
   };
-  lots: EventLot[];
+  prizes: EventPrize[];
 };
 
 export type EventDraw = {

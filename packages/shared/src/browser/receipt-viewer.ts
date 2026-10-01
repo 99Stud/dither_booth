@@ -47,7 +47,7 @@ const LOTTERY_SEARCH_KEYS = [
   "prizeId",
   "title",
   "winInstruction",
-  "lotRarity",
+  "prizeRarity",
   "wonAt",
   "ticketRef",
 ] as const satisfies ReadonlyArray<keyof ReceiptViewerSearch>;

@@ -16,33 +16,35 @@ import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
 import { useEffect } from "react";
 
-import type { EventLot, LotFormValues } from "../../Event.types";
+import type { EventPrize, PrizeFormValues } from "../../Event.types";
 
 import {
-  DEFAULT_LOT_FORM_VALUES,
-  LOT_FORM_SCHEMA,
+  DEFAULT_PRIZE_FORM_VALUES,
+  PRIZE_FORM_SCHEMA,
   RARITY_FIELD_OPTIONS,
-  getLotFormValues,
+  getPrizeFormValues,
 } from "../../Event.constants";
 
-interface EventLotSheetProps {
+interface EventPrizeSheetProps {
   open: boolean;
   mode: "create" | "edit";
-  lot: EventLot | null;
+  prize: EventPrize | null;
   isPending: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: LotFormValues) => Promise<void>;
+  onSubmit: (values: PrizeFormValues) => Promise<void>;
 }
 
-export const EventLotSheet: FC<EventLotSheetProps> = (props) => {
-  const { open, mode, lot, isPending, onOpenChange, onSubmit } = props;
+export const EventPrizeSheet: FC<EventPrizeSheetProps> = (props) => {
+  const { open, mode, prize, isPending, onOpenChange, onSubmit } = props;
 
   const form = useForm({
     defaultValues:
-      mode === "edit" && lot ? getLotFormValues(lot) : DEFAULT_LOT_FORM_VALUES,
+      mode === "edit" && prize
+        ? getPrizeFormValues(prize)
+        : DEFAULT_PRIZE_FORM_VALUES,
     validators: {
-      onChange: LOT_FORM_SCHEMA,
-      onSubmit: LOT_FORM_SCHEMA,
+      onChange: PRIZE_FORM_SCHEMA,
+      onSubmit: PRIZE_FORM_SCHEMA,
     },
     onSubmit: async ({ value }) => {
       await onSubmit(value);
@@ -53,19 +55,21 @@ export const EventLotSheet: FC<EventLotSheetProps> = (props) => {
   useEffect(() => {
     if (!open) return;
     form.reset(
-      mode === "edit" && lot ? getLotFormValues(lot) : DEFAULT_LOT_FORM_VALUES,
+      mode === "edit" && prize
+        ? getPrizeFormValues(prize)
+        : DEFAULT_PRIZE_FORM_VALUES,
     );
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset on open/lot only
-  }, [open, mode, lot?.id]);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset on open/prize only
+  }, [open, mode, prize?.id]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className={clsx("w-full sm:max-w-md")}>
         <SheetHeader>
-          <SheetTitle>{mode === "create" ? "Add lot" : "Edit lot"}</SheetTitle>
-          <SheetDescription>
-            Lots are prizes in the lottery table. Weight controls relative odds.
-          </SheetDescription>
+          <SheetTitle>
+            {mode === "create" ? "Add prize" : "Edit prize"}
+          </SheetTitle>
+          <SheetDescription>Weight controls relative odds.</SheetDescription>
         </SheetHeader>
         <form
           className={clsx("flex flex-1 flex-col gap-3 px-4")}
@@ -109,7 +113,7 @@ export const EventLotSheet: FC<EventLotSheetProps> = (props) => {
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {mode === "create" ? "Add lot" : "Save lot"}
+              {mode === "create" ? "Add prize" : "Save prize"}
             </Button>
           </SheetFooter>
         </form>

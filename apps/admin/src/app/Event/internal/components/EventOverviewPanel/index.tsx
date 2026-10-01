@@ -22,7 +22,7 @@ import {
   UPDATE_EVENT_NAME_FORM_SCHEMA,
   getUpdateEventNameFormValues,
 } from "../../Event.constants";
-import { getRarityBreakdown, getRemainingLots } from "../../Event.utils";
+import { getRarityBreakdown, getRemainingPrizes } from "../../Event.utils";
 
 interface EventOverviewPanelProps {
   event: CurrentEvent;
@@ -33,7 +33,7 @@ interface EventOverviewPanelProps {
 
 export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
   const { event, isSavingName, onSaveName, onReplaceClick } = props;
-  const remainingLots = getRemainingLots(event);
+  const remainingPrizes = getRemainingPrizes(event);
   const rarityBreakdown = getRarityBreakdown(event);
 
   const form = useForm({
@@ -69,7 +69,7 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
               {event.lottery.enabled ? "Lottery live" : "Lottery off"}
             </span>
             <span className={clsx("text-muted-foreground")}>
-              {remainingLots} remaining lots
+              {remainingPrizes} remaining prizes
             </span>
           </div>
           {rarityBreakdown.length > 0 && (
@@ -108,8 +108,8 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
         <CardHeader>
           <CardTitle>Lottery snapshot</CardTitle>
           <CardDescription>
-            Odds and cooldown are edited in the Lottery tab. Lots stock is
-            managed under Lots.
+            Odds and cooldown are edited in the Lottery tab. Prize stock is
+            managed under Prizes.
           </CardDescription>
         </CardHeader>
         <CardContent className={clsx("flex flex-col gap-2 text-sm")}>
@@ -132,8 +132,8 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
             </span>
           </p>
           <p>
-            Lots configured:{" "}
-            <span className={clsx("font-medium")}>{event.lots.length}</span>
+            Prizes configured:{" "}
+            <span className={clsx("font-medium")}>{event.prizes.length}</span>
           </p>
         </CardContent>
       </Card>
