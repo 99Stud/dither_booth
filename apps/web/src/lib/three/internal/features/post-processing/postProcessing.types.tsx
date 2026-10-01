@@ -1,3 +1,4 @@
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
 import type { Node } from "three/webgpu";
 
 export type PostProcessingEffectNode = Node<"vec4">;
@@ -27,5 +28,6 @@ export interface PostProcessingEffect {
   enabled: boolean;
   prepare?: () => Promise<void>;
   build: (inputNode: PostProcessingEffectNode) => PostProcessingEffectNode;
+  attachDebug?: (folder: ParametersGroup) => void;
   dispose?: () => void;
 }

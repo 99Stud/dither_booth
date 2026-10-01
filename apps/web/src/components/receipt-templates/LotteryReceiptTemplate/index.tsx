@@ -74,7 +74,7 @@ const LotteryRarityStrip: FC<{ lotRarity: string }> = (props) => {
           </span>
         </div>
         {RarityIcon ? (
-          <RarityIcon className="size-5 shrink-0 stroke-[2.5]" aria-hidden />
+          <RarityIcon className="size-6 shrink-0" aria-hidden />
         ) : (
           <span className="text-sm leading-none" aria-hidden>
             ◇

@@ -1,7 +1,6 @@
-import type { Texture } from "three";
-import type { MagnificationTextureFilter, PixelFormat } from "three";
-import type { Node, TextureNode } from "three/webgpu";
-import type { WebGPURenderer } from "three/webgpu";
+import type { MagnificationTextureFilter, PixelFormat, Texture } from "three";
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
+import type { Node, TextureNode, WebGPURenderer } from "three/webgpu";
 
 import {
   HalfFloatType,
@@ -359,6 +358,31 @@ export class FluidSimulation {
 
   init(renderer: WebGPURenderer): void {
     this._renderer = renderer;
+  }
+
+  attachDebug(folder: ParametersGroup): void {
+    const {
+      uDensityDissipation,
+      uVelocityDissipation,
+      uPressureDissipation,
+      uCurlStrength,
+      uSplatRadius,
+    } = this._uniforms;
+
+    const fluidFolder = folder.addFolder("Fluid Simulation");
+    fluidFolder
+      .add(uDensityDissipation, "value", 0.9, 1.0, 0.001)
+      .name("Density Dissipation");
+    fluidFolder
+      .add(uVelocityDissipation, "value", 0.9, 1.0, 0.001)
+      .name("Velocity Dissipation");
+    fluidFolder
+      .add(uPressureDissipation, "value", 0.0, 1.0, 0.01)
+      .name("Pressure Dissipation");
+    fluidFolder.add(uCurlStrength, "value", 0, 50, 0.5).name("Curl Strength");
+    fluidFolder
+      .add(uSplatRadius, "value", 0.01, 1.0, 0.01)
+      .name("Splat Radius");
   }
 
   shouldStep(splats: Splat[]): boolean {
