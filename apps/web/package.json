@@ -36,6 +36,7 @@
     "@tanstack/react-router-devtools": "1.167.0",
     "@trpc/client": "11.18.0",
     "@trpc/tanstack-react-query": "11.18.0",
+    "animejs": "4.5.0",
     "clsx": "2.1.1",
     "date-fns": "4.4.0",
     "motion": "12.43.0",

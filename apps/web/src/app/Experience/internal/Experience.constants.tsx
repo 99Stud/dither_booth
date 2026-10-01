@@ -18,6 +18,20 @@ export const COUNTDOWN_START = 3;
 
 export const COUNTDOWN_INTERVAL_MS = 1000;
 export const SMILE_HOLD_MS = 1000;
+/** How long the win/lose row stays on screen before the reels clear. */
+export const SLOT_RESULT_HOLD_MS = 2500;
+/** How long the claim text stays up before the ticket starts printing. */
+export const INSTRUCTIONS_HOLD_MS = 4000;
+
+/**
+ * Slot machine geometry, sized for the iPad Pro 11" kiosk in landscape
+ * (1194x834 CSS px). Photo and panel are the same square: the camera box
+ * scaled down, then centered as a pair with a gap between them.
+ */
+export const FROZEN_PHOTO_SCALE = 0.68;
+export const SPLIT_TILE_GAP_PX = 48;
+export const REEL_CELL_WIDTH_PX = 128;
+export const REEL_CELL_HEIGHT_PX = 160;
 export const PHASE_AUTO_ADVANCE_MS = 5000;
 
 /**

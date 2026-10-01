@@ -9,6 +9,8 @@ import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 import {
   COUNTDOWN_INTERVAL_MS,
   PHASE_AUTO_ADVANCE_MS,
+  INSTRUCTIONS_HOLD_MS,
+  SLOT_RESULT_HOLD_MS,
   SMILE_HOLD_MS,
 } from "../Experience.constants";
 import { PROMPT_TEXT_BY_PHASE } from "../Experience.copy";
@@ -18,6 +20,7 @@ import {
 } from "../Experience.machine";
 import {
   PROMPT_ANIMATION_FALLBACK_MS,
+  REELS_ANIMATION_FALLBACK_MS,
   SLIDE_ANIMATION_FALLBACK_MS,
 } from "../Experience.motion";
 import {
@@ -40,7 +43,14 @@ export const useExperienceFlow = () => {
     experienceReducer,
     initialExperienceState,
   );
-  const { activePrintAttemptId, countdown, drawResult, phase } = state;
+  const {
+    activePrintAttemptId,
+    countdown,
+    drawResult,
+    phase,
+    photoUrl,
+    ticketRef,
+  } = state;
 
   const webcamRef = useRef<WebcamHandle>(null);
 
@@ -48,15 +58,18 @@ export const useExperienceFlow = () => {
 
   useExperienceShellClass();
   useWebcamPrewarm({ phase, webcamRef });
-  usePrintAttempt({ activePrintAttemptId, dispatch, phase, webcamRef });
+  usePrintAttempt({
+    activePrintAttemptId,
+    dispatch,
+    phase,
+    photoUrl,
+    ticketRef,
+    webcamRef,
+  });
 
   const handleStartExperience = useCallback(() => {
     void requestKioskFullscreen();
     dispatch({ type: "startRequested" });
-  }, []);
-
-  const handlePlayLottery = useCallback(() => {
-    dispatch({ type: "playLotteryRequested" });
   }, []);
 
   useEffect(() => {
@@ -79,6 +92,27 @@ export const useExperienceFlow = () => {
     delayMs: SMILE_HOLD_MS,
     isActive: hasPhaseFlag(phase, "smileHold"),
     onElapsed: () => dispatch({ type: "smileElapsed" }),
+    phase,
+  });
+
+  usePhaseTimeout({
+    delayMs: SLOT_RESULT_HOLD_MS,
+    isActive: hasPhaseFlag(phase, "slotResultHold"),
+    onElapsed: () => dispatch({ type: "slotResultElapsed" }),
+    phase,
+  });
+
+  usePhaseTimeout({
+    delayMs: INSTRUCTIONS_HOLD_MS,
+    isActive: hasPhaseFlag(phase, "instructionsHold"),
+    onElapsed: () => dispatch({ type: "instructionsElapsed" }),
+    phase,
+  });
+
+  usePhaseTimeout({
+    delayMs: REELS_ANIMATION_FALLBACK_MS,
+    isActive: hasPhaseFlag(phase, "reelsAnimationFallback"),
+    onElapsed: () => dispatch({ type: "reelsStopped" }),
     phase,
   });
 
@@ -126,25 +160,31 @@ export const useExperienceFlow = () => {
     dispatch({ type: "promptAnimationCompleted" });
   }, []);
 
+  const handleReelsStopped = useCallback(() => {
+    dispatch({ type: "reelsStopped" });
+  }, []);
+
   return {
     captureFlashId,
     countdown,
     drawResult,
     handleCameraAnimationComplete,
-    lotteryStatus,
-    handlePlayLottery,
     handlePromptAnimationComplete,
+    handleReelsStopped,
     handleStartButtonAnimationComplete,
     handleStartExperience,
     isCameraVisible: hasPhaseFlag(phase, "cameraVisible"),
+    isFrozenPhotoVisible: hasPhaseFlag(phase, "frozenPhoto"),
     isIntroDecorationsVisible: hasPhaseFlag(phase, "introDecorations"),
-    isPostPrintEnteringInPlace: hasPhaseFlag(phase, "postPrintEntersInPlace"),
     isPostPrintVisible: hasPhaseFlag(phase, "postPrint"),
     isPromptVisible: hasPhaseFlag(phase, "promptVisible"),
+    isSlotVisible: hasPhaseFlag(phase, "slotVisible"),
     isStartButtonAtOrigin: hasPhaseFlag(phase, "startButtonAtOrigin"),
     isStartButtonVisible: hasPhaseFlag(phase, "startButtonVisible"),
     isStartDisabled: !hasPhaseFlag(phase, "startEnabled"),
+    lotteryStatus,
     phase,
+    photoUrl,
     promptText: PROMPT_TEXT_BY_PHASE[phase],
     webcamRef,
   };

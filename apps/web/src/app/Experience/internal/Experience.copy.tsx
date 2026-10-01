@@ -3,6 +3,8 @@ import type { ExperiencePhase } from "./Experience.machine";
 const DEFAULT_PROMPT_TEXT = "stay in the frame";
 
 const STRIKE_A_POSE_PROMPT_TEXT = "strike a pose :)";
+const LUCKY_PROMPT_TEXT = "feeling lucky?";
+const INSTRUCTIONS_PROMPT_TEXT = "that's it";
 const PRINTING_PROMPT_TEXT = "printing...";
 
 /**
@@ -14,10 +16,10 @@ const PRINTING_PROMPT_TEXT = "printing...";
  * showing the printing caption, otherwise the user reads the next phase's text
  * mid-fade.
  *
- * Both are reached from `printing`, so the printing caption carries over. The
- * one exception is a capture that fails before it resolves — `capturing` reaches
- * `resetting` directly and the caption does swap mid-fade, on an error path that
- * is already tearing the stage down.
+ * `cameraExiting` is reached from `printing`, so the printing caption carries
+ * over. `resetting` is reached from any print attempt phase on failure, so its
+ * caption can swap mid-fade — on an error path that is already tearing the
+ * stage down.
  *
  * Phases after those two are safe to reset because both are left when the camera
  * slide completes (SLIDE_TRANSITION, 400ms), which outlasts the prompt fade
@@ -32,12 +34,14 @@ export const PROMPT_TEXT_BY_PHASE: Record<ExperiencePhase, string> = {
   countdown: DEFAULT_PROMPT_TEXT,
   smile: STRIKE_A_POSE_PROMPT_TEXT,
   capturing: STRIKE_A_POSE_PROMPT_TEXT,
+  preparing: LUCKY_PROMPT_TEXT,
+  spinning: LUCKY_PROMPT_TEXT,
+  slotResult: LUCKY_PROMPT_TEXT,
+  instructions: INSTRUCTIONS_PROMPT_TEXT,
   printing: PRINTING_PROMPT_TEXT,
   cameraExiting: PRINTING_PROMPT_TEXT,
   resetting: PRINTING_PROMPT_TEXT,
   receiptReady: DEFAULT_PROMPT_TEXT,
-  cashMachine: DEFAULT_PROMPT_TEXT,
-  lotteryResults: DEFAULT_PROMPT_TEXT,
   resettingButtonRepositioning: DEFAULT_PROMPT_TEXT,
   resettingButtonRevealing: DEFAULT_PROMPT_TEXT,
 };

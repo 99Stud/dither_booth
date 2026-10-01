@@ -20,7 +20,7 @@ export const DEV_PRIZE_IDS = {
   legendary: "dev_prize_legendary",
 } as const;
 
-const DEFAULT_WIN_INSTRUCTION = "Présentez ce ticket au bar";
+const DEFAULT_WIN_INSTRUCTION = "Show this ticket at the bar";
 
 const DEV_PRIZES = [
   {
