@@ -16,7 +16,7 @@ export const IntroChrome = ({
   isVisible: boolean;
   lotteryStatus: LotteryStatus | undefined;
 }) => {
-  const remainingLots = lotteryStatus?.remainingLots ?? 0;
+  const remainingPrizes = lotteryStatus?.remainingPrizes ?? 0;
   const rarityBreakdown = lotteryStatus?.rarityBreakdown ?? [];
   const lastWinLabel = formatLastWinAt(lotteryStatus?.lastWinAt ?? null);
   const totalDraws = lotteryStatus?.totalDraws ?? 0;
@@ -78,8 +78,8 @@ export const IntroChrome = ({
         </p>
         <div className={clsx("leading-none")}>
           <p className={clsx("mb-2", "font-bold")}>
-            <span className={clsx("font-bold")}>{remainingLots}</span> remaining
-            prizes
+            <span className={clsx("font-bold")}>{remainingPrizes}</span>{" "}
+            remaining prizes
           </p>
           {rarityBreakdown.length > 0 && (
             <ul className={clsx("mb-4")}>

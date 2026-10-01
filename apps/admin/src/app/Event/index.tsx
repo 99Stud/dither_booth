@@ -10,15 +10,15 @@ import { useState } from "react";
 
 import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 
-import type { EventLot, EventTab } from "./internal/Event.types";
+import type { EventPrize, EventTab } from "./internal/Event.types";
 
 import { EventCreateDialog } from "./internal/components/EventCreateDialog";
 import { EventDrawsTable } from "./internal/components/EventDrawsTable";
 import { EventEmptyState } from "./internal/components/EventEmptyState";
-import { EventLotSheet } from "./internal/components/EventLotSheet";
-import { EventLotsTable } from "./internal/components/EventLotsTable";
 import { EventLotteryForm } from "./internal/components/EventLotteryForm";
 import { EventOverviewPanel } from "./internal/components/EventOverviewPanel";
+import { EventPrizeSheet } from "./internal/components/EventPrizeSheet";
+import { EventPrizesTable } from "./internal/components/EventPrizesTable";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";
 import { useEventQueries } from "./internal/hooks/useEventQueries";
@@ -30,20 +30,22 @@ export const Event = () => {
     updateEventMutation,
     replaceEventMutation,
     updateLotterySettingsMutation,
-    createLotMutation,
-    updateLotMutation,
-    deleteLotMutation,
-    restockLotMutation,
+    createPrizeMutation,
+    updatePrizeMutation,
+    deletePrizeMutation,
+    restockPrizeMutation,
   } = useEventQueries();
 
   const [tab, setTab] = useState<EventTab>("overview");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isReplaceConfirmOpen, setIsReplaceConfirmOpen] = useState(false);
   const [isReplaceFormOpen, setIsReplaceFormOpen] = useState(false);
-  const [lotSheetMode, setLotSheetMode] = useState<"create" | "edit">("create");
-  const [isLotSheetOpen, setIsLotSheetOpen] = useState(false);
-  const [editingLot, setEditingLot] = useState<EventLot | null>(null);
-  const [restockLot, setRestockLot] = useState<EventLot | null>(null);
+  const [prizeSheetMode, setPrizeSheetMode] = useState<"create" | "edit">(
+    "create",
+  );
+  const [isPrizeSheetOpen, setIsPrizeSheetOpen] = useState(false);
+  const [editingPrize, setEditingPrize] = useState<EventPrize | null>(null);
+  const [restockPrize, setRestockPrize] = useState<EventPrize | null>(null);
 
   const event = currentEventQuery.data ?? null;
   const isLoading = currentEventQuery.isLoading;
@@ -59,7 +61,7 @@ export const Event = () => {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="lottery">Lottery</TabsTrigger>
-            <TabsTrigger value="lots">Lots</TabsTrigger>
+            <TabsTrigger value="prizes">Prizes</TabsTrigger>
             <TabsTrigger value="draws">Draws</TabsTrigger>
           </TabsList>
         )}
@@ -95,23 +97,23 @@ export const Event = () => {
                 }}
               />
             </TabsContent>
-            <TabsContent value="lots" className={clsx("mt-0")}>
-              <EventLotsTable
+            <TabsContent value="prizes" className={clsx("mt-0")}>
+              <EventPrizesTable
                 event={event}
-                isDeleting={deleteLotMutation.isPending}
+                isDeleting={deletePrizeMutation.isPending}
                 onAddClick={() => {
-                  setLotSheetMode("create");
-                  setEditingLot(null);
-                  setIsLotSheetOpen(true);
+                  setPrizeSheetMode("create");
+                  setEditingPrize(null);
+                  setIsPrizeSheetOpen(true);
                 }}
-                onEditClick={(lot) => {
-                  setLotSheetMode("edit");
-                  setEditingLot(lot);
-                  setIsLotSheetOpen(true);
+                onEditClick={(prize) => {
+                  setPrizeSheetMode("edit");
+                  setEditingPrize(prize);
+                  setIsPrizeSheetOpen(true);
                 }}
-                onRestockClick={(lot) => setRestockLot(lot)}
-                onDelete={async (lotId) => {
-                  await deleteLotMutation.mutateAsync({ lotId });
+                onRestockClick={(prize) => setRestockPrize(prize)}
+                onDelete={async (prizeId) => {
+                  await deletePrizeMutation.mutateAsync({ prizeId });
                 }}
               />
             </TabsContent>
@@ -135,7 +137,7 @@ export const Event = () => {
         open={isReplaceFormOpen}
         isPending={replaceEventMutation.isPending}
         title="Replace event"
-        description="Creates a new event after wiping the current campaign, lottery, lots, and draws."
+        description="Creates a new event after wiping the current campaign, lottery, prizes, and draws."
         submitLabel="Replace event"
         onOpenChange={setIsReplaceFormOpen}
         onSubmit={async (values) => {
@@ -154,36 +156,38 @@ export const Event = () => {
         }}
       />
 
-      <EventLotSheet
-        open={isLotSheetOpen}
-        mode={lotSheetMode}
-        lot={editingLot}
-        isPending={createLotMutation.isPending || updateLotMutation.isPending}
-        onOpenChange={setIsLotSheetOpen}
+      <EventPrizeSheet
+        open={isPrizeSheetOpen}
+        mode={prizeSheetMode}
+        prize={editingPrize}
+        isPending={
+          createPrizeMutation.isPending || updatePrizeMutation.isPending
+        }
+        onOpenChange={setIsPrizeSheetOpen}
         onSubmit={async (values) => {
-          if (lotSheetMode === "create") {
-            await createLotMutation.mutateAsync(values);
+          if (prizeSheetMode === "create") {
+            await createPrizeMutation.mutateAsync(values);
             return;
           }
-          if (!editingLot) return;
-          await updateLotMutation.mutateAsync({
-            lotId: editingLot.id,
+          if (!editingPrize) return;
+          await updatePrizeMutation.mutateAsync({
+            prizeId: editingPrize.id,
             ...values,
           });
         }}
       />
 
       <EventRestockDialog
-        open={restockLot !== null}
-        lot={restockLot}
-        isPending={restockLotMutation.isPending}
+        open={restockPrize !== null}
+        prize={restockPrize}
+        isPending={restockPrizeMutation.isPending}
         onOpenChange={(open) => {
-          if (!open) setRestockLot(null);
+          if (!open) setRestockPrize(null);
         }}
         onSubmit={async (values) => {
-          if (!restockLot) return;
-          await restockLotMutation.mutateAsync({
-            lotId: restockLot.id,
+          if (!restockPrize) return;
+          await restockPrizeMutation.mutateAsync({
+            prizeId: restockPrize.id,
             ...values,
           });
         }}

@@ -14,31 +14,31 @@ import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
 import { useEffect } from "react";
 
-import type { EventLot, RestockLotFormValues } from "../../Event.types";
+import type { EventPrize, RestockPrizeFormValues } from "../../Event.types";
 
 import {
-  RESTOCK_LOT_FORM_SCHEMA,
-  getRestockLotFormValues,
+  RESTOCK_PRIZE_FORM_SCHEMA,
+  getRestockPrizeFormValues,
 } from "../../Event.constants";
 
 interface EventRestockDialogProps {
   open: boolean;
-  lot: EventLot | null;
+  prize: EventPrize | null;
   isPending: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: RestockLotFormValues) => Promise<void>;
+  onSubmit: (values: RestockPrizeFormValues) => Promise<void>;
 }
 
 export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
-  const { open, lot, isPending, onOpenChange, onSubmit } = props;
+  const { open, prize, isPending, onOpenChange, onSubmit } = props;
 
   const form = useForm({
-    defaultValues: lot
-      ? getRestockLotFormValues(lot)
+    defaultValues: prize
+      ? getRestockPrizeFormValues(prize)
       : { remainingQuantity: 0, totalQuantity: 0 },
     validators: {
-      onChange: RESTOCK_LOT_FORM_SCHEMA,
-      onSubmit: RESTOCK_LOT_FORM_SCHEMA,
+      onChange: RESTOCK_PRIZE_FORM_SCHEMA,
+      onSubmit: RESTOCK_PRIZE_FORM_SCHEMA,
     },
     onSubmit: async ({ value }) => {
       await onSubmit(value);
@@ -47,16 +47,16 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
   });
 
   useEffect(() => {
-    if (!open || !lot) return;
-    form.reset(getRestockLotFormValues(lot));
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset on open/lot only
-  }, [open, lot?.id]);
+    if (!open || !prize) return;
+    form.reset(getRestockPrizeFormValues(prize));
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset on open/prize only
+  }, [open, prize?.id]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={clsx("sm:max-w-md")}>
         <DialogHeader>
-          <DialogTitle>Restock lot</DialogTitle>
+          <DialogTitle>Restock prize</DialogTitle>
           <DialogDescription>
             Set remaining stock. Total increases automatically if remaining goes
             above the previous total.
@@ -89,7 +89,7 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending || !lot}>
+            <Button type="submit" disabled={isPending || !prize}>
               Restock
             </Button>
           </DialogFooter>

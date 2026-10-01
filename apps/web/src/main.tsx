@@ -56,7 +56,7 @@ const RECEIPT_VIEWER_SEARCH_KEYS = [
   "prizeId",
   "title",
   "winInstruction",
-  "lotRarity",
+  "prizeRarity",
   "wonAt",
   "ticketRef",
 ] as const;

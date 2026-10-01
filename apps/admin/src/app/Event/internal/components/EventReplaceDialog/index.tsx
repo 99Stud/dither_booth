@@ -30,7 +30,7 @@ export const EventReplaceDialog: FC<EventReplaceDialogProps> = (props) => {
           <AlertDialogDescription>
             This permanently deletes{" "}
             <span className={clsx("font-medium")}>{eventName}</span>, its
-            lottery, lots, and draw history, then lets you create a new event.
+            lottery, prizes, and draw history, then lets you create a new event.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

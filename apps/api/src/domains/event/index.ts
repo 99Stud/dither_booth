@@ -1,11 +1,11 @@
 import { createEvent } from "./mutations/create-event";
-import { createLot } from "./mutations/create-lot";
-import { deleteLot } from "./mutations/delete-lot";
+import { createPrize } from "./mutations/create-prize";
+import { deletePrize } from "./mutations/delete-prize";
 import { replaceEvent } from "./mutations/replace-event";
-import { restockLot } from "./mutations/restock-lot";
+import { restockPrize } from "./mutations/restock-prize";
 import { updateEvent } from "./mutations/update-event";
-import { updateLot } from "./mutations/update-lot";
 import { updateLotterySettings } from "./mutations/update-lottery-settings";
+import { updatePrize } from "./mutations/update-prize";
 import { getCurrentEvent } from "./queries/get-current-event";
 import { listDraws } from "./queries/list-draws";
 
@@ -16,8 +16,8 @@ export const event = {
   updateEvent,
   replaceEvent,
   updateLotterySettings,
-  createLot,
-  updateLot,
-  deleteLot,
-  restockLot,
+  createPrize,
+  updatePrize,
+  deletePrize,
+  restockPrize,
 };

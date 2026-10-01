@@ -37,18 +37,18 @@ import clsx from "clsx";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 
-import type { CurrentEvent, EventLot } from "../../Event.types";
+import type { CurrentEvent, EventPrize } from "../../Event.types";
 
-interface EventLotsTableProps {
+interface EventPrizesTableProps {
   event: CurrentEvent;
   isDeleting: boolean;
   onAddClick: () => void;
-  onEditClick: (lot: EventLot) => void;
-  onRestockClick: (lot: EventLot) => void;
-  onDelete: (lotId: string) => Promise<void>;
+  onEditClick: (prize: EventPrize) => void;
+  onRestockClick: (prize: EventPrize) => void;
+  onDelete: (prizeId: string) => Promise<void>;
 }
 
-export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
+export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
   const {
     event,
     isDeleting,
@@ -58,7 +58,7 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
     onDelete,
   } = props;
 
-  const [lotToDelete, setLotToDelete] = useState<EventLot | null>(null);
+  const [prizeToDelete, setPrizeToDelete] = useState<EventPrize | null>(null);
 
   return (
     <>
@@ -67,18 +67,18 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
           className={clsx("flex flex-row items-start justify-between gap-4")}
         >
           <div>
-            <CardTitle>Lots</CardTitle>
+            <CardTitle>Prizes</CardTitle>
             <CardDescription>
               Prizes available in the event lottery. Delete is blocked once a
-              lot has draw history.
+              prize has draw history.
             </CardDescription>
           </div>
-          <Button onClick={onAddClick}>Add lot</Button>
+          <Button onClick={onAddClick}>Add prize</Button>
         </CardHeader>
         <CardContent>
-          {event.lots.length === 0 ? (
+          {event.prizes.length === 0 ? (
             <p className={clsx("text-sm text-muted-foreground")}>
-              No lots yet. Add the first prize to start stocking the lottery.
+              No prizes yet. Add the first prize to start stocking the lottery.
             </p>
           ) : (
             <div className={clsx("overflow-hidden rounded-none border")}>
@@ -94,13 +94,13 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {event.lots.map((lot) => (
-                    <TableRow key={lot.id}>
-                      <TableCell>{lot.title}</TableCell>
-                      <TableCell>{capitalize(lot.rarity)}</TableCell>
-                      <TableCell>{lot.weight}</TableCell>
-                      <TableCell>{lot.remainingQuantity}</TableCell>
-                      <TableCell>{lot.totalQuantity}</TableCell>
+                  {event.prizes.map((prize) => (
+                    <TableRow key={prize.id}>
+                      <TableCell>{prize.title}</TableCell>
+                      <TableCell>{capitalize(prize.rarity)}</TableCell>
+                      <TableCell>{prize.weight}</TableCell>
+                      <TableCell>{prize.remainingQuantity}</TableCell>
+                      <TableCell>{prize.totalQuantity}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger
@@ -110,17 +110,19 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
                             <span className="sr-only">Open actions</span>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEditClick(lot)}>
+                            <DropdownMenuItem
+                              onClick={() => onEditClick(prize)}
+                            >
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => onRestockClick(lot)}
+                              onClick={() => onRestockClick(prize)}
                             >
                               Restock
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               variant="destructive"
-                              onClick={() => setLotToDelete(lot)}
+                              onClick={() => setPrizeToDelete(prize)}
                             >
                               Delete
                             </DropdownMenuItem>
@@ -137,28 +139,32 @@ export const EventLotsTable: FC<EventLotsTableProps> = (props) => {
       </Card>
 
       <AlertDialog
-        open={lotToDelete !== null}
+        open={prizeToDelete !== null}
         onOpenChange={(open) => {
-          if (!open) setLotToDelete(null);
+          if (!open) setPrizeToDelete(null);
         }}
       >
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete lot?</AlertDialogTitle>
+            <AlertDialogTitle>Delete prize?</AlertDialogTitle>
             <AlertDialogDescription>
               This removes{" "}
-              <span className={clsx("font-medium")}>{lotToDelete?.title}</span>{" "}
-              from the lottery. Lots with draw history cannot be deleted.
+              <span className={clsx("font-medium")}>
+                {prizeToDelete?.title}
+              </span>{" "}
+              from the lottery. Prizes with draw history cannot be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              disabled={isDeleting || !lotToDelete}
+              disabled={isDeleting || !prizeToDelete}
               onClick={() => {
-                if (!lotToDelete) return;
-                void onDelete(lotToDelete.id).then(() => setLotToDelete(null));
+                if (!prizeToDelete) return;
+                void onDelete(prizeToDelete.id).then(() =>
+                  setPrizeToDelete(null),
+                );
               }}
             >
               Delete

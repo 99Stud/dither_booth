@@ -38,7 +38,7 @@ export type LotteryStatusRarityBreakdown = {
 
 export type LotteryStatus = {
   enabled: boolean;
-  remainingLots: number;
+  remainingPrizes: number;
   rarityBreakdown: LotteryStatusRarityBreakdown[];
   /** ISO 8601 instant of the latest win, or null if none. */
   lastWinAt: string | null;

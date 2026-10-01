@@ -9,7 +9,7 @@ import { drawTable, lotteryTable, prizeTable } from "#db/internal/db.schema";
 
 export const EMPTY_LOTTERY_STATUS = {
   enabled: false,
-  remainingLots: 0,
+  remainingPrizes: 0,
   rarityBreakdown: [],
   lastWinAt: null,
   totalDraws: 0,
@@ -49,7 +49,7 @@ export async function getLotteryStatusForDb(db: DB): Promise<LotteryStatus> {
     where: eq(prizeTable.lotteryId, lottery.id),
   });
 
-  const remainingLots = prizes.reduce(
+  const remainingPrizes = prizes.reduce(
     (sum, prize) => sum + prize.remainingQuantity,
     0,
   );
@@ -71,7 +71,7 @@ export async function getLotteryStatusForDb(db: DB): Promise<LotteryStatus> {
 
   return {
     enabled: true,
-    remainingLots,
+    remainingPrizes,
     rarityBreakdown,
     lastWinAt: lastWin?.createdAt?.toISOString() ?? null,
     totalDraws: drawCountRow?.value ?? 0,

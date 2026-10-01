@@ -7,9 +7,9 @@ import z from "zod";
 import type {
   CreateEventFormValues,
   EventTab,
-  LotFormValues,
+  PrizeFormValues,
   LotterySettingsFormValues,
-  RestockLotFormValues,
+  RestockPrizeFormValues,
   UpdateEventNameFormValues,
 } from "./Event.types";
 
@@ -18,7 +18,7 @@ export const EVENT_LOG_SOURCE = "admin.event";
 export const EVENT_TABS = [
   "overview",
   "lottery",
-  "lots",
+  "prizes",
   "draws",
 ] as const satisfies ReadonlyArray<EventTab>;
 
@@ -41,7 +41,7 @@ export const LOTTERY_SETTINGS_FORM_SCHEMA = z.object({
   printLoserTicket: z.boolean(),
 });
 
-export const LOT_FORM_SCHEMA = z
+export const PRIZE_FORM_SCHEMA = z
   .object({
     title: z.string().trim().min(1).max(120),
     winInstruction: z.string().trim().min(1).max(240),
@@ -55,7 +55,7 @@ export const LOT_FORM_SCHEMA = z
     path: ["remainingQuantity"],
   });
 
-export const RESTOCK_LOT_FORM_SCHEMA = z
+export const RESTOCK_PRIZE_FORM_SCHEMA = z
   .object({
     remainingQuantity: z.number().int().min(0),
     totalQuantity: z.number().int().min(0),
@@ -73,7 +73,7 @@ export const DEFAULT_CREATE_EVENT_FORM_VALUES: CreateEventFormValues = {
   enabled: false,
 };
 
-export const DEFAULT_LOT_FORM_VALUES: LotFormValues = {
+export const DEFAULT_PRIZE_FORM_VALUES: PrizeFormValues = {
   title: "",
   winInstruction: "Présentez ce ticket au bar",
   weight: 1,
@@ -83,7 +83,7 @@ export const DEFAULT_LOT_FORM_VALUES: LotFormValues = {
 };
 
 export const RARITY_FIELD_OPTIONS: Array<
-  SelectFieldOption<LotFormValues["rarity"]>
+  SelectFieldOption<PrizeFormValues["rarity"]>
 > = RARITY_TYPES.map((rarity) => ({
   label: capitalize(rarity),
   value: rarity,
@@ -104,19 +104,21 @@ export const getUpdateEventNameFormValues = (event: {
   name: event.campaign.name,
 });
 
-export const getLotFormValues = (lot: LotFormValues): LotFormValues => ({
-  title: lot.title,
-  winInstruction: lot.winInstruction,
-  weight: lot.weight,
-  totalQuantity: lot.totalQuantity,
-  remainingQuantity: lot.remainingQuantity,
-  rarity: lot.rarity,
+export const getPrizeFormValues = (
+  prize: PrizeFormValues,
+): PrizeFormValues => ({
+  title: prize.title,
+  winInstruction: prize.winInstruction,
+  weight: prize.weight,
+  totalQuantity: prize.totalQuantity,
+  remainingQuantity: prize.remainingQuantity,
+  rarity: prize.rarity,
 });
 
-export const getRestockLotFormValues = (lot: {
+export const getRestockPrizeFormValues = (prize: {
   remainingQuantity: number;
   totalQuantity: number;
-}): RestockLotFormValues => ({
-  remainingQuantity: lot.remainingQuantity,
-  totalQuantity: lot.totalQuantity,
+}): RestockPrizeFormValues => ({
+  remainingQuantity: prize.remainingQuantity,
+  totalQuantity: prize.totalQuantity,
 });

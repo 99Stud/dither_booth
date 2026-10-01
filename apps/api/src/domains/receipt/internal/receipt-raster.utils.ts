@@ -164,7 +164,7 @@ export async function buildLotteryTicketRasterCommand({
                 prizeId: draw.prize.id,
                 title: draw.prize.title,
                 winInstruction: draw.prize.winInstruction,
-                lotRarity: draw.prize.rarity,
+                prizeRarity: draw.prize.rarity,
                 wonAt: new Date().toISOString(),
               }
             : {}),

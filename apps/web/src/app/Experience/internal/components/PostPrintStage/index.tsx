@@ -70,10 +70,10 @@ const LotteryResultsScreen = ({
           )}
         >
           <winReveal.Icon className="size-12 shrink-0" aria-hidden />
-          lot - {winReveal.label}
+          prize - {winReveal.label}
         </p>
         <p className={clsx("mb-8", "text-5xl leading-none")}>
-          congratulations, you just won a lot!
+          congratulations, you just won a prize!
         </p>
         <p className={clsx("mb-4", "text-5xl leading-none font-bold")}>
           {drawResult.prize.title}
@@ -88,7 +88,7 @@ const LotteryResultsScreen = ({
   return (
     <>
       <p className={clsx("mb-2", "text-6xl leading-none font-bold uppercase")}>
-        no lot this time
+        no prize this time
       </p>
       <p className={clsx("text-5xl leading-none")}>
         Thanks for playing with us! ♥︎

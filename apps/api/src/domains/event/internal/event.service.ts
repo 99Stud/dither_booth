@@ -14,24 +14,24 @@ import {
 
 import type {
   CreateEventInput,
-  CreateLotInput,
+  CreatePrizeInput,
   ListDrawsInput,
-  RestockLotInput,
+  RestockPrizeInput,
   UpdateEventInput,
-  UpdateLotInput,
+  UpdatePrizeInput,
   UpdateLotterySettingsInput,
 } from "./event.constants";
-import type { CurrentEvent, EventLot, ListDrawsResult } from "./event.types";
+import type { CurrentEvent, EventPrize, ListDrawsResult } from "./event.types";
 
-function mapLot(prize: {
+function mapPrize(prize: {
   id: string;
   title: string;
   winInstruction: string;
   weight: number;
   totalQuantity: number;
   remainingQuantity: number;
-  rarity: EventLot["rarity"];
-}): EventLot {
+  rarity: EventPrize["rarity"];
+}): EventPrize {
   return {
     id: prize.id,
     title: prize.title,
@@ -82,7 +82,7 @@ export async function getCurrentEventForDb(
       winCooldownMinutes: lottery.winCooldownMinutes,
       printLoserTicket: lottery.printLoserTicket,
     },
-    lots: prizes.map(mapLot),
+    prizes: prizes.map(mapPrize),
   };
 }
 
@@ -200,9 +200,9 @@ export async function updateLotterySettingsForDb(
   };
 }
 
-export async function createLotForDb(
+export async function createPrizeForDb(
   db: DB,
-  input: CreateLotInput,
+  input: CreatePrizeInput,
 ): Promise<CurrentEvent> {
   const current = await requireCurrentEvent(db);
 
@@ -220,22 +220,22 @@ export async function createLotForDb(
   if (!next) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after creating lot.",
+      message: "Failed to load event after creating prize.",
     });
   }
   return next;
 }
 
-export async function updateLotForDb(
+export async function updatePrizeForDb(
   db: DB,
-  input: UpdateLotInput,
+  input: UpdatePrizeInput,
 ): Promise<CurrentEvent> {
   const current = await requireCurrentEvent(db);
-  const lot = current.lots.find((entry) => entry.id === input.lotId);
-  if (!lot) {
+  const prize = current.prizes.find((entry) => entry.id === input.prizeId);
+  if (!prize) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Lot not found on the current event.",
+      message: "Prize not found on the current event.",
     });
   }
 
@@ -251,7 +251,7 @@ export async function updateLotForDb(
     })
     .where(
       and(
-        eq(prizeTable.id, input.lotId),
+        eq(prizeTable.id, input.prizeId),
         eq(prizeTable.lotteryId, current.lottery.id),
       ),
     );
@@ -260,33 +260,33 @@ export async function updateLotForDb(
   if (!next) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after updating lot.",
+      message: "Failed to load event after updating prize.",
     });
   }
   return next;
 }
 
-export async function deleteLotForDb(
+export async function deletePrizeForDb(
   db: DB,
-  lotId: string,
+  prizeId: string,
 ): Promise<CurrentEvent> {
   const current = await requireCurrentEvent(db);
-  const lot = current.lots.find((entry) => entry.id === lotId);
-  if (!lot) {
+  const prize = current.prizes.find((entry) => entry.id === prizeId);
+  if (!prize) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Lot not found on the current event.",
+      message: "Prize not found on the current event.",
     });
   }
 
   const referencedDraw = await db.query.drawTable.findFirst({
-    where: eq(drawTable.prizeId, lotId),
+    where: eq(drawTable.prizeId, prizeId),
   });
   if (referencedDraw) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message:
-        "This lot has draw history and cannot be deleted. Restock or replace the event instead.",
+        "This prize has draw history and cannot be deleted. Restock or replace the event instead.",
     });
   }
 
@@ -294,7 +294,7 @@ export async function deleteLotForDb(
     .delete(prizeTable)
     .where(
       and(
-        eq(prizeTable.id, lotId),
+        eq(prizeTable.id, prizeId),
         eq(prizeTable.lotteryId, current.lottery.id),
       ),
     );
@@ -303,27 +303,28 @@ export async function deleteLotForDb(
   if (!next) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after deleting lot.",
+      message: "Failed to load event after deleting prize.",
     });
   }
   return next;
 }
 
-export async function restockLotForDb(
+export async function restockPrizeForDb(
   db: DB,
-  input: RestockLotInput,
+  input: RestockPrizeInput,
 ): Promise<CurrentEvent> {
   const current = await requireCurrentEvent(db);
-  const lot = current.lots.find((entry) => entry.id === input.lotId);
-  if (!lot) {
+  const prize = current.prizes.find((entry) => entry.id === input.prizeId);
+  if (!prize) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Lot not found on the current event.",
+      message: "Prize not found on the current event.",
     });
   }
 
   const totalQuantity =
-    input.totalQuantity ?? Math.max(lot.totalQuantity, input.remainingQuantity);
+    input.totalQuantity ??
+    Math.max(prize.totalQuantity, input.remainingQuantity);
 
   if (input.remainingQuantity > totalQuantity) {
     throw new TRPCError({
@@ -340,7 +341,7 @@ export async function restockLotForDb(
     })
     .where(
       and(
-        eq(prizeTable.id, input.lotId),
+        eq(prizeTable.id, input.prizeId),
         eq(prizeTable.lotteryId, current.lottery.id),
       ),
     );
@@ -349,7 +350,7 @@ export async function restockLotForDb(
   if (!next) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after restocking lot.",
+      message: "Failed to load event after restocking prize.",
     });
   }
   return next;
@@ -376,7 +377,7 @@ export async function listDrawsForDb(
   }
 
   const prizeTitleById = new Map(
-    current.lots.map((lot) => [lot.id, lot.title]),
+    current.prizes.map((prize) => [prize.id, prize.title]),
   );
 
   const rows = parsedTicketRef

@@ -37,7 +37,7 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
     open,
     isPending,
     title = "Create event",
-    description = "Sets up the campaign and its lottery. You can add lots next.",
+    description = "Sets up the campaign and its lottery. You can add prizes next.",
     submitLabel = "Create event",
     onOpenChange,
     onSubmit,

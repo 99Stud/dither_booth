@@ -16,17 +16,17 @@ export const reportEventError = (
   });
 };
 
-export const getRemainingLots = (event: CurrentEvent) => {
-  return event.lots.reduce((sum, lot) => sum + lot.remainingQuantity, 0);
+export const getRemainingPrizes = (event: CurrentEvent) => {
+  return event.prizes.reduce((sum, prize) => sum + prize.remainingQuantity, 0);
 };
 
 export const getRarityBreakdown = (event: CurrentEvent) => {
   const remainingByRarity = new Map<string, number>();
 
-  for (const lot of event.lots) {
+  for (const prize of event.prizes) {
     remainingByRarity.set(
-      lot.rarity,
-      (remainingByRarity.get(lot.rarity) ?? 0) + lot.remainingQuantity,
+      prize.rarity,
+      (remainingByRarity.get(prize.rarity) ?? 0) + prize.remainingQuantity,
     );
   }
 
