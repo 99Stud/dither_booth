@@ -10,11 +10,13 @@ export type ExperiencePhase =
   | "countdown"
   | "smile"
   | "capturing"
+  | "preparing"
+  | "spinning"
+  | "slotResult"
+  | "instructions"
   | "printing"
   | "cameraExiting"
   | "receiptReady"
-  | "cashMachine"
-  | "lotteryResults"
   | "resetting"
   | "resettingButtonRepositioning"
   | "resettingButtonRevealing";
@@ -23,32 +25,41 @@ export interface ExperienceState {
   phase: ExperiencePhase;
   countdown: number | null;
   drawResult: DrawResult | null;
+  /** Object URL of the captured square, shown as the frozen frame. */
+  photoUrl: string | null;
+  /** Ref of the receipt the API is holding for us until the game is over. */
+  ticketRef: string | null;
   nextPrintAttemptId: number;
   activePrintAttemptId: number | null;
 }
 
 export type ExperienceAction =
   | { type: "startRequested" }
-  | { type: "playLotteryRequested" }
   | { type: "startButtonAnimationCompleted" }
   | { type: "cameraAnimationCompleted" }
   | { type: "promptAnimationCompleted" }
   | { type: "countdownTicked" }
   | { type: "smileElapsed" }
-  | { type: "cashMachineElapsed" }
+  | { type: "reelsStopped" }
+  | { type: "slotResultElapsed" }
+  | { type: "instructionsElapsed" }
   | { type: "autoResetElapsed" }
-  | { type: "photoCaptured"; printAttemptId: number }
+  | { type: "photoCaptured"; printAttemptId: number; photoUrl: string }
   | {
-      type: "printSucceeded";
+      type: "receiptPrepared";
       printAttemptId: number;
       drawResult: DrawResult;
+      ticketRef: string;
     }
+  | { type: "printSucceeded"; printAttemptId: number }
   | { type: "printFailed"; printAttemptId: number };
 
 export const initialExperienceState: ExperienceState = {
   phase: "idle",
   countdown: null,
   drawResult: null,
+  photoUrl: null,
+  ticketRef: null,
   nextPrintAttemptId: 1,
   activePrintAttemptId: null,
 };
@@ -58,11 +69,19 @@ const beginReset = (state: ExperienceState): ExperienceState => ({
   phase: "resetting",
   countdown: null,
   drawResult: null,
+  photoUrl: null,
+  ticketRef: null,
   activePrintAttemptId: null,
 });
 
-const canAutoReset = (phase: ExperiencePhase) =>
-  phase === "receiptReady" || phase === "lotteryResults";
+const PRINT_ATTEMPT_PHASES: readonly ExperiencePhase[] = [
+  "capturing",
+  "preparing",
+  "spinning",
+  "slotResult",
+  "instructions",
+  "printing",
+];
 
 const hasMatchingPrintAttempt = (
   state: ExperienceState,
@@ -82,35 +101,19 @@ export const experienceReducer = (
         phase: "introExiting",
         countdown: null,
         drawResult: null,
+        photoUrl: null,
+        ticketRef: null,
         activePrintAttemptId: null,
       };
     }
 
     case "autoResetElapsed": {
-      if (!canAutoReset(state.phase)) return state;
+      if (state.phase !== "receiptReady") return state;
 
       // Camera already exited during cameraExiting — skip resetting wait.
       return {
         ...beginReset(state),
         phase: "resettingButtonRepositioning",
-      };
-    }
-
-    case "playLotteryRequested": {
-      if (state.phase !== "receiptReady") return state;
-
-      return {
-        ...state,
-        phase: "cashMachine",
-      };
-    }
-
-    case "cashMachineElapsed": {
-      if (state.phase !== "cashMachine") return state;
-
-      return {
-        ...state,
-        phase: "lotteryResults",
       };
     }
 
@@ -136,10 +139,7 @@ export const experienceReducer = (
       }
 
       if (state.phase === "cameraExiting") {
-        return {
-          ...state,
-          phase: "receiptReady",
-        };
+        return { ...state, phase: "receiptReady" };
       }
 
       if (state.phase === "resetting") {
@@ -197,8 +197,43 @@ export const experienceReducer = (
 
       return {
         ...state,
-        phase: "printing",
+        phase: "preparing",
+        photoUrl: action.photoUrl,
       };
+    }
+
+    case "receiptPrepared": {
+      if (
+        state.phase !== "preparing" ||
+        !hasMatchingPrintAttempt(state, action.printAttemptId)
+      ) {
+        return state;
+      }
+
+      return {
+        ...state,
+        phase: "spinning",
+        drawResult: action.drawResult,
+        ticketRef: action.ticketRef,
+      };
+    }
+
+    case "reelsStopped": {
+      if (state.phase !== "spinning") return state;
+
+      return { ...state, phase: "slotResult" };
+    }
+
+    case "slotResultElapsed": {
+      if (state.phase !== "slotResult") return state;
+
+      return { ...state, phase: "instructions" };
+    }
+
+    case "instructionsElapsed": {
+      if (state.phase !== "instructions") return state;
+
+      return { ...state, phase: "printing" };
     }
 
     case "printSucceeded": {
@@ -213,14 +248,14 @@ export const experienceReducer = (
         ...state,
         phase: "cameraExiting",
         countdown: null,
-        drawResult: action.drawResult,
+        ticketRef: null,
         activePrintAttemptId: null,
       };
     }
 
     case "printFailed": {
       if (
-        (state.phase !== "capturing" && state.phase !== "printing") ||
+        !PRINT_ATTEMPT_PHASES.includes(state.phase) ||
         !hasMatchingPrintAttempt(state, action.printAttemptId)
       ) {
         return state;

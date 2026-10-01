@@ -75,7 +75,7 @@ export const DEFAULT_CREATE_EVENT_FORM_VALUES: CreateEventFormValues = {
 
 export const DEFAULT_PRIZE_FORM_VALUES: PrizeFormValues = {
   title: "",
-  winInstruction: "Présentez ce ticket au bar",
+  winInstruction: "Show this ticket at the bar",
   weight: 1,
   totalQuantity: 1,
   remainingQuantity: 1,

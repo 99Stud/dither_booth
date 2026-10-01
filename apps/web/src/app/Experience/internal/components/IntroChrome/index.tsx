@@ -71,7 +71,7 @@ export const IntroChrome = ({
             aria-hidden
             className={clsx(
               "size-8 shrink-0",
-              "mb-2 animate-flashing drop-shadow-[0_0_4px_rgb(255_255_255)]",
+              "mb-2 animate-flashing drop-shadow-glow",
             )}
           />
           lottery
@@ -94,7 +94,7 @@ export const IntroChrome = ({
                       )}
                     >
                       <span>{entry.remaining}x</span> {label}{" "}
-                      <Icon className={clsx("size-6 shrink-0")} />
+                      <Icon className={clsx("size-6 shrink-0", "drop-shadow-glow")} />
                     </p>
                   </li>
                 );
