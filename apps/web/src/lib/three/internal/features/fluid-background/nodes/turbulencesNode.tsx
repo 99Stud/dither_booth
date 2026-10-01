@@ -35,7 +35,7 @@ const RCP_D1 = 1.0 / 1.6;
 export function createTurbulenceState() {
   const state = {
     cScale: uniform(0.4),
-    cIntensity: uniform(0.07),
+    cIntensity: uniform(0.002),
     uSinSpeed: uniform(0.1),
     uOverallSpeed: uniform(0.15),
     uDirection: uniform(vec2(1.0, 0.44)),
@@ -50,7 +50,7 @@ export function createTurbulenceState() {
     uStop2: uniform(0.35),
     uStop3: uniform(0.55),
     uStop4: uniform(0.87),
-    uRcpIntensity: uniform(1.0 / 0.07),
+    uRcpIntensity: uniform(1.0 / 0.045),
     uColorRampLUT: uniformTexture(),
   };
 

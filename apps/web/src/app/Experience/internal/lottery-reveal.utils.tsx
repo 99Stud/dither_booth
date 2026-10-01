@@ -1,28 +1,28 @@
 import type { Rarity } from "@dither-booth/shared/lottery";
 
-import {
-  CircleIcon,
-  CrownIcon,
-  DiamondIcon,
-  SparkleIcon,
-  SquareIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { Circle } from "pixelarticons/react/Circle.js";
+import { Crown } from "pixelarticons/react/Crown.js";
+import { DiamondGem } from "pixelarticons/react/DiamondGem.js";
+import { Sparkles } from "pixelarticons/react/Sparkles.js";
+import { Square } from "pixelarticons/react/Square.js";
+import type { FC, SVGProps } from "react";
+
+type RarityIcon = FC<SVGProps<SVGSVGElement>>;
 
 export const getRarityReveal = (
   rarity: Rarity,
-): { label: string; Icon: LucideIcon } => {
+): { label: string; Icon: RarityIcon } => {
   switch (rarity) {
     case "common":
-      return { label: "common", Icon: CircleIcon };
+      return { label: "common", Icon: Circle };
     case "uncommon":
-      return { label: "uncommon", Icon: SquareIcon };
+      return { label: "uncommon", Icon: Square };
     case "rare":
-      return { label: "rare", Icon: DiamondIcon };
+      return { label: "rare", Icon: DiamondGem };
     case "epic":
-      return { label: "epic", Icon: SparkleIcon };
+      return { label: "epic", Icon: Sparkles };
     case "legendary":
-      return { label: "legendary", Icon: CrownIcon };
+      return { label: "legendary", Icon: Crown };
   }
 };
 

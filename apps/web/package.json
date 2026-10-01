@@ -38,13 +38,13 @@
     "@trpc/tanstack-react-query": "11.18.0",
     "clsx": "2.1.1",
     "date-fns": "4.4.0",
-    "lucide-react": "1.27.0",
     "motion": "12.43.0",
+    "pixelarticons": "2.4.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sonner": "2.0.7",
     "tailwindcss": "4.3.3",
-    "three": "0.185.1",
+    "three": "0.186.1",
     "zod": "4.4.3"
   },
   "devDependencies": {
@@ -52,7 +52,7 @@
     "@types/bun": "1.3.14",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "@types/three": "0.185.1",
+    "@types/three": "0.186.0",
     "bun-plugin-tailwind": "0.1.2"
   }
 }

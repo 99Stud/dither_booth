@@ -1,3 +1,5 @@
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
+
 import {
   exp,
   float,
@@ -62,5 +64,20 @@ export function createScanlinesEffect(enabled: boolean): PostProcessingEffect {
     key: "scanlines",
     enabled,
     build: (inputNode) => scanlinesNode(inputNode, uniforms),
+    attachDebug(folder: ParametersGroup) {
+      const scanlinesFolder = folder.addFolder("Scanlines");
+      scanlinesFolder
+        .add(uniforms.uScanLineThickness, "value", 0, 10, 0.1)
+        .name("Scan Line Thickness");
+      scanlinesFolder
+        .add(uniforms.uScanLineIntensity, "value", 0, 1, 0.01)
+        .name("Scan Line Intensity");
+      scanlinesFolder
+        .add(uniforms.uScanLineSpeed, "value", 0, 10, 0.1)
+        .name("Scan Line Speed");
+      scanlinesFolder
+        .add(uniforms.uScanLineFocus, "value", 0, 10, 0.1)
+        .name("Scan Line Focus");
+    },
   };
 }

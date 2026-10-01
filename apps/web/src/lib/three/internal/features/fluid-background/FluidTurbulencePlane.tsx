@@ -1,4 +1,5 @@
 import type { Texture } from "three";
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
 import type { TextureNode, WebGPURenderer } from "three/webgpu";
 
 import { HalfFloatType, LinearFilter, RenderTarget, RGBAFormat } from "three";
@@ -77,6 +78,91 @@ export class FluidTurbulencePlane extends Mesh<
     this._renderer = renderer;
   }
 
+  attachDebug(folder: ParametersGroup): void {
+    const {
+      cScale,
+      cIntensity,
+      uSinSpeed,
+      uOverallSpeed,
+      uDirection,
+      uColor0,
+      uColor1,
+      uColor2,
+      uColor3,
+      uColor4,
+      uColor5,
+      uStop1,
+      uStop2,
+      uStop3,
+      uStop4,
+      uRcpIntensity,
+      rebuildColorRampLUT,
+    } = this._turbulenceState;
+
+    const turbulencesFolder = folder.addFolder("Turbulences");
+    turbulencesFolder.add(cScale, "value", 0, 1, 0.01).name("Scale");
+    turbulencesFolder
+      .add(cIntensity, "value", 0.001, 1, 0.01)
+      .name("Intensity")
+      .onChange(() => {
+        uRcpIntensity.value = 1.0 / cIntensity.value;
+      });
+    turbulencesFolder.add(uSinSpeed, "value", 0, 1, 0.01).name("Sin Speed");
+    turbulencesFolder
+      .add(uOverallSpeed, "value", 0, 1, 0.01)
+      .name("Overall Speed");
+    turbulencesFolder
+      .add(uDirection.value, "x", 0, 1, 0.01)
+      .name("Direction X");
+    turbulencesFolder
+      .add(uDirection.value, "y", 0, 1, 0.01)
+      .name("Direction Y");
+
+    const colorsFolder = turbulencesFolder.addFolder("Palette");
+    colorsFolder
+      .addColor(uColor0, "value")
+      .name("Color 0 (Low)")
+      .onChange(rebuildColorRampLUT);
+    colorsFolder
+      .addColor(uColor1, "value")
+      .name("Color 1")
+      .onChange(rebuildColorRampLUT);
+    colorsFolder
+      .addColor(uColor2, "value")
+      .name("Color 2")
+      .onChange(rebuildColorRampLUT);
+    colorsFolder
+      .addColor(uColor3, "value")
+      .name("Color 3")
+      .onChange(rebuildColorRampLUT);
+    colorsFolder
+      .addColor(uColor4, "value")
+      .name("Color 4")
+      .onChange(rebuildColorRampLUT);
+    colorsFolder
+      .addColor(uColor5, "value")
+      .name("Color 5 (High)")
+      .onChange(rebuildColorRampLUT);
+
+    const stopsFolder = turbulencesFolder.addFolder("Color Stops");
+    stopsFolder
+      .add(uStop1, "value", 0, 1, 0.01)
+      .name("Stop 1")
+      .onChange(rebuildColorRampLUT);
+    stopsFolder
+      .add(uStop2, "value", 0, 1, 0.01)
+      .name("Stop 2")
+      .onChange(rebuildColorRampLUT);
+    stopsFolder
+      .add(uStop3, "value", 0, 1, 0.01)
+      .name("Stop 3")
+      .onChange(rebuildColorRampLUT);
+    stopsFolder
+      .add(uStop4, "value", 0, 1, 0.01)
+      .name("Stop 4")
+      .onChange(rebuildColorRampLUT);
+  }
+
   setFluidTexture(texture: Texture): void {
     this.fluidTexture.value = texture;
   }
@@ -96,7 +182,7 @@ export class FluidTurbulencePlane extends Mesh<
     );
   }
 
-  dispose(): void {
+  override dispose(): void {
     this.geometry.dispose();
     this._turbulenceRT.dispose();
     try {
@@ -106,5 +192,7 @@ export class FluidTurbulencePlane extends Mesh<
       /* Material disposal can fail before first WebGPU compilation. */
     }
     this._turbulenceState.dispose();
+    // The browser bundle does not resolve super.dispose() through Mesh.
+    Object.getPrototypeOf(Mesh.prototype).dispose.call(this);
   }
 }

@@ -1,6 +1,9 @@
+import type { Inspector } from "three/addons/inspector/Inspector.js";
+
 import type { ThreeRuntime } from "../internal/runtime/runtime.types";
 import type { ThreeEnvironmentOptions } from "./ThreeEnvironment.types";
 
+import { createThreeInspector } from "../internal/debug/createThreeInspector";
 import { FluidBackground } from "../internal/features/fluid-background/FluidBackground";
 import { PostProcessingPipeline } from "../internal/features/post-processing/PostProcessing";
 import { PointerInput } from "../internal/input/PointerInput";
@@ -23,6 +26,7 @@ export class ThreeEnvironment {
   private readonly _sizeObserver: SizeObserver;
   private readonly _frameLoop: FrameLoop;
   private _intersectionObserver: IntersectionObserver | null = null;
+  private _inspector: Inspector | null = null;
   private _disposed = false;
   private _initialized = false;
   private _wantsToRun = false;
@@ -67,9 +71,20 @@ export class ThreeEnvironment {
     if (this._disposed || this._initialized) return;
 
     const { renderer, scene, camera } = this._runtime;
+    const inspector = createThreeInspector(renderer);
+    if (this._disposed) {
+      inspector?.domElement.remove();
+      return;
+    }
+
+    this._inspector = inspector;
     await renderer.init();
 
-    if (this._disposed) return;
+    if (this._disposed) {
+      inspector?.domElement.remove();
+      this._inspector = null;
+      return;
+    }
 
     this._fluidBackground.init(renderer);
 
@@ -86,6 +101,7 @@ export class ThreeEnvironment {
 
     this._sizeObserver.observe();
     this._setupVisibilityControls();
+    this._attachDebug();
     this._initialized = true;
     this._syncFrameLoop();
   }
@@ -121,6 +137,7 @@ export class ThreeEnvironment {
     if (this._disposed) return;
     this._disposed = true;
 
+    this._detachInspector();
     this._frameLoop.dispose();
     this._sizeObserver.dispose();
     this._teardownVisibilityControls();
@@ -129,6 +146,21 @@ export class ThreeEnvironment {
     this._fluidBackground.dispose();
     this._runtime.renderer.dispose();
     this._runtime.renderer.domElement.remove();
+  }
+
+  private _attachDebug(): void {
+    const inspector = this._inspector;
+    if (!inspector) return;
+
+    document.body.appendChild(inspector.domElement);
+    const settings = inspector.createParameters("Settings");
+    this._fluidBackground.attachDebug(settings);
+    this._postProcessing.attachDebug(settings);
+  }
+
+  private _detachInspector(): void {
+    this._inspector?.domElement.remove();
+    this._inspector = null;
   }
 
   private _render(delta: number): void {

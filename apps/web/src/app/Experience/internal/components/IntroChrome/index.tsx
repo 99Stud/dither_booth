@@ -2,9 +2,9 @@ import type { LotteryStatus } from "@dither-booth/shared/lottery";
 
 import { NinetyNineStudOutlineLogo } from "@dither-booth/ui/components/svg/99StudOutlineLogo/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
-import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
 import clsx from "clsx";
 import { motion } from "motion/react";
+import { Gift } from "pixelarticons/react/Gift.js";
 
 import { SLIDE_TRANSITION } from "../../Experience.motion";
 import { formatLastWinAt, getRarityReveal } from "../../lottery-reveal.utils";
@@ -53,9 +53,6 @@ export const IntroChrome = ({
         <NinetyNineStudOutlineLogo
           className={clsx("h-20", "drop-shadow-glow")}
         />
-        <ElTonyMateLogo
-          className={clsx("fill-white/90", "h-20", "drop-shadow-glow")}
-        />
       </div>
       <div
         className={clsx(
@@ -64,13 +61,25 @@ export const IntroChrome = ({
           "text-shadow-glow",
         )}
       >
-        <p className={clsx("mb-2", "text-5xl font-bold uppercase")}>
-          <span className={clsx("animate-flashing")}>$</span> lottery
+        <p
+          className={clsx(
+            "mb-2 flex items-center justify-end gap-2",
+            "text-5xl font-bold uppercase",
+          )}
+        >
+          <Gift
+            aria-hidden
+            className={clsx(
+              "size-8 shrink-0",
+              "mb-2 animate-flashing drop-shadow-[0_0_4px_rgb(255_255_255)]",
+            )}
+          />
+          lottery
         </p>
         <div className={clsx("leading-none")}>
-          <p className={clsx("mb-2")}>
+          <p className={clsx("mb-2", "font-bold")}>
             <span className={clsx("font-bold")}>{remainingLots}</span> remaining
-            lots
+            prizes
           </p>
           {rarityBreakdown.length > 0 && (
             <ul className={clsx("mb-4")}>
@@ -79,11 +88,13 @@ export const IntroChrome = ({
 
                 return (
                   <li key={entry.rarity}>
-                    <p className={clsx("flex items-center justify-end gap-2")}>
-                      <span className={clsx("font-bold")}>
-                        {entry.remaining}x
-                      </span>{" "}
-                      {label} <Icon className={clsx("size-4.5", "stroke-3")} />
+                    <p
+                      className={clsx(
+                        "flex items-center justify-end gap-2 font-bold",
+                      )}
+                    >
+                      <span>{entry.remaining}x</span> {label}{" "}
+                      <Icon className={clsx("size-6 shrink-0")} />
                     </p>
                   </li>
                 );
