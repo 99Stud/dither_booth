@@ -65,7 +65,11 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
         />
         <img
           id="booth-photo"
-          className={clsx("w-full", "aspect-square")}
+          className={clsx(
+            "w-full",
+            "aspect-square",
+            "[image-rendering:pixelated]",
+          )}
           src="https://picsum.photos/576"
           alt="booth photo"
         />

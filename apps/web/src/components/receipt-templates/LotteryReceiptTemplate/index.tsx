@@ -113,10 +113,13 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
         "flex flex-col items-center gap-4",
         "bg-white text-black",
         "font-bit leading-none",
-        "px-[20px] py-[40px]",
+        "px-5 py-10",
         className,
       )}
-      style={{ width: PRINT_WIDTH_PX }}
+      style={{
+        WebkitFontSmoothing: "none",
+        width: PRINT_WIDTH_PX,
+      }}
     >
       <div className={clsx("w-full border border-dashed border-black")} />
 

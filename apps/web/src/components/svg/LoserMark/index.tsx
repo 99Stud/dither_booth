@@ -11,6 +11,7 @@ export const LoserMark: FC<{ className?: string }> = (props) => {
       fill="none"
       className={className}
       preserveAspectRatio="xMidYMid meet"
+      shapeRendering="crispEdges"
       aria-hidden
     >
       <g clipPath={`url(#${clipId})`}>

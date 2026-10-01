@@ -112,7 +112,7 @@ export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerRecei
       page = await browser.newPage();
 
       await page.setViewport({
-        deviceScaleFactor: 2,
+        deviceScaleFactor: 1,
         width: 1440,
         height: 900,
       });
