@@ -42,7 +42,8 @@ type ReceiptViewerPageWindow = {
 
 declare const window: ReceiptViewerPageWindow;
 
-const LOTTERY_SEARCH_KEYS = [
+export const RECEIPT_VIEWER_SEARCH_KEYS = [
+  "template",
   "outcome",
   "prizeId",
   "title",
@@ -50,7 +51,36 @@ const LOTTERY_SEARCH_KEYS = [
   "prizeRarity",
   "wonAt",
   "ticketRef",
+  "ticketItems",
 ] as const satisfies ReadonlyArray<keyof ReceiptViewerSearch>;
+
+const URL_SEARCH_KEYS = [
+  "outcome",
+  "prizeId",
+  "title",
+  "winInstruction",
+  "prizeRarity",
+  "wonAt",
+  "ticketRef",
+  "ticketItems",
+] as const satisfies ReadonlyArray<keyof ReceiptViewerSearch>;
+
+export function receiptSearchValuesMatch(
+  actual: unknown,
+  expected: unknown,
+): boolean {
+  if (Array.isArray(expected) || Array.isArray(actual)) {
+    if (!Array.isArray(actual) || !Array.isArray(expected)) {
+      return false;
+    }
+    if (actual.length !== expected.length) {
+      return false;
+    }
+    return actual.every((value, index) => value === expected[index]);
+  }
+
+  return actual === expected;
+}
 
 export function buildReceiptViewerSearch(
   options: ReceiptViewerSearch = {},
@@ -61,7 +91,7 @@ export function buildReceiptViewerSearch(
     search.template = options.template;
   }
 
-  for (const key of LOTTERY_SEARCH_KEYS) {
+  for (const key of URL_SEARCH_KEYS) {
     const value = options[key];
     if (value !== undefined) {
       search[key] = value as never;
@@ -95,20 +125,37 @@ export async function navigateReceiptViewerInPage(
   }
 }
 
+function urlReceiptSearchValueMatches(
+  actual: string | null,
+  expected: ReceiptViewerSearch[keyof ReceiptViewerSearch],
+): boolean {
+  if (expected === undefined) {
+    return actual === null;
+  }
+
+  if (Array.isArray(expected)) {
+    if (actual === null) {
+      return false;
+    }
+
+    try {
+      return receiptSearchValuesMatch(JSON.parse(actual), expected);
+    } catch {
+      return false;
+    }
+  }
+
+  return actual === expected;
+}
+
 function lotterySearchMatches(
   searchParams: URLSearchParams,
   options: ReceiptViewerSearch,
 ): boolean {
-  for (const key of LOTTERY_SEARCH_KEYS) {
-    const expected = options[key];
-    const actual = searchParams.get(key);
-
-    if (expected === undefined) {
-      if (actual !== null) return false;
-      continue;
+  for (const key of URL_SEARCH_KEYS) {
+    if (!urlReceiptSearchValueMatches(searchParams.get(key), options[key])) {
+      return false;
     }
-
-    if (actual !== expected) return false;
   }
 
   return true;

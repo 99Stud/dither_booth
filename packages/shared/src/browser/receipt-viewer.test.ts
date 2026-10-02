@@ -147,6 +147,24 @@ describe("receipt viewer page helpers", () => {
     });
   });
 
+  test("matches ticket item names encoded in the search string", async () => {
+    const ticketItems = ["Mate", "Ginette"];
+    const fakeWindow = createFakeReceiptViewerWindow({
+      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=tartines&ticketItems=${encodeURIComponent(JSON.stringify(ticketItems))}`,
+      templateAttribute: "tartines",
+    });
+
+    await withFakeReceiptViewerWindow(fakeWindow, () => {
+      expect(
+        isReceiptViewerRouteStateCommittedInPage({
+          template: "tartines",
+          ticketItems,
+        }),
+      ).toBe(true);
+      expect(isReceiptViewerRouteStateCommittedInPage()).toBe(false);
+    });
+  });
+
   test("rejects URL-only match when DOM still has a stale template", async () => {
     const staleTemplateWindow = createFakeReceiptViewerWindow({
       search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=tartines`,

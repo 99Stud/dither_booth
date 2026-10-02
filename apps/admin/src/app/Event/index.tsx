@@ -28,6 +28,7 @@ export const Event = () => {
     currentEventQuery,
     createEventMutation,
     updateEventMutation,
+    updateTicketItemsMutation,
     replaceEventMutation,
     updateLotterySettingsMutation,
     createPrizeMutation,
@@ -82,8 +83,12 @@ export const Event = () => {
               <EventOverviewPanel
                 event={event}
                 isSavingName={updateEventMutation.isPending}
+                isSavingTicketItems={updateTicketItemsMutation.isPending}
                 onSaveName={async (name) => {
                   await updateEventMutation.mutateAsync({ name });
+                }}
+                onSaveTicketItems={async (names) => {
+                  await updateTicketItemsMutation.mutateAsync({ names });
                 }}
                 onReplaceClick={() => setIsReplaceConfirmOpen(true)}
               />

@@ -27,6 +27,21 @@ export const useEventQueries = () => {
     },
   });
 
+  const updateTicketItemsMutation = useMutation({
+    ...trpc.updateTicketItems.mutationOptions(),
+    onSuccess: async () => {
+      toast.success("Ticket items saved");
+      await invalidateCurrentEvent();
+    },
+    onError: (error) => {
+      reportEventError(
+        error,
+        "update-ticket-items-failed",
+        "Failed to save ticket items.",
+      );
+    },
+  });
+
   const updateEventMutation = useMutation({
     ...trpc.updateEvent.mutationOptions(),
     onSuccess: async () => {
@@ -120,6 +135,7 @@ export const useEventQueries = () => {
     currentEventQuery,
     createEventMutation,
     updateEventMutation,
+    updateTicketItemsMutation,
     replaceEventMutation,
     updateLotterySettingsMutation,
     createPrizeMutation,

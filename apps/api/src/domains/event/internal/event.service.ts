@@ -1,4 +1,8 @@
 import { parseBoothTicketRef } from "@dither-booth/shared/formatting";
+import {
+  DEFAULT_TICKET_ITEM_NAMES,
+  ticketItemNamesSchema,
+} from "@dither-booth/shared/routes";
 import { createId } from "@paralleldrive/cuid2";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ne } from "drizzle-orm";
@@ -20,8 +24,29 @@ import type {
   UpdateEventInput,
   UpdatePrizeInput,
   UpdateLotterySettingsInput,
+  UpdateTicketItemsInput,
 } from "./event.constants";
 import type { CurrentEvent, EventPrize, ListDrawsResult } from "./event.types";
+
+function readTicketItemNames(value: unknown): string[] {
+  const parsed = ticketItemNamesSchema.safeParse(value);
+  if (!parsed.success) {
+    return [...DEFAULT_TICKET_ITEM_NAMES];
+  }
+  return parsed.data;
+}
+
+export async function getCurrentTicketItemNamesForDb(
+  db: DB,
+): Promise<string[]> {
+  const campaign = await db.query.campaignTable.findFirst({
+    columns: { ticketItemNames: true },
+  });
+  if (!campaign) {
+    return [...DEFAULT_TICKET_ITEM_NAMES];
+  }
+  return readTicketItemNames(campaign.ticketItemNames);
+}
 
 function mapPrize(prize: {
   id: string;
@@ -74,6 +99,7 @@ export async function getCurrentEventForDb(
     campaign: {
       id: campaign.id,
       name: campaign.name,
+      ticketItemNames: readTicketItemNames(campaign.ticketItemNames),
     },
     lottery: {
       id: lottery.id,
@@ -153,6 +179,26 @@ export async function updateEventForDb(
     campaign: {
       ...current.campaign,
       name: input.name,
+    },
+  };
+}
+
+export async function updateTicketItemsForDb(
+  db: DB,
+  input: UpdateTicketItemsInput,
+): Promise<CurrentEvent> {
+  const current = await requireCurrentEvent(db);
+
+  await db
+    .update(campaignTable)
+    .set({ ticketItemNames: input.names })
+    .where(eq(campaignTable.id, current.campaign.id));
+
+  return {
+    ...current,
+    campaign: {
+      ...current.campaign,
+      ticketItemNames: input.names,
     },
   };
 }
