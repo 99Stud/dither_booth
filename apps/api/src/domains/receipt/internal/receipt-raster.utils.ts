@@ -99,7 +99,9 @@ export async function buildReceiptRasterCommand({
   });
 
   try {
-    const ditheredImageData = (await dithered.png().toBuffer()).toBase64();
+    const ditheredImageData = (
+      await dithered.threshold(printConfiguration.threshold).png().toBuffer()
+    ).toBase64();
 
     const receiptScreenshot = await runExclusiveReceiptViewerPageJob(
       () =>
@@ -119,7 +121,6 @@ export async function buildReceiptRasterCommand({
     );
 
     return await screenshotToGsV0RasterCommand(receiptScreenshot, {
-      threshold: printConfiguration.threshold,
       width: PRINT_WIDTH_PX,
     }).catch((error) => {
       throw new TRPCError({
@@ -143,12 +144,10 @@ export async function buildReceiptRasterCommand({
 
 export async function buildLotteryTicketRasterCommand({
   page,
-  printConfiguration,
   draw,
   ticketRef,
 }: {
   page: Page;
-  printConfiguration: PrintConfigRow;
   draw: DrawResult;
   ticketRef: string;
 }): Promise<Buffer> {
@@ -174,7 +173,6 @@ export async function buildLotteryTicketRasterCommand({
     );
 
     return await screenshotToGsV0RasterCommand(lotteryScreenshot, {
-      threshold: printConfiguration.threshold,
       width: PRINT_WIDTH_PX,
     }).catch((error) => {
       throw new TRPCError({

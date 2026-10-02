@@ -156,7 +156,6 @@ export const prepareReceiptJob = async ({
   try {
     const lotteryRasterCmd = await buildLotteryTicketRasterCommand({
       page,
-      printConfiguration,
       draw,
       ticketRef,
     });
