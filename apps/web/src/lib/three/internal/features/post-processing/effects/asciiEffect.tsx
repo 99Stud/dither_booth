@@ -14,8 +14,8 @@ import {
   convertToTexture,
   dot,
   float,
-  Fn,
   floor,
+  Fn,
   fract,
   int,
   max,
@@ -87,7 +87,7 @@ for (let i = 0; i < GLYPH_COUNT; i++) {
 
 function createAsciiUniforms() {
   return {
-    uCellSize: uniform(14),
+    uCellSize: uniform(20),
     uInvert: uniform(1),
     uColor: uniform(1.0),
     uCharBrightness: uniform(1.98),
