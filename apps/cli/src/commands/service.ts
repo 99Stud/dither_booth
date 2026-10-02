@@ -3,28 +3,47 @@ import { defineCommand } from "citty";
 import type { BoothContext } from "#internal/context";
 
 import { requireRoot } from "#internal/args";
-import { SERVICE_NAME, SERVICE_PATH, SERVICE_USER } from "#internal/config";
+import {
+  SERVICE_NAME,
+  SERVICE_PATH,
+  SERVICE_USER,
+  SSD_MOUNT_POINT,
+} from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import { run } from "#internal/system";
 import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
 function buildUnit(repoRoot: string): string {
-  // oneshot + RemainAfterExit wraps PM2: systemd triggers the PM2 process list
-  // on boot. PATH is set explicitly because systemd does not load login shells.
+  const home = `/home/${SERVICE_USER}`;
+  const bun = `${home}/.bun/bin/bun`;
+  const onSsd =
+    repoRoot === SSD_MOUNT_POINT || repoRoot.startsWith(`${SSD_MOUNT_POINT}/`);
+  const requiresMount = onSsd ? `RequiresMountsFor=${SSD_MOUNT_POINT}\n` : "";
+
+  // pm2-runtime stays in the foreground (PM2's container mode). The stock
+  // systemd template daemonizes and resurrects ~/.pm2/dump.pm2, which is the
+  // wrong source of truth here and races the PID file on a slow Pi.
   return `[Unit]
 Description=Dither Booth kiosk services (PM2)
+Documentation=https://pm2.keymetrics.io/docs/usage/docker-pm2-nodejs/
 After=network-online.target
 Wants=network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
+${requiresMount}[Service]
+Type=simple
 User=${SERVICE_USER}
+Group=${SERVICE_USER}
 WorkingDirectory=${repoRoot}
-Environment=PATH=/home/${SERVICE_USER}/.bun/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOME=${home}
+Environment=PM2_HOME=${home}/.pm2
 Environment=NODE_ENV=production
-ExecStart=/bin/bash -lc 'bun run pm2:start && bun run pm2:save'
-ExecStop=/bin/bash -lc 'bun run pm2:stop'
+Environment=PATH=${home}/.bun/bin:${repoRoot}/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=${bun} run pm2:runtime
+ExecReload=${bun} run pm2:reload
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=40
+KillMode=mixed
 
 [Install]
 WantedBy=multi-user.target
