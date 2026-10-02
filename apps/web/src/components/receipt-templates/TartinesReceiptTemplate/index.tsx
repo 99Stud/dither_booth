@@ -23,9 +23,11 @@ import { TartinesLogo } from "#components/svg/TartinesLogo/index";
 import { receiptViewerRoute } from "#lib/router/index";
 const RECEIPT_QUANTITY_LABEL = "1x";
 const RECEIPT_QUANTITY_CLASSNAME = clsx(
-  "shrink-0 font-bit text-4xl tabular-nums",
+  "shrink-0 font-mono text-2xl font-normal tabular-nums",
 );
-const RECEIPT_PRICE_CLASSNAME = clsx("shrink-0 font-bit text-4xl tabular-nums");
+const RECEIPT_PRICE_CLASSNAME = clsx(
+  "shrink-0 font-mono text-2xl font-normal tabular-nums",
+);
 const PRICE_CURRENCY_SUFFIX = formatPrice(0).replace(/^.*\d/u, "");
 
 const randomPriceSplit = (total: number, count: number): number[] => {
@@ -95,84 +97,88 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
           alt="booth photo"
         />
       </div>
-      <div className={clsx("pt-16", "flex flex-col gap-12")}>
+      <div className="mx-4">
+        <div className={clsx("pt-16", "flex flex-col gap-12")}>
+          <div
+            className={clsx(
+              "flex items-center justify-between",
+              "leading-[0.7] font-bold",
+            )}
+          >
+            <p>{format(today, "dd/MM/yyyy")}</p>
+            <p>{format(today, "HH:mm:ss")}</p>
+          </div>
+          <div className={clsx("flex flex-col items-center")}>
+            <p className={clsx("font-bit text-5xl font-bold")}>
+              Épicerie de Ginette
+            </p>
+            <p className={clsx("font-bit text-4xl italic")}>
+              24 Cr Albert Thomas, 69008 Lyon
+            </p>
+          </div>
+        </div>
+        <AsteriskLine />
+        <div className={clsx("flex flex-col gap-8")}>
+          <p className={clsx("text-center leading-[0.7] font-bold underline")}>
+            ITEMS
+          </p>
+          <div className={clsx("flex flex-col gap-4", "font-bold")}>
+            {itemNames.map((name, index) => (
+              <ReceiptItem
+                key={`${index}-${name}`}
+                quantity={1}
+                name={name}
+                price={prices[index] ?? 0}
+              />
+            ))}
+          </div>
+        </div>
+        <AsteriskLine className={clsx("mb-6")} />
         <div
           className={clsx(
-            "flex items-center justify-between",
-            "leading-[0.7] font-bold",
+            "flex items-center justify-between bg-black text-white",
           )}
         >
-          <p>{format(today, "dd/MM/yyyy")}</p>
-          <p>{format(today, "HH:mm:ss")}</p>
+          <div className={clsx("flex items-center gap-4")}>
+            <span
+              aria-hidden
+              className={cn(RECEIPT_QUANTITY_CLASSNAME, "invisible font-bold")}
+            >
+              {RECEIPT_QUANTITY_LABEL}
+            </span>
+            <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
+          </div>
+          <p className={clsx("font-mono text-2xl font-bold tabular-nums")}>
+            {formatPrice(PHOTO_TICKET_TOTAL_CENTS)}
+          </p>
         </div>
+        <AsteriskLine className={clsx("mt-6")} />
+        <div className={clsx("grid grid-cols-3 items-center gap-4")}>
+          <NinetyNineStudLogo className={clsx("h-20", "justify-self-start")} />
+          <DitherBoothLogo className={clsx("h-14", "justify-self-center")} />
+          <ElTonyMateLogo className={clsx("h-20", "justify-self-end")} />
+        </div>
+        <AsteriskLine />
         <div className={clsx("flex flex-col items-center")}>
-          <p className={clsx("font-bit text-5xl font-bold")}>
-            Épicerie de Ginette
-          </p>
-          <p className={clsx("font-bit text-4xl italic")}>
-            24 Cr Albert Thomas, 69008 Lyon
-          </p>
+          <p>Join us on Instagram!</p>
+          <p className={clsx("font-bit text-4xl font-bold")}>@99stud</p>
         </div>
-      </div>
-      <AsteriskLine />
-      <div className={clsx("flex flex-col gap-8")}>
-        <p className={clsx("text-center leading-[0.7] font-bold underline")}>
-          ITEMS
+        <NinetyNineStudQR className={clsx("mx-auto mb-8", "w-1/2")} />
+        <p
+          className={clsx(
+            "mb-4 flex items-center justify-center gap-3 text-4xl font-bold",
+          )}
+        >
+          <Sparkles className="size-8 shrink-0" aria-hidden />
+          Thanks for partying with us!
+          <Sparkles className="size-8 shrink-0" aria-hidden />
         </p>
-        <div className={clsx("flex flex-col gap-4", "font-bold")}>
-          {itemNames.map((name, index) => (
-            <ReceiptItem
-              key={`${index}-${name}`}
-              quantity={1}
-              name={name}
-              price={prices[index] ?? 0}
-            />
-          ))}
-        </div>
+        {ticketNumber ? (
+          <p className={clsx("text-center text-3xl font-bold")}>
+            {ticketNumber}
+          </p>
+        ) : null}
       </div>
-      <AsteriskLine className={clsx("mb-6")} />
-      <div
-        className={clsx(
-          "flex items-center justify-between bg-black text-white",
-        )}
-      >
-        <div className={clsx("flex items-center gap-4")}>
-          <span
-            aria-hidden
-            className={cn(RECEIPT_QUANTITY_CLASSNAME, "invisible font-bold")}
-          >
-            {RECEIPT_QUANTITY_LABEL}
-          </span>
-          <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
-        </div>
-        <p className={clsx("font-bit text-4xl font-bold tabular-nums")}>
-          {formatPrice(PHOTO_TICKET_TOTAL_CENTS)}
-        </p>
-      </div>
-      <AsteriskLine className={clsx("mt-6")} />
-      <div className={clsx("grid grid-cols-3 items-center gap-4")}>
-        <NinetyNineStudLogo className={clsx("h-20", "justify-self-start")} />
-        <DitherBoothLogo className={clsx("h-14", "justify-self-center")} />
-        <ElTonyMateLogo className={clsx("h-20", "justify-self-end")} />
-      </div>
-      <AsteriskLine />
-      <div className={clsx("flex flex-col items-center")}>
-        <p>Join us on Instagram!</p>
-        <p className={clsx("font-bit text-4xl font-bold")}>@99stud</p>
-      </div>
-      <NinetyNineStudQR className={clsx("mx-auto mb-8", "w-1/2")} />
-      <p
-        className={clsx(
-          "mb-4 flex items-center justify-center gap-3 text-4xl font-bold",
-        )}
-      >
-        <Sparkles className="size-8 shrink-0" aria-hidden />
-        Thanks for partying with us!
-        <Sparkles className="size-8 shrink-0" aria-hidden />
-      </p>
-      {ticketNumber ? (
-        <p className={clsx("text-center text-3xl font-bold")}>{ticketNumber}</p>
-      ) : null}
     </div>
   );
 };
@@ -198,7 +204,7 @@ const AsteriskLine: FC<{ className?: string }> = (props) => {
   const { className } = props;
 
   return (
-    <div aria-hidden className={cn("my-8 flex items-center", className)}>
+    <div aria-hidden className={cn("mt-8 flex items-center", className)}>
       <span className={cn(RECEIPT_QUANTITY_CLASSNAME, "invisible")}>
         {RECEIPT_QUANTITY_LABEL}
       </span>
