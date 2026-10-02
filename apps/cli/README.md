@@ -38,7 +38,7 @@ booth doctor            # health checks
 | `cert`               | Generate the TLS certificate (same as `cert generate`; auto-detects LAN IP)         |
 | `cert generate [ip]` | Generate the TLS certificate for an explicit or auto-detected LAN IP                |
 | `cert copy`          | Print the `scp` command to copy the mkcert root CA to your machine                  |
-| `service`            | Install and enable the `ditherbooth.service` systemd unit, which runs `pm2-runtime` in the foreground (needs root) |
+| `service`            | Install and enable the `ditherbooth.service` systemd unit, which forks the PM2 daemon from `pm2.config.js` (needs root) |
 | `doctor`             | Check SSD mount, data symlink, Bun, cert IP, PM2 processes, and healthz             |
 
 ### Options

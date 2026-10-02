@@ -20,16 +20,16 @@ function buildUnit(repoRoot: string): string {
     repoRoot === SSD_MOUNT_POINT || repoRoot.startsWith(`${SSD_MOUNT_POINT}/`);
   const requiresMount = onSsd ? `RequiresMountsFor=${SSD_MOUNT_POINT}\n` : "";
 
-  // pm2-runtime stays in the foreground (PM2's container mode). The stock
-  // systemd template daemonizes and resurrects ~/.pm2/dump.pm2, which is the
-  // wrong source of truth here and races the PID file on a slow Pi.
+  // Official PM2 shape: a forking daemon, PID file, kill on stop. ExecStart
+  // loads pm2.config.js instead of resurrecting ~/.pm2/dump.pm2. pm2-runtime
+  // is a private god; `pm2 list` then spawns a second daemon.
   return `[Unit]
 Description=Dither Booth kiosk services (PM2)
-Documentation=https://pm2.keymetrics.io/docs/usage/docker-pm2-nodejs/
+Documentation=https://pm2.keymetrics.io/docs/usage/startup/
 After=network-online.target
 Wants=network-online.target
 ${requiresMount}[Service]
-Type=simple
+Type=forking
 User=${SERVICE_USER}
 Group=${SERVICE_USER}
 WorkingDirectory=${repoRoot}
@@ -37,8 +37,10 @@ Environment=HOME=${home}
 Environment=PM2_HOME=${home}/.pm2
 Environment=NODE_ENV=production
 Environment=PATH=${home}/.bun/bin:${repoRoot}/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=${bun} run pm2:runtime
+PIDFile=${home}/.pm2/pm2.pid
+ExecStart=${bun} run pm2:start
 ExecReload=${bun} run pm2:reload
+ExecStop=${bun} ./node_modules/pm2/bin/pm2 kill
 Restart=on-failure
 RestartSec=5
 TimeoutStartSec=120
