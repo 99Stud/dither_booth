@@ -8,6 +8,7 @@ import type { DrawResult } from "#domains/lottery/internal/lottery.types";
 import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { getCurrentTicketItemNamesForDb } from "#domains/event/internal/event.service";
 import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
 
 import { screenshotToGsV0RasterCommand } from "./gs-v0-raster.utils";
@@ -73,6 +74,7 @@ export async function prepareReceiptRasterCommand({
     page,
     photoBuffer: inputBuffer,
     printConfiguration,
+    ticketItems: await getCurrentTicketItemNamesForDb(ctx.db),
     ticketRef,
   });
 }
@@ -81,11 +83,13 @@ export async function buildReceiptRasterCommand({
   page,
   photoBuffer,
   printConfiguration,
+  ticketItems,
   ticketRef,
 }: {
   page: Page;
   photoBuffer: Buffer<ArrayBuffer>;
   printConfiguration: PrintConfigRow;
+  ticketItems: string[];
   ticketRef?: string;
 }): Promise<Buffer> {
   const dithered = await ditherImage(photoBuffer, printConfiguration, {
@@ -112,6 +116,7 @@ export async function buildReceiptRasterCommand({
           },
           page,
           template: printConfiguration.template,
+          ticketItems,
           ticketRef,
         }),
       {

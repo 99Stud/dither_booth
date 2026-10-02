@@ -1,3 +1,4 @@
+import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/routes";
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
@@ -18,10 +19,12 @@ import {
   createPrizeForDb,
   deletePrizeForDb,
   getCurrentEventForDb,
+  getCurrentTicketItemNamesForDb,
   listDrawsForDb,
   replaceEventForDb,
   restockPrizeForDb,
   updateLotterySettingsForDb,
+  updateTicketItemsForDb,
 } from "./event.service";
 
 function createTestDb() {
@@ -58,6 +61,9 @@ describe("event.service", () => {
       });
 
       expect(created.campaign.name).toBe("Launch night");
+      expect(created.campaign.ticketItemNames).toEqual([
+        ...DEFAULT_TICKET_ITEM_NAMES,
+      ]);
       expect(created.lottery.enabled).toBe(false);
       expect(created.lottery.printLoserTicket).toBe(false);
       expect(created.prizes).toEqual([]);
@@ -73,6 +79,43 @@ describe("event.service", () => {
       ).rejects.toMatchObject({
         code: "CONFLICT",
       });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("getCurrentTicketItemNamesForDb uses the default names when no event exists", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      expect(await getCurrentTicketItemNamesForDb(db)).toEqual([
+        ...DEFAULT_TICKET_ITEM_NAMES,
+      ]);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("updateTicketItems replaces the printed item names", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      await createEventForDb(db, {
+        name: "Launch night",
+        noWinWeight: 50,
+        winCooldownMinutes: 5,
+        printLoserTicket: false,
+        enabled: false,
+      });
+
+      const updated = await updateTicketItemsForDb(db, {
+        names: ["Mate", "Ginette"],
+      });
+
+      expect(updated.campaign.ticketItemNames).toEqual(["Mate", "Ginette"]);
+
+      const current = await getCurrentEventForDb(db);
+      expect(current?.campaign.ticketItemNames).toEqual(["Mate", "Ginette"]);
     } finally {
       sqlite.close();
     }
@@ -99,6 +142,10 @@ describe("event.service", () => {
         rarity: "common",
       });
 
+      await updateTicketItemsForDb(db, {
+        names: ["Mate"],
+      });
+
       await db.insert(drawTable).values({
         lotteryId: first.lottery.id,
         prizeId: withPrize.prizes[0]!.id,
@@ -113,6 +160,9 @@ describe("event.service", () => {
       });
 
       expect(replaced.campaign.name).toBe("New event");
+      expect(replaced.campaign.ticketItemNames).toEqual([
+        ...DEFAULT_TICKET_ITEM_NAMES,
+      ]);
       expect(replaced.lottery.id).not.toBe(first.lottery.id);
       expect(replaced.prizes).toEqual([]);
 

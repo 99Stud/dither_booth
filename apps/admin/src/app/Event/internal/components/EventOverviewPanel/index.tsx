@@ -23,16 +23,26 @@ import {
   getUpdateEventNameFormValues,
 } from "../../Event.constants";
 import { getRarityBreakdown, getRemainingPrizes } from "../../Event.utils";
+import { EventTicketItemsCard } from "../EventTicketItemsCard/index";
 
 interface EventOverviewPanelProps {
   event: CurrentEvent;
   isSavingName: boolean;
+  isSavingTicketItems: boolean;
   onSaveName: (name: string) => Promise<void>;
+  onSaveTicketItems: (names: string[]) => Promise<void>;
   onReplaceClick: () => void;
 }
 
 export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
-  const { event, isSavingName, onSaveName, onReplaceClick } = props;
+  const {
+    event,
+    isSavingName,
+    isSavingTicketItems,
+    onSaveName,
+    onSaveTicketItems,
+    onReplaceClick,
+  } = props;
   const remainingPrizes = getRemainingPrizes(event);
   const rarityBreakdown = getRarityBreakdown(event);
 
@@ -137,6 +147,11 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
           </p>
         </CardContent>
       </Card>
+      <EventTicketItemsCard
+        event={event}
+        isSaving={isSavingTicketItems}
+        onSave={onSaveTicketItems}
+      />
     </div>
   );
 };

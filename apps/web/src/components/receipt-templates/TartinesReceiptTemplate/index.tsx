@@ -4,6 +4,10 @@ import {
   formatPrice,
 } from "@dither-booth/shared/formatting";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
+import {
+  DEFAULT_TICKET_ITEM_NAMES,
+  PHOTO_TICKET_TOTAL_CENTS,
+} from "@dither-booth/shared/routes";
 import { cn } from "@dither-booth/shared/styles";
 import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/index";
 import { NinetyNineStudQR } from "@dither-booth/ui/components/svg/99studQR/index";
@@ -17,7 +21,6 @@ import { type FC, useMemo } from "react";
 import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index";
 import { receiptViewerRoute } from "#lib/router/index";
-const TARTINES_RECEIPT_TOTAL = 1999;
 const RECEIPT_QUANTITY_LABEL = "1x";
 const RECEIPT_QUANTITY_CLASSNAME = clsx(
   "shrink-0 font-bit text-4xl tabular-nums",
@@ -25,17 +28,25 @@ const RECEIPT_QUANTITY_CLASSNAME = clsx(
 const RECEIPT_PRICE_CLASSNAME = clsx("shrink-0 font-bit text-4xl tabular-nums");
 const PRICE_CURRENCY_SUFFIX = formatPrice(0).replace(/^.*\d/u, "");
 
-const randomPriceSplit = (total: number): [number, number, number] => {
+const randomPriceSplit = (total: number, count: number): number[] => {
+  if (count < 1) {
+    return [];
+  }
+
   const minPrice = 1;
-  let remainder = total - 3 * minPrice;
+  const partCount = Math.min(count, total);
+  let remainder = total - partCount * minPrice;
+  const extras = Array.from({ length: partCount }, () => 0);
 
-  const firstExtra = Math.floor(Math.random() * (remainder + 1));
-  remainder -= firstExtra;
+  for (let index = 0; index < partCount - 1; index += 1) {
+    const extra = Math.floor(Math.random() * (remainder + 1));
+    extras[index] = extra;
+    remainder -= extra;
+  }
 
-  const secondExtra = Math.floor(Math.random() * (remainder + 1));
-  remainder -= secondExtra;
+  extras[partCount - 1] = remainder;
 
-  return [minPrice + firstExtra, minPrice + secondExtra, minPrice + remainder];
+  return extras.map((extra) => minPrice + extra);
 };
 
 interface TartinesReceiptTemplateProps {
@@ -46,12 +57,15 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
   props,
 ) => {
   const { className } = props;
-  const { ticketRef } = receiptViewerRoute.useSearch();
+  const { ticketItems, ticketRef } = receiptViewerRoute.useSearch();
   const ticketNumber = ticketRef ? formatBoothTicketNumber(ticketRef) : null;
   const today = new Date();
-  const [studPrice, matePrice, ginettePrice] = useMemo(
-    () => randomPriceSplit(TARTINES_RECEIPT_TOTAL),
-    [],
+  const itemNames = ticketItems ?? DEFAULT_TICKET_ITEM_NAMES;
+  const prices = useMemo(
+    () => randomPriceSplit(PHOTO_TICKET_TOTAL_CENTS, itemNames.length),
+    // ticketRef is unused by the split; a new ticket still needs a new roll.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- re-roll per ticket
+    [itemNames, ticketRef],
   );
 
   return (
@@ -106,13 +120,14 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
           ITEMS
         </p>
         <div className={clsx("flex flex-col gap-4", "font-bold")}>
-          <ReceiptItem quantity={1} name="99stud" price={studPrice} />
-          <ReceiptItem quantity={1} name="El Tony Mate" price={matePrice} />
-          <ReceiptItem
-            quantity={1}
-            name="Épicerie Ginette"
-            price={ginettePrice}
-          />
+          {itemNames.map((name, index) => (
+            <ReceiptItem
+              key={`${index}-${name}`}
+              quantity={1}
+              name={name}
+              price={prices[index] ?? 0}
+            />
+          ))}
         </div>
       </div>
       <AsteriskLine className={clsx("mb-6")} />
@@ -131,7 +146,7 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
           <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
         </div>
         <p className={clsx("font-bit text-4xl font-bold tabular-nums")}>
-          {formatPrice(TARTINES_RECEIPT_TOTAL)}
+          {formatPrice(PHOTO_TICKET_TOTAL_CENTS)}
         </p>
       </div>
       <AsteriskLine className={clsx("mt-6")} />

@@ -7,9 +7,11 @@
 
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import {
+  RECEIPT_VIEWER_SEARCH_KEYS,
   RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE,
   buildReceiptViewerSearch,
   installReceiptViewerNavigationBridge,
+  receiptSearchValuesMatch,
 } from "@dither-booth/shared/browser/receipt-viewer";
 import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -50,17 +52,6 @@ declare module "@tanstack/react-router" {
   }
 }
 
-const RECEIPT_VIEWER_SEARCH_KEYS = [
-  "template",
-  "outcome",
-  "prizeId",
-  "title",
-  "winInstruction",
-  "prizeRarity",
-  "wonAt",
-  "ticketRef",
-] as const;
-
 installReceiptViewerNavigationBridge({
   isRouteStateCommitted: (options = {}) => {
     const expected = buildReceiptViewerSearch(options);
@@ -71,7 +62,7 @@ installReceiptViewerNavigationBridge({
     }
 
     for (const key of RECEIPT_VIEWER_SEARCH_KEYS) {
-      if (search[key] !== expected[key]) {
+      if (!receiptSearchValuesMatch(search[key], expected[key])) {
         return false;
       }
     }

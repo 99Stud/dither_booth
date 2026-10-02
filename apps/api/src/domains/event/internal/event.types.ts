@@ -14,6 +14,7 @@ export type CurrentEvent = {
   campaign: {
     id: string;
     name: string;
+    ticketItemNames: string[];
   };
   lottery: {
     id: string;

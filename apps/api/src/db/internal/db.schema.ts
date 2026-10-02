@@ -1,5 +1,8 @@
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
-import { PHOTO_RECEIPT_TEMPLATES } from "@dither-booth/shared/routes";
+import {
+  DEFAULT_TICKET_ITEM_NAMES,
+  PHOTO_RECEIPT_TEMPLATES,
+} from "@dither-booth/shared/routes";
 import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
 import {
@@ -85,6 +88,10 @@ export const campaignTable = sqliteTable("campaign", {
     .$defaultFn(() => createId()),
   name: text("name").notNull(),
   lotteryId: text("lottery_id").references(() => lotteryTable.id),
+  ticketItemNames: text("ticket_item_names", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default([...DEFAULT_TICKET_ITEM_NAMES]),
 });
 
 export const lotteryTable = sqliteTable(

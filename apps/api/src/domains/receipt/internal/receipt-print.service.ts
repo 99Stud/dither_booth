@@ -8,6 +8,7 @@ import type { DrawResult } from "#domains/lottery/internal/lottery.types";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { lotteryTable } from "#db/internal/db.schema";
+import { getCurrentTicketItemNamesForDb } from "#domains/event/internal/event.service";
 import { LOTTERY_LOG_SOURCE } from "#domains/lottery/internal/lottery.constants";
 import { executeLotteryDraw } from "#domains/lottery/internal/lottery.draw";
 import { createBoothTicketRef } from "#domains/lottery/internal/lottery.ticket-ref";
@@ -109,11 +110,13 @@ export const prepareReceiptJob = async ({
     });
   }
 
+  const ticketItems = await getCurrentTicketItemNamesForDb(ctx.db);
   let ticketRef = createBoothTicketRef();
   let receiptRasterCmd = await buildReceiptRasterCommand({
     page,
     photoBuffer,
     printConfiguration,
+    ticketItems,
     ticketRef,
   });
 
@@ -137,6 +140,7 @@ export const prepareReceiptJob = async ({
       page,
       photoBuffer,
       printConfiguration,
+      ticketItems,
       ticketRef,
     });
   }

@@ -1,4 +1,5 @@
 import { raritySchema } from "@dither-booth/shared/lottery";
+import { ticketItemNamesSchema } from "@dither-booth/shared/routes";
 import z from "zod";
 
 export const EVENT_LOG_SOURCE = "api.event";
@@ -13,6 +14,10 @@ export const createEventInputSchema = z.object({
 
 export const updateEventInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
+});
+
+export const updateTicketItemsInputSchema = z.object({
+  names: ticketItemNamesSchema,
 });
 
 export const updateLotterySettingsInputSchema = z.object({
@@ -78,6 +83,9 @@ export const listDrawsInputSchema = z.object({
 
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
+export type UpdateTicketItemsInput = z.infer<
+  typeof updateTicketItemsInputSchema
+>;
 export type UpdateLotterySettingsInput = z.infer<
   typeof updateLotterySettingsInputSchema
 >;

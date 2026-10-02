@@ -14,6 +14,7 @@ export type CurrentEvent = {
   campaign: {
     id: string;
     name: string;
+    ticketItemNames: string[];
   };
   lottery: {
     id: string;
@@ -37,6 +38,10 @@ export type CreateEventFormValues = {
 
 export type UpdateEventNameFormValues = {
   name: string;
+};
+
+export type TicketItemsFormValues = {
+  names: string[];
 };
 
 export type LotterySettingsFormValues = {

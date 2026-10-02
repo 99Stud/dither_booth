@@ -2,6 +2,7 @@ import type { SelectFieldOption } from "@dither-booth/ui/fields/SelectField";
 
 import { capitalize } from "@dither-booth/shared/formatting";
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
+import { ticketItemNamesSchema } from "@dither-booth/shared/routes";
 import z from "zod";
 
 import type {
@@ -10,6 +11,7 @@ import type {
   PrizeFormValues,
   LotterySettingsFormValues,
   RestockPrizeFormValues,
+  TicketItemsFormValues,
   UpdateEventNameFormValues,
 } from "./Event.types";
 
@@ -32,6 +34,10 @@ export const CREATE_EVENT_FORM_SCHEMA = z.object({
 
 export const UPDATE_EVENT_NAME_FORM_SCHEMA = z.object({
   name: z.string().trim().min(1).max(120),
+});
+
+export const TICKET_ITEMS_FORM_SCHEMA = z.object({
+  names: ticketItemNamesSchema,
 });
 
 export const LOTTERY_SETTINGS_FORM_SCHEMA = z.object({
@@ -102,6 +108,12 @@ export const getUpdateEventNameFormValues = (event: {
   campaign: { name: string };
 }): UpdateEventNameFormValues => ({
   name: event.campaign.name,
+});
+
+export const getTicketItemsFormValues = (event: {
+  campaign: { ticketItemNames: string[] };
+}): TicketItemsFormValues => ({
+  names: [...event.campaign.ticketItemNames],
 });
 
 export const getPrizeFormValues = (
