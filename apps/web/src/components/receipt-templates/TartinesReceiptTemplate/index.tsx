@@ -13,6 +13,7 @@ import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/i
 import { NinetyNineStudQR } from "@dither-booth/ui/components/svg/99studQR/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
 import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
+import { OtchoLogo } from "@dither-booth/ui/components/svg/OtchoLogo/index";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { Sparkles } from "pixelarticons/react/Sparkles.js";
@@ -153,10 +154,11 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
           </p>
         </div>
         <AsteriskLine className={clsx("mt-6")} />
-        <div className={clsx("grid grid-cols-3 items-center gap-4")}>
-          <NinetyNineStudLogo className={clsx("h-20", "justify-self-start")} />
-          <DitherBoothLogo className={clsx("h-14", "justify-self-center")} />
-          <ElTonyMateLogo className={clsx("h-20", "justify-self-end")} />
+        <div className={clsx("flex w-full items-center justify-between")}>
+          <DitherBoothLogo className={clsx("h-16 shrink-0")} />
+          <ElTonyMateLogo className={clsx("h-[4.5rem] shrink-0")} />
+          <OtchoLogo className={clsx("-mx-5 h-[6.5rem] shrink-0")} />
+          <NinetyNineStudLogo className={clsx("h-[4.25rem] shrink-0")} />
         </div>
         <AsteriskLine />
         <div className={clsx("flex flex-col items-center")}>
