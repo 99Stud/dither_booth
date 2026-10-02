@@ -1,4 +1,3 @@
-import type { Rarity } from "@dither-booth/shared/lottery";
 import type { FC } from "react";
 
 import { RECEIPT_ELEMENT_ID } from "@dither-booth/shared/browser/receipt-viewer";
@@ -40,13 +39,11 @@ const AsteriskRule: FC = () => {
 
 const OutcomeBand: FC<{
   outcome: "win" | "loss";
-  prizeRarity?: Rarity | null;
 }> = (props) => {
-  const { outcome, prizeRarity } = props;
+  const { outcome } = props;
   const win = outcome === "win";
-  const RarityIcon =
-    win && prizeRarity ? getRarityReveal(prizeRarity).Icon : null;
-  const Icon = RarityIcon ?? (win ? Smile : Angry);
+
+  const Icon = win ? Smile : Angry;
 
   return (
     <div className="-mx-5 flex items-center justify-between bg-black px-5 py-4 text-white">
@@ -76,6 +73,7 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
   const wonAtParts = wonAt ? formatWonAtParts(wonAt) : null;
   const headline = win ? title : LOSS_HEADLINE;
   const notice = win ? winInstruction : LOSS_JOKE;
+  const NoticeIcon = win ? RarityIcon : Eye;
 
   return (
     <div
@@ -92,7 +90,7 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
         width: PRINT_WIDTH_PX,
       }}
     >
-      <OutcomeBand outcome={outcome} prizeRarity={prizeRarity} />
+      <OutcomeBand outcome={outcome} />
       {headline ? (
         <p className="text-center text-6xl leading-[0.85] font-bold uppercase">
           {headline}
@@ -106,9 +104,13 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
             "text-5xl leading-[0.9] font-bold",
           )}
         >
-          {win ? null : <Eye className="size-10 shrink-0" aria-hidden />}
+          {NoticeIcon ? (
+            <NoticeIcon className="size-10 shrink-0" aria-hidden />
+          ) : null}
           <p className="text-center whitespace-pre-wrap">{notice}</p>
-          {win ? null : <Eye className="size-10 shrink-0" aria-hidden />}
+          {NoticeIcon ? (
+            <NoticeIcon className="size-10 shrink-0" aria-hidden />
+          ) : null}
         </div>
       ) : null}
       <AsteriskRule />
@@ -128,10 +130,6 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
               ) : null}
               <span className="leading-none">{rarityReveal.label}</span>
             </span>
-          ) : wonAtParts ? (
-            <span className="text-right text-2xl leading-[0.9] font-bold tabular-nums">
-              {wonAtParts.date}
-            </span>
           ) : null}
         </div>
         <div className="flex items-end justify-between gap-4">
@@ -142,7 +140,7 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
           )}
           {wonAtParts ? (
             <div className="text-right text-2xl leading-[0.9] font-bold tabular-nums">
-              {win && rarityReveal ? <p>{wonAtParts.date}</p> : null}
+              <p>{wonAtParts.date}</p>
               <p>{wonAtParts.time}</p>
             </div>
           ) : null}
