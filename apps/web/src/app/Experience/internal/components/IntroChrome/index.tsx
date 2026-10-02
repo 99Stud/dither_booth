@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 import { Gift } from "pixelarticons/react/Gift.js";
 
-import { SLIDE_TRANSITION } from "../../Experience.motion";
+import { SHUTTER_TRANSITION } from "../../Experience.motion";
 import { formatLastWinAt, getRarityReveal } from "../../lottery-reveal.utils";
 
 export const IntroChrome = ({
@@ -25,9 +25,7 @@ export const IntroChrome = ({
     <motion.div
       initial={false}
       animate={{ opacity: isVisible ? 1 : 0 }}
-      // Shares the camera/button slide timing: the chrome always fades in or out
-      // alongside whichever slide it accompanies.
-      transition={SLIDE_TRANSITION}
+      transition={SHUTTER_TRANSITION}
       className="pointer-events-none fixed inset-0 z-10"
     >
       <div

@@ -7,7 +7,7 @@ import { PROMPT_TEXT_BY_PHASE } from "./Experience.copy";
 import {
   PROMPT_TEXT_TRANSITION,
   PROMPT_TRANSITION,
-  SLIDE_TRANSITION,
+  SHUTTER_TRANSITION,
 } from "./Experience.motion";
 import {
   AUTO_ADVANCE_ACTION_BY_PHASE,
@@ -24,6 +24,7 @@ const ALL_PHASES = Object.keys(PHASE_FLAGS) as ExperiencePhase[];
 const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
   {
     cameraVisible: [
+      "introExiting",
       "cameraEntering",
       "promptEntering",
       "countdown",
@@ -74,7 +75,7 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
       "resettingButtonRepositioning",
       "resettingButtonRevealing",
     ],
-    startButtonVisible: ["idle", "introExiting", "resettingButtonRevealing"],
+    startButtonVisible: ["idle", "resettingButtonRevealing"],
     startEnabled: ["idle"],
     printAttempt: ["capturing", "preparing", "printing"],
     smileHold: ["smile"],
@@ -82,11 +83,15 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
     instructionsHold: ["instructions"],
     reelsAnimationFallback: ["spinning"],
     startButtonAnimationFallback: [
-      "introExiting",
       "resettingButtonRepositioning",
       "resettingButtonRevealing",
     ],
-    cameraAnimationFallback: ["cameraEntering", "cameraExiting", "resetting"],
+    cameraAnimationFallback: [
+      "introExiting",
+      "cameraEntering",
+      "cameraExiting",
+      "resetting",
+    ],
     promptAnimationFallback: ["promptEntering"],
   };
 
@@ -139,11 +144,11 @@ describe("PROMPT_TEXT_BY_PHASE", () => {
     expect(PROMPT_TEXT_BY_PHASE.resetting).toBe(PROMPT_TEXT_BY_PHASE.printing);
   });
 
-  // Both fade-out phases are left when the camera slide completes. That has to
+  // Both fade-out phases are left when the shutter closes. That has to
   // outlast the prompt fade, otherwise resetting the caption on the next phase
   // would be visible mid-fade.
-  it("relies on the camera slide outlasting the prompt fade", () => {
-    expect(PROMPT_TRANSITION.duration).toBeLessThan(SLIDE_TRANSITION.duration);
+  it("relies on the shutter outlasting the prompt fade", () => {
+    expect(PROMPT_TRANSITION.duration).toBeLessThan(SHUTTER_TRANSITION.duration);
   });
 
   // The outgoing caption has to finish leaving before the prompt itself has

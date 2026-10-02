@@ -41,7 +41,6 @@ const enterCapturing = (): ExperienceState => {
   const state = reduce(
     withPhase("idle"),
     { type: "startRequested" },
-    { type: "startButtonAnimationCompleted" },
     { type: "cameraAnimationCompleted" },
     { type: "promptAnimationCompleted" },
     ...Array.from(
@@ -80,11 +79,6 @@ describe("experienceReducer", () => {
 
     state = experienceReducer(state, { type: "startRequested" });
     expect(state.phase).toBe("introExiting");
-
-    state = experienceReducer(state, {
-      type: "startButtonAnimationCompleted",
-    });
-    expect(state.phase).toBe("cameraEntering");
 
     state = experienceReducer(state, { type: "cameraAnimationCompleted" });
     expect(state.phase).toBe("promptEntering");
@@ -376,17 +370,14 @@ describe("experienceReducer", () => {
   });
 
   it("treats duplicate animation-complete events as no-ops after transition", () => {
-    const afterStartButton = experienceReducer(withPhase("introExiting"), {
-      type: "startButtonAnimationCompleted",
-    });
-    expect(afterStartButton.phase).toBe("cameraEntering");
+    const introExiting = withPhase("introExiting");
     expect(
-      experienceReducer(afterStartButton, {
+      experienceReducer(introExiting, {
         type: "startButtonAnimationCompleted",
       }),
-    ).toBe(afterStartButton);
+    ).toBe(introExiting);
 
-    const afterCamera = experienceReducer(afterStartButton, {
+    const afterCamera = experienceReducer(introExiting, {
       type: "cameraAnimationCompleted",
     });
     expect(afterCamera.phase).toBe("promptEntering");

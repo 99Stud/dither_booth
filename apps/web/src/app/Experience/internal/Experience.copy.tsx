@@ -21,8 +21,8 @@ const PRINTING_PROMPT_TEXT = "printing...";
  * caption can swap mid-fade — on an error path that is already tearing the
  * stage down.
  *
- * Phases after those two are safe to reset because both are left when the camera
- * slide completes (SLIDE_TRANSITION, 400ms), which outlasts the prompt fade
+ * Phases after those two are safe to reset because both are left when the
+ * shutter closes (SHUTTER_TRANSITION, 620ms), which outlasts the prompt fade
  * (PROMPT_TRANSITION, 300ms) — the panel is fully transparent by then. That
  * ordering is asserted in Experience.phases.test.tsx.
  */

@@ -5,6 +5,14 @@ export const SLIDE_TRANSITION = {
   ease: "easeOut",
 } as const satisfies Transition;
 
+/** Camera square opening and closing over the landing. */
+export const SHUTTER_MS = 620;
+
+export const SHUTTER_TRANSITION = {
+  duration: SHUTTER_MS / 1000,
+  ease: [0.22, 1, 0.36, 1],
+} as const satisfies Transition;
+
 export const PROMPT_TRANSITION = {
   duration: 0.3,
 } as const satisfies Transition;
@@ -31,6 +39,9 @@ const ANIMATION_FALLBACK_MARGIN_MS = 500;
 
 export const SLIDE_ANIMATION_FALLBACK_MS =
   SLIDE_TRANSITION.duration * 1000 + ANIMATION_FALLBACK_MARGIN_MS;
+
+export const SHUTTER_ANIMATION_FALLBACK_MS =
+  SHUTTER_MS + ANIMATION_FALLBACK_MARGIN_MS;
 
 export const PROMPT_ANIMATION_FALLBACK_MS =
   PROMPT_TRANSITION.duration * 1000 + ANIMATION_FALLBACK_MARGIN_MS;

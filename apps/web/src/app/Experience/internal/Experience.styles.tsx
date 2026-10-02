@@ -10,6 +10,6 @@ export const splitTileClassName = clsx(
 export const splitTileEdgeOffset = `calc((100% - 2 * var(--split-tile) - ${SPLIT_TILE_GAP_PX}px) / 2)`;
 
 export const experienceStageClassName = clsx(
-  "pointer-events-none fixed inset-0",
+  "pointer-events-none fixed inset-0 z-[15]",
   "font-bit text-white/90 text-shadow-glow",
 );

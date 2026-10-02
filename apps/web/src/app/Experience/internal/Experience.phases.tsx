@@ -37,7 +37,7 @@ export const PHASE_FLAGS: Record<
     "startButtonVisible",
     "startEnabled",
   ],
-  introExiting: ["startButtonVisible", "startButtonAnimationFallback"],
+  introExiting: ["cameraVisible", "cameraAnimationFallback"],
   cameraEntering: ["cameraVisible", "cameraAnimationFallback"],
   promptEntering: ["cameraVisible", "promptVisible", "promptAnimationFallback"],
   countdown: ["cameraVisible", "promptVisible"],

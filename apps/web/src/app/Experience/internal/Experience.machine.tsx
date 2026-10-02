@@ -118,9 +118,7 @@ export const experienceReducer = (
     }
 
     case "startButtonAnimationCompleted": {
-      if (state.phase === "introExiting") {
-        return { ...state, phase: "cameraEntering" };
-      }
+      if (state.phase === "introExiting") return state;
 
       if (state.phase === "resettingButtonRepositioning") {
         return { ...state, phase: "resettingButtonRevealing" };
@@ -134,7 +132,7 @@ export const experienceReducer = (
     }
 
     case "cameraAnimationCompleted": {
-      if (state.phase === "cameraEntering") {
+      if (state.phase === "introExiting" || state.phase === "cameraEntering") {
         return { ...state, phase: "promptEntering" };
       }
 
