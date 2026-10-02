@@ -2,9 +2,11 @@ import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { getWebInternalOrigin } from "@dither-booth/ports";
 import { getErrorMessage } from "@dither-booth/shared/errors";
 import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
+import { resolve } from "node:path";
 import puppeteer from "puppeteer";
 
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
+import { API_APP_ROOT } from "#lib/constants";
 
 import type {
   PuppeteerReceiptViewerNavigationDetails,
@@ -12,6 +14,12 @@ import type {
   PuppeteerStartupStage,
   PuppeteerStartupState,
 } from "./puppeteer.types";
+
+const RECEIPT_VIEWER_FONTCONFIG_FILE = resolve(
+  API_APP_ROOT,
+  "fontconfig",
+  "fonts.conf",
+);
 
 export function createReceiptViewerDetails(
   details: Omit<PuppeteerReceiptViewerNavigationDetails, "path"> = {},
@@ -81,6 +89,14 @@ export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerRecei
     browser = await puppeteer.launch({
       // Local booth TLS uses mkcert; Chromium does not always trust that CA.
       acceptInsecureCerts: true,
+      // Snaps glyphs to whole pixels so the pixel font lands on the 1-bit grid.
+      args: ["--disable-font-subpixel-positioning"],
+      // Linux Chromium takes its text rendering settings from fontconfig; the
+      // booth config turns anti-aliasing off. macOS ignores it.
+      env:
+        process.platform === "linux"
+          ? { ...process.env, FONTCONFIG_FILE: RECEIPT_VIEWER_FONTCONFIG_FILE }
+          : process.env,
       handleSIGHUP: false,
       handleSIGINT: false,
       handleSIGTERM: false,
@@ -111,8 +127,10 @@ export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerRecei
     try {
       page = await browser.newPage();
 
+      // Supersampled, then downscaled to PRINT_WIDTH_PX before thresholding.
+      // Keep it an integer so the pre-dithered photo survives the downscale.
       await page.setViewport({
-        deviceScaleFactor: 1,
+        deviceScaleFactor: 2,
         width: 1440,
         height: 900,
       });

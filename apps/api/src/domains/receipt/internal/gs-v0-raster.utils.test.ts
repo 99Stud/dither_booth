@@ -123,16 +123,70 @@ describe("screenshotToGsV0RasterCommand", () => {
     const dithered = await ditherImage(ramp, PRINT_CONFIGURATION, {
       width: PRINT_WIDTH_PX,
     });
-    const ditheredPng = await dithered.png().toBuffer();
+    const ditheredPng = await dithered
+      .threshold(PRINT_CONFIGURATION.threshold)
+      .png()
+      .toBuffer();
 
     const command = await screenshotToGsV0RasterCommand(ditheredPng, {
-      threshold: PRINT_CONFIGURATION.threshold,
       width: PRINT_WIDTH_PX,
     });
     const png = await gsV0RasterCommandToPngBuffer(command);
 
     expect(await readMonoPixelsFromPng(png, PRINT_WIDTH_PX, 32)).toEqual(
       await readMonoPixelsFromPng(ditheredPng, PRINT_WIDTH_PX, 32),
+    );
+  });
+
+  test("keeps a dithered photo pixel-identical when downscaling a 2x screenshot", async () => {
+    const ramp = await createGrayRampPng(PRINT_WIDTH_PX, 32);
+    const dithered = await ditherImage(ramp, PRINT_CONFIGURATION, {
+      width: PRINT_WIDTH_PX,
+    });
+    const ditheredPng = await dithered
+      .threshold(PRINT_CONFIGURATION.threshold)
+      .png()
+      .toBuffer();
+    const supersampledPng = await sharp(ditheredPng)
+      .resize({ width: PRINT_WIDTH_PX * 2, kernel: "nearest" })
+      .png()
+      .toBuffer();
+
+    const command = await screenshotToGsV0RasterCommand(supersampledPng, {
+      width: PRINT_WIDTH_PX,
+    });
+    const png = await gsV0RasterCommandToPngBuffer(command);
+
+    expect(await readMonoPixelsFromPng(png, PRINT_WIDTH_PX, 32)).toEqual(
+      await readMonoPixelsFromPng(ditheredPng, PRINT_WIDTH_PX, 32),
+    );
+  });
+
+  test("snaps dark gray to solid black and light gray to solid white", async () => {
+    const width = 16;
+    const height = 4;
+    const data = Buffer.alloc(width * height);
+
+    for (let index = 0; index < data.length; index++) {
+      data[index] = index < data.length / 2 ? 128 : 240;
+    }
+
+    const png = await sharp(data, { raw: { width, height, channels: 1 } })
+      .png()
+      .toBuffer();
+    const pixels = await readMonoPixelsFromPng(
+      await gsV0RasterCommandToPngBuffer(
+        await screenshotToGsV0RasterCommand(png),
+      ),
+      width,
+      height,
+    );
+
+    expect(pixels.slice(0, data.length / 2)).toEqual(
+      Array.from({ length: data.length / 2 }, () => 0),
+    );
+    expect(pixels.slice(data.length / 2)).toEqual(
+      Array.from({ length: data.length / 2 }, () => 255),
     );
   });
 
