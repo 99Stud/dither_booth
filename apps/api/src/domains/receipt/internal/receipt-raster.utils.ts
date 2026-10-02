@@ -163,13 +163,13 @@ export async function buildLotteryTicketRasterCommand({
         search: {
           template: LOTTERY_RECEIPT_TEMPLATE,
           outcome: draw.outcome,
+          wonAt: new Date().toISOString(),
           ...(draw.outcome === "win"
             ? {
                 prizeId: draw.prize.id,
                 title: draw.prize.title,
                 winInstruction: draw.prize.winInstruction,
                 prizeRarity: draw.prize.rarity,
-                wonAt: new Date().toISOString(),
               }
             : {}),
           ticketRef,
