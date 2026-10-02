@@ -21,6 +21,7 @@ import {
 import {
   PROMPT_ANIMATION_FALLBACK_MS,
   REELS_ANIMATION_FALLBACK_MS,
+  SHUTTER_ANIMATION_FALLBACK_MS,
   SLIDE_ANIMATION_FALLBACK_MS,
 } from "../Experience.motion";
 import {
@@ -124,7 +125,7 @@ export const useExperienceFlow = () => {
   });
 
   usePhaseTimeout({
-    delayMs: SLIDE_ANIMATION_FALLBACK_MS,
+    delayMs: SHUTTER_ANIMATION_FALLBACK_MS,
     isActive: hasPhaseFlag(phase, "cameraAnimationFallback"),
     onElapsed: () => dispatch({ type: "cameraAnimationCompleted" }),
     phase,

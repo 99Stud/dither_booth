@@ -5,6 +5,7 @@ import {
   type WebcamHandle,
 } from "@dither-booth/ui/components/misc/Webcam";
 import { createUserMediaReporters } from "@dither-booth/ui/lib/hooks/user-media";
+import { animate } from "animejs";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
@@ -16,7 +17,7 @@ import {
   COUNTDOWN_TRANSITION,
   PROMPT_TEXT_TRANSITION,
   PROMPT_TRANSITION,
-  SLIDE_TRANSITION,
+  SHUTTER_MS,
 } from "../../Experience.motion";
 
 const {
@@ -26,6 +27,9 @@ const {
 
 /** How far the caption travels as it exits upward and the next one rises in. */
 const PROMPT_TEXT_SWAP_Y = 10;
+
+/** Closed shutter. The open plays from here to full size. */
+const SHUTTER_CLOSED_SCALE = 0.08;
 
 interface CameraStageProps {
   /** Overlays that ride along with the camera slide (frozen photo, slot panel). */
@@ -57,6 +61,45 @@ export const CameraStage = ({
   webcamRef,
 }: CameraStageProps) => {
   const cameraBoxRef = useRef<HTMLDivElement>(null);
+  const shutterRef = useRef<HTMLDivElement>(null);
+  const shutterHasOpenedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const shutter = shutterRef.current;
+
+    if (!shutter) return;
+
+    // The stage mounts closed. Animating that rest state would complete
+    // during idle and try to advance the flow. Inline transform, not the
+    // CSS scale property: that one multiplies with anime's transform and
+    // pins the square at its closed size.
+    if (!isCameraVisible && !shutterHasOpenedRef.current) {
+      shutter.style.opacity = "0";
+      shutter.style.transform = `scale(${SHUTTER_CLOSED_SCALE})`;
+      return;
+    }
+
+    if (isCameraVisible) shutterHasOpenedRef.current = true;
+
+    let cancelled = false;
+    const shutterMove = animate(shutter, {
+      scale: isCameraVisible
+        ? [SHUTTER_CLOSED_SCALE, 1]
+        : [1, SHUTTER_CLOSED_SCALE],
+      opacity: isCameraVisible ? [0, 1] : [1, 0],
+      duration: SHUTTER_MS,
+      ease: "outQuart",
+    });
+
+    void shutterMove.then(() => {
+      if (!cancelled) onCameraAnimationComplete();
+    });
+
+    return () => {
+      cancelled = true;
+      shutterMove.pause();
+    };
+  }, [isCameraVisible, onCameraAnimationComplete]);
 
   useLayoutEffect(() => {
     const box = cameraBoxRef.current;
@@ -76,32 +119,31 @@ export const CameraStage = ({
   }, [onSplitTile]);
 
   return (
-    <motion.div
-      initial={false}
+    <div
       className={clsx("absolute inset-0 py-8")}
       style={{ ["--split-tile" as string]: `${splitTilePx}px` }}
-      animate={{
-        x: isCameraVisible ? 0 : "100vw",
-      }}
-      transition={SLIDE_TRANSITION}
-      onAnimationComplete={onCameraAnimationComplete}
     >
       <div
-        ref={cameraBoxRef}
-        className={clsx(
-          "absolute top-8 bottom-8 left-1/2 aspect-square",
-          "-translate-x-1/2",
-          !isLiveFeedVisible && "invisible",
-        )}
+        ref={shutterRef}
+        className="absolute inset-0 origin-center"
       >
-        <Webcam
-          ref={webcamRef}
-          className={clsx("h-full w-full max-w-none", "shadow-soft")}
-          onCameraStateChange={reportUserMediaCameraStateChange}
-          onConstraintFallbackError={reportUserMediaConstraintFallbackError}
-        />
+        <div
+          ref={cameraBoxRef}
+          className={clsx(
+            "absolute top-8 bottom-8 left-1/2 aspect-square",
+            "-translate-x-1/2",
+            !isLiveFeedVisible && "invisible",
+          )}
+        >
+          <Webcam
+            ref={webcamRef}
+            className={clsx("h-full w-full max-w-none", "shadow-soft")}
+            onCameraStateChange={reportUserMediaCameraStateChange}
+            onConstraintFallbackError={reportUserMediaConstraintFallbackError}
+          />
+        </div>
+        {children}
       </div>
-      {children}
       <motion.div
         initial={false}
         animate={{
@@ -157,6 +199,6 @@ export const CameraStage = ({
           </motion.p>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
