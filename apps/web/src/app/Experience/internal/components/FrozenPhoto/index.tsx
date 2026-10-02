@@ -7,9 +7,11 @@ import { useLayoutEffect, useRef } from "react";
 import { FROZEN_PHOTO_SCALE } from "../../Experience.constants";
 import { SLOT_STAGE_ENTER_MS } from "../../Experience.motion";
 import {
+  cameraFrameClassName,
   splitTileClassName,
   splitTileEdgeOffset,
 } from "../../Experience.styles";
+import { CameraCrt } from "../CameraCrt/index";
 
 /**
  * The captured square. It starts covering the webcam box, then shrinks to the
@@ -62,13 +64,16 @@ export const FrozenPhoto: FC<{
       style={{ left: splitTileEdgeOffset }}
       className={clsx("z-10", splitTileClassName)}
     >
-      <div ref={frameRef} className="h-full w-full">
-        <img
-          src={photoUrl}
-          alt=""
-          draggable={false}
-          className={clsx("h-full w-full max-w-none", "shadow-soft")}
-        />
+      <div ref={frameRef} className="relative h-full w-full shadow-soft">
+        <CameraCrt>
+          <img
+            src={photoUrl}
+            alt=""
+            draggable={false}
+            className="h-full min-h-0 w-full max-w-none flex-1"
+          />
+        </CameraCrt>
+        <div aria-hidden className={cameraFrameClassName} />
       </div>
     </div>
   );

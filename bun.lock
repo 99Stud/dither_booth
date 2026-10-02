@@ -121,6 +121,7 @@
         "sonner": "2.0.7",
         "tailwindcss": "4.3.3",
         "three": "0.186.1",
+        "vault66-crt-effect": "3.1.1",
         "zod": "4.4.3",
       },
       "devDependencies": {
@@ -1472,6 +1473,8 @@
     "validate-npm-package-name": ["validate-npm-package-name@7.0.2", "", {}, "sha512-hVDIBwsRruT73PbK7uP5ebUt+ezEtCmzZz3F59BSr2F6OVFnJ/6h8liuvdLrQ88Xmnk6/+xGGuq+pG9WwTuy3A=="],
 
     "vary": ["vary@1.1.2", "", {}, "sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg=="],
+
+    "vault66-crt-effect": ["vault66-crt-effect@3.1.1", "", { "peerDependencies": { "react": ">=18.0.0", "react-dom": ">=18.0.0", "vue": ">=3.0.0" }, "optionalPeers": ["react", "react-dom", "vue"] }, "sha512-piSVW3wnwO2AGEzwjJ7k8DWF5dxN6edjjtz8jWZxsqkDAHihdE905M150jP9v0U5HdXSgUI0Aa4q83/VJ3/JSg=="],
 
     "verror": ["verror@1.10.0", "", { "dependencies": { "assert-plus": "^1.0.0", "core-util-is": "1.0.2", "extsprintf": "^1.2.0" } }, "sha512-ZZKSmDAEFOijERBLkmYfJ+vmk3w+7hOLYDNkRCuRuMJGEmqYNCNLyBBFwWKVMhfwaEF3WOd0Zlw86U/WC/+nYw=="],
 

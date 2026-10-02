@@ -8,6 +8,11 @@ export const SLIDE_TRANSITION = {
 /** Camera square opening and closing over the landing. */
 export const SHUTTER_MS = 620;
 
+/** Viewfinder brackets snap onto the square once the shutter is mostly open. */
+export const VIEWFINDER_ENTER_DELAY_MS = SHUTTER_MS / 2;
+export const VIEWFINDER_ENTER_MS = 420;
+export const VIEWFINDER_EXIT_MS = 200;
+
 export const SHUTTER_TRANSITION = {
   duration: SHUTTER_MS / 1000,
   ease: [0.22, 1, 0.36, 1],

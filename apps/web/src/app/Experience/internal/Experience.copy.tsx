@@ -3,6 +3,15 @@ import type { ExperiencePhase } from "./Experience.machine";
 const DEFAULT_PROMPT_TEXT = "stay in the frame";
 
 const STRIKE_A_POSE_PROMPT_TEXT = "strike a pose :)";
+
+const CAMERA_STREAM_PROMPT_TEXTS = new Set([
+  DEFAULT_PROMPT_TEXT,
+  STRIKE_A_POSE_PROMPT_TEXT,
+]);
+
+/** Captions that sit inside the live square. Later lines stay above the stage. */
+export const isCameraStreamPrompt = (text: string) =>
+  CAMERA_STREAM_PROMPT_TEXTS.has(text);
 const LUCKY_PROMPT_TEXT = "feeling lucky?";
 const INSTRUCTIONS_PROMPT_TEXT = "that's it";
 const PRINTING_PROMPT_TEXT = "printing...";

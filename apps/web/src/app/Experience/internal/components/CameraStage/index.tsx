@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { FC, ReactNode, RefObject } from "react";
 
 import {
   Webcam,
@@ -12,6 +12,7 @@ import { useLayoutEffect, useRef } from "react";
 
 import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
 
+import { isCameraStreamPrompt } from "../../Experience.copy";
 import { FROZEN_PHOTO_SCALE } from "../../Experience.constants";
 import {
   COUNTDOWN_TRANSITION,
@@ -19,6 +20,8 @@ import {
   PROMPT_TRANSITION,
   SHUTTER_MS,
 } from "../../Experience.motion";
+import { CameraCrt } from "../CameraCrt/index";
+import { CameraViewfinder } from "../CameraViewfinder/index";
 
 const {
   reportUserMediaCameraStateChange,
@@ -27,6 +30,34 @@ const {
 
 /** How far the caption travels as it exits upward and the next one rises in. */
 const PROMPT_TEXT_SWAP_Y = 10;
+
+const promptLineClassName = clsx(
+  "text-5xl leading-none font-bold whitespace-nowrap uppercase",
+  "drop-shadow-glow",
+);
+
+/**
+ * Keyed on the text, not the phase, so phases that share a caption don't
+ * re-animate. `mode="wait"` lets the old line leave before the next one rises.
+ */
+const PromptLine: FC<{ text: string }> = (props) => {
+  const { text } = props;
+
+  return (
+    <AnimatePresence initial={false} mode="wait">
+      <motion.p
+        key={text}
+        initial={{ opacity: 0, y: PROMPT_TEXT_SWAP_Y }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -PROMPT_TEXT_SWAP_Y }}
+        transition={PROMPT_TEXT_TRANSITION}
+        className={promptLineClassName}
+      >
+        {text}
+      </motion.p>
+    </AnimatePresence>
+  );
+};
 
 /** Closed shutter. The open plays from here to full size. */
 const SHUTTER_CLOSED_SCALE = 0.08;
@@ -60,6 +91,9 @@ export const CameraStage = ({
   splitTilePx,
   webcamRef,
 }: CameraStageProps) => {
+  const inStreamPrompt = isCameraStreamPrompt(promptText);
+  const showInStreamPrompt = isPromptVisible && inStreamPrompt;
+  const showStagePrompt = isPromptVisible && !inStreamPrompt;
   const cameraBoxRef = useRef<HTMLDivElement>(null);
   const shutterRef = useRef<HTMLDivElement>(null);
   const shutterHasOpenedRef = useRef(false);
@@ -123,32 +157,45 @@ export const CameraStage = ({
       className={clsx("absolute inset-0 py-8")}
       style={{ ["--split-tile" as string]: `${splitTilePx}px` }}
     >
-      <div
-        ref={shutterRef}
-        className="absolute inset-0 origin-center"
-      >
+      <div ref={shutterRef} className="absolute inset-0 origin-center">
         <div
           ref={cameraBoxRef}
           className={clsx(
             "absolute top-8 bottom-8 left-1/2 aspect-square",
             "-translate-x-1/2",
+            "shadow-soft",
             !isLiveFeedVisible && "invisible",
           )}
         >
-          <Webcam
-            ref={webcamRef}
-            className={clsx("h-full w-full max-w-none", "shadow-soft")}
-            onCameraStateChange={reportUserMediaCameraStateChange}
-            onConstraintFallbackError={reportUserMediaConstraintFallbackError}
-          />
+          <CameraCrt>
+            <Webcam
+              ref={webcamRef}
+              className="h-full min-h-0 w-full max-w-none flex-1"
+              onCameraStateChange={reportUserMediaCameraStateChange}
+              onConstraintFallbackError={reportUserMediaConstraintFallbackError}
+            />
+          </CameraCrt>
+          <CameraViewfinder isVisible={isCameraVisible} />
+          <motion.div
+            initial={false}
+            animate={{
+              opacity: showInStreamPrompt ? 1 : 0,
+              y: showInStreamPrompt ? 0 : PROMPT_TEXT_SWAP_Y,
+            }}
+            transition={PROMPT_TRANSITION}
+            onAnimationComplete={onPromptAnimationComplete}
+            className="absolute top-8 left-8 z-20"
+          >
+            {inStreamPrompt && <PromptLine text={promptText} />}
+          </motion.div>
         </div>
         {children}
       </div>
       <motion.div
         initial={false}
         animate={{
-          opacity: isPromptVisible ? 1 : 0,
-          y: isPromptVisible ? "-33.33%" : "-100%",
+          opacity: showStagePrompt ? 1 : 0,
+          y: showStagePrompt ? "-33.33%" : "-100%",
         }}
         transition={PROMPT_TRANSITION}
         onAnimationComplete={onPromptAnimationComplete}
@@ -157,26 +204,7 @@ export const CameraStage = ({
           "flex justify-center",
         )}
       >
-        {/*
-          Keyed on the text, not the phase, so the phases that share a caption
-          (`smile` and `capturing`) don't re-animate. `mode="wait"` lets the
-          old line leave before the next one rises in.
-        */}
-        <AnimatePresence initial={false} mode="wait">
-          <motion.p
-            key={promptText}
-            initial={{ opacity: 0, y: PROMPT_TEXT_SWAP_Y }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -PROMPT_TEXT_SWAP_Y }}
-            transition={PROMPT_TEXT_TRANSITION}
-            className={clsx(
-              "text-5xl leading-none font-bold whitespace-nowrap uppercase",
-              "drop-shadow-glow",
-            )}
-          >
-            {promptText}
-          </motion.p>
-        </AnimatePresence>
+        {!inStreamPrompt && <PromptLine text={promptText} />}
       </motion.div>
       <AnimatePresence initial={false} mode="popLayout">
         {countdown !== null && (
