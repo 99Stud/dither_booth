@@ -11,12 +11,19 @@ import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo
 import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { Sparkles } from "pixelarticons/react/Sparkles.js";
 import { type FC, useMemo } from "react";
 
 import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index";
 import { receiptViewerRoute } from "#lib/router/index";
 const TARTINES_RECEIPT_TOTAL = 1999;
+const RECEIPT_QUANTITY_LABEL = "1x";
+const RECEIPT_QUANTITY_CLASSNAME = clsx(
+  "shrink-0 font-bit text-4xl tabular-nums",
+);
+const RECEIPT_PRICE_CLASSNAME = clsx("shrink-0 font-bit text-4xl tabular-nums");
+const PRICE_CURRENCY_SUFFIX = formatPrice(0).replace(/^.*\d/u, "");
 
 const randomPriceSplit = (total: number): [number, number, number] => {
   const minPrice = 1;
@@ -84,19 +91,17 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
           <p>{format(today, "dd/MM/yyyy")}</p>
           <p>{format(today, "HH:mm:ss")}</p>
         </div>
-        <div
-          className={clsx(
-            "flex flex-col items-center",
-            "font-mono text-3xl font-light",
-          )}
-        >
-          <p>Épicerie de Ginette</p>
-          <p>24 Cr Albert Thomas</p>
-          <p>69008 Lyon</p>
+        <div className={clsx("flex flex-col items-center")}>
+          <p className={clsx("font-bit text-5xl font-bold")}>
+            Épicerie de Ginette
+          </p>
+          <p className={clsx("font-bit text-4xl italic")}>
+            24 Cr Albert Thomas, 69008 Lyon
+          </p>
         </div>
       </div>
-      <DashedLine />
-      <div className={clsx("flex flex-col gap-10")}>
+      <AsteriskLine />
+      <div className={clsx("flex flex-col gap-8")}>
         <p className={clsx("text-center leading-[0.7] font-bold underline")}>
           ITEMS
         </p>
@@ -110,26 +115,48 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
           />
         </div>
       </div>
-      <DashedLine className={clsx("mb-6")} />
-      <div className={clsx("flex items-center justify-between")}>
-        <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
-        <p className={clsx("font-mono text-3xl font-medium tabular-nums")}>
+      <AsteriskLine className={clsx("mb-6")} />
+      <div
+        className={clsx(
+          "flex items-center justify-between bg-black text-white",
+        )}
+      >
+        <div className={clsx("flex items-center gap-4")}>
+          <span
+            aria-hidden
+            className={cn(RECEIPT_QUANTITY_CLASSNAME, "invisible font-bold")}
+          >
+            {RECEIPT_QUANTITY_LABEL}
+          </span>
+          <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
+        </div>
+        <p className={clsx("font-bit text-4xl font-bold tabular-nums")}>
           {formatPrice(TARTINES_RECEIPT_TOTAL)}
         </p>
       </div>
-      <DashedLine className={clsx("mt-6")} />
+      <AsteriskLine className={clsx("mt-6")} />
       <div className={clsx("grid grid-cols-3 items-center gap-4")}>
         <NinetyNineStudLogo className={clsx("h-20", "justify-self-start")} />
         <DitherBoothLogo className={clsx("h-14", "justify-self-center")} />
         <ElTonyMateLogo className={clsx("h-20", "justify-self-end")} />
       </div>
-      <DashedLine />
+      <AsteriskLine />
+      <div className={clsx("flex flex-col items-center")}>
+        <p>Join us on Instagram!</p>
+        <p className={clsx("font-bit text-4xl font-bold")}>@99stud</p>
+      </div>
       <NinetyNineStudQR className={clsx("mx-auto mb-8", "w-1/2")} />
-      <p className={clsx("mb-4 text-center font-bold")}>
-        ✦ Thanks for partying with us! ✦
+      <p
+        className={clsx(
+          "mb-4 flex items-center justify-center gap-3 text-4xl font-bold",
+        )}
+      >
+        <Sparkles className="size-8 shrink-0" aria-hidden />
+        Thanks for partying with us!
+        <Sparkles className="size-8 shrink-0" aria-hidden />
       </p>
       {ticketNumber ? (
-        <p className={clsx("text-center text-3xl")}>{ticketNumber}</p>
+        <p className={clsx("text-center text-3xl font-bold")}>{ticketNumber}</p>
       ) : null}
     </div>
   );
@@ -144,32 +171,28 @@ const ReceiptItem: FC<ReceiptItemProps> = ({ quantity, name, price }) => {
   return (
     <div className={clsx("flex items-center justify-between gap-12")}>
       <div className={clsx("flex min-w-0 flex-1 items-center gap-4")}>
-        <p
-          className={clsx(
-            "shrink-0 font-mono text-3xl font-medium tabular-nums",
-          )}
-        >
-          {quantity}x
-        </p>
+        <p className={RECEIPT_QUANTITY_CLASSNAME}>{quantity}x</p>
         <p className={clsx("mt-1 min-w-0 truncate leading-[0.7]")}>{name}</p>
       </div>
-      <p
-        className={clsx("shrink-0 font-mono text-3xl font-light tabular-nums")}
-      >
-        {formatPrice(price)}
-      </p>
+      <p className={RECEIPT_PRICE_CLASSNAME}>{formatPrice(price)}</p>
     </div>
   );
 };
 
-type DashedLineProps = {
-  className?: string;
-};
+const AsteriskLine: FC<{ className?: string }> = (props) => {
+  const { className } = props;
 
-const DashedLine: FC<DashedLineProps> = ({ className }) => {
   return (
-    <div
-      className={cn("my-12", "border-2 border-dashed border-black", className)}
-    />
+    <div aria-hidden className={cn("my-8 flex items-center", className)}>
+      <span className={cn(RECEIPT_QUANTITY_CLASSNAME, "invisible")}>
+        {RECEIPT_QUANTITY_LABEL}
+      </span>
+      <span className="ml-2 min-w-0 flex-1 overflow-hidden leading-none font-bold whitespace-nowrap italic">
+        {"*".repeat(80)}
+      </span>
+      <span className={cn(RECEIPT_PRICE_CLASSNAME, "invisible whitespace-pre")}>
+        {PRICE_CURRENCY_SUFFIX}
+      </span>
+    </div>
   );
 };
