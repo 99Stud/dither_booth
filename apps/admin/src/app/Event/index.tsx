@@ -21,6 +21,7 @@ import { EventPrizeSheet } from "./internal/components/EventPrizeSheet";
 import { EventPrizesTable } from "./internal/components/EventPrizesTable";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";
+import { EventTicketPreview } from "./internal/components/EventTicketPreview";
 import { useEventQueries } from "./internal/hooks/useEventQueries";
 
 export const Event = () => {
@@ -35,6 +36,7 @@ export const Event = () => {
     updatePrizeMutation,
     deletePrizeMutation,
     restockPrizeMutation,
+    printSampleLotteryTicketMutation,
   } = useEventQueries();
 
   const [tab, setTab] = useState<EventTab>("overview");
@@ -94,13 +96,27 @@ export const Event = () => {
               />
             </TabsContent>
             <TabsContent value="lottery" className={clsx("mt-0")}>
-              <EventLotteryForm
-                event={event}
-                isSaving={updateLotterySettingsMutation.isPending}
-                onSave={async (values) => {
-                  await updateLotterySettingsMutation.mutateAsync(values);
-                }}
-              />
+              <div className={clsx("flex flex-col gap-4")}>
+                <EventLotteryForm
+                  event={event}
+                  isSaving={updateLotterySettingsMutation.isPending}
+                  onSave={async (values) => {
+                    await updateLotterySettingsMutation.mutateAsync(values);
+                  }}
+                />
+                <EventTicketPreview
+                  prizes={event.prizes}
+                  isPrinting={printSampleLotteryTicketMutation.isPending}
+                  printingOutcome={
+                    printSampleLotteryTicketMutation.isPending
+                      ? printSampleLotteryTicketMutation.variables.outcome
+                      : null
+                  }
+                  onPrint={async (input) => {
+                    await printSampleLotteryTicketMutation.mutateAsync(input);
+                  }}
+                />
+              </div>
             </TabsContent>
             <TabsContent value="prizes" className={clsx("mt-0")}>
               <EventPrizesTable

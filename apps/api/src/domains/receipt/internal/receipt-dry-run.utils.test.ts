@@ -5,7 +5,10 @@ import { join } from "node:path";
 import sharp from "sharp";
 
 import { screenshotToGsV0RasterCommand } from "./gs-v0-raster.utils";
-import { previewReceiptRasters } from "./receipt-dry-run.utils";
+import {
+  previewLotteryTicketRaster,
+  previewReceiptRasters,
+} from "./receipt-dry-run.utils";
 
 async function createMonoRasterCommand() {
   const width = 8;
@@ -90,5 +93,32 @@ describe("previewReceiptRasters", () => {
     expect(result.photoPath).toBe(join(previewDir, "photo-654321.png"));
     expect(result.lotteryPath).toBeNull();
     expect(opened).toEqual([[result.photoPath]]);
+  });
+});
+
+describe("previewLotteryTicketRaster", () => {
+  test("writes a lottery PNG without a photo receipt", async () => {
+    const previewDir = await mkdtemp(join(tmpdir(), "receipt-dry-run-"));
+    previewDirs.push(previewDir);
+
+    const opened: string[][] = [];
+    const rasterCmd = await createMonoRasterCommand();
+
+    const result = await previewLotteryTicketRaster({
+      lotteryRasterCmd: rasterCmd,
+      openPaths: async (paths) => {
+        opened.push(paths);
+      },
+      previewDir,
+      ticketRef: "win-000000",
+    });
+
+    expect(result.lotteryPath).toBe(join(previewDir, "lottery-win-000000.png"));
+    expect(opened).toEqual([[result.lotteryPath]]);
+
+    const lotteryBytes = await readFile(result.lotteryPath);
+    expect(lotteryBytes.subarray(0, 8)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
   });
 });

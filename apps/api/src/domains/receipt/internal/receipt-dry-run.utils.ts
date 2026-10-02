@@ -87,3 +87,36 @@ export async function previewReceiptRasters({
 
   return { lotteryPath, photoPath };
 }
+
+export async function previewLotteryTicketRaster({
+  lotteryRasterCmd,
+  openPaths = openPreviewPaths,
+  previewDir = DEFAULT_RECEIPT_PREVIEW_DIR,
+  ticketRef,
+}: {
+  lotteryRasterCmd: Buffer;
+  openPaths?: (paths: string[]) => Promise<void>;
+  previewDir?: string;
+  ticketRef: string;
+}): Promise<{ lotteryPath: string }> {
+  await mkdir(previewDir, { recursive: true });
+
+  const lotteryPng = await gsV0RasterCommandToPngBuffer(lotteryRasterCmd);
+  const lotteryPath = join(previewDir, `lottery-${ticketRef}.png`);
+  await Bun.write(lotteryPath, lotteryPng);
+  await openPaths([lotteryPath]);
+
+  logKioskEvent(
+    "info",
+    API_PRINTER_LOG_SOURCE,
+    "lottery-ticket-print-dry-run",
+    {
+      details: {
+        lotteryPath,
+        ticketRef,
+      },
+    },
+  );
+
+  return { lotteryPath };
+}
