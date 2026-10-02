@@ -16,11 +16,15 @@ import { printRasterReceipt } from "#domains/printer/printer.service";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 
-import { previewReceiptRasters } from "./receipt-dry-run.utils";
+import {
+  previewLotteryTicketRaster,
+  previewReceiptRasters,
+} from "./receipt-dry-run.utils";
 import {
   buildLotteryTicketRasterCommand,
   buildReceiptRasterCommand,
 } from "./receipt-raster.utils";
+import { SAMPLE_LOTTERY_TICKET_REF } from "./sample-lottery-ticket";
 
 /**
  * Everything the printer needs for one booth visit, with the lottery draw
@@ -246,6 +250,68 @@ export const printPreparedReceiptJob = async ({
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Failed to print lottery ticket.",
+      cause: error,
+    });
+  }
+};
+
+export const printSampleLotteryTicketJob = async ({
+  ctx,
+  draw,
+}: {
+  ctx: Pick<TRPCContext, "printerUSBAdapter" | "puppeteerLifecycle">;
+  draw: DrawResult;
+}): Promise<void> => {
+  const { dryRun, printerUSBAdapter } = assertPrinterAvailable(ctx);
+  const { page } = await ctx.puppeteerLifecycle.whenReady();
+
+  if (!page) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Puppeteer page is not initialized.",
+    });
+  }
+
+  const lotteryRasterCmd = await buildLotteryTicketRasterCommand({
+    draw,
+    page,
+    ticketRef: SAMPLE_LOTTERY_TICKET_REF,
+  });
+
+  if (dryRun) {
+    try {
+      await previewLotteryTicketRaster({
+        lotteryRasterCmd,
+        ticketRef: `${draw.outcome}-${SAMPLE_LOTTERY_TICKET_REF}`,
+      });
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to preview sample lottery ticket.",
+        cause: error,
+      });
+    }
+
+    return;
+  }
+
+  if (!printerUSBAdapter) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "No printer device available.",
+    });
+  }
+
+  try {
+    await printRasterReceipt(printerUSBAdapter, lotteryRasterCmd);
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to print sample lottery ticket.",
       cause: error,
     });
   }
