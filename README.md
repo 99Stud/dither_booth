@@ -154,7 +154,7 @@ bun run pm2:start
 bun run pm2:list
 ```
 
-PM2 starts the already-built `dist/server.js` entry for each app. Use `bun run pm2:reload` after a new build, `bun run pm2:logs` to inspect process logs, and `bun run pm2:stop` to stop the managed apps. On the booth, systemd runs `bun run pm2:runtime` (`pm2-runtime` in the foreground) so the ecosystem file is what boots, not a saved PM2 dump. PM2 restarts the apps; systemd restarts that process only if it exits. Do not also run `bun run start`.
+PM2 starts the already-built `dist/server.js` entry for each app. Use `bun run pm2:reload` after a new build, `bun run pm2:logs` to inspect process logs, and `bun run pm2:stop` to stop the managed apps. On the booth, systemd starts that same PM2 daemon from `pm2.config.js` and stops it with `pm2 kill`. PM2 restarts the apps. Do not also run `bun run start`.
 
 Health checks:
 

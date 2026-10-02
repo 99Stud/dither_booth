@@ -11,7 +11,6 @@
     "build": "NODE_ENV=production turbo run build --filter=!@dither-booth/cli",
     "start": "NODE_ENV=production PROCESS_MANAGER=turborepo turbo run start",
     "pm2:start": "pm2 startOrReload pm2.config.js --env production --update-env",
-    "pm2:runtime": "bun ./node_modules/pm2/bin/pm2-runtime start pm2.config.js --env production --no-auto-exit",
     "start-pm2:app": "pm2 startOrReload pm2.config.js --env production --update-env --only",
     "pm2:stop": "pm2 stop pm2.config.js",
     "pm2:stop-app": "pm2 stop",
