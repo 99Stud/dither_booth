@@ -11,7 +11,6 @@ import { Eye } from "pixelarticons/react/Eye.js";
 import { getRarityReveal } from "#app/Experience/internal/lottery-reveal.utils";
 import { receiptViewerRoute } from "#lib/router/index";
 
-const LOSS_HEADLINE = "";
 const LOSS_JOKE = "Spam won't help, sorry mate!";
 const TICKET_PREFIX_LABEL = BOOTH_TICKET_NUMBER_PREFIX.slice(0, -1);
 
@@ -71,8 +70,8 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
   const rarityReveal = prizeRarity ? getRarityReveal(prizeRarity) : null;
   const RarityIcon = rarityReveal?.Icon ?? null;
   const wonAtParts = wonAt ? formatWonAtParts(wonAt) : null;
-  const headline = win ? title : LOSS_HEADLINE;
-  const notice = win ? winInstruction : LOSS_JOKE;
+  const boxedText = win ? title : LOSS_JOKE;
+  const instruction = win ? winInstruction : null;
   const NoticeIcon = win ? RarityIcon : Eye;
 
   return (
@@ -91,25 +90,31 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
       }}
     >
       <OutcomeBand outcome={outcome} />
-      {headline ? (
-        <p className="text-center text-6xl leading-[0.85] font-bold uppercase">
-          {headline}
-        </p>
-      ) : null}
-      {notice ? (
-        <div
-          className={clsx(
-            "flex items-center justify-center gap-4",
-            "border-4 border-black px-4 py-5",
-            "text-5xl leading-[0.9] font-bold",
-          )}
-        >
-          {NoticeIcon ? (
-            <NoticeIcon className="size-10 shrink-0" aria-hidden />
+      {boxedText || instruction ? (
+        <div className="flex flex-col gap-8">
+          {boxedText ? (
+            <div
+              className={clsx(
+                "flex items-center justify-center gap-4",
+                "border-4 border-black px-4 py-5",
+                "text-5xl leading-[0.9] font-bold",
+              )}
+            >
+              {NoticeIcon ? (
+                <NoticeIcon className="size-10 shrink-0" aria-hidden />
+              ) : null}
+              <p className="min-w-0 text-center wrap-break-word whitespace-pre-wrap">
+                {boxedText}
+              </p>
+              {NoticeIcon ? (
+                <NoticeIcon className="size-10 shrink-0" aria-hidden />
+              ) : null}
+            </div>
           ) : null}
-          <p className="text-center whitespace-pre-wrap">{notice}</p>
-          {NoticeIcon ? (
-            <NoticeIcon className="size-10 shrink-0" aria-hidden />
+          {instruction ? (
+            <p className="text-center text-4xl leading-[0.9] font-bold whitespace-pre-wrap">
+              --&gt; {instruction} &lt;--
+            </p>
           ) : null}
         </div>
       ) : null}
