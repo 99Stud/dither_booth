@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@dither-booth/ui/shadcn.css";
+@import "vault66-crt-effect/style.css";
 
 @source "../../../../packages/ui/src";
 
