@@ -55,32 +55,32 @@ export const IntroChrome = ({
       <div
         className={clsx(
           "absolute top-14 right-14",
-          "text-end font-bit text-4xl text-white/90",
+          "text-end font-bit text-2xl text-white/80",
           "text-shadow-glow",
         )}
       >
         <p
           className={clsx(
-            "mb-2 flex items-center justify-end gap-2",
-            "text-5xl font-bold uppercase",
+            "mb-1 flex items-center justify-end gap-2",
+            "text-3xl font-bold uppercase",
           )}
         >
           <Gift
             aria-hidden
             className={clsx(
-              "size-8 shrink-0",
-              "mb-2 animate-flashing drop-shadow-glow",
+              "size-5 shrink-0",
+              "mb-1 animate-flashing drop-shadow-glow",
             )}
           />
           lottery
         </p>
         <div className={clsx("leading-none")}>
-          <p className={clsx("mb-2", "font-bold")}>
+          <p className={clsx("mb-1", "font-bold")}>
             <span className={clsx("font-bold")}>{remainingPrizes}</span>{" "}
             remaining prizes
           </p>
           {rarityBreakdown.length > 0 && (
-            <ul className={clsx("mb-4")}>
+            <ul className={clsx("mb-2")}>
               {rarityBreakdown.map((entry) => {
                 const { Icon, label } = getRarityReveal(entry.rarity);
 
@@ -88,11 +88,11 @@ export const IntroChrome = ({
                   <li key={entry.rarity}>
                     <p
                       className={clsx(
-                        "flex items-center justify-end gap-2 font-bold",
+                        "flex items-center justify-end gap-1.5 font-bold",
                       )}
                     >
                       <span>{entry.remaining}x</span> {label}{" "}
-                      <Icon className={clsx("size-6 shrink-0", "drop-shadow-glow")} />
+                      <Icon className={clsx("size-4 shrink-0", "drop-shadow-glow")} />
                     </p>
                   </li>
                 );
