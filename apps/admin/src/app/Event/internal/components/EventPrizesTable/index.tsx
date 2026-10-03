@@ -69,8 +69,8 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
           <div>
             <CardTitle>Prizes</CardTitle>
             <CardDescription>
-              Prizes available in the event lottery. Delete is blocked once a
-              prize has draw history.
+              Prizes available in the event lottery. Deleting a prize that was
+              already won keeps that draw in history.
             </CardDescription>
           </div>
           <Button onClick={onAddClick}>Add prize</Button>
@@ -152,7 +152,7 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
               <span className={clsx("font-medium")}>
                 {prizeToDelete?.title}
               </span>{" "}
-              from the lottery. Prizes with draw history cannot be deleted.
+              from the lottery. Draws that already won it stay in history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

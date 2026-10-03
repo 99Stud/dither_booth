@@ -137,6 +137,7 @@ export const prizeTable = sqliteTable(
     totalQuantity: integer("total_quantity").notNull().default(0),
     remainingQuantity: integer("remaining_quantity").notNull().default(0),
     rarity: text("rarity", { enum: RARITY_TYPES }).notNull().default("common"),
+    removed: integer("removed", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [
     check("prize_weight_check", sql`${table.weight} > 0`),
@@ -145,6 +146,7 @@ export const prizeTable = sqliteTable(
       "prize_remaining_quantity_check",
       sql`${table.remainingQuantity} between 0 and ${table.totalQuantity}`,
     ),
+    check("prize_removed_check", sql`${table.removed} in (0, 1)`),
   ],
 );
 

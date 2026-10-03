@@ -46,7 +46,10 @@ export async function getLotteryStatusForDb(db: DB): Promise<LotteryStatus> {
   }
 
   const prizes = await db.query.prizeTable.findMany({
-    where: eq(prizeTable.lotteryId, lottery.id),
+    where: and(
+      eq(prizeTable.lotteryId, lottery.id),
+      eq(prizeTable.removed, false),
+    ),
   });
 
   const remainingPrizes = prizes.reduce(
