@@ -128,7 +128,7 @@ export async function executeLotteryDraw(params: {
       where: eq(prizeTable.id, force.prizeId),
     });
 
-    if (!prize) {
+    if (!prize || prize.removed) {
       throw new Error(`Forced lottery prize not found: ${force.prizeId}`);
     }
 
@@ -202,6 +202,7 @@ export async function executeLotteryDraw(params: {
   const eligiblePrizes = await db.query.prizeTable.findMany({
     where: and(
       eq(prizeTable.lotteryId, lottery.id),
+      eq(prizeTable.removed, false),
       gt(prizeTable.remainingQuantity, 0),
     ),
   });

@@ -64,6 +64,13 @@
       "when": 1790965805570,
       "tag": "0008_amusing_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1791033150660,
+      "tag": "0009_prize_removed",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ import {
 } from "@dither-booth/shared/routes";
 import { createId } from "@paralleldrive/cuid2";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 
 import type { DB } from "#db/internal/db.types";
 
@@ -92,7 +92,10 @@ export async function getCurrentEventForDb(
   }
 
   const prizes = await db.query.prizeTable.findMany({
-    where: eq(prizeTable.lotteryId, lottery.id),
+    where: and(
+      eq(prizeTable.lotteryId, lottery.id),
+      eq(prizeTable.removed, false),
+    ),
   });
 
   return {
@@ -328,22 +331,31 @@ export async function deletePrizeForDb(
   const referencedDraw = await db.query.drawTable.findFirst({
     where: eq(drawTable.prizeId, prizeId),
   });
-  if (referencedDraw) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message:
-        "This prize has draw history and cannot be deleted. Restock or replace the event instead.",
-    });
-  }
 
-  await db
-    .delete(prizeTable)
-    .where(
-      and(
-        eq(prizeTable.id, prizeId),
-        eq(prizeTable.lotteryId, current.lottery.id),
-      ),
-    );
+  if (referencedDraw) {
+    // Draws point at the prize row, so a won prize stays stored and leaves the active pool.
+    await db
+      .update(prizeTable)
+      .set({
+        removed: true,
+        remainingQuantity: 0,
+      })
+      .where(
+        and(
+          eq(prizeTable.id, prizeId),
+          eq(prizeTable.lotteryId, current.lottery.id),
+        ),
+      );
+  } else {
+    await db
+      .delete(prizeTable)
+      .where(
+        and(
+          eq(prizeTable.id, prizeId),
+          eq(prizeTable.lotteryId, current.lottery.id),
+        ),
+      );
+  }
 
   const next = await getCurrentEventForDb(db);
   if (!next) {
@@ -422,10 +434,6 @@ export async function listDrawsForDb(
     });
   }
 
-  const prizeTitleById = new Map(
-    current.prizes.map((prize) => [prize.id, prize.title]),
-  );
-
   const rows = parsedTicketRef
     ? await db.query.drawTable.findMany({
         where: and(
@@ -440,6 +448,20 @@ export async function listDrawsForDb(
         orderBy: [desc(drawTable.createdAt)],
         limit: input.limit,
       });
+
+  const prizeIds = [
+    ...new Set(rows.flatMap((row) => (row.prizeId ? [row.prizeId] : []))),
+  ];
+  const prizes =
+    prizeIds.length === 0
+      ? []
+      : await db.query.prizeTable.findMany({
+          where: inArray(prizeTable.id, prizeIds),
+          columns: { id: true, title: true },
+        });
+  const prizeTitleById = new Map(
+    prizes.map((prize) => [prize.id, prize.title]),
+  );
 
   return {
     draws: rows.map((row) => ({

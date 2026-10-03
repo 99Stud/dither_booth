@@ -256,7 +256,7 @@ describe("event.service", () => {
     }
   });
 
-  test("deletePrize blocks prizes referenced by draws", async () => {
+  test("deletePrize retires prizes referenced by draws and keeps the win", async () => {
     const { db, sqlite } = createTestDb();
 
     try {
@@ -281,11 +281,62 @@ describe("event.service", () => {
       await db.insert(drawTable).values({
         lotteryId: event.lottery.id,
         prizeId: prizeId,
+        ticketRef: "333333",
       });
 
-      await expect(deletePrizeForDb(db, prizeId)).rejects.toMatchObject({
-        code: "PRECONDITION_FAILED",
+      const next = await deletePrizeForDb(db, prizeId);
+      expect(next.prizes).toEqual([]);
+
+      const stored = await db.query.prizeTable.findFirst({
+        where: eq(prizeTable.id, prizeId),
       });
+      expect(stored).toMatchObject({
+        removed: true,
+        remainingQuantity: 0,
+        title: "legendary prize",
+      });
+
+      const draws = await listDrawsForDb(db, { limit: 50 });
+      expect(draws.draws).toHaveLength(1);
+      expect(draws.draws[0]).toMatchObject({
+        outcome: "win",
+        prizeTitle: "legendary prize",
+        ticketRef: "333333",
+      });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("deletePrize removes a prize that has no draws", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      await createEventForDb(db, {
+        name: "Empty history event",
+        noWinWeight: 1,
+        winCooldownMinutes: 0,
+        printLoserTicket: false,
+        enabled: false,
+      });
+
+      const withPrize = await createPrizeForDb(db, {
+        title: "unused prize",
+        winInstruction: "Show this ticket at the bar",
+        weight: 1,
+        totalQuantity: 1,
+        remainingQuantity: 1,
+        rarity: "common",
+      });
+
+      const prizeId = withPrize.prizes[0]!.id;
+      const next = await deletePrizeForDb(db, prizeId);
+      expect(next.prizes).toEqual([]);
+
+      const stored = await db.query.prizeTable.findFirst({
+        where: eq(prizeTable.id, prizeId),
+      });
+      expect(stored).toBeUndefined();
     } finally {
       sqlite.close();
     }
