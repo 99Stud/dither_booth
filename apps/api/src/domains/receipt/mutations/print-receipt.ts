@@ -1,30 +1,23 @@
-import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
-import { printRasterReceipt } from "#domains/printer/printer.service";
+import type { DrawResult } from "#domains/lottery/internal/lottery.types";
+
 import { publicProcedure } from "#internal/trpc";
 
-import { prepareReceiptRasterCommand } from "../internal/receipt-raster.utils";
+import {
+  assertPrinterAvailable,
+  prepareReceiptJob,
+  printPreparedReceiptJob,
+} from "../internal/receipt-print.service";
 
+/** Draw and print in one go. Used by the admin test print. */
 export const printReceipt = publicProcedure
   .input(octetInputParser)
-  .mutation(async ({ ctx, input }) => {
-    const printerUSBAdapter = ctx.printerUSBAdapter;
+  .mutation(async ({ ctx, input }): Promise<DrawResult> => {
+    const { dryRun, printerUSBAdapter } = assertPrinterAvailable(ctx);
+    const job = await prepareReceiptJob({ ctx, input });
 
-    if (!printerUSBAdapter) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "No printer device available.",
-      });
-    }
+    await printPreparedReceiptJob({ dryRun, job, printerUSBAdapter });
 
-    const rasterCmd = await prepareReceiptRasterCommand({ ctx, input });
-
-    await printRasterReceipt(printerUSBAdapter, rasterCmd).catch((error) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to print receipt.",
-        cause: error,
-      });
-    });
+    return job.draw;
   });

@@ -10,6 +10,7 @@ import type {
 
 export type TRPCContext = {
   adminOrigin: string;
+  allowedHostnames: readonly string[];
   db: DB;
   mode: "development" | "production";
   requestOrigin?: string;

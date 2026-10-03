@@ -1,3 +1,4 @@
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
 import type {
   Camera,
   Node,
@@ -35,7 +36,7 @@ import { createScanlinesEffect } from "./effects/scanlinesEffect";
 const PASS_DEFAULTS = {
   ascii: { enabled: true },
   bloom: { enabled: true },
-  crt: { enabled: true },
+  crt: { enabled: false },
   film: { enabled: true },
   scanlines: { enabled: true },
 };
@@ -130,6 +131,15 @@ export class PostProcessingPipeline {
     }
 
     this.postProcessing.outputNode = acesFilmicToneMapping(color, float(1.0));
+  }
+
+  attachDebug(folder: ParametersGroup): void {
+    const postFolder = folder.addFolder("Post Processing");
+
+    for (const effect of this._effects) {
+      if (!effect.enabled) continue;
+      effect.attachDebug?.(postFolder);
+    }
   }
 
   render(): void {

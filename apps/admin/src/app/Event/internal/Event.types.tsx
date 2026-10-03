@@ -1,0 +1,66 @@
+import type { Rarity } from "@dither-booth/shared/lottery";
+
+export type EventPrize = {
+  id: string;
+  title: string;
+  winInstruction: string;
+  weight: number;
+  totalQuantity: number;
+  remainingQuantity: number;
+  rarity: Rarity;
+};
+
+export type CurrentEvent = {
+  campaign: {
+    id: string;
+    name: string;
+    ticketItemNames: string[];
+  };
+  lottery: {
+    id: string;
+    enabled: boolean;
+    noWinWeight: number;
+    winCooldownMinutes: number;
+    printLoserTicket: boolean;
+  };
+  prizes: EventPrize[];
+};
+
+export type EventTab = "overview" | "lottery" | "prizes" | "draws";
+
+export type CreateEventFormValues = {
+  name: string;
+  noWinWeight: number;
+  winCooldownMinutes: number;
+  printLoserTicket: boolean;
+  enabled: boolean;
+};
+
+export type UpdateEventNameFormValues = {
+  name: string;
+};
+
+export type TicketItemsFormValues = {
+  names: string[];
+};
+
+export type LotterySettingsFormValues = {
+  enabled: boolean;
+  noWinWeight: number;
+  winCooldownMinutes: number;
+  printLoserTicket: boolean;
+};
+
+export type PrizeFormValues = {
+  title: string;
+  winInstruction: string;
+  weight: number;
+  totalQuantity: number;
+  remainingQuantity: number;
+  rarity: Rarity;
+};
+
+export type RestockPrizeFormValues = {
+  remainingQuantity: number;
+  totalQuantity: number;
+};

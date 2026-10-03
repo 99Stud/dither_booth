@@ -11,14 +11,18 @@ import type { ExperienceAction, ExperiencePhase } from "./Experience.machine";
 export type ExperiencePhaseFlag =
   | "cameraVisible"
   | "promptVisible"
+  | "frozenPhoto"
+  | "slotVisible"
   | "postPrint"
-  | "postPrintEntersInPlace"
   | "introDecorations"
   | "startButtonAtOrigin"
   | "startButtonVisible"
   | "startEnabled"
   | "printAttempt"
   | "smileHold"
+  | "slotResultHold"
+  | "instructionsHold"
+  | "reelsAnimationFallback"
   | "startButtonAnimationFallback"
   | "cameraAnimationFallback"
   | "promptAnimationFallback";
@@ -33,20 +37,51 @@ export const PHASE_FLAGS: Record<
     "startButtonVisible",
     "startEnabled",
   ],
-  introExiting: ["startButtonVisible", "startButtonAnimationFallback"],
+  introExiting: ["cameraVisible", "cameraAnimationFallback"],
   cameraEntering: ["cameraVisible", "cameraAnimationFallback"],
   promptEntering: ["cameraVisible", "promptVisible", "promptAnimationFallback"],
   countdown: ["cameraVisible", "promptVisible"],
   smile: ["cameraVisible", "promptVisible", "smileHold"],
   capturing: ["cameraVisible", "promptVisible", "printAttempt"],
-  printing: ["cameraVisible", "promptVisible", "printAttempt"],
-  cameraExiting: ["cameraAnimationFallback"],
+  preparing: [
+    "cameraVisible",
+    "promptVisible",
+    "frozenPhoto",
+    "slotVisible",
+    "printAttempt",
+  ],
+  spinning: [
+    "cameraVisible",
+    "promptVisible",
+    "frozenPhoto",
+    "slotVisible",
+    "reelsAnimationFallback",
+  ],
+  slotResult: [
+    "cameraVisible",
+    "promptVisible",
+    "frozenPhoto",
+    "slotVisible",
+    "slotResultHold",
+  ],
+  instructions: [
+    "cameraVisible",
+    "promptVisible",
+    "frozenPhoto",
+    "slotVisible",
+    "instructionsHold",
+  ],
+  printing: [
+    "cameraVisible",
+    "promptVisible",
+    "frozenPhoto",
+    "slotVisible",
+    "printAttempt",
+  ],
+  // The frozen photo and the slot panel ride out with the camera stage, so
+  // they stay mounted until the slide completes.
+  cameraExiting: ["frozenPhoto", "slotVisible", "cameraAnimationFallback"],
   receiptReady: ["postPrint"],
-  cashMachine: ["postPrint"],
-  // Enters in place because the post-print AnimatePresence runs in `wait` mode:
-  // cashMachine has already slid out to the left by the time this mounts, so
-  // sliding in from the right would reverse the direction of travel mid-screen.
-  lotteryResults: ["postPrint", "postPrintEntersInPlace"],
   resetting: ["introDecorations", "cameraAnimationFallback"],
   resettingButtonRepositioning: [
     "introDecorations",
@@ -81,11 +116,13 @@ export const AUTO_ADVANCE_ACTION_BY_PHASE: Record<
   countdown: null,
   smile: null,
   capturing: null,
+  preparing: null,
+  spinning: null,
+  slotResult: null,
+  instructions: null,
   printing: null,
   cameraExiting: null,
   receiptReady: { type: "autoResetElapsed" },
-  cashMachine: { type: "cashMachineElapsed" },
-  lotteryResults: { type: "autoResetElapsed" },
   resetting: null,
   resettingButtonRepositioning: null,
   resettingButtonRevealing: null,

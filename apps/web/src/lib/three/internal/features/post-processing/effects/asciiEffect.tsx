@@ -1,4 +1,5 @@
 import type { Texture } from "three";
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
 import type { TextureNode } from "three/webgpu";
 
 import {
@@ -13,8 +14,8 @@ import {
   convertToTexture,
   dot,
   float,
-  Fn,
   floor,
+  Fn,
   fract,
   int,
   max,
@@ -86,7 +87,7 @@ for (let i = 0; i < GLYPH_COUNT; i++) {
 
 function createAsciiUniforms() {
   return {
-    uCellSize: uniform(14),
+    uCellSize: uniform(20),
     uInvert: uniform(1),
     uColor: uniform(1.0),
     uCharBrightness: uniform(1.98),
@@ -284,6 +285,28 @@ export function createAsciiEffect(enabled: boolean): PostProcessingEffect {
     enabled,
     prepare: () => getResources().prepare(),
     build: (inputNode) => asciiNode(inputNode, getResources()),
+    attachDebug(folder: ParametersGroup) {
+      const {
+        uCellSize,
+        uInvert,
+        uColor,
+        uCharBrightness,
+        uBackgroundBrightness,
+        uSmoothness,
+      } = getResources().uniforms;
+
+      const asciiFolder = folder.addFolder("ASCII");
+      asciiFolder.add(uCellSize, "value", 2, 64, 1).name("Cell Size");
+      asciiFolder.add(uInvert, "value", 0, 1, 1).name("Invert");
+      asciiFolder.add(uColor, "value", 0, 1, 1).name("Color");
+      asciiFolder
+        .add(uCharBrightness, "value", 0, 2, 0.01)
+        .name("Char Brightness");
+      asciiFolder
+        .add(uBackgroundBrightness, "value", 0, 1, 0.01)
+        .name("BG Brightness");
+      asciiFolder.add(uSmoothness, "value", 0, 1, 0.01).name("Edge Smoothness");
+    },
     dispose: () => {
       resources?.dispose();
       resources = null;

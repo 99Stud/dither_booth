@@ -36,4 +36,5 @@ export type PuppeteerReceiptViewerLifecycle = {
   getCurrent: () => PuppeteerReceiptViewer;
   initialize: () => Promise<PuppeteerReceiptViewer>;
   restart: () => Promise<PuppeteerReceiptViewerRestartResult>;
+  whenReady: () => Promise<PuppeteerReceiptViewer>;
 };

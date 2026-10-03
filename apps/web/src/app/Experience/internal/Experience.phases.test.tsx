@@ -5,10 +5,9 @@ import type { ExperiencePhaseFlag } from "./Experience.phases";
 
 import { PROMPT_TEXT_BY_PHASE } from "./Experience.copy";
 import {
-  PROMPT_PANEL_LAYOUT_TRANSITION,
   PROMPT_TEXT_TRANSITION,
   PROMPT_TRANSITION,
-  SLIDE_TRANSITION,
+  SHUTTER_TRANSITION,
 } from "./Experience.motion";
 import {
   AUTO_ADVANCE_ACTION_BY_PHASE,
@@ -25,11 +24,16 @@ const ALL_PHASES = Object.keys(PHASE_FLAGS) as ExperiencePhase[];
 const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
   {
     cameraVisible: [
+      "introExiting",
       "cameraEntering",
       "promptEntering",
       "countdown",
       "smile",
       "capturing",
+      "preparing",
+      "spinning",
+      "slotResult",
+      "instructions",
       "printing",
     ],
     promptVisible: [
@@ -37,10 +41,29 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
       "countdown",
       "smile",
       "capturing",
+      "preparing",
+      "spinning",
+      "slotResult",
+      "instructions",
       "printing",
     ],
-    postPrint: ["receiptReady", "cashMachine", "lotteryResults"],
-    postPrintEntersInPlace: ["lotteryResults"],
+    frozenPhoto: [
+      "preparing",
+      "spinning",
+      "slotResult",
+      "instructions",
+      "printing",
+      "cameraExiting",
+    ],
+    slotVisible: [
+      "preparing",
+      "spinning",
+      "slotResult",
+      "instructions",
+      "printing",
+      "cameraExiting",
+    ],
+    postPrint: ["receiptReady"],
     introDecorations: [
       "idle",
       "resetting",
@@ -52,16 +75,23 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
       "resettingButtonRepositioning",
       "resettingButtonRevealing",
     ],
-    startButtonVisible: ["idle", "introExiting", "resettingButtonRevealing"],
+    startButtonVisible: ["idle", "resettingButtonRevealing"],
     startEnabled: ["idle"],
-    printAttempt: ["capturing", "printing"],
+    printAttempt: ["capturing", "preparing", "printing"],
     smileHold: ["smile"],
+    slotResultHold: ["slotResult"],
+    instructionsHold: ["instructions"],
+    reelsAnimationFallback: ["spinning"],
     startButtonAnimationFallback: [
-      "introExiting",
       "resettingButtonRepositioning",
       "resettingButtonRevealing",
     ],
-    cameraAnimationFallback: ["cameraEntering", "cameraExiting", "resetting"],
+    cameraAnimationFallback: [
+      "introExiting",
+      "cameraEntering",
+      "cameraExiting",
+      "resetting",
+    ],
     promptAnimationFallback: ["promptEntering"],
   };
 
@@ -78,26 +108,27 @@ describe("PHASE_FLAGS", () => {
     }
   });
 
-  it("never marks a phase as entering in place without being a post-print phase", () => {
+  // The slot panel and the frozen photo are children of the camera stage, so
+  // they can only be on screen while the stage is visible or sliding out.
+  it("only shows the slot machine while the camera stage is on screen or exiting", () => {
     for (const phase of ALL_PHASES) {
-      if (hasPhaseFlag(phase, "postPrintEntersInPlace")) {
-        expect(hasPhaseFlag(phase, "postPrint")).toBe(true);
+      if (hasPhaseFlag(phase, "slotVisible")) {
+        expect(
+          hasPhaseFlag(phase, "cameraVisible") || phase === "cameraExiting",
+        ).toBe(true);
+        expect(hasPhaseFlag(phase, "frozenPhoto")).toBe(true);
       }
     }
   });
 });
 
 describe("AUTO_ADVANCE_ACTION_BY_PHASE", () => {
-  it("auto-advances only the three post-print phases", () => {
+  it("auto-advances only the receipt-ready phase", () => {
     const autoAdvancingPhases = ALL_PHASES.filter(
       (phase) => AUTO_ADVANCE_ACTION_BY_PHASE[phase] !== null,
     );
 
-    const expectedPhases: ExperiencePhase[] = [
-      "cashMachine",
-      "lotteryResults",
-      "receiptReady",
-    ];
+    const expectedPhases: ExperiencePhase[] = ["receiptReady"];
 
     expect(autoAdvancingPhases.toSorted()).toEqual(expectedPhases.toSorted());
   });
@@ -113,22 +144,19 @@ describe("PROMPT_TEXT_BY_PHASE", () => {
     expect(PROMPT_TEXT_BY_PHASE.resetting).toBe(PROMPT_TEXT_BY_PHASE.printing);
   });
 
-  // Both fade-out phases are left when the camera slide completes. That has to
+  // Both fade-out phases are left when the shutter closes. That has to
   // outlast the prompt fade, otherwise resetting the caption on the next phase
   // would be visible mid-fade.
-  it("relies on the camera slide outlasting the prompt fade", () => {
-    expect(PROMPT_TRANSITION.duration).toBeLessThan(SLIDE_TRANSITION.duration);
+  it("relies on the shutter outlasting the prompt fade", () => {
+    expect(PROMPT_TRANSITION.duration).toBeLessThan(SHUTTER_TRANSITION.duration);
   });
 
-  // `mode="wait"` sequences the caption swap: the outgoing caption exits, then
-  // the incoming one mounts and the panel resizes. Comparing either half to the
-  // fade on its own would miss the case where they add up past it and leave a
-  // width change running on a panel the user is no longer meant to see. The
-  // incoming caption's fade runs after the resize and is intentionally not
-  // covered — it is free to finish on an already invisible panel.
-  it("keeps the caption swap's panel resize inside the prompt fade", () => {
-    expect(
-      PROMPT_TEXT_TRANSITION.duration + PROMPT_PANEL_LAYOUT_TRANSITION.duration,
-    ).toBeLessThanOrEqual(PROMPT_TRANSITION.duration);
+  // The outgoing caption has to finish leaving before the prompt itself has
+  // faded, otherwise the next line can appear on a caption that should already
+  // be gone.
+  it("keeps the caption exit inside the prompt fade", () => {
+    expect(PROMPT_TEXT_TRANSITION.duration).toBeLessThanOrEqual(
+      PROMPT_TRANSITION.duration,
+    );
   });
 });

@@ -1,10 +1,12 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import { getWebOrigin } from "@dither-booth/ports";
+import { getWebInternalOrigin } from "@dither-booth/ports";
 import { getErrorMessage } from "@dither-booth/shared/errors";
 import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
+import { resolve } from "node:path";
 import puppeteer from "puppeteer";
 
 import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
+import { API_APP_ROOT } from "#lib/constants";
 
 import type {
   PuppeteerReceiptViewerNavigationDetails,
@@ -12,6 +14,12 @@ import type {
   PuppeteerStartupStage,
   PuppeteerStartupState,
 } from "./puppeteer.types";
+
+const RECEIPT_VIEWER_FONTCONFIG_FILE = resolve(
+  API_APP_ROOT,
+  "fontconfig",
+  "fonts.conf",
+);
 
 export function createReceiptViewerDetails(
   details: Omit<PuppeteerReceiptViewerNavigationDetails, "path"> = {},
@@ -72,17 +80,23 @@ export function createFailedPuppeteerStage<
   };
 }
 
-export async function initializePuppeteerReceiptViewer({
-  repoRoot,
-}: {
-  repoRoot: string;
-}): Promise<PuppeteerReceiptViewer> {
+export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerReceiptViewer> {
   const state = createInitialPuppeteerState();
   let browser: PuppeteerReceiptViewer["browser"];
   let page: PuppeteerReceiptViewer["page"];
 
   try {
     browser = await puppeteer.launch({
+      // Local booth TLS uses mkcert; Chromium does not always trust that CA.
+      acceptInsecureCerts: true,
+      // Snaps glyphs to whole pixels so the pixel font lands on the 1-bit grid.
+      args: ["--disable-font-subpixel-positioning"],
+      // Linux Chromium takes its text rendering settings from fontconfig; the
+      // booth config turns anti-aliasing off. macOS ignores it.
+      env:
+        process.platform === "linux"
+          ? { ...process.env, FONTCONFIG_FILE: RECEIPT_VIEWER_FONTCONFIG_FILE }
+          : process.env,
       handleSIGHUP: false,
       handleSIGINT: false,
       handleSIGTERM: false,
@@ -113,6 +127,8 @@ export async function initializePuppeteerReceiptViewer({
     try {
       page = await browser.newPage();
 
+      // Supersampled, then downscaled to PRINT_WIDTH_PX before thresholding.
+      // Keep it an integer so the pre-dithered photo survives the downscale.
       await page.setViewport({
         deviceScaleFactor: 2,
         width: 1440,
@@ -150,14 +166,22 @@ export async function initializePuppeteerReceiptViewer({
     let receiptViewerUrl: string | undefined;
 
     try {
-      const webOrigin = await getWebOrigin({ repoRoot });
-
-      if (!webOrigin) {
-        throw new Error("Web origin not found.");
-      }
-
+      // Loopback, not LAN public origin — same-host Chromium is flaky on LAN IP.
+      const webOrigin = getWebInternalOrigin();
       receiptViewerUrl = new URL(RECEIPT_VIEWER_PATH, webOrigin).toString();
-      await page.goto(receiptViewerUrl);
+      await page.goto(receiptViewerUrl, {
+        waitUntil: "domcontentloaded",
+      });
+
+      await page.waitForFunction(
+        () =>
+          typeof (
+            window as Window & {
+              __ditherReceiptViewer?: { navigate?: unknown };
+            }
+          ).__ditherReceiptViewer?.navigate === "function",
+        { timeout: 15_000 },
+      );
 
       state.navigation = {
         ok: true,

@@ -1,26 +1,75 @@
-import type { FC } from "react";
-
 import { RECEIPT_ELEMENT_ID } from "@dither-booth/shared/browser/receipt-viewer";
-import { formatPrice } from "@dither-booth/shared/formatting";
+import {
+  formatBoothTicketNumber,
+  formatPrice,
+} from "@dither-booth/shared/formatting";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
+import {
+  DEFAULT_TICKET_ITEM_NAMES,
+  PHOTO_TICKET_TOTAL_CENTS,
+} from "@dither-booth/shared/routes";
 import { cn } from "@dither-booth/shared/styles";
 import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/index";
 import { NinetyNineStudQR } from "@dither-booth/ui/components/svg/99studQR/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";
 import { ElTonyMateLogo } from "@dither-booth/ui/components/svg/ElTonyMateLogo/index";
+import { OtchoLogo } from "@dither-booth/ui/components/svg/OtchoLogo/index";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { Sparkles } from "pixelarticons/react/Sparkles.js";
+import { type FC, useMemo } from "react";
 
 import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index";
+import { receiptViewerRoute } from "#lib/router/index";
+const RECEIPT_QUANTITY_LABEL = "1x";
+const RECEIPT_QUANTITY_CLASSNAME = clsx(
+  "shrink-0 font-mono text-2xl font-normal tabular-nums",
+);
+const RECEIPT_PRICE_CLASSNAME = clsx(
+  "shrink-0 font-mono text-2xl font-normal tabular-nums",
+);
+const PRICE_CURRENCY_SUFFIX = formatPrice(0).replace(/^.*\d/u, "");
+
+const randomPriceSplit = (total: number, count: number): number[] => {
+  if (count < 1) {
+    return [];
+  }
+
+  const minPrice = 1;
+  const partCount = Math.min(count, total);
+  let remainder = total - partCount * minPrice;
+  const extras = Array.from({ length: partCount }, () => 0);
+
+  for (let index = 0; index < partCount - 1; index += 1) {
+    const extra = Math.floor(Math.random() * (remainder + 1));
+    extras[index] = extra;
+    remainder -= extra;
+  }
+
+  extras[partCount - 1] = remainder;
+
+  return extras.map((extra) => minPrice + extra);
+};
+
 interface TartinesReceiptTemplateProps {
   className?: string;
 }
 
-export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
-  className,
-}) => {
+export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
+  props,
+) => {
+  const { className } = props;
+  const { ticketItems, ticketRef } = receiptViewerRoute.useSearch();
+  const ticketNumber = ticketRef ? formatBoothTicketNumber(ticketRef) : null;
   const today = new Date();
+  const itemNames = ticketItems ?? DEFAULT_TICKET_ITEM_NAMES;
+  const prices = useMemo(
+    () => randomPriceSplit(PHOTO_TICKET_TOTAL_CENTS, itemNames.length),
+    // ticketRef is unused by the split; a new ticket still needs a new roll.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- re-roll per ticket
+    [itemNames, ticketRef],
+  );
 
   return (
     <div
@@ -40,65 +89,98 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = ({
         />
         <img
           id="booth-photo"
-          className={clsx("w-full", "aspect-square")}
+          className={clsx(
+            "w-full",
+            "aspect-square",
+            "[image-rendering:pixelated]",
+          )}
           src="https://picsum.photos/576"
           alt="booth photo"
         />
       </div>
-      <div className={clsx("pt-16", "flex flex-col gap-12")}>
+      <div className="mx-4">
+        <div className={clsx("pt-16", "flex flex-col gap-12")}>
+          <div
+            className={clsx(
+              "flex items-center justify-between",
+              "leading-[0.7] font-bold",
+            )}
+          >
+            <p>{format(today, "dd/MM/yyyy")}</p>
+            <p>{format(today, "HH:mm:ss")}</p>
+          </div>
+          <div className={clsx("flex flex-col items-center")}>
+            <p className={clsx("font-bit text-5xl font-bold")}>
+              Épicerie de Ginette
+            </p>
+            <p className={clsx("font-bit text-4xl italic")}>
+              24 Cr Albert Thomas, 69008 Lyon
+            </p>
+          </div>
+        </div>
+        <AsteriskLine />
+        <div className={clsx("flex flex-col gap-8")}>
+          <p className={clsx("text-center leading-[0.7] font-bold underline")}>
+            ITEMS
+          </p>
+          <div className={clsx("flex flex-col gap-4", "font-bold")}>
+            {itemNames.map((name, index) => (
+              <ReceiptItem
+                key={`${index}-${name}`}
+                quantity={1}
+                name={name}
+                price={prices[index] ?? 0}
+              />
+            ))}
+          </div>
+        </div>
+        <AsteriskLine className={clsx("mb-6")} />
         <div
           className={clsx(
-            "flex items-center justify-between",
-            "leading-[0.7] font-bold",
+            "flex items-center justify-between bg-black text-white",
           )}
         >
-          <p>{format(today, "dd/MM/yyyy")}</p>
-          <p>{format(today, "HH:mm:ss")}</p>
+          <div className={clsx("flex items-center gap-4")}>
+            <span
+              aria-hidden
+              className={cn(RECEIPT_QUANTITY_CLASSNAME, "invisible font-bold")}
+            >
+              {RECEIPT_QUANTITY_LABEL}
+            </span>
+            <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
+          </div>
+          <p className={clsx("font-mono text-2xl font-bold tabular-nums")}>
+            {formatPrice(PHOTO_TICKET_TOTAL_CENTS)}
+          </p>
         </div>
-        <div
+        <AsteriskLine className={clsx("mt-6")} />
+        <div className={clsx("flex w-full items-center justify-between")}>
+          <DitherBoothLogo className={clsx("h-16 shrink-0")} />
+          <ElTonyMateLogo className={clsx("h-[4.5rem] shrink-0")} />
+          <OtchoLogo className={clsx("-mx-5 h-[6.5rem] shrink-0")} />
+          <NinetyNineStudLogo className={clsx("h-[4.25rem] shrink-0")} />
+        </div>
+        <AsteriskLine />
+        <div className={clsx("flex flex-col items-center")}>
+          <p>Join us on Instagram!</p>
+          <p className={clsx("font-bit text-4xl font-bold")}>@99stud</p>
+        </div>
+        <NinetyNineStudQR className={clsx("mx-auto mb-8", "w-1/2")} />
+        <p
           className={clsx(
-            "flex flex-col items-center",
-            "font-mono text-3xl font-light",
+            "mb-4 flex items-center justify-center gap-3 text-4xl font-bold",
           )}
         >
-          <p>Épicerie de Ginette</p>
-          <p>24 Cr Albert Thomas</p>
-          <p>69008 Lyon</p>
-        </div>
-      </div>
-      <DashedLine />
-      <div className={clsx("flex flex-col gap-10")}>
-        <p className={clsx("text-center leading-[0.7] font-bold underline")}>
-          ITEMS
+          <Sparkles className="size-8 shrink-0" aria-hidden />
+          Thanks for partying with us!
+          <Sparkles className="size-8 shrink-0" aria-hidden />
         </p>
-        <div className={clsx("flex flex-col gap-4", "font-bold")}>
-          <ReceiptItem
-            quantity={1}
-            name="99stud 99stud 99stud 99stud 99stud"
-            price={10}
-          />
-          <ReceiptItem quantity={1} name="El Tony Mate" price={10} />
-        </div>
+        {ticketNumber ? (
+          <p className={clsx("text-center text-3xl font-bold")}>
+            {ticketNumber}
+          </p>
+        ) : null}
       </div>
-      <DashedLine className={clsx("mb-6")} />
-      <div className={clsx("flex items-center justify-between")}>
-        <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
-        <p className={clsx("font-mono text-3xl font-medium tabular-nums")}>
-          {formatPrice(20)}
-        </p>
-      </div>
-      <DashedLine className={clsx("mt-6")} />
-      <div className={clsx("grid grid-cols-3 items-center gap-4")}>
-        <NinetyNineStudLogo className={clsx("h-20", "justify-self-start")} />
-        <DitherBoothLogo className={clsx("h-14", "justify-self-center")} />
-        <ElTonyMateLogo className={clsx("h-20", "justify-self-end")} />
-      </div>
-      <DashedLine />
-      <NinetyNineStudQR className={clsx("mx-auto mb-8", "w-1/2")} />
-      <p className={clsx("mb-4 text-center font-bold")}>
-        ✦ Thanks for partying with us! ✦
-      </p>
-      <p className={clsx("text-center text-3xl")}>STUD_DITHERBOOTH_611856</p>
     </div>
   );
 };
@@ -112,32 +194,28 @@ const ReceiptItem: FC<ReceiptItemProps> = ({ quantity, name, price }) => {
   return (
     <div className={clsx("flex items-center justify-between gap-12")}>
       <div className={clsx("flex min-w-0 flex-1 items-center gap-4")}>
-        <p
-          className={clsx(
-            "shrink-0 font-mono text-3xl font-medium tabular-nums",
-          )}
-        >
-          {quantity}x
-        </p>
+        <p className={RECEIPT_QUANTITY_CLASSNAME}>{quantity}x</p>
         <p className={clsx("mt-1 min-w-0 truncate leading-[0.7]")}>{name}</p>
       </div>
-      <p
-        className={clsx("shrink-0 font-mono text-3xl font-light tabular-nums")}
-      >
-        {formatPrice(price)}
-      </p>
+      <p className={RECEIPT_PRICE_CLASSNAME}>{formatPrice(price)}</p>
     </div>
   );
 };
 
-type DashedLineProps = {
-  className?: string;
-};
+const AsteriskLine: FC<{ className?: string }> = (props) => {
+  const { className } = props;
 
-const DashedLine: FC<DashedLineProps> = ({ className }) => {
   return (
-    <div
-      className={cn("my-12", "border-2 border-dashed border-black", className)}
-    />
+    <div aria-hidden className={cn("mt-8 flex items-center", className)}>
+      <span className={cn(RECEIPT_QUANTITY_CLASSNAME, "invisible")}>
+        {RECEIPT_QUANTITY_LABEL}
+      </span>
+      <span className="ml-2 min-w-0 flex-1 overflow-hidden leading-none font-bold whitespace-nowrap italic">
+        {"*".repeat(80)}
+      </span>
+      <span className={cn(RECEIPT_PRICE_CLASSNAME, "invisible whitespace-pre")}>
+        {PRICE_CURRENCY_SUFFIX}
+      </span>
+    </div>
   );
 };

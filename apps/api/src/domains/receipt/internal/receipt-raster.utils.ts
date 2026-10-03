@@ -1,20 +1,26 @@
 import type { Page } from "puppeteer";
 
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
+import { LOTTERY_RECEIPT_TEMPLATE } from "@dither-booth/shared/routes";
 import { TRPCError } from "@trpc/server";
 
+import type { DrawResult } from "#domains/lottery/internal/lottery.types";
 import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { getCurrentTicketItemNamesForDb } from "#domains/event/internal/event.service";
 import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
 
 import { screenshotToGsV0RasterCommand } from "./gs-v0-raster.utils";
 import {
+  captureLotteryTicketScreenshot,
   captureReceiptScreenshot,
   runExclusiveReceiptViewerPageJob,
 } from "./receipt-viewer-page.utils";
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
+const LOTTERY_TICKET_GENERATION_FAILED_MESSAGE =
+  "Failed to generate lottery ticket.";
 
 /**
  * Caps the puppeteer stage, whose navigation and element lookups are already
@@ -27,9 +33,13 @@ const RECEIPT_SCREENSHOT_TIMEOUT_MS = 12_000;
 export async function prepareReceiptRasterCommand({
   ctx,
   input,
+  printConfiguration: printConfigurationOverride,
+  ticketRef,
 }: {
   ctx: Pick<TRPCContext, "db" | "page">;
   input: ConstructorParameters<typeof Response>[0];
+  printConfiguration?: PrintConfigRow;
+  ticketRef?: string;
 }): Promise<Buffer> {
   const page = ctx.page;
 
@@ -49,7 +59,9 @@ export async function prepareReceiptRasterCommand({
     });
   }
 
-  const printConfiguration = await ctx.db.query.printConfigTable.findFirst();
+  const printConfiguration =
+    printConfigurationOverride ??
+    (await ctx.db.query.printConfigTable.findFirst());
 
   if (!printConfiguration) {
     throw new TRPCError({
@@ -62,6 +74,8 @@ export async function prepareReceiptRasterCommand({
     page,
     photoBuffer: inputBuffer,
     printConfiguration,
+    ticketItems: await getCurrentTicketItemNamesForDb(ctx.db),
+    ticketRef,
   });
 }
 
@@ -69,15 +83,17 @@ export async function buildReceiptRasterCommand({
   page,
   photoBuffer,
   printConfiguration,
+  ticketItems,
+  ticketRef,
 }: {
   page: Page;
   photoBuffer: Buffer<ArrayBuffer>;
   printConfiguration: PrintConfigRow;
+  ticketItems: string[];
+  ticketRef?: string;
 }): Promise<Buffer> {
-  const deviceScaleFactor = page.viewport()?.deviceScaleFactor ?? 1;
-
   const dithered = await ditherImage(photoBuffer, printConfiguration, {
-    width: PRINT_WIDTH_PX * deviceScaleFactor,
+    width: PRINT_WIDTH_PX,
   }).catch((error) => {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
@@ -87,7 +103,9 @@ export async function buildReceiptRasterCommand({
   });
 
   try {
-    const ditheredImageData = (await dithered.png().toBuffer()).toBase64();
+    const ditheredImageData = (
+      await dithered.threshold(printConfiguration.threshold).png().toBuffer()
+    ).toBase64();
 
     const receiptScreenshot = await runExclusiveReceiptViewerPageJob(
       () =>
@@ -98,6 +116,8 @@ export async function buildReceiptRasterCommand({
           },
           page,
           template: printConfiguration.template,
+          ticketItems,
+          ticketRef,
         }),
       {
         timeoutMessage: "Receipt screenshot timed out.",
@@ -106,7 +126,6 @@ export async function buildReceiptRasterCommand({
     );
 
     return await screenshotToGsV0RasterCommand(receiptScreenshot, {
-      threshold: printConfiguration.threshold,
       width: PRINT_WIDTH_PX,
     }).catch((error) => {
       throw new TRPCError({
@@ -123,6 +142,59 @@ export async function buildReceiptRasterCommand({
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: RECEIPT_GENERATION_FAILED_MESSAGE,
+      cause: error,
+    });
+  }
+}
+
+export async function buildLotteryTicketRasterCommand({
+  page,
+  draw,
+  ticketRef,
+}: {
+  page: Page;
+  draw: DrawResult;
+  ticketRef: string;
+}): Promise<Buffer> {
+  try {
+    const lotteryScreenshot = await runExclusiveReceiptViewerPageJob(() =>
+      captureLotteryTicketScreenshot({
+        page,
+        search: {
+          template: LOTTERY_RECEIPT_TEMPLATE,
+          outcome: draw.outcome,
+          wonAt: new Date().toISOString(),
+          ...(draw.outcome === "win"
+            ? {
+                prizeId: draw.prize.id,
+                title: draw.prize.title,
+                winInstruction: draw.prize.winInstruction,
+                prizeRarity: draw.prize.rarity,
+              }
+            : {}),
+          ticketRef,
+        },
+      }),
+    );
+
+    return await screenshotToGsV0RasterCommand(lotteryScreenshot, {
+      width: PRINT_WIDTH_PX,
+    }).catch((error) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "Failed to convert lottery ticket screenshot to raster command.",
+        cause: error,
+      });
+    });
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: LOTTERY_TICKET_GENERATION_FAILED_MESSAGE,
       cause: error,
     });
   }

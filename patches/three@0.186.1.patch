@@ -1,0 +1,14 @@
+diff --git a/examples/jsm/inspector/tabs/Settings.js b/examples/jsm/inspector/tabs/Settings.js
+--- a/examples/jsm/inspector/tabs/Settings.js
++++ b/examples/jsm/inspector/tabs/Settings.js
+@@ -82,10 +82,6 @@
+ 	} );
+ 
+ }
+-
+-_loadState();
+-
+-//
+ 
+ class Settings extends Parameters {
+ 

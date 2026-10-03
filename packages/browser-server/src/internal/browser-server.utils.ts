@@ -1,3 +1,4 @@
+import { isAllowedConfiguredOrigin } from "@dither-booth/ports";
 import { createHealthzPayload } from "@dither-booth/shared/healthz";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
@@ -59,16 +60,16 @@ export function createHealthzRoute({
 }
 
 export function createWebSocketUpgradeRoute({
+  allowedHostnames = [],
   handler,
   publicOrigin,
   routePath,
 }: {
+  allowedHostnames?: readonly string[];
   handler: WebSocketRouteHandler;
   publicOrigin: string;
   routePath: string;
 }): RouteHandler {
-  const allowedOrigin = new URL(publicOrigin).origin;
-
   return async (req, server) => {
     if (!server) {
       return new Response("WebSocket server unavailable.", {
@@ -76,7 +77,13 @@ export function createWebSocketUpgradeRoute({
       });
     }
 
-    if (req.headers.get("origin") !== allowedOrigin) {
+    if (
+      !isAllowedConfiguredOrigin(
+        req.headers.get("origin") ?? undefined,
+        publicOrigin,
+        allowedHostnames,
+      )
+    ) {
       return new Response("WebSocket origin not allowed.", {
         status: 403,
       });
@@ -132,7 +139,16 @@ export function getSafeFileUrl(root: URL, encodedPath: string) {
   return Bun.pathToFileURL(filePath);
 }
 
-export function getProxiedRequestHeaders(headers: Headers) {
+export function getProxiedRequestHeaders(
+  headers: Headers,
+  options?: {
+    /**
+     * Browsers often omit `Origin` on same-origin GETs. When proxying to the API,
+     * fill it from the browser-facing request URL so admin origin checks still work.
+     */
+    fallbackOrigin?: string;
+  },
+) {
   const proxiedHeaders = new Headers();
 
   headers.forEach((value, name) => {
@@ -148,6 +164,10 @@ export function getProxiedRequestHeaders(headers: Headers) {
 
     proxiedHeaders.append(name, value);
   });
+
+  if (!proxiedHeaders.has("origin") && options?.fallbackOrigin) {
+    proxiedHeaders.set("origin", options.fallbackOrigin);
+  }
 
   return proxiedHeaders;
 }

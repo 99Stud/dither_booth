@@ -4,5 +4,6 @@
     "lib": ["ESNext", "WebWorker"],
     "types": []
   },
-  "include": ["src/isomorphic/**/*.ts"]
+  "include": ["src/isomorphic/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

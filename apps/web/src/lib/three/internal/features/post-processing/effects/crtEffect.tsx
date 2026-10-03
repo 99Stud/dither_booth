@@ -1,3 +1,4 @@
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
 import type { Node } from "three/webgpu";
 
 import {
@@ -202,5 +203,25 @@ export function createCrtEffect(enabled: boolean): PostProcessingEffect {
     key: "crt",
     enabled,
     build: (inputNode) => crtNode(inputNode, uniforms),
+    attachDebug(folder: ParametersGroup) {
+      const crtFolder = folder.addFolder("CRT");
+      crtFolder.add(uniforms.uWarpX, "value", 0, 0.125, 0.001).name("Warp X");
+      crtFolder.add(uniforms.uWarpY, "value", 0, 0.125, 0.001).name("Warp Y");
+      crtFolder
+        .add(uniforms.uHardScan, "value", -20, 0, 0.5)
+        .name("Scanline Hardness");
+      crtFolder
+        .add(uniforms.uHardPix, "value", -20, 0, 0.5)
+        .name("Pixel Hardness");
+      crtFolder.add(uniforms.uMaskDark, "value", 0, 2, 0.05).name("Mask Dark");
+      crtFolder
+        .add(uniforms.uMaskLight, "value", 0, 2, 0.05)
+        .name("Mask Light");
+      crtFolder
+        .add(uniforms.uBrightBoost, "value", 0, 2, 0.05)
+        .name("Brightness Boost");
+      crtFolder.add(uniforms.uShape, "value", 0, 10, 0.05).name("Filter Shape");
+      crtFolder.add(uniforms.uVignette, "value", 0, 2, 0.05).name("Vignette");
+    },
   };
 }
