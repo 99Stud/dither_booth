@@ -1,4 +1,9 @@
-export const CLI_VERSION = "0.2.0";
+// Replaced at compile time by `scripts/build.ts` with the release tag's
+// version. Running from source (`bun src/index.ts`) leaves it undefined.
+declare const BOOTH_CLI_VERSION: string | undefined;
+
+export const CLI_VERSION =
+  typeof BOOTH_CLI_VERSION === "string" ? BOOTH_CLI_VERSION : "0.0.0-dev";
 
 export const DEFAULT_REPO_ROOT = "/opt/dither-booth";
 export const REPO_GIT_URL =
