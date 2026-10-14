@@ -83,3 +83,13 @@ bun run --filter @dither-booth/cli build   # compile arm64 + x64 into dist/
 Root `bun run dev` and `bun run build` exclude this package. `dev` is not a long-running server, and `build` cross-compiles the Linux binaries used by the release workflow.
 
 The compiled binary cannot derive the repo location from its own path, so the repo root is resolved from `BOOTH_REPO` or the `/opt/dither-booth` default.
+
+### Versioning
+
+`booth --version` is set at compile time from the release tag, so it always matches the GitHub release that ships the binary. `scripts/build.ts` resolves it in this order:
+
+1. `BOOTH_VERSION`, if set (a leading `v` is stripped).
+2. The pushed tag in the release workflow (`GITHUB_REF_NAME`, e.g. `v0.4.0` → `0.4.0`). A tag that is not `vX.Y.Z` semver fails the build.
+3. `git describe --tags` for local builds (`0.4.0`, or `0.4.0-3-gabc1234` past the tag).
+
+Running from source reports `0.0.0-dev`. To release, tag `main` with `vX.Y.Z` and push the tag; there is no version to bump in code.
