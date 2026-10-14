@@ -128,9 +128,21 @@ LOTTERY_FORCE_PRIZE_ID=dev_prize_legendary \
 bun run dev
 ```
 
+### Router groups
+
+The tRPC router (`src/internal/router.ts`) is split by caller. Each group's procedures are built on one base procedure in `src/internal/trpc.ts`, which carries the group's access check:
+
+| Group      | Base procedure    | Access             | Procedures                                                                                                                                                                |
+| ---------- | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `booth.*`  | `boothProcedure`  | Any origin (kiosk) | `getLotteryStatus`, `prepareReceipt`, `printPreparedReceipt`                                                                                                              |
+| `config.*` | `configProcedure` | Admin origin only  | Event, prize and lottery CRUD, `listDraws`, `getPrintConfiguration` / `updatePrintConfiguration`, `dither`, `generateReceipt`, `printReceipt`, `printSampleLotteryTicket` |
+| `ops.*`    | `opsProcedure`    | Admin origin only  | `getHealthz`, `restartPuppeteerReceiptViewer`                                                                                                                             |
+
+A new procedure goes in the group of whoever calls it, and is built on that group's base procedure.
+
 ### Event admin (singleton campaign)
 
-The booth supports **one campaign (event) at a time**. Admin manages it from the Event page via `adminOriginProcedure` endpoints:
+The booth supports **one campaign (event) at a time**. Admin manages it from the Event page via `config.*` procedures:
 
 | Procedure                                                      | Role                                              |
 | -------------------------------------------------------------- | ------------------------------------------------- |
@@ -141,7 +153,7 @@ The booth supports **one campaign (event) at a time**. Admin manages it from the
 | `updateLotterySettings`                                        | Enable / odds / win cooldown                      |
 | `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD + restock                              |
 
-Runtime booth status (`getLotteryStatus`) stays public; draws only happen inside `prepareReceipt` / `printReceipt`. Print Configuration remains the global dither/template owner for now.
+Runtime booth status (`booth.getLotteryStatus`) stays public; draws only happen inside `booth.prepareReceipt` / `config.printReceipt`. Print Configuration remains the global dither/template owner for now.
 
 **Future Appearance:** logo, shader colors, and a linked photo template will belong on the campaign (or a 1:1 event-config sibling), not on lottery. Lottery stays odds/stock only.
 

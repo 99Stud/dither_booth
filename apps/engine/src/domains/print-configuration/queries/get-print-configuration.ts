@@ -1,5 +1,5 @@
-import { publicProcedure } from "#internal/trpc";
+import { configProcedure } from "#internal/trpc";
 
-export const getPrintConfiguration = publicProcedure.query(async ({ ctx }) => {
+export const getPrintConfiguration = configProcedure.query(async ({ ctx }) => {
   return await ctx.db.query.printConfigTable.findFirst();
 });

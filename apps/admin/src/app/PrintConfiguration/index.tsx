@@ -43,7 +43,7 @@ export const PrintConfiguration = () => {
   const trpc = useTRPC();
 
   const printConfigurationQueryOptions =
-    trpc.getPrintConfiguration.queryOptions();
+    trpc.config.getPrintConfiguration.queryOptions();
   const { data: printConfiguration, isLoading: isLoadingPrintConfiguration } =
     useQuery(printConfigurationQueryOptions);
 
@@ -51,19 +51,19 @@ export const PrintConfiguration = () => {
     mutateAsync: updatePrintConfiguration,
     isPending: isUpdatingPrintConfiguration,
   } = useMutation({
-    ...trpc.updatePrintConfiguration.mutationOptions(),
+    ...trpc.config.updatePrintConfiguration.mutationOptions(),
     scope: { id: "print-configuration-save" },
   });
 
   const { mutateAsync: ditherPhoto, isPending: isDithering } = useMutation(
-    trpc.dither.mutationOptions(),
+    trpc.config.dither.mutationOptions(),
   );
 
   const { mutateAsync: printReceiptImage, isPending: isPrintingReceipt } =
-    useMutation(trpc.printReceipt.mutationOptions());
+    useMutation(trpc.config.printReceipt.mutationOptions());
 
   const { mutateAsync: generateReceiptImage, isPending: isGeneratingReceipt } =
-    useMutation(trpc.generateReceipt.mutationOptions());
+    useMutation(trpc.config.generateReceipt.mutationOptions());
 
   const takeSquarePhoto = useCallback(async () => {
     return await takeSquarePhotoAndFlipHorizontally(

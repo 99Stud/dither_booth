@@ -72,7 +72,7 @@ export const HealthCard = () => {
     isSuccess: isHealthzSuccess,
     isError: isHealthzError,
   } = useQuery(
-    trpc.getHealthz.queryOptions(undefined, {
+    trpc.ops.getHealthz.queryOptions(undefined, {
       refetchInterval: (query) => {
         return query.state.status === "error" ? 5000 : 30000;
       },
@@ -83,7 +83,7 @@ export const HealthCard = () => {
   const {
     mutateAsync: restartPuppeteerReceiptViewer,
     isPending: isRestartPuppeteerPending,
-  } = useMutation(trpc.restartPuppeteerReceiptViewer.mutationOptions());
+  } = useMutation(trpc.ops.restartPuppeteerReceiptViewer.mutationOptions());
 
   const areAllChecksHealthy =
     isHealthzSuccess &&

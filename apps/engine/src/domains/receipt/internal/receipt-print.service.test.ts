@@ -308,7 +308,7 @@ describe("prepareReceipt → printPreparedReceipt", () => {
       createCtx(setupDb({ outcome: "win" })),
     );
 
-    const prepared = await caller.prepareReceipt(
+    const prepared = await caller.booth.prepareReceipt(
       // createCaller skips the HTTP adapter, so it gets the ReadableStream the
       // octet parser checks for rather than the client-side Blob type.
       PHOTO.stream() as unknown as Blob,
@@ -322,10 +322,10 @@ describe("prepareReceipt → printPreparedReceipt", () => {
       });
 
     await expect(
-      caller.printPreparedReceipt({ ticketRef: prepared.ticketRef }),
+      caller.booth.printPreparedReceipt({ ticketRef: prepared.ticketRef }),
     ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
 
-    await caller.printPreparedReceipt({ ticketRef: prepared.ticketRef });
+    await caller.booth.printPreparedReceipt({ ticketRef: prepared.ticketRef });
 
     expect(printedBuffers()).toEqual([
       `photo:${prepared.ticketRef}`,
@@ -335,7 +335,7 @@ describe("prepareReceipt → printPreparedReceipt", () => {
 
     // Printed in full: the job is gone.
     await expect(
-      caller.printPreparedReceipt({ ticketRef: prepared.ticketRef }),
+      caller.booth.printPreparedReceipt({ ticketRef: prepared.ticketRef }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(preparedReceiptStore.size).toBe(0);
   });
@@ -346,11 +346,15 @@ describe("prepareReceipt → printPreparedReceipt", () => {
     );
 
     await expect(
-      caller.printPreparedReceipt({ ticketRef: "12345" }),
+      caller.booth.printPreparedReceipt({ ticketRef: "12345" }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   test("drawLottery is no longer exposed", () => {
-    expect("drawLottery" in engineRouter._def.procedures).toBe(false);
+    expect(
+      Object.keys(engineRouter._def.procedures).some((path) =>
+        path.endsWith(".drawLottery"),
+      ),
+    ).toBe(false);
   });
 });

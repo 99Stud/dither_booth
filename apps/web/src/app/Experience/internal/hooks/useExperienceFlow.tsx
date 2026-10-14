@@ -37,7 +37,7 @@ import { useWebcamPrewarm } from "./useWebcamPrewarm";
 export const useExperienceFlow = () => {
   const trpc = useTRPC();
   const { data: lotteryStatus } = useQuery(
-    trpc.getLotteryStatus.queryOptions(),
+    trpc.booth.getLotteryStatus.queryOptions(),
   );
 
   const [state, dispatch] = useReducer(
@@ -76,8 +76,10 @@ export const useExperienceFlow = () => {
   useEffect(() => {
     if (phase !== "idle") return;
 
-    void queryClient.invalidateQueries(trpc.getLotteryStatus.queryFilter());
-  }, [phase, trpc.getLotteryStatus]);
+    void queryClient.invalidateQueries(
+      trpc.booth.getLotteryStatus.queryFilter(),
+    );
+  }, [phase, trpc.booth.getLotteryStatus]);
 
   useEffect(() => {
     if (phase !== "countdown") return;

@@ -1,9 +1,9 @@
-import { adminOriginProcedure } from "#internal/trpc";
+import { configProcedure } from "#internal/trpc";
 
 import { deletePrizeInputSchema } from "../internal/event.constants";
 import { deletePrizeForDb } from "../internal/event.service";
 
-export const deletePrize = adminOriginProcedure
+export const deletePrize = configProcedure
   .input(deletePrizeInputSchema)
   .mutation(async ({ ctx, input }) => {
     return await deletePrizeForDb(ctx.db, input.prizeId);

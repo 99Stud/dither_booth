@@ -38,7 +38,7 @@ export const EventDrawsTable: FC = () => {
   const [ticketRef, setTicketRef] = useState<string | undefined>(undefined);
 
   const listDrawsQuery = useQuery(
-    trpc.listDraws.queryOptions(
+    trpc.config.listDraws.queryOptions(
       ticketRef ? { ticketRef, limit: 50 } : { limit: 50 },
     ),
   );

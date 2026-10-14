@@ -2,7 +2,7 @@ import { boothTicketRefSchema } from "@dither-booth/shared/ticket";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 
-import { publicProcedure } from "#internal/trpc";
+import { boothProcedure } from "#internal/trpc";
 
 import { preparedReceiptStore } from "../internal/prepared-receipt.store";
 import {
@@ -10,7 +10,7 @@ import {
   printPreparedReceiptJob,
 } from "../internal/receipt-print.service";
 
-export const printPreparedReceipt = publicProcedure
+export const printPreparedReceipt = boothProcedure
   .input(z.object({ ticketRef: boothTicketRefSchema }))
   .mutation(async ({ ctx, input }): Promise<void> => {
     const { dryRun, printerUSBAdapter } = assertPrinterAvailable(ctx);

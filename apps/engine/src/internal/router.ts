@@ -8,12 +8,24 @@ import { receipt } from "#domains/receipt/index";
 
 import { router } from "./trpc";
 
+// Each group's procedures are built on that group's base procedure in
+// `./trpc`, which carries its access check.
 export const engineRouter = router({
-  ...receipt,
-  ...printConfiguration,
-  ...imageManipulation,
-  ...browserAutomation,
-  ...healthz,
-  ...lottery,
-  ...event,
+  booth: router({
+    getLotteryStatus: lottery.getLotteryStatus,
+    prepareReceipt: receipt.prepareReceipt,
+    printPreparedReceipt: receipt.printPreparedReceipt,
+  }),
+  config: router({
+    ...event,
+    ...printConfiguration,
+    ...imageManipulation,
+    generateReceipt: receipt.generateReceipt,
+    printReceipt: receipt.printReceipt,
+    printSampleLotteryTicket: receipt.printSampleLotteryTicket,
+  }),
+  ops: router({
+    ...healthz,
+    ...browserAutomation,
+  }),
 });
