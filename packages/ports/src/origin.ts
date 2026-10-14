@@ -13,7 +13,7 @@ function tryParseOrigin(value: string): URL | null {
  * manifest hostname (`localhost` / `127.0.0.1` / `::1` / machine hostnames)
  * with the same protocol and port.
  *
- * Local TLS certs include those SANs, so opening admin/web via localhost or the
+ * Local TLS certs include those SANs, so opening admin/shutter via localhost or the
  * machine hostname is valid even when the public origin uses the LAN IP.
  */
 export function isAllowedConfiguredOrigin(

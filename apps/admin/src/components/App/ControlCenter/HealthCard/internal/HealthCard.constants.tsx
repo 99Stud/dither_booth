@@ -1,7 +1,7 @@
 import { PM2_RESTART_SERVER_TIMEOUT_MS } from "#lib/pm2/pm2-control.constants";
 
 export const HEALTHZ_SERVICE_LABELS = {
-  web: "Web",
+  shutter: "Shutter",
   engine: "Engine",
 } as const;
 

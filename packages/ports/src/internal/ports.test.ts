@@ -7,8 +7,8 @@ import {
   getAdminOrigin,
   getEngineInternalOrigin,
   getPort,
-  getWebInternalOrigin,
-  getWebOrigin,
+  getShutterInternalOrigin,
+  getShutterOrigin,
   getWebPublicIp,
   getWebTlsCaPath,
   getWebTlsCertPath,
@@ -17,7 +17,7 @@ import {
   getWebTlsManifestPath,
 } from "../index";
 
-const ENV_NAMES = ["ADMIN_PORT", "ENGINE_PORT", "WEB_PORT"] as const;
+const ENV_NAMES = ["ADMIN_PORT", "ENGINE_PORT", "SHUTTER_PORT"] as const;
 
 const originalEnv = Object.fromEntries(
   ENV_NAMES.map((name) => [name, process.env[name]]),
@@ -101,10 +101,10 @@ describe("@dither-booth/ports", () => {
     expect(getEngineInternalOrigin()).toBe("http://127.0.0.1:4010");
   });
 
-  it("uses fixed loopback host for web internal origin", () => {
-    process.env.WEB_PORT = "3443";
+  it("uses fixed loopback host for shutter internal origin", () => {
+    process.env.SHUTTER_PORT = "3443";
 
-    expect(getWebInternalOrigin()).toBe("https://127.0.0.1:3443");
+    expect(getShutterInternalOrigin()).toBe("https://127.0.0.1:3443");
   });
 
   it("uses fixed repo-local TLS paths", () => {
@@ -125,7 +125,7 @@ describe("@dither-booth/ports", () => {
     const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
       createTempTlsPaths();
 
-    process.env.WEB_PORT = "3443";
+    process.env.SHUTTER_PORT = "3443";
     await writeManifest(manifestPath, "192.168.1.42", {
       caPath,
       certPath,
@@ -133,7 +133,7 @@ describe("@dither-booth/ports", () => {
     });
 
     expect(await getWebPublicIp(repoPathOptions)).toBe("192.168.1.42");
-    expect(await getWebOrigin(repoPathOptions)).toBe(
+    expect(await getShutterOrigin(repoPathOptions)).toBe(
       "https://192.168.1.42:3443",
     );
   });
@@ -202,18 +202,20 @@ describe("@dither-booth/ports", () => {
     expect(await getWebTlsHostnames(repoPathOptions)).toEqual([]);
   });
 
-  it("formats IPv6 web origins with brackets", async () => {
+  it("formats IPv6 shutter origins with brackets", async () => {
     const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
       createTempTlsPaths();
 
-    process.env.WEB_PORT = "3443";
+    process.env.SHUTTER_PORT = "3443";
     await writeManifest(manifestPath, "fe80::1", {
       caPath,
       certPath,
       keyPath,
     });
 
-    expect(await getWebOrigin(repoPathOptions)).toBe("https://[fe80::1]:3443");
+    expect(await getShutterOrigin(repoPathOptions)).toBe(
+      "https://[fe80::1]:3443",
+    );
   });
 
   it("throws clear error when public IP is missing", async () => {
@@ -264,11 +266,11 @@ describe("@dither-booth/ports", () => {
 
   it("rejects non-decimal port values", () => {
     for (const port of ["3000foo", "1e3", "0x10"]) {
-      process.env.WEB_PORT = port;
+      process.env.SHUTTER_PORT = port;
 
-      expect(() => getPort("WEB_PORT")).toThrow(
+      expect(() => getPort("SHUTTER_PORT")).toThrow(
         new RegExp(
-          `Invalid port in environment variable WEB_PORT: ${port}\\. must be a whole number`,
+          `Invalid port in environment variable SHUTTER_PORT: ${port}\\. must be a whole number`,
         ),
       );
     }

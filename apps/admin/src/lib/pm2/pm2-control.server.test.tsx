@@ -7,7 +7,7 @@ const adminAppRoot = resolve(import.meta.dir, "../../..");
 const repoRoot = resolve(adminAppRoot, "../..");
 const processNames = {
   engine: "dither-booth-engine",
-  web: "dither-booth-web",
+  shutter: "dither-booth-shutter",
 };
 
 mock.module("#lib/server-constants", () => ({
@@ -133,20 +133,20 @@ describe("parsePm2RestartProcessNames", () => {
       parsePm2RestartProcessNames({
         admin: "dither-booth-admin",
         engine: " dither-booth-engine ",
-        web: " dither-booth-web ",
+        shutter: " dither-booth-shutter ",
       }),
     ).toEqual({
       engine: "dither-booth-engine",
-      web: "dither-booth-web",
+      shutter: "dither-booth-shutter",
     });
   });
 
   for (const [name, processNames] of [
     ["missing names", undefined],
-    ["missing engine", { web: "dither-booth-web" }],
-    ["missing web", { engine: "dither-booth-engine" }],
-    ["non-string engine", { engine: 1234, web: "dither-booth-web" }],
-    ["empty web", { engine: "dither-booth-engine", web: " " }],
+    ["missing engine", { shutter: "dither-booth-shutter" }],
+    ["missing shutter", { engine: "dither-booth-engine" }],
+    ["non-string engine", { engine: 1234, shutter: "dither-booth-shutter" }],
+    ["empty shutter", { engine: "dither-booth-engine", shutter: " " }],
   ] as const) {
     it(`rejects ${name}`, () => {
       const error = (() => {
@@ -178,16 +178,16 @@ describe("restartPm2Service", () => {
       onProgress: (event) => {
         progressEvents.push(event);
       },
-      service: "web",
+      service: "shutter",
     });
 
     expect(result.ok).toBe(true);
-    expect(result.processName).toBe(processNames.web);
-    expect(result.service).toBe("web");
+    expect(result.processName).toBe(processNames.shutter);
+    expect(result.service).toBe("shutter");
     expect(Number.isNaN(Date.parse(result.restartedAt))).toBe(false);
     expect(events).toEqual([
       "connect",
-      `restart:${processNames.web}`,
+      `restart:${processNames.shutter}`,
       "disconnect",
     ]);
     expect(progressEvents.map((event) => event.type)).toEqual([
@@ -278,13 +278,13 @@ describe("restartPm2Service", () => {
       restartPm2Service({
         client,
         restartTimeoutMs: 1,
-        service: "web",
+        service: "shutter",
       }),
-    ).rejects.toThrow(`Timed out restarting ${processNames.web}.`);
+    ).rejects.toThrow(`Timed out restarting ${processNames.shutter}.`);
 
     expect(events).toEqual([
       "connect",
-      `restart:${processNames.web}`,
+      `restart:${processNames.shutter}`,
       "disconnect",
     ]);
   });
@@ -297,13 +297,13 @@ describe("restartPm2Service", () => {
     const error = await restartPm2Service({
       client,
       restartTimeoutMs: 1,
-      service: "web",
+      service: "shutter",
     }).catch((error: unknown) => error);
 
     expect(error).toBeInstanceOf(Pm2RestartTimeoutError);
     expect(events).toEqual([
       "connect",
-      `restart:${processNames.web}`,
+      `restart:${processNames.shutter}`,
       "disconnect",
     ]);
 
@@ -313,7 +313,7 @@ describe("restartPm2Service", () => {
       "pm2-restart-timeout",
     );
     expect((error as InstanceType<typeof Pm2RestartTimeoutError>).service).toBe(
-      "web",
+      "shutter",
     );
     expect((error as InstanceType<typeof Pm2RestartTimeoutError>).phase).toBe(
       "restart",
@@ -335,13 +335,13 @@ describe("restartPm2Service", () => {
       onProgress: (event) => {
         progressEvents.push(event);
       },
-      service: "web",
+      service: "shutter",
     });
 
     expect(result.ok).toBe(true);
     expect(events).toEqual([
       "connect",
-      `restart:${processNames.web}`,
+      `restart:${processNames.shutter}`,
       "disconnect",
     ]);
     expect(progressEvents.map((event) => event.type)).toEqual([
@@ -359,19 +359,19 @@ describe("getPm2RestartProcessStatus", () => {
 
     const status = await getPm2RestartProcessStatus({
       client,
-      processName: processNames.web,
+      processName: processNames.shutter,
     });
 
     expect(status).toEqual({
       exists: true,
       pid: 1234,
-      processName: processNames.web,
+      processName: processNames.shutter,
       restartTime: 3,
       status: "online",
     });
     expect(events).toEqual([
       "connect",
-      `describe:${processNames.web}`,
+      `describe:${processNames.shutter}`,
       "disconnect",
     ]);
   });
@@ -427,7 +427,7 @@ describe("getPm2RestartProcessStatus", () => {
 
     const error = await getPm2RestartProcessStatus({
       client,
-      processName: processNames.web,
+      processName: processNames.shutter,
       timeoutMs: 1,
     }).catch((error: unknown) => error);
 
@@ -437,7 +437,7 @@ describe("getPm2RestartProcessStatus", () => {
     );
     expect(events).toEqual([
       "connect",
-      `describe:${processNames.web}`,
+      `describe:${processNames.shutter}`,
       "disconnect",
     ]);
   });

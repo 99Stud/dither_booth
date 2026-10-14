@@ -2,10 +2,10 @@ import z from "zod";
 
 // Defaults
 export const DEFAULT_ENGINE_PORT = 3001;
-export const DEFAULT_WEB_PORT = 3000;
+export const DEFAULT_SHUTTER_PORT = 3000;
 export const DEFAULT_ADMIN_PORT = 3002;
 export const ENGINE_BIND_HOST = "127.0.0.1";
-export const WEB_BIND_HOST = "0.0.0.0";
+export const SHUTTER_BIND_HOST = "0.0.0.0";
 export const ADMIN_BIND_HOST = "0.0.0.0";
 export const WEB_TLS_CERT_PATH = ".local/tls/booth-cert.pem";
 export const WEB_TLS_KEY_PATH = ".local/tls/booth-key.pem";

@@ -20,11 +20,11 @@ export const PM2_RESTART_SERVER_TIMEOUT_MS =
   PM2_RESTART_UNKNOWN_STATE_GUARD_MS;
 export const PM2_RESTART_CLOSE_REASON_MAX_BYTES = 123;
 
-export const pm2RestartServiceSchema = z.enum(["engine", "web"]);
+export const pm2RestartServiceSchema = z.enum(["engine", "shutter"]);
 
 export const pm2RestartProcessNamesSchema = z.object({
   engine: z.string().trim().min(1),
-  web: z.string().trim().min(1),
+  shutter: z.string().trim().min(1),
 });
 
 export const pm2RestartFailureCodeSchema = z.enum([

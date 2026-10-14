@@ -1,4 +1,4 @@
 import index from "./index.html";
-import { runWebServer } from "./server-app";
+import { runShutterServer } from "./server-app";
 
-await runWebServer({ mode: "development", indexHtml: index });
+await runShutterServer({ mode: "development", indexHtml: index });

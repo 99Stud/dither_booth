@@ -8,7 +8,7 @@ const pm2LogDir = resolve(repoRoot, "logs", "pm2");
 export const PM2_PROCESS_NAMES = {
   engine: "dither-booth-engine",
   admin: "dither-booth-admin",
-  web: "dither-booth-web",
+  shutter: "dither-booth-shutter",
 };
 
 const sharedAppConfig = {
@@ -74,7 +74,7 @@ export const apps = [
   createAppConfig({
     appDirectory: "shutter",
     max_memory_restart: "256M",
-    name: PM2_PROCESS_NAMES.web,
+    name: PM2_PROCESS_NAMES.shutter,
   }),
 ];
 

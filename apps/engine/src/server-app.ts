@@ -200,7 +200,7 @@ export async function runEngineServer(options: {
     trpcHandler(req, res);
   });
 
-  // Bind before Puppeteer init so the web proxy is not refused while Chrome starts.
+  // Bind before Puppeteer init so the shutter and admin proxies are not refused while Chrome starts.
   server.listen(getPort("ENGINE_PORT"), ENGINE_SERVER_BIND_HOST);
 
   const address = server.address();

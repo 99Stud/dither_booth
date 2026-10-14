@@ -50,4 +50,4 @@ Production builds `src/production-entry.ts` into `dist/server.js`; that entry se
 
 The production server runs `dist/server.js`, serves static manifest routes over HTTPS, uses immutable cache headers for hashed build assets, and uses conservative cache headers for copied `public/` assets.
 
-The server uses the shared local TLS certificate, proxies `/engine/trpc` to the engine over loopback, and keeps SPA fallback behavior aligned with the web app.
+The server uses the shared local TLS certificate, proxies `/engine/trpc` to the engine over loopback, and keeps SPA fallback behavior aligned with the shutter app.

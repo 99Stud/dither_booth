@@ -10,7 +10,7 @@ import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
 
-import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
 
 import { FROZEN_PHOTO_SCALE } from "../../Experience.constants";
 import { isCameraStreamPrompt } from "../../Experience.copy";
@@ -26,7 +26,7 @@ import { CameraViewfinder } from "../CameraViewfinder/index";
 const {
   reportUserMediaCameraStateChange,
   reportUserMediaConstraintFallbackError,
-} = createUserMediaReporters({ source: WEB_CAMERA_LOG_SOURCE });
+} = createUserMediaReporters({ source: SHUTTER_CAMERA_LOG_SOURCE });
 
 /** How far the caption travels as it exits upward and the next one rises in. */
 const PROMPT_TEXT_SWAP_Y = 10;

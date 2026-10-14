@@ -1,23 +1,38 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 
-import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
+import { SHUTTER_SERVER_LOG_SOURCE } from "#lib/constants";
 
 import index from "./index.html";
-import { runWebServer } from "./server-app";
+import { runShutterServer } from "./server-app";
 
-const webServer = await runWebServer({ mode: "production", indexHtml: index });
+const shutterServer = await runShutterServer({
+  mode: "production",
+  indexHtml: index,
+});
 
 async function shutdown() {
-  logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-shutdown-started");
+  logKioskEvent("info", SHUTTER_SERVER_LOG_SOURCE, "server-shutdown-started");
 
   try {
-    await webServer.close();
-    logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-shutdown-completed");
+    await shutterServer.close();
+    logKioskEvent(
+      "info",
+      SHUTTER_SERVER_LOG_SOURCE,
+      "server-shutdown-completed",
+    );
     process.exit(0);
   } catch (error) {
-    logKioskEvent("error", WEB_SERVER_LOG_SOURCE, "server-shutdown-failed", {
-      error: getKioskErrorDiagnostics(error, "Web server shutdown failed."),
-    });
+    logKioskEvent(
+      "error",
+      SHUTTER_SERVER_LOG_SOURCE,
+      "server-shutdown-failed",
+      {
+        error: getKioskErrorDiagnostics(
+          error,
+          "Shutter server shutdown failed.",
+        ),
+      },
+    );
     process.exit(1);
   }
 }
