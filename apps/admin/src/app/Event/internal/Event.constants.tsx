@@ -2,7 +2,7 @@ import type { SelectFieldOption } from "@dither-booth/ui/fields/SelectField";
 
 import { capitalize } from "@dither-booth/shared/formatting";
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
-import { ticketItemNamesSchema } from "@dither-booth/shared/routes";
+import { ticketItemNamesSchema } from "@dither-booth/shared/ticket";
 import z from "zod";
 
 import type {

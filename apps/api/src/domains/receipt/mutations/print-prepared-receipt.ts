@@ -1,4 +1,4 @@
-import { BOOTH_TICKET_REF_PATTERN } from "@dither-booth/shared/formatting";
+import { boothTicketRefSchema } from "@dither-booth/shared/ticket";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 
@@ -11,7 +11,7 @@ import {
 } from "../internal/receipt-print.service";
 
 export const printPreparedReceipt = publicProcedure
-  .input(z.object({ ticketRef: z.string().regex(BOOTH_TICKET_REF_PATTERN) }))
+  .input(z.object({ ticketRef: boothTicketRefSchema }))
   .mutation(async ({ ctx, input }): Promise<void> => {
     const { dryRun, printerUSBAdapter } = assertPrinterAvailable(ctx);
     const job = preparedReceiptStore.take(input.ticketRef);

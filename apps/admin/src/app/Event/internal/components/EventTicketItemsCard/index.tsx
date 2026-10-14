@@ -6,7 +6,7 @@ import {
   PHOTO_TICKET_TOTAL_CENTS,
   TICKET_ITEM_NAME_MAX_LENGTH,
   TICKET_ITEM_NAMES_MAX_COUNT,
-} from "@dither-booth/shared/routes";
+} from "@dither-booth/shared/ticket";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,

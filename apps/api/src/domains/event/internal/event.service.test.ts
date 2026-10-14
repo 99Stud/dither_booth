@@ -1,4 +1,4 @@
-import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/routes";
+import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";

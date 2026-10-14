@@ -1,5 +1,5 @@
 import { raritySchema } from "@dither-booth/shared/lottery";
-import { ticketItemNamesSchema } from "@dither-booth/shared/routes";
+import { ticketItemNamesSchema } from "@dither-booth/shared/ticket";
 import z from "zod";
 
 export const EVENT_LOG_SOURCE = "api.event";

@@ -2,7 +2,7 @@ import { parseBoothTicketRef } from "@dither-booth/shared/formatting";
 import {
   DEFAULT_TICKET_ITEM_NAMES,
   ticketItemNamesSchema,
-} from "@dither-booth/shared/routes";
+} from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";

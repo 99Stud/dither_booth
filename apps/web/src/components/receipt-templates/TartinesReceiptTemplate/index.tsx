@@ -4,11 +4,11 @@ import {
   formatPrice,
 } from "@dither-booth/shared/formatting";
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
+import { cn } from "@dither-booth/shared/styles";
 import {
   DEFAULT_TICKET_ITEM_NAMES,
   PHOTO_TICKET_TOTAL_CENTS,
-} from "@dither-booth/shared/routes";
-import { cn } from "@dither-booth/shared/styles";
+} from "@dither-booth/shared/ticket";
 import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/index";
 import { NinetyNineStudQR } from "@dither-booth/ui/components/svg/99studQR/index";
 import { DitherBoothLogo } from "@dither-booth/ui/components/svg/DitherBoothLogo/index";

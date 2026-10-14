@@ -1,8 +1,6 @@
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
-import {
-  DEFAULT_TICKET_ITEM_NAMES,
-  PHOTO_RECEIPT_TEMPLATES,
-} from "@dither-booth/shared/routes";
+import { PHOTO_RECEIPT_TEMPLATES } from "@dither-booth/shared/routes";
+import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
 import {

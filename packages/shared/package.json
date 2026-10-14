@@ -26,6 +26,7 @@
     "./server/paths": "./src/server/paths.ts",
     "./server/runtime": "./src/server/runtime.ts",
     "./styles": "./src/isomorphic/styles.ts",
+    "./ticket": "./src/isomorphic/ticket.ts",
     "./trpc-proxy": "./src/isomorphic/trpc-proxy.ts"
   },
   "scripts": {
