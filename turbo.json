@@ -7,7 +7,7 @@
       "persistent": true,
       "passThroughEnv": [
         "ADMIN_PORT",
-        "API_PORT",
+        "ENGINE_PORT",
         "WEB_PORT",
         "NODE_ENV",
         "PROCESS_MANAGER"
@@ -23,7 +23,7 @@
       "persistent": true,
       "passThroughEnv": [
         "ADMIN_PORT",
-        "API_PORT",
+        "ENGINE_PORT",
         "WEB_PORT",
         "NODE_ENV",
         "PROCESS_MANAGER"

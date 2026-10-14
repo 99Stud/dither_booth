@@ -91,15 +91,15 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
 
   if (!hasTlsCert || !hasTlsKey) {
     throw new Error(
-      `Missing local TLS certificate. Run "bun run --filter @dither-booth/api cert:generate <LAN_IP>" to create ${options.tlsCertPath} and ${options.tlsKeyPath}.`,
+      `Missing local TLS certificate. Run "bun run --filter @dither-booth/engine cert:generate <LAN_IP>" to create ${options.tlsCertPath} and ${options.tlsKeyPath}.`,
     );
   }
 
-  async function proxyApiRequest(req: Request) {
+  async function proxyEngineRequest(req: Request) {
     const url = new URL(req.url);
     const upstreamUrl = new URL(
       options.getTrpcProxyUpstreamPath(`${url.pathname}${url.search}`),
-      options.apiOrigin,
+      options.engineOrigin,
     );
 
     return fetch(upstreamUrl, {
@@ -152,8 +152,8 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
       key: Bun.file(options.tlsKeyPath),
     },
     routes: {
-      [options.trpcProxyPath]: proxyApiRequest,
-      [`${options.trpcProxyPath}/*`]: proxyApiRequest,
+      [options.trpcProxyPath]: proxyEngineRequest,
+      [`${options.trpcProxyPath}/*`]: proxyEngineRequest,
       ...customRoutes,
       ...webSocketUpgradeRoutes,
       ...staticRoutes,

@@ -6,7 +6,7 @@ import type { Pm2Client, Pm2RestartProgressEvent } from "./pm2-control.types";
 const adminAppRoot = resolve(import.meta.dir, "../../..");
 const repoRoot = resolve(adminAppRoot, "../..");
 const processNames = {
-  api: "dither-booth-api",
+  engine: "dither-booth-engine",
   web: "dither-booth-web",
 };
 
@@ -132,21 +132,21 @@ describe("parsePm2RestartProcessNames", () => {
     expect(
       parsePm2RestartProcessNames({
         admin: "dither-booth-admin",
-        api: " dither-booth-api ",
+        engine: " dither-booth-engine ",
         web: " dither-booth-web ",
       }),
     ).toEqual({
-      api: "dither-booth-api",
+      engine: "dither-booth-engine",
       web: "dither-booth-web",
     });
   });
 
   for (const [name, processNames] of [
     ["missing names", undefined],
-    ["missing api", { web: "dither-booth-web" }],
-    ["missing web", { api: "dither-booth-api" }],
-    ["non-string api", { api: 1234, web: "dither-booth-web" }],
-    ["empty web", { api: "dither-booth-api", web: " " }],
+    ["missing engine", { web: "dither-booth-web" }],
+    ["missing web", { engine: "dither-booth-engine" }],
+    ["non-string engine", { engine: 1234, web: "dither-booth-web" }],
+    ["empty web", { engine: "dither-booth-engine", web: " " }],
   ] as const) {
     it(`rejects ${name}`, () => {
       const error = (() => {
@@ -210,7 +210,7 @@ describe("restartPm2Service", () => {
         onProgress: (event) => {
           progressEvents.push(event);
         },
-        service: "api",
+        service: "engine",
       }),
     ).rejects.toThrow("connect failed");
 
@@ -229,7 +229,7 @@ describe("restartPm2Service", () => {
     const error = await restartPm2Service({
       client,
       connectTimeoutMs: 1,
-      service: "api",
+      service: "engine",
     }).catch((error: unknown) => error);
 
     expect(error).toBeInstanceOf(Pm2RestartOperationError);
@@ -252,13 +252,13 @@ describe("restartPm2Service", () => {
         onProgress: (event) => {
           progressEvents.push(event);
         },
-        service: "api",
+        service: "engine",
       }),
     ).rejects.toThrow("restart failed");
 
     expect(events).toEqual([
       "connect",
-      `restart:${processNames.api}`,
+      `restart:${processNames.engine}`,
       "disconnect",
     ]);
     expect(progressEvents.map((event) => event.type)).toEqual([
@@ -391,12 +391,12 @@ describe("getPm2RestartProcessStatus", () => {
 
     const status = await getPm2RestartProcessStatus({
       client,
-      processName: processNames.api,
+      processName: processNames.engine,
     });
 
     expect(status).toMatchObject({
       exists: true,
-      processName: processNames.api,
+      processName: processNames.engine,
       status: "stopped",
     });
   });

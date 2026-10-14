@@ -29,9 +29,9 @@ interface UsePrintAttemptOptions {
 
 /**
  * Drives a single print attempt in two halves. First, capture the photo and
- * hand it to the API, which commits the lottery draw and renders the receipt
+ * hand it to the engine, which commits the lottery draw and renders the receipt
  * while the slot machine plays. Second, once the machine reaches `printing`,
- * ask the API to print the receipt it prepared. Every dispatch carries the
+ * ask the engine to print the receipt it prepared. Every dispatch carries the
  * attempt id so a late result from a superseded attempt is ignored by the
  * reducer.
  */

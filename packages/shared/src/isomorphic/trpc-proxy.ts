@@ -1,4 +1,4 @@
-export const TRPC_PROXY_PATH = "/api/trpc";
+export const TRPC_PROXY_PATH = "/engine/trpc";
 
 export const getTrpcProxyUpstreamPath = (pathWithSearch: string) => {
   const queryIndex = pathWithSearch.indexOf("?");

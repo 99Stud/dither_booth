@@ -1,0 +1,199 @@
+import type { Browser } from "puppeteer";
+
+import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
+import { withTimeout } from "@dither-booth/shared/async";
+
+import { ENGINE_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
+
+import type {
+  PuppeteerReceiptViewer,
+  PuppeteerReceiptViewerLifecycle,
+  PuppeteerReceiptViewerRestartResult,
+} from "./puppeteer.types";
+
+import {
+  createInitialPuppeteerState,
+  initializePuppeteerReceiptViewer,
+} from "./puppeteer.utils";
+
+const PUPPETEER_BROWSER_CLOSE_TIMEOUT_MS = 5_000;
+const PUPPETEER_BROWSER_KILL_TIMEOUT_MS = 5_000;
+
+type BrowserProcess = NonNullable<ReturnType<Browser["process"]>>;
+
+function createRestartResult(
+  receiptViewer: PuppeteerReceiptViewer,
+): PuppeteerReceiptViewerRestartResult {
+  return {
+    ok:
+      receiptViewer.state.launch.ok &&
+      receiptViewer.state.page.ok &&
+      receiptViewer.state.navigation.ok,
+    state: receiptViewer.state,
+  };
+}
+
+function waitForProcessExit({
+  browserProcess,
+  timeoutMs,
+}: {
+  browserProcess: BrowserProcess;
+  timeoutMs: number;
+}) {
+  return withTimeout({
+    message: "Timed out waiting for Puppeteer browser process to exit.",
+    promise: new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        browserProcess.removeListener("close", onClose);
+        browserProcess.removeListener("error", onError);
+        browserProcess.removeListener("exit", onExit);
+      };
+      const resolveOnce = () => {
+        cleanup();
+        resolve();
+      };
+      const rejectOnce = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+      const onClose = () => {
+        resolveOnce();
+      };
+      const onError = (error: Error) => {
+        rejectOnce(error);
+      };
+      const onExit = () => {
+        resolveOnce();
+      };
+
+      if (
+        browserProcess.exitCode !== null ||
+        browserProcess.signalCode !== null
+      ) {
+        resolve();
+        return;
+      }
+
+      browserProcess.once("close", onClose);
+      browserProcess.once("error", onError);
+      browserProcess.once("exit", onExit);
+    }),
+    timeoutMs,
+  });
+}
+
+async function killBrowserProcess(browserProcess: BrowserProcess) {
+  if (browserProcess.exitCode !== null || browserProcess.signalCode !== null) {
+    return;
+  }
+
+  browserProcess.kill("SIGKILL");
+
+  await waitForProcessExit({
+    browserProcess,
+    timeoutMs: PUPPETEER_BROWSER_KILL_TIMEOUT_MS,
+  });
+}
+
+async function terminatePuppeteerReceiptViewer(
+  receiptViewer: PuppeteerReceiptViewer,
+) {
+  const { browser } = receiptViewer;
+
+  if (!browser) {
+    return;
+  }
+
+  const browserProcess = browser.process();
+
+  try {
+    await withTimeout({
+      message: "Timed out closing Puppeteer browser.",
+      promise: browser.close(),
+      timeoutMs: PUPPETEER_BROWSER_CLOSE_TIMEOUT_MS,
+    });
+  } catch (error) {
+    if (!browserProcess) {
+      throw error;
+    }
+
+    logKioskEvent("error", ENGINE_BROWSER_LOG_SOURCE, "browser-close-failed", {
+      error: getKioskErrorDiagnostics(error, "Puppeteer browser close failed."),
+    });
+
+    await killBrowserProcess(browserProcess);
+  }
+}
+
+export function createPuppeteerReceiptViewerLifecycle(): PuppeteerReceiptViewerLifecycle {
+  let current: PuppeteerReceiptViewer = {
+    state: createInitialPuppeteerState(),
+  };
+  let initializePromise: Promise<PuppeteerReceiptViewer> | undefined;
+  let restartPromise: Promise<PuppeteerReceiptViewerRestartResult> | undefined;
+
+  const initialize = () => {
+    initializePromise ??= (async () => {
+      current = await initializePuppeteerReceiptViewer();
+      return current;
+    })();
+
+    return initializePromise;
+  };
+
+  const whenReady = async () => {
+    if (initializePromise) {
+      await initializePromise;
+    }
+
+    if (restartPromise) {
+      await restartPromise;
+    }
+
+    return current;
+  };
+
+  const restart = () => {
+    restartPromise ??= (async () => {
+      await whenReady().catch(() => undefined);
+
+      const previous = current;
+
+      current = {
+        state: createInitialPuppeteerState(),
+      };
+
+      await terminatePuppeteerReceiptViewer(previous);
+
+      const next = await initializePuppeteerReceiptViewer();
+      current = next;
+      initializePromise = Promise.resolve(next);
+
+      return createRestartResult(next);
+    })().finally(() => {
+      restartPromise = undefined;
+    });
+
+    return restartPromise;
+  };
+
+  const close = async () => {
+    await whenReady().catch(() => undefined);
+
+    const previous = current;
+    current = {
+      state: createInitialPuppeteerState(),
+    };
+    initializePromise = undefined;
+
+    await terminatePuppeteerReceiptViewer(previous);
+  };
+
+  return {
+    close,
+    getCurrent: () => current,
+    initialize,
+    restart,
+    whenReady,
+  };
+}

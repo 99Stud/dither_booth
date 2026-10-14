@@ -32,7 +32,7 @@ export async function runCertCommand(context: BoothContext): Promise<void> {
 
   step(`Generating certificate for ${ip}`);
   await run(
-    ["bun", "run", "--filter", "@dither-booth/api", "cert:generate", ip],
+    ["bun", "run", "--filter", "@dither-booth/engine", "cert:generate", ip],
     { cwd: repoRoot },
   );
 

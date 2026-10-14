@@ -1,10 +1,10 @@
 import z from "zod";
 
 // Defaults
-export const DEFAULT_API_PORT = 3001;
+export const DEFAULT_ENGINE_PORT = 3001;
 export const DEFAULT_WEB_PORT = 3000;
 export const DEFAULT_ADMIN_PORT = 3002;
-export const API_BIND_HOST = "127.0.0.1";
+export const ENGINE_BIND_HOST = "127.0.0.1";
 export const WEB_BIND_HOST = "0.0.0.0";
 export const ADMIN_BIND_HOST = "0.0.0.0";
 export const WEB_TLS_CERT_PATH = ".local/tls/booth-cert.pem";
@@ -12,7 +12,7 @@ export const WEB_TLS_KEY_PATH = ".local/tls/booth-key.pem";
 export const DEFAULT_WEB_TLS_MANIFEST_FILE_NAME = "booth-manifest.json";
 
 export const CERT_GENERATE_COMMAND =
-  "bun run --filter @dither-booth/api cert:generate <LAN_IP>";
+  "bun run --filter @dither-booth/engine cert:generate <LAN_IP>";
 
 // Schemas
 export const PORT_SCHEMA = z

@@ -52,7 +52,7 @@ export type StaticManifestConfig = {
 };
 
 export type RunBrowserServerOptions = {
-  apiOrigin: string;
+  engineOrigin: string;
   appRoot: string;
   bindHost: string;
   getTrpcProxyUpstreamPath: (path: string) => string;

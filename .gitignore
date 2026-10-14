@@ -43,4 +43,4 @@ logs/pm2/*.log
 
 # Temporary files
 temp
-apps/api/tmp/
+apps/engine/tmp/

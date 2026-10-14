@@ -6,7 +6,7 @@ const bunInterpreter = resolve(repoRoot, "node_modules", ".bin", "bun");
 const pm2LogDir = resolve(repoRoot, "logs", "pm2");
 
 export const PM2_PROCESS_NAMES = {
-  api: "dither-booth-api",
+  engine: "dither-booth-engine",
   admin: "dither-booth-admin",
   web: "dither-booth-web",
 };
@@ -66,9 +66,9 @@ assertSingleAdminInstance(adminAppConfig);
 
 export const apps = [
   createAppConfig({
-    appDirectory: "api",
+    appDirectory: "engine",
     max_memory_restart: "1G",
-    name: PM2_PROCESS_NAMES.api,
+    name: PM2_PROCESS_NAMES.engine,
   }),
   adminAppConfig,
   createAppConfig({

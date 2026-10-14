@@ -140,7 +140,7 @@ describe("requestPm2ServiceRestart", () => {
 
   it("rejects failed restart events", async () => {
     const restartPromise = requestPm2ServiceRestart({
-      service: "api",
+      service: "engine",
     });
     const socket = TestWebSocket.instances[0]!;
 
@@ -151,7 +151,7 @@ describe("requestPm2ServiceRestart", () => {
           type: "failed",
           error: "Failed to restart PM2 process.",
           message: "Failed to restart PM2 process.",
-          service: "api",
+          service: "engine",
         }),
       ),
     );
@@ -169,7 +169,7 @@ describe("requestPm2ServiceRestart", () => {
 
   it("rejects malformed restart events and closes the socket", async () => {
     const restartPromise = requestPm2ServiceRestart({
-      service: "api",
+      service: "engine",
     });
     const socket = TestWebSocket.instances[0]!;
 
@@ -189,7 +189,7 @@ describe("requestPm2ServiceRestart", () => {
 
   it("rejects WebSocket connection errors", async () => {
     const restartPromise = requestPm2ServiceRestart({
-      service: "api",
+      service: "engine",
     });
     const socket = TestWebSocket.instances[0]!;
 
@@ -202,7 +202,7 @@ describe("requestPm2ServiceRestart", () => {
 
   it("rejects unexpected closes before completion", async () => {
     const restartPromise = requestPm2ServiceRestart({
-      service: "api",
+      service: "engine",
     });
     const socket = TestWebSocket.instances[0]!;
 
@@ -241,7 +241,7 @@ describe("requestPm2ServiceRestart", () => {
 
   it("times out if no terminal event arrives", async () => {
     const restartPromise = requestPm2ServiceRestart({
-      service: "api",
+      service: "engine",
       timeoutMs: 1,
     });
     const socket = TestWebSocket.instances[0]!;
