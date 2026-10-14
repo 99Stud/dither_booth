@@ -23,5 +23,12 @@ export const printPreparedReceipt = publicProcedure
       });
     }
 
-    await printPreparedReceiptJob({ dryRun, job, printerUSBAdapter });
+    try {
+      await printPreparedReceiptJob({ dryRun, job, printerUSBAdapter });
+    } catch (error) {
+      // Taken out while printing so a double submit cannot print twice; put
+      // back on failure so the kiosk can retry (only the unprinted parts).
+      preparedReceiptStore.put(job);
+      throw error;
+    }
   });

@@ -11,7 +11,11 @@ import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 
 import type { ExperienceAction, ExperiencePhase } from "../Experience.machine";
 
-import { PRINT_ATTEMPT_TIMEOUT_MS } from "../Experience.constants";
+import {
+  PRINT_ATTEMPT_TIMEOUT_MS,
+  PRINT_PREPARED_RECEIPT_RETRIES,
+  PRINT_PREPARED_RECEIPT_RETRY_DELAY_MS,
+} from "../Experience.constants";
 import { hasPhaseFlag } from "../Experience.phases";
 
 interface UsePrintAttemptOptions {
@@ -44,9 +48,14 @@ export const usePrintAttempt = ({
   const { mutateAsync: prepareReceipt } = useMutation(
     trpc.prepareReceipt.mutationOptions(),
   );
-  const { mutateAsync: printPreparedReceipt } = useMutation(
-    trpc.printPreparedReceipt.mutationOptions(),
-  );
+  const { mutateAsync: printPreparedReceipt } = useMutation({
+    ...trpc.printPreparedReceipt.mutationOptions(),
+    // NOT_FOUND means the job expired or was never prepared: nothing to retry.
+    retry: (failureCount, error) =>
+      failureCount < PRINT_PREPARED_RECEIPT_RETRIES &&
+      error.data?.code !== "NOT_FOUND",
+    retryDelay: PRINT_PREPARED_RECEIPT_RETRY_DELAY_MS,
+  });
 
   const takeSquarePhoto = useCallback(async () => {
     return await takeSquarePhotoAndFlipHorizontally(

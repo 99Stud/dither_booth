@@ -8,7 +8,7 @@ import { TRPCError } from "@trpc/server";
 import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import { getCurrentTicketItemNamesForDb } from "#domains/event/internal/event.service";
+import { getCurrentTicketItemNamesForDb } from "#domains/event/event.service";
 import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
 
 import { screenshotToGsV0RasterCommand } from "./gs-v0-raster.utils";

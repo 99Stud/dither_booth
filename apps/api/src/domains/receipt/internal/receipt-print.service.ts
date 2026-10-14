@@ -3,15 +3,15 @@ import type USB from "@node-escpos/usb-adapter";
 
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import { lotteryTable } from "#db/internal/db.schema";
-import { getCurrentTicketItemNamesForDb } from "#domains/event/internal/event.service";
-import { LOTTERY_LOG_SOURCE } from "#domains/lottery/internal/lottery.constants";
-import { executeLotteryDraw } from "#domains/lottery/internal/lottery.draw";
-import { createBoothTicketRef } from "#domains/lottery/internal/lottery.ticket-ref";
+import { getCurrentTicketItemNamesForDb } from "#domains/event/event.service";
+import {
+  createBoothTicketRef,
+  executeLotteryDraw,
+  LOTTERY_LOG_SOURCE,
+} from "#domains/lottery/lottery.service";
 import { printRasterReceipt } from "#domains/printer/printer.service";
 import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
@@ -34,6 +34,11 @@ import { SAMPLE_LOTTERY_TICKET_REF } from "./sample-lottery-ticket";
 export interface PreparedReceiptJob {
   draw: DrawResult;
   lotteryRasterCmd: Buffer | null;
+  /**
+   * Set once the photo receipt is out, so a retry after a lottery-ticket
+   * failure prints only the ticket instead of a second photo.
+   */
+  photoPrinted: boolean;
   receiptRasterCmd: Buffer;
   ticketRef: string;
 }
@@ -150,42 +155,36 @@ export const prepareReceiptJob = async ({
   }
 
   const draw = execution.result;
+  const job: PreparedReceiptJob = {
+    draw,
+    lotteryRasterCmd: null,
+    photoPrinted: false,
+    receiptRasterCmd,
+    ticketRef,
+  };
 
-  const lottery = await ctx.db.query.lotteryTable.findFirst({
-    where: eq(lotteryTable.enabled, true),
-  });
-  const printLoserTicket = lottery?.printLoserTicket ?? false;
-  const shouldPrintLotteryTicket = draw.outcome === "win" || printLoserTicket;
-
-  if (!shouldPrintLotteryTicket) {
-    return { draw, lotteryRasterCmd: null, receiptRasterCmd, ticketRef };
+  if (draw.outcome === "loss" && !execution.printLoserTicket) {
+    return job;
   }
 
   try {
-    const lotteryRasterCmd = await buildLotteryTicketRasterCommand({
+    job.lotteryRasterCmd = await buildLotteryTicketRasterCommand({
       page,
       draw,
       ticketRef,
     });
-
-    return { draw, lotteryRasterCmd, receiptRasterCmd, ticketRef };
   } catch (error) {
+    // The draw is already committed. Failing here would drop the photo
+    // receipt too, and with it the printed ticket ref staff use to look the
+    // win up in admin Draws. Print the photo alone instead.
     logLotteryTicketFailure(
       { draw, ticketRef },
       error,
-      "Failed to generate lottery ticket after photo receipt.",
+      "Failed to generate lottery ticket; printing the photo receipt alone.",
     );
-
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to print lottery ticket.",
-      cause: error,
-    });
   }
+
+  return job;
 };
 
 export const printPreparedReceiptJob = async ({
@@ -222,15 +221,18 @@ export const printPreparedReceiptJob = async ({
     });
   }
 
-  await printRasterReceipt(printerUSBAdapter, job.receiptRasterCmd).catch(
-    (error) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to print receipt.",
-        cause: error,
-      });
-    },
-  );
+  if (!job.photoPrinted) {
+    await printRasterReceipt(printerUSBAdapter, job.receiptRasterCmd).catch(
+      (error) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to print receipt.",
+          cause: error,
+        });
+      },
+    );
+    job.photoPrinted = true;
+  }
 
   if (!job.lotteryRasterCmd) return;
 

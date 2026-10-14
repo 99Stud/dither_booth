@@ -51,3 +51,12 @@ export const PHASE_AUTO_ADVANCE_MS = 5000;
  * runExclusivePrinterJob for why that gap is left open.
  */
 export const PRINT_ATTEMPT_TIMEOUT_MS = 45000;
+
+/**
+ * A failed print is retried this many times before the visit fails. The API
+ * keeps the prepared job across failures and only prints the parts that did
+ * not come out (photo, then lottery ticket), so a retry never duplicates one.
+ * Retries share the printing phase's PRINT_ATTEMPT_TIMEOUT_MS budget.
+ */
+export const PRINT_PREPARED_RECEIPT_RETRIES = 2;
+export const PRINT_PREPARED_RECEIPT_RETRY_DELAY_MS = 2000;

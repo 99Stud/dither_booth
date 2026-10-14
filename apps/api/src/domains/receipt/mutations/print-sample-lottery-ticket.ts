@@ -2,7 +2,7 @@ import { drawOutcomeSchema } from "@dither-booth/shared/lottery";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 
-import { getCurrentEventForDb } from "#domains/event/internal/event.service";
+import { getCurrentEventForDb } from "#domains/event/event.service";
 import { adminOriginProcedure } from "#internal/trpc";
 
 import { printSampleLotteryTicketJob } from "../internal/receipt-print.service";
