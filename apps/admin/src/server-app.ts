@@ -6,6 +6,7 @@ import {
   getApiInternalOrigin,
   getPort,
   getWebTlsCertPath,
+  getWebTlsHostnames,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
 import { ADMIN_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
@@ -30,8 +31,12 @@ export async function runAdminServer(options: {
   const tlsCertPath = getWebTlsCertPath({ repoRoot: ADMIN_REPO_ROOT });
   const tlsKeyPath = getWebTlsKeyPath({ repoRoot: ADMIN_REPO_ROOT });
   const adminOrigin = await getAdminOrigin({ repoRoot: ADMIN_REPO_ROOT });
+  const allowedHostnames = await getWebTlsHostnames({
+    repoRoot: ADMIN_REPO_ROOT,
+  });
 
   return await runBrowserServer({
+    allowedHostnames,
     apiOrigin,
     appRoot: ADMIN_APP_ROOT,
     bindHost: ADMIN_BIND_HOST,

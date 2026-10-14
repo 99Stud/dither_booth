@@ -1,6 +1,8 @@
 import { browserAutomation } from "#domains/browser-automation/index";
+import { event } from "#domains/event/index";
 import { healthz } from "#domains/healthz/index";
 import { imageManipulation } from "#domains/image-manipulation/index";
+import { lottery } from "#domains/lottery/index";
 import { printConfiguration } from "#domains/print-configuration/index";
 import { receipt } from "#domains/receipt/index";
 
@@ -12,4 +14,6 @@ export const apiRouter = router({
   ...imageManipulation,
   ...browserAutomation,
   ...healthz,
+  ...lottery,
+  ...event,
 });

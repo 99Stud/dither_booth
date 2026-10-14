@@ -18,7 +18,9 @@ const sharedAppConfig = {
   exp_backoff_restart_delay: 1000,
   instances: 1,
   interpreter: "none",
-  kill_timeout: 5000,
+  // Covers the in-flight Puppeteer navigation wait plus browser close.
+  // A shorter kill leaves the listener up and the next start hits EADDRINUSE.
+  kill_timeout: 25000,
   max_restarts: 10,
   merge_logs: true,
   min_uptime: "10s",

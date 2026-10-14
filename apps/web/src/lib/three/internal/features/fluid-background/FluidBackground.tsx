@@ -1,3 +1,4 @@
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
 import type { Scene, WebGPURenderer } from "three/webgpu";
 
 import type { ViewportSize } from "#lib/three/internal/runtime/runtime.types";
@@ -34,6 +35,11 @@ export class FluidBackground {
     this._simulation.init(renderer);
     this._plane.init(renderer);
     this._plane.setFluidTexture(this._simulation.densityTexture);
+  }
+
+  attachDebug(folder: ParametersGroup): void {
+    this._simulation.attachDebug(folder);
+    this._plane.attachDebug(folder);
   }
 
   update(delta: number): void {

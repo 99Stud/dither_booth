@@ -14,8 +14,8 @@ interface UseWebcamPrewarmOptions {
 }
 
 /**
- * Warms up the photo capture pipeline while the intro is still sliding away, so
- * the shutter is not paying camera start-up cost at the end of the countdown.
+ * Warms up the photo capture pipeline while the camera square is opening, so
+ * the capture is not paying camera start-up cost at the end of the countdown.
  */
 export const useWebcamPrewarm = ({
   phase,

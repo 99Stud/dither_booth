@@ -125,24 +125,38 @@ async function terminatePuppeteerReceiptViewer(
   }
 }
 
-export function createPuppeteerReceiptViewerLifecycle({
-  repoRoot,
-}: {
-  repoRoot: string;
-}): PuppeteerReceiptViewerLifecycle {
+export function createPuppeteerReceiptViewerLifecycle(): PuppeteerReceiptViewerLifecycle {
   let current: PuppeteerReceiptViewer = {
     state: createInitialPuppeteerState(),
   };
+  let initializePromise: Promise<PuppeteerReceiptViewer> | undefined;
   let restartPromise: Promise<PuppeteerReceiptViewerRestartResult> | undefined;
 
-  const initialize = async () => {
-    current = await initializePuppeteerReceiptViewer({ repoRoot });
+  const initialize = () => {
+    initializePromise ??= (async () => {
+      current = await initializePuppeteerReceiptViewer();
+      return current;
+    })();
+
+    return initializePromise;
+  };
+
+  const whenReady = async () => {
+    if (initializePromise) {
+      await initializePromise;
+    }
+
+    if (restartPromise) {
+      await restartPromise;
+    }
 
     return current;
   };
 
   const restart = () => {
     restartPromise ??= (async () => {
+      await whenReady().catch(() => undefined);
+
       const previous = current;
 
       current = {
@@ -151,8 +165,9 @@ export function createPuppeteerReceiptViewerLifecycle({
 
       await terminatePuppeteerReceiptViewer(previous);
 
-      const next = await initializePuppeteerReceiptViewer({ repoRoot });
+      const next = await initializePuppeteerReceiptViewer();
       current = next;
+      initializePromise = Promise.resolve(next);
 
       return createRestartResult(next);
     })().finally(() => {
@@ -163,14 +178,13 @@ export function createPuppeteerReceiptViewerLifecycle({
   };
 
   const close = async () => {
-    if (restartPromise) {
-      await restartPromise;
-    }
+    await whenReady().catch(() => undefined);
 
     const previous = current;
     current = {
       state: createInitialPuppeteerState(),
     };
+    initializePromise = undefined;
 
     await terminatePuppeteerReceiptViewer(previous);
   };
@@ -180,5 +194,6 @@ export function createPuppeteerReceiptViewerLifecycle({
     getCurrent: () => current,
     initialize,
     restart,
+    whenReady,
   };
 }

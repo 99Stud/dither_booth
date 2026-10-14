@@ -2,8 +2,13 @@
   "name": "@dither-booth/ports",
   "private": true,
   "type": "module",
+  "imports": {
+    "#internal/*": "./src/internal/*.ts"
+  },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./hostname": "./src/hostname.ts",
+    "./origin": "./src/origin.ts"
   },
   "scripts": {
     "update": "bun update -i",

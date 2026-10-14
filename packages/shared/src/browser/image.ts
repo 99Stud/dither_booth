@@ -1,3 +1,10 @@
+import {
+  getJpegImageMetadataFromBlob,
+  manuallyOrientImageBitmap,
+  shouldForceManualOrientation,
+  shouldManuallyOrientBitmap,
+} from "./image-orientation";
+
 const FALLBACK_IMAGE_MIME_TYPE = "image/png";
 
 const canvasToBlob = (
@@ -8,8 +15,99 @@ const canvasToBlob = (
     canvas.toBlob((blob) => resolve(blob), type);
   });
 
+/** Decodes JPEG EXIF orientation (critical for iOS/iPadOS camera stills). */
+export const createOrientedImageBitmap = async (
+  blob: Blob,
+): Promise<ImageBitmap> => {
+  const jpegMetadata = await getJpegImageMetadataFromBlob(blob);
+
+  if (shouldForceManualOrientation(jpegMetadata)) {
+    try {
+      const rawImageBitmap = await createImageBitmap(blob, {
+        imageOrientation: "none",
+      });
+
+      try {
+        return await manuallyOrientImageBitmap(
+          rawImageBitmap,
+          jpegMetadata.orientation ?? 1,
+        );
+      } finally {
+        rawImageBitmap.close();
+      }
+    } catch {
+      const imageBitmap = await createImageBitmap(blob);
+
+      if (
+        !shouldManuallyOrientBitmap({
+          bitmapHeight: imageBitmap.height,
+          bitmapWidth: imageBitmap.width,
+          jpegMetadata,
+        })
+      ) {
+        return imageBitmap;
+      }
+
+      try {
+        return await manuallyOrientImageBitmap(
+          imageBitmap,
+          jpegMetadata.orientation ?? 1,
+        );
+      } finally {
+        imageBitmap.close();
+      }
+    }
+  }
+
+  try {
+    const imageBitmap = await createImageBitmap(blob, {
+      imageOrientation: "from-image",
+    });
+
+    if (
+      !shouldManuallyOrientBitmap({
+        bitmapHeight: imageBitmap.height,
+        bitmapWidth: imageBitmap.width,
+        jpegMetadata,
+      })
+    ) {
+      return imageBitmap;
+    }
+
+    try {
+      return await manuallyOrientImageBitmap(
+        imageBitmap,
+        jpegMetadata.orientation ?? 1,
+      );
+    } finally {
+      imageBitmap.close();
+    }
+  } catch {
+    const imageBitmap = await createImageBitmap(blob);
+
+    if (
+      !shouldManuallyOrientBitmap({
+        bitmapHeight: imageBitmap.height,
+        bitmapWidth: imageBitmap.width,
+        jpegMetadata,
+      })
+    ) {
+      return imageBitmap;
+    }
+
+    try {
+      return await manuallyOrientImageBitmap(
+        imageBitmap,
+        jpegMetadata.orientation ?? 1,
+      );
+    } finally {
+      imageBitmap.close();
+    }
+  }
+};
+
 export const getBlobDimensions = async (blob: Blob) => {
-  const imageBitmap = await createImageBitmap(blob);
+  const imageBitmap = await createOrientedImageBitmap(blob);
 
   try {
     return {
@@ -26,7 +124,7 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
     throw new Error("Photo input was empty.");
   }
 
-  const imageBitmap = await createImageBitmap(blob);
+  const imageBitmap = await createOrientedImageBitmap(blob);
 
   try {
     const { width, height } = imageBitmap;
@@ -79,7 +177,7 @@ export const resizeBlobToSquare = async (blob: Blob): Promise<Blob> => {
 };
 
 export const flipBlobHorizontally = async (blob: Blob): Promise<Blob> => {
-  const imageBitmap = await createImageBitmap(blob);
+  const imageBitmap = await createOrientedImageBitmap(blob);
 
   try {
     const canvas = document.createElement("canvas");

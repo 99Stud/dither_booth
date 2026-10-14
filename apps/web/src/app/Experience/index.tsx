@@ -1,9 +1,13 @@
+import { useState } from "react";
+
 import { InteractiveBackground } from "#components/misc/InteractiveBackground/index";
 
 import { CameraStage } from "./internal/components/CameraStage/index";
 import { CaptureFlash } from "./internal/components/CaptureFlash/index";
+import { FrozenPhoto } from "./internal/components/FrozenPhoto/index";
 import { IntroChrome } from "./internal/components/IntroChrome/index";
 import { PostPrintStage } from "./internal/components/PostPrintStage/index";
+import { SlotMachineStage } from "./internal/components/SlotMachineStage/index";
 import { StartExperienceButton } from "./internal/components/StartExperienceButton/index";
 import { KIOSK_INTERACTIVE_BACKGROUND_OPTIONS } from "./internal/Experience.constants";
 import { experienceStageClassName } from "./internal/Experience.styles";
@@ -13,29 +17,37 @@ export const Experience = () => {
   const {
     captureFlashId,
     countdown,
+    drawResult,
     handleCameraAnimationComplete,
-    handlePlayLottery,
     handlePromptAnimationComplete,
+    handleReelsStopped,
     handleStartButtonAnimationComplete,
     handleStartExperience,
     isCameraVisible,
+    isFrozenPhotoVisible,
     isIntroDecorationsVisible,
-    isPostPrintEnteringInPlace,
     isPostPrintVisible,
     isPromptVisible,
+    isSlotVisible,
     isStartButtonAtOrigin,
     isStartButtonVisible,
     isStartDisabled,
+    lotteryStatus,
     phase,
+    photoUrl,
     promptText,
     webcamRef,
   } = useExperienceFlow();
+  const [splitTilePx, setSplitTilePx] = useState(0);
 
   return (
     <>
       <InteractiveBackground options={KIOSK_INTERACTIVE_BACKGROUND_OPTIONS} />
       <CaptureFlash captureId={captureFlashId} />
-      <IntroChrome isVisible={isIntroDecorationsVisible} />
+      <IntroChrome
+        isVisible={isIntroDecorationsVisible}
+        lotteryStatus={lotteryStatus}
+      />
       <StartExperienceButton
         disabled={isStartDisabled}
         isAtOrigin={isStartButtonAtOrigin}
@@ -47,18 +59,28 @@ export const Experience = () => {
         <CameraStage
           countdown={countdown}
           isCameraVisible={isCameraVisible}
+          isLiveFeedVisible={!isFrozenPhotoVisible}
           isPromptVisible={isPromptVisible}
           onCameraAnimationComplete={handleCameraAnimationComplete}
           onPromptAnimationComplete={handlePromptAnimationComplete}
+          onSplitTile={setSplitTilePx}
           promptText={promptText}
+          splitTilePx={splitTilePx}
           webcamRef={webcamRef}
-        />
-        <PostPrintStage
-          entersInPlace={isPostPrintEnteringInPlace}
-          isVisible={isPostPrintVisible}
-          onPlayLottery={handlePlayLottery}
-          phase={phase}
-        />
+        >
+          <FrozenPhoto
+            isVisible={isFrozenPhotoVisible}
+            photoUrl={photoUrl}
+            tilePx={splitTilePx}
+          />
+          <SlotMachineStage
+            drawResult={drawResult}
+            isVisible={isSlotVisible}
+            onReelsStopped={handleReelsStopped}
+            phase={phase}
+          />
+        </CameraStage>
+        <PostPrintStage isVisible={isPostPrintVisible} phase={phase} />
       </div>
     </>
   );

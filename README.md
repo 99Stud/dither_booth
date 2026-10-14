@@ -67,6 +67,12 @@ From the repository root, apply all the migrations to the local SQLite database:
 bun run --filter @dither-booth/api db:migrate
 ```
 
+Optionally seed a local lottery + sample prizes for Experience testing:
+
+```bash
+bun run --filter @dither-booth/api db:seed:lottery
+```
+
 See the [API README](apps/api/README.md) for details about the database management.
 
 If `RECEIPT_TEMPLATES` changes in `packages/shared/src/isomorphic/routes.ts`, regenerate and apply the API DB migration so the `print_config.template` check constraint stays in sync. See the [API README](apps/api/README.md#receipt-template-migrations) for the exact workflow.
@@ -148,7 +154,7 @@ bun run pm2:start
 bun run pm2:list
 ```
 
-PM2 starts the already-built `dist/server.js` entry for each app. Use `bun run pm2:reload` after a new build, `bun run pm2:logs` to inspect process logs, and `bun run pm2:stop` to stop the managed apps. After confirming a good production state, run `bun run pm2:save` so PM2 can restore that process list on reboot. The `booth service` command installs a systemd unit that runs `pm2:start` and `pm2:save`.
+PM2 starts the already-built `dist/server.js` entry for each app. Use `bun run pm2:reload` after a new build, `bun run pm2:logs` to inspect process logs, and `bun run pm2:stop` to stop the managed apps. On the booth, systemd starts that same PM2 daemon from `pm2.config.js` and stops it with `pm2 kill`. PM2 restarts the apps. Do not also run `bun run start`.
 
 Health checks:
 
@@ -162,6 +168,7 @@ Then open:
 
 - Web: `https://<SERVER_LAN_IP>:3000` unless you changed `WEB_PORT`
 - Admin: `https://<SERVER_LAN_IP>:3002` unless you changed `ADMIN_PORT`
+- Or via machine hostname: `https://<hostname>.local:3000` / `:3002` (included in the cert SANs and origin allowlist at generate time). Regenerate the cert if the machine hostname changes.
 
 ### 8. Verify setup
 
