@@ -11,10 +11,10 @@ import type {
   UPDATE_EVENT_NAME_FORM_SCHEMA,
 } from "./Event.constants";
 
-type EngineProcedures = TRPCOptionsProxy<EngineRouter>;
+type ConfigProcedures = TRPCOptionsProxy<EngineRouter>["config"];
 
 export type CurrentEvent = NonNullable<
-  inferOutput<EngineProcedures["getCurrentEvent"]>
+  inferOutput<ConfigProcedures["getCurrentEvent"]>
 >;
 export type EventPrize = CurrentEvent["prizes"][number];
 

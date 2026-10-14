@@ -6,8 +6,10 @@ import type { TRPCContext } from "#lib/trpc/trpc.types";
 const t = initTRPC.context<TRPCContext>().create();
 
 export const router = t.router;
-export const publicProcedure = t.procedure;
-export const adminOriginProcedure = publicProcedure.use(({ ctx, next }) => {
+
+const publicProcedure = t.procedure;
+
+const adminOriginProcedure = publicProcedure.use(({ ctx, next }) => {
   if (
     !isAllowedConfiguredOrigin(
       ctx.requestOrigin,
@@ -23,3 +25,12 @@ export const adminOriginProcedure = publicProcedure.use(({ ctx, next }) => {
 
   return next();
 });
+
+/** What the kiosk calls during a guest visit. Reachable from any origin. */
+export const boothProcedure = publicProcedure;
+
+/** Event, prize and print authoring, plus operator test prints. */
+export const configProcedure = adminOriginProcedure;
+
+/** Health checks and recovery actions for the booth's own services. */
+export const opsProcedure = adminOriginProcedure;

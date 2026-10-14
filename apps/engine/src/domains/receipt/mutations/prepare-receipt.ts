@@ -2,7 +2,7 @@ import type { DrawResult } from "@dither-booth/shared/lottery";
 
 import { octetInputParser } from "@trpc/server/http";
 
-import { publicProcedure } from "#internal/trpc";
+import { boothProcedure } from "#internal/trpc";
 
 import { preparedReceiptStore } from "../internal/prepared-receipt.store";
 import {
@@ -19,7 +19,7 @@ export interface PreparedReceipt {
  * First half of a booth visit: commit the draw and render both rasters while
  * the kiosk plays the slot machine. `printPreparedReceipt` prints them later.
  */
-export const prepareReceipt = publicProcedure
+export const prepareReceipt = boothProcedure
   .input(octetInputParser)
   .mutation(async ({ ctx, input }): Promise<PreparedReceipt> => {
     assertPrinterAvailable(ctx);

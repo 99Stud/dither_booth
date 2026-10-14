@@ -9,15 +9,17 @@ export const useEventQueries = () => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const currentEventQueryOptions = trpc.getCurrentEvent.queryOptions();
+  const currentEventQueryOptions = trpc.config.getCurrentEvent.queryOptions();
   const currentEventQuery = useQuery(currentEventQueryOptions);
 
   const invalidateCurrentEvent = async () => {
-    await queryClient.invalidateQueries(trpc.getCurrentEvent.queryFilter());
+    await queryClient.invalidateQueries(
+      trpc.config.getCurrentEvent.queryFilter(),
+    );
   };
 
   const createEventMutation = useMutation({
-    ...trpc.createEvent.mutationOptions(),
+    ...trpc.config.createEvent.mutationOptions(),
     onSuccess: async () => {
       toast.success("Event created");
       await invalidateCurrentEvent();
@@ -28,7 +30,7 @@ export const useEventQueries = () => {
   });
 
   const updateTicketItemsMutation = useMutation({
-    ...trpc.updateTicketItems.mutationOptions(),
+    ...trpc.config.updateTicketItems.mutationOptions(),
     onSuccess: async () => {
       toast.success("Ticket items saved");
       await invalidateCurrentEvent();
@@ -43,7 +45,7 @@ export const useEventQueries = () => {
   });
 
   const updateEventMutation = useMutation({
-    ...trpc.updateEvent.mutationOptions(),
+    ...trpc.config.updateEvent.mutationOptions(),
     onSuccess: async () => {
       toast.success("Event updated");
       await invalidateCurrentEvent();
@@ -54,7 +56,7 @@ export const useEventQueries = () => {
   });
 
   const replaceEventMutation = useMutation({
-    ...trpc.replaceEvent.mutationOptions(),
+    ...trpc.config.replaceEvent.mutationOptions(),
     onSuccess: async () => {
       toast.success("Event replaced");
       await invalidateCurrentEvent();
@@ -69,7 +71,7 @@ export const useEventQueries = () => {
   });
 
   const updateLotterySettingsMutation = useMutation({
-    ...trpc.updateLotterySettings.mutationOptions(),
+    ...trpc.config.updateLotterySettings.mutationOptions(),
     onSuccess: async () => {
       toast.success("Lottery settings saved");
       await invalidateCurrentEvent();
@@ -84,7 +86,7 @@ export const useEventQueries = () => {
   });
 
   const createPrizeMutation = useMutation({
-    ...trpc.createPrize.mutationOptions(),
+    ...trpc.config.createPrize.mutationOptions(),
     onSuccess: async () => {
       toast.success("Prize added");
       await invalidateCurrentEvent();
@@ -95,7 +97,7 @@ export const useEventQueries = () => {
   });
 
   const updatePrizeMutation = useMutation({
-    ...trpc.updatePrize.mutationOptions(),
+    ...trpc.config.updatePrize.mutationOptions(),
     onSuccess: async () => {
       toast.success("Prize updated");
       await invalidateCurrentEvent();
@@ -107,7 +109,7 @@ export const useEventQueries = () => {
   });
 
   const deletePrizeMutation = useMutation({
-    ...trpc.deletePrize.mutationOptions(),
+    ...trpc.config.deletePrize.mutationOptions(),
     onSuccess: async () => {
       toast.success("Prize deleted");
       await invalidateCurrentEvent();
@@ -118,7 +120,7 @@ export const useEventQueries = () => {
   });
 
   const restockPrizeMutation = useMutation({
-    ...trpc.restockPrize.mutationOptions(),
+    ...trpc.config.restockPrize.mutationOptions(),
     onSuccess: async () => {
       toast.success("Prize restocked");
       await invalidateCurrentEvent();
@@ -134,7 +136,7 @@ export const useEventQueries = () => {
   });
 
   const printSampleLotteryTicketMutation = useMutation({
-    ...trpc.printSampleLotteryTicket.mutationOptions(),
+    ...trpc.config.printSampleLotteryTicket.mutationOptions(),
     onSuccess: (_data, variables) => {
       toast.success(
         variables.outcome === "win"

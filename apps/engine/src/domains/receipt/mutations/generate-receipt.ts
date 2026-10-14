@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
-import { publicProcedure } from "#internal/trpc";
+import { configProcedure } from "#internal/trpc";
 
 import { gsV0RasterCommandToPngBuffer } from "../internal/gs-v0-raster.utils";
 import { prepareReceiptRasterCommand } from "../internal/receipt-raster.utils";
 
-export const generateReceipt = publicProcedure
+export const generateReceipt = configProcedure
   .input(octetInputParser)
   .mutation(async ({ ctx, input }) => {
     const rasterCmd = await prepareReceiptRasterCommand({ ctx, input });
