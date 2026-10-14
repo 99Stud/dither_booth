@@ -1,4 +1,4 @@
-import type { ApiRouter } from "@dither-booth/api/router.types";
+import type { ApiRouter } from "@dither-booth/engine/router.types";
 
 import { createDitherBoothTRPCReact } from "@dither-booth/shared/browser/trpc-client";
 

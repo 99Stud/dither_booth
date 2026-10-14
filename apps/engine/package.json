@@ -1,5 +1,5 @@
 {
-  "name": "@dither-booth/api",
+  "name": "@dither-booth/engine",
   "private": true,
   "type": "module",
   "module": "index.ts",

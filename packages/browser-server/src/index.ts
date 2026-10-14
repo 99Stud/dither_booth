@@ -91,7 +91,7 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
 
   if (!hasTlsCert || !hasTlsKey) {
     throw new Error(
-      `Missing local TLS certificate. Run "bun run --filter @dither-booth/api cert:generate <LAN_IP>" to create ${options.tlsCertPath} and ${options.tlsKeyPath}.`,
+      `Missing local TLS certificate. Run "bun run --filter @dither-booth/engine cert:generate <LAN_IP>" to create ${options.tlsCertPath} and ${options.tlsKeyPath}.`,
     );
   }
 

@@ -1,4 +1,4 @@
-import type { ApiRouter } from "@dither-booth/api/router.types";
+import type { ApiRouter } from "@dither-booth/engine/router.types";
 import type { TRPCOptionsProxy, inferOutput } from "@trpc/tanstack-react-query";
 import type z from "zod";
 

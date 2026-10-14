@@ -16,8 +16,8 @@ const keyPath = getWebTlsKeyPath({ repoRoot: API_REPO_ROOT });
 const manifestPath = getWebTlsManifestPath({ repoRoot: API_REPO_ROOT });
 const requestedPublicIp = process.argv[2]?.trim();
 const CERT_GENERATE_COMMAND =
-  "bun run --filter @dither-booth/api cert:generate <LAN_IP>";
-const CERT_CAROOT_COMMAND = "bun run --filter @dither-booth/api cert:caroot";
+  "bun run --filter @dither-booth/engine cert:generate <LAN_IP>";
+const CERT_CAROOT_COMMAND = "bun run --filter @dither-booth/engine cert:caroot";
 
 function isCommandNotFoundError(error: unknown) {
   return error instanceof Error && "code" in error && error.code === "ENOENT";

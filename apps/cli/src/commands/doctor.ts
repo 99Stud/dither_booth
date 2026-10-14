@@ -10,7 +10,7 @@ import type { BoothContext } from "#internal/context";
 
 import { printCommandBanner } from "#internal/banner";
 import {
-  API_DATA_RELATIVE,
+  ENGINE_DATA_RELATIVE,
   PM2_PROCESS_NAMES,
   SERVICE_NAME,
   SSD_DATA_DIR,
@@ -65,7 +65,7 @@ async function checkDataSymlink(
   results: CheckResult[],
   repoRoot: string,
 ): Promise<void> {
-  const dataPath = `${repoRoot}/${API_DATA_RELATIVE}`;
+  const dataPath = `${repoRoot}/${ENGINE_DATA_RELATIVE}`;
   const target = await capture(["bash", "-lc", `readlink "${dataPath}"`], {
     allowFailure: true,
   });

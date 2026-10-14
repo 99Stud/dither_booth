@@ -4,7 +4,8 @@ import type { BoothContext } from "#internal/context";
 
 import { requireRoot } from "#internal/args";
 import {
-  API_DATA_RELATIVE,
+  ENGINE_APP_RELATIVE,
+  ENGINE_DATA_RELATIVE,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
 } from "#internal/config";
@@ -172,7 +173,7 @@ export async function runSsdCommand(context: BoothContext): Promise<void> {
   step(`Ensuring data directory ${SSD_DATA_DIR}`);
   await run(["mkdir", "-p", SSD_DATA_DIR]);
 
-  const dataPath = `${repoRoot}/${API_DATA_RELATIVE}`;
+  const dataPath = `${repoRoot}/${ENGINE_DATA_RELATIVE}`;
 
   if (await isSymlink(dataPath)) {
     info(`${dataPath} is already a symlink; leaving it in place.`);
@@ -190,7 +191,7 @@ export async function runSsdCommand(context: BoothContext): Promise<void> {
     await run(["rm", "-rf", dataPath]);
   } else {
     step(`Creating parent directory for ${dataPath}`);
-    await run(["mkdir", "-p", `${repoRoot}/apps/api`]);
+    await run(["mkdir", "-p", `${repoRoot}/${ENGINE_APP_RELATIVE}`]);
   }
 
   step(`Linking ${dataPath} -> ${SSD_DATA_DIR}`);

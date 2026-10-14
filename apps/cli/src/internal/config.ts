@@ -6,7 +6,8 @@ export const REPO_GIT_URL =
 
 export const SSD_MOUNT_POINT = "/mnt/ssd";
 export const SSD_DATA_DIR = `${SSD_MOUNT_POINT}/dither-booth/data`;
-export const API_DATA_RELATIVE = "apps/api/data";
+export const ENGINE_APP_RELATIVE = "apps/engine";
+export const ENGINE_DATA_RELATIVE = `${ENGINE_APP_RELATIVE}/data`;
 
 export const SERVICE_NAME = "ditherbooth.service";
 export const SERVICE_PATH = `/etc/systemd/system/${SERVICE_NAME}`;

@@ -66,7 +66,7 @@ assertSingleAdminInstance(adminAppConfig);
 
 export const apps = [
   createAppConfig({
-    appDirectory: "api",
+    appDirectory: "engine",
     max_memory_restart: "1G",
     name: PM2_PROCESS_NAMES.api,
   }),

@@ -12,7 +12,7 @@ export const WEB_TLS_KEY_PATH = ".local/tls/booth-key.pem";
 export const DEFAULT_WEB_TLS_MANIFEST_FILE_NAME = "booth-manifest.json";
 
 export const CERT_GENERATE_COMMAND =
-  "bun run --filter @dither-booth/api cert:generate <LAN_IP>";
+  "bun run --filter @dither-booth/engine cert:generate <LAN_IP>";
 
 // Schemas
 export const PORT_SCHEMA = z

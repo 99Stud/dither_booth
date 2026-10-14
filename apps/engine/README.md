@@ -1,14 +1,14 @@
-# Dither Booth API
+# Dither Booth Engine
 
-The API package runs the backend service that mediates communication between the web and admin browser apps and the receipt printer. It also owns the local TLS helper scripts used by the browser apps during local HTTPS setup.
+The engine package runs the backend service that mediates communication between the web and admin browser apps and the receipt printer. It also owns the local TLS helper scripts used by the browser apps during local HTTPS setup.
 
 The web and admin production servers proxy `/api/trpc` to this service over loopback, so client devices only connect to the browser app origins.
 
 ## Development
 
-The API can be started independently from this directory. For the normal full-project workflow, launch the project from the repository root so Turbo can orchestrate all apps together.
+The engine can be started independently from this directory. For the normal full-project workflow, launch the project from the repository root so Turbo can orchestrate all apps together.
 
-### Start API server
+### Start engine server
 
 Development:
 
@@ -25,7 +25,7 @@ bun run start
 
 ### Printer dry-run and lottery force (dev only)
 
-These flags are read from the API process env. They must not be enabled when `NODE_ENV=production`.
+These flags are read from the engine process env. They must not be enabled when `NODE_ENV=production`.
 
 | Env                                 | Role                                                                                                                                                                                             |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -66,9 +66,9 @@ bun run format:fix
 
 ## Infrastructure
 
-Development runs `src/server.ts` with Bun watch mode. Production first type-checks the API, bundles `src/production-entry.ts`, and starts the resulting `dist/server.js`.
+Development runs `src/server.ts` with Bun watch mode. Production first type-checks the engine, bundles `src/production-entry.ts`, and starts the resulting `dist/server.js`.
 
-The API owns the local SQLite database at `data/dither-booth.sqlite` and applies SQL migrations from `drizzle`. It also owns the local HTTPS helper scripts that generate the certificate shared by the web and admin apps.
+The engine owns the local SQLite database at `data/dither-booth.sqlite` and applies SQL migrations from `drizzle`. It also owns the local HTTPS helper scripts that generate the certificate shared by the web and admin apps.
 
 Production keeps native runtime dependencies such as Puppeteer, Sharp, and printer USB packages external, so the workspace dependencies must remain installed wherever the production server runs.
 
@@ -82,7 +82,7 @@ bun run reinstall-puppeteer
 
 ## Database Management
 
-Use these commands from `apps/api`:
+Use these commands from `apps/engine`:
 
 ```bash
 bun run db:generate
