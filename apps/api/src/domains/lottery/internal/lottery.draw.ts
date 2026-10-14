@@ -1,7 +1,9 @@
+import type { DrawResult } from "@dither-booth/shared/lottery";
+
 import { logKioskEvent } from "@dither-booth/logging";
 import { and, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
 
-import type { DB } from "#db/internal/db.types";
+import type { DB, DbTransaction } from "#db/internal/db.types";
 
 import { drawTable, lotteryTable, prizeTable } from "#db/internal/db.schema";
 import {
@@ -9,14 +11,8 @@ import {
   type LotteryForceConfig,
 } from "#lib/runtime-flags/runtime-flags";
 
-import type { DrawResult } from "./lottery.types";
-
 import { LOTTERY_LOG_SOURCE } from "./lottery.constants";
-import {
-  isLotteryOpen,
-  isWithinWinCooldown,
-  runLotteryDraw,
-} from "./lottery.engine";
+import { isWithinWinCooldown, runLotteryDraw } from "./lottery.engine";
 import {
   createBoothTicketRef,
   isUniqueTicketRefConstraintError,
@@ -26,53 +22,36 @@ import {
 export type LotteryDrawExecution = {
   result: DrawResult;
   ticketRef: string;
+  /** `printLoserTicket` of the lottery this draw was recorded against. */
+  printLoserTicket: boolean;
 };
 
-async function insertDraw(params: {
-  db: DB;
+type CommittedDraw = LotteryDrawExecution & {
   lotteryId: string | null;
-  prizeId: string | null;
-  ticketRef?: string;
-}): Promise<string> {
+  logEvent:
+    | "lottery-draw-win"
+    | "lottery-draw-force-win"
+    | "lottery-draw-force-loss"
+    | null;
+};
+
+function insertDraw(
+  tx: DbTransaction,
+  params: {
+    lotteryId: string | null;
+    prize: { id: string; title: string } | null;
+    ticketRef?: string;
+  },
+): string {
   let ticketRef = params.ticketRef ?? createBoothTicketRef();
 
   for (let attempt = 0; attempt < TICKET_REF_ALLOCATION_ATTEMPTS; attempt++) {
     try {
-      await params.db.insert(drawTable).values({
-        lotteryId: params.lotteryId,
-        prizeId: params.prizeId,
-        ticketRef,
-      });
-      return ticketRef;
-    } catch (error) {
-      if (
-        !isUniqueTicketRefConstraintError(error) ||
-        attempt === TICKET_REF_ALLOCATION_ATTEMPTS - 1
-      ) {
-        throw error;
-      }
-      ticketRef = createBoothTicketRef();
-    }
-  }
-
-  throw new Error("Failed to allocate a unique ticket number.");
-}
-
-function insertDrawInTransaction(params: {
-  tx: Parameters<Parameters<DB["transaction"]>[0]>[0];
-  lotteryId: string;
-  prizeId: string | null;
-  ticketRef?: string;
-}): string {
-  let ticketRef = params.ticketRef ?? createBoothTicketRef();
-
-  for (let attempt = 0; attempt < TICKET_REF_ALLOCATION_ATTEMPTS; attempt++) {
-    try {
-      params.tx
-        .insert(drawTable)
+      tx.insert(drawTable)
         .values({
           lotteryId: params.lotteryId,
-          prizeId: params.prizeId,
+          prizeId: params.prize?.id ?? null,
+          prizeTitle: params.prize?.title ?? null,
           ticketRef,
         })
         .run();
@@ -91,182 +70,238 @@ function insertDrawInTransaction(params: {
   throw new Error("Failed to allocate a unique ticket number.");
 }
 
-export async function executeLotteryDraw(params: {
-  db: DB;
-  force?: LotteryForceConfig | null;
-  ticketRef?: string;
-}): Promise<LotteryDrawExecution> {
-  const { db } = params;
-  const preferredTicketRef = params.ticketRef;
-  const force =
-    params.force === undefined ? getLotteryForceConfig() : params.force;
+/** Takes one unit of stock, or returns false when there is none left. */
+function decrementPrizeStock(tx: DbTransaction, prizeId: string): boolean {
+  const decremented = tx
+    .update(prizeTable)
+    .set({ remainingQuantity: sql`${prizeTable.remainingQuantity} - 1` })
+    .where(
+      and(
+        eq(prizeTable.id, prizeId),
+        eq(prizeTable.removed, false),
+        gt(prizeTable.remainingQuantity, 0),
+      ),
+    )
+    .returning({ id: prizeTable.id })
+    .all();
 
-  if (force?.outcome === "loss") {
-    const lottery = await db.query.lotteryTable.findFirst({
-      where: eq(lotteryTable.enabled, true),
-    });
+  return decremented.length > 0;
+}
 
-    const ticketRef = await insertDraw({
-      db,
-      lotteryId: lottery?.id ?? null,
-      prizeId: null,
-      ticketRef: preferredTicketRef,
-    });
+function getEnabledLottery(tx: DbTransaction) {
+  return tx
+    .select()
+    .from(lotteryTable)
+    .where(eq(lotteryTable.enabled, true))
+    .get();
+}
 
-    logKioskEvent("info", LOTTERY_LOG_SOURCE, "lottery-draw-force-loss", {
-      details: {
-        lotteryId: lottery?.id ?? null,
-        ticketRef,
-      },
-    });
-
-    return { result: { outcome: "loss", prize: null }, ticketRef };
-  }
-
-  if (force?.outcome === "win") {
-    const prize = await db.query.prizeTable.findFirst({
-      where: eq(prizeTable.id, force.prizeId),
-    });
-
-    if (!prize || prize.removed) {
-      throw new Error(`Forced lottery prize not found: ${force.prizeId}`);
-    }
-
-    const ticketRef = await insertDraw({
-      db,
-      lotteryId: prize.lotteryId,
-      prizeId: prize.id,
-      ticketRef: preferredTicketRef,
-    });
-
-    logKioskEvent("info", LOTTERY_LOG_SOURCE, "lottery-draw-force-win", {
-      details: {
-        lotteryId: prize.lotteryId,
-        prizeId: prize.id,
-        rarity: prize.rarity,
-        ticketRef,
-      },
-    });
-
-    return {
-      ticketRef,
-      result: {
-        outcome: "win",
-        prize: {
-          id: prize.id,
-          rarity: prize.rarity,
-          title: prize.title,
-          winInstruction: prize.winInstruction,
-        },
-      },
-    };
-  }
-
-  const lottery = await db.query.lotteryTable.findFirst({
-    where: eq(lotteryTable.enabled, true),
+function recordLoss(
+  tx: DbTransaction,
+  params: {
+    lottery: { id: string; printLoserTicket: boolean } | undefined;
+    ticketRef?: string;
+    logEvent: CommittedDraw["logEvent"];
+  },
+): CommittedDraw {
+  const lotteryId = params.lottery?.id ?? null;
+  const ticketRef = insertDraw(tx, {
+    lotteryId,
+    prize: null,
+    ticketRef: params.ticketRef,
   });
 
-  const recordLoss = async (): Promise<LotteryDrawExecution> => {
-    const ticketRef = await insertDraw({
-      db,
-      lotteryId: lottery?.id ?? null,
-      prizeId: null,
-      ticketRef: preferredTicketRef,
-    });
-
-    return { result: { outcome: "loss", prize: null }, ticketRef };
+  return {
+    result: { outcome: "loss", prize: null },
+    ticketRef,
+    printLoserTicket: params.lottery?.printLoserTicket ?? false,
+    lotteryId,
+    logEvent: params.logEvent,
   };
+}
 
-  if (!lottery || !isLotteryOpen(lottery)) {
-    return await recordLoss();
+function runForcedWin(
+  tx: DbTransaction,
+  params: { prizeId: string; ticketRef?: string },
+): CommittedDraw {
+  const prize = tx
+    .select()
+    .from(prizeTable)
+    .where(eq(prizeTable.id, params.prizeId))
+    .get();
+
+  if (!prize || prize.removed) {
+    throw new Error(`Forced lottery prize not found: ${params.prizeId}`);
   }
 
-  const lastWin = await db.query.drawTable.findFirst({
-    where: and(
-      eq(drawTable.lotteryId, lottery.id),
-      isNotNull(drawTable.prizeId),
-    ),
-    orderBy: [desc(drawTable.createdAt)],
+  // Forcing skips the odds, the cooldown and `enabled`, never the stock:
+  // `remaining` must always match the number of win rows.
+  if (!decrementPrizeStock(tx, prize.id)) {
+    throw new Error(`Forced lottery prize is out of stock: ${params.prizeId}`);
+  }
+
+  const lottery = tx
+    .select({ printLoserTicket: lotteryTable.printLoserTicket })
+    .from(lotteryTable)
+    .where(eq(lotteryTable.id, prize.lotteryId))
+    .get();
+
+  const ticketRef = insertDraw(tx, {
+    lotteryId: prize.lotteryId,
+    prize,
+    ticketRef: params.ticketRef,
   });
+
+  return {
+    result: {
+      outcome: "win",
+      prize: {
+        id: prize.id,
+        rarity: prize.rarity,
+        title: prize.title,
+        winInstruction: prize.winInstruction,
+      },
+    },
+    ticketRef,
+    printLoserTicket: lottery?.printLoserTicket ?? false,
+    lotteryId: prize.lotteryId,
+    logEvent: "lottery-draw-force-win",
+  };
+}
+
+function runWeightedDraw(
+  tx: DbTransaction,
+  params: { now: Date; random?: () => number; ticketRef?: string },
+): CommittedDraw {
+  const lottery = getEnabledLottery(tx);
+
+  if (!lottery) {
+    return recordLoss(tx, {
+      lottery,
+      ticketRef: params.ticketRef,
+      logEvent: null,
+    });
+  }
+
+  const lastWin = tx
+    .select({ createdAt: drawTable.createdAt })
+    .from(drawTable)
+    .where(
+      and(eq(drawTable.lotteryId, lottery.id), isNotNull(drawTable.prizeId)),
+    )
+    .orderBy(desc(drawTable.createdAt))
+    .limit(1)
+    .get();
 
   const withinCooldown = isWithinWinCooldown({
     lastWinAt: lastWin?.createdAt ?? null,
-    now: new Date(),
+    now: params.now,
     winCooldownMinutes: lottery.winCooldownMinutes,
   });
 
   if (withinCooldown) {
-    return await recordLoss();
+    return recordLoss(tx, {
+      lottery,
+      ticketRef: params.ticketRef,
+      logEvent: null,
+    });
   }
 
-  const eligiblePrizes = await db.query.prizeTable.findMany({
-    where: and(
-      eq(prizeTable.lotteryId, lottery.id),
-      eq(prizeTable.removed, false),
-      gt(prizeTable.remainingQuantity, 0),
-    ),
-  });
+  const eligiblePrizes = tx
+    .select()
+    .from(prizeTable)
+    .where(
+      and(
+        eq(prizeTable.lotteryId, lottery.id),
+        eq(prizeTable.removed, false),
+        gt(prizeTable.remainingQuantity, 0),
+      ),
+    )
+    .all();
 
   const drawResult = runLotteryDraw({
     noWinWeight: lottery.noWinWeight,
     prizes: eligiblePrizes,
+    random: params.random,
   });
 
-  if (drawResult.outcome === "loss") {
-    return await recordLoss();
+  if (
+    drawResult.outcome === "loss" ||
+    !decrementPrizeStock(tx, drawResult.prize.id)
+  ) {
+    return recordLoss(tx, {
+      lottery,
+      ticketRef: params.ticketRef,
+      logEvent: null,
+    });
   }
 
-  const wonPrizeId = drawResult.prize.id;
+  const ticketRef = insertDraw(tx, {
+    lotteryId: lottery.id,
+    prize: drawResult.prize,
+    ticketRef: params.ticketRef,
+  });
 
-  // Guard the decrement against a concurrent draw depleting the last unit.
-  const committed = db.transaction((tx) => {
-    const decremented = tx
-      .update(prizeTable)
-      .set({
-        remainingQuantity: sql`${prizeTable.remainingQuantity} - 1`,
-      })
-      .where(
-        and(eq(prizeTable.id, wonPrizeId), gt(prizeTable.remainingQuantity, 0)),
-      )
-      .returning({ id: prizeTable.id })
-      .all();
+  return {
+    result: drawResult,
+    ticketRef,
+    printLoserTicket: lottery.printLoserTicket,
+    lotteryId: lottery.id,
+    logEvent: "lottery-draw-win",
+  };
+}
 
-    if (decremented.length === 0) {
-      const ticketRef = insertDrawInTransaction({
-        tx,
-        lotteryId: lottery.id,
-        prizeId: null,
-        ticketRef: preferredTicketRef,
+/**
+ * Records one draw. Everything from the cooldown read to the draw insert runs
+ * in a single synchronous transaction, so concurrent visits cannot both win
+ * inside one cooldown window or take the same last unit of stock.
+ */
+export async function executeLotteryDraw(params: {
+  db: DB;
+  force?: LotteryForceConfig | null;
+  now?: Date;
+  random?: () => number;
+  ticketRef?: string;
+}): Promise<LotteryDrawExecution> {
+  const { db, ticketRef } = params;
+  const force =
+    params.force === undefined ? getLotteryForceConfig() : params.force;
+  const now = params.now ?? new Date();
+
+  const committed = db.transaction((tx): CommittedDraw => {
+    if (force?.outcome === "loss") {
+      return recordLoss(tx, {
+        lottery: getEnabledLottery(tx),
+        ticketRef,
+        logEvent: "lottery-draw-force-loss",
       });
-
-      return { won: false, ticketRef };
     }
 
-    const ticketRef = insertDrawInTransaction({
-      tx,
-      lotteryId: lottery.id,
-      prizeId: wonPrizeId,
-      ticketRef: preferredTicketRef,
-    });
+    if (force?.outcome === "win") {
+      return runForcedWin(tx, { prizeId: force.prizeId, ticketRef });
+    }
 
-    return { won: true, ticketRef };
+    return runWeightedDraw(tx, { now, random: params.random, ticketRef });
   });
 
-  if (!committed.won) {
-    return {
-      result: { outcome: "loss", prize: null },
-      ticketRef: committed.ticketRef,
-    };
+  if (committed.logEvent) {
+    logKioskEvent("info", LOTTERY_LOG_SOURCE, committed.logEvent, {
+      details: {
+        lotteryId: committed.lotteryId,
+        ...(committed.result.outcome === "win"
+          ? {
+              prizeId: committed.result.prize.id,
+              rarity: committed.result.prize.rarity,
+            }
+          : {}),
+        ticketRef: committed.ticketRef,
+      },
+    });
   }
 
-  logKioskEvent("info", LOTTERY_LOG_SOURCE, "lottery-draw-win", {
-    details: {
-      lotteryId: lottery.id,
-      prizeId: wonPrizeId,
-      rarity: drawResult.prize.rarity,
-      ticketRef: committed.ticketRef,
-    },
-  });
-
-  return { result: drawResult, ticketRef: committed.ticketRef };
+  return {
+    result: committed.result,
+    ticketRef: committed.ticketRef,
+    printLoserTicket: committed.printLoserTicket,
+  };
 }

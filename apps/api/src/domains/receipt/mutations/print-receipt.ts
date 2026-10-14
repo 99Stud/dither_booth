@@ -1,6 +1,6 @@
-import { octetInputParser } from "@trpc/server/http";
+import type { DrawResult } from "@dither-booth/shared/lottery";
 
-import type { DrawResult } from "#domains/lottery/internal/lottery.types";
+import { octetInputParser } from "@trpc/server/http";
 
 import { publicProcedure } from "#internal/trpc";
 

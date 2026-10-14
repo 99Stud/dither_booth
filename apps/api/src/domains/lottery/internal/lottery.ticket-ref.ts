@@ -1,9 +1,12 @@
 export const TICKET_REF_ALLOCATION_ATTEMPTS = 8;
 
-export const createBoothTicketRef = (): string =>
-  Math.floor(Math.random() * 1_000_000)
-    .toString()
-    .padStart(6, "0");
+/**
+ * Random 6-digit ref in `000001`–`999999`. `000000` is reserved for the admin
+ * sample tickets, so a real ticket can never be mistaken for one.
+ */
+export const createBoothTicketRef = (
+  random: () => number = Math.random,
+): string => (Math.floor(random() * 999_999) + 1).toString().padStart(6, "0");
 
 export const isUniqueTicketRefConstraintError = (error: unknown): boolean => {
   if (!(error instanceof Error)) {

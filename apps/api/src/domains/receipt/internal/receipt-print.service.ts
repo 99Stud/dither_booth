@@ -1,10 +1,10 @@
+import type { DrawResult } from "@dither-booth/shared/lottery";
 import type USB from "@node-escpos/usb-adapter";
 
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
-import type { DrawResult } from "#domains/lottery/internal/lottery.types";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { lotteryTable } from "#db/internal/db.schema";

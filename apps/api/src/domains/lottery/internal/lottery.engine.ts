@@ -1,12 +1,6 @@
-import type { Rarity } from "@dither-booth/shared/lottery";
-
-import type { DrawResult } from "./lottery.types";
+import type { DrawResult, Rarity } from "@dither-booth/shared/lottery";
 
 const MS_PER_MINUTE = 60_000;
-
-export const isLotteryOpen = (lottery: { enabled: boolean }): boolean => {
-  return lottery.enabled;
-};
 
 export const isWithinWinCooldown = (params: {
   lastWinAt: Date | null;

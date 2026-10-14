@@ -38,7 +38,7 @@ Rules:
 - `LOTTERY_FORCE_PRIZE_ID` alone forces a win for that prize.
 - `LOTTERY_FORCE_OUTCOME=win` requires `LOTTERY_FORCE_PRIZE_ID`.
 - `LOTTERY_FORCE_OUTCOME=loss` cannot be combined with `LOTTERY_FORCE_PRIZE_ID`.
-- Forced wins bypass cooldown and weights, do not decrement prize stock, and still insert a `draw` row.
+- Forced wins bypass cooldown, weights and `enabled`, but still take one unit of stock and insert a `draw` row. A forced prize that is out of stock (or removed) makes the draw fail.
 
 Example:
 
@@ -141,7 +141,7 @@ The booth supports **one campaign (event) at a time**. Admin manages it from the
 | `updateLotterySettings`                                        | Enable / odds / win cooldown                       |
 | `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD + restock                               |
 
-Runtime booth draw/status (`drawLottery`, `getLotteryStatus`) stay public. Print Configuration remains the global dither/template owner for now.
+Runtime booth status (`getLotteryStatus`) stays public; draws only happen inside `prepareReceipt` / `printReceipt`. Print Configuration remains the global dither/template owner for now.
 
 **Future Appearance:** logo, shader colors, and a linked photo template will belong on the campaign (or a 1:1 event-config sibling), not on lottery. Lottery stays odds/stock only.
 

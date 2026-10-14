@@ -1,10 +1,10 @@
+import type { DrawResult } from "@dither-booth/shared/lottery";
 import type { Page } from "puppeteer";
 
 import { PRINT_WIDTH_PX } from "@dither-booth/shared/printing";
 import { LOTTERY_RECEIPT_TEMPLATE } from "@dither-booth/shared/routes";
 import { TRPCError } from "@trpc/server";
 
-import type { DrawResult } from "#domains/lottery/internal/lottery.types";
 import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
