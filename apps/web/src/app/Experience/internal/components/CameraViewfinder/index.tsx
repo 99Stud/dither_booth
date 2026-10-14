@@ -54,10 +54,7 @@ export const CameraViewfinder: FC<{ isVisible: boolean }> = (props) => {
       aria-hidden
       className="pointer-events-none absolute inset-0"
     >
-      <div
-        data-chrome
-        className={clsx(cameraFrameClassName, "opacity-0")}
-      />
+      <div data-chrome className={clsx(cameraFrameClassName, "opacity-0")} />
       <div className="absolute inset-5">
         {TICKS.map((tick) => (
           <div

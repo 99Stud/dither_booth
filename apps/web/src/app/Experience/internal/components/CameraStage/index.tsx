@@ -12,8 +12,8 @@ import { useLayoutEffect, useRef } from "react";
 
 import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
 
-import { isCameraStreamPrompt } from "../../Experience.copy";
 import { FROZEN_PHOTO_SCALE } from "../../Experience.constants";
+import { isCameraStreamPrompt } from "../../Experience.copy";
 import {
   COUNTDOWN_TRANSITION,
   PROMPT_TEXT_TRANSITION,

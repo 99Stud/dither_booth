@@ -132,14 +132,14 @@ bun run dev
 
 The booth supports **one campaign (event) at a time**. Admin manages it from the Event page via `adminOriginProcedure` endpoints:
 
-| Procedure                                                      | Role                                               |
-| -------------------------------------------------------------- | -------------------------------------------------- |
+| Procedure                                                      | Role                                              |
+| -------------------------------------------------------------- | ------------------------------------------------- |
 | `getCurrentEvent`                                              | Aggregate campaign + lottery + prizes, or `null`  |
 | `createEvent`                                                  | Create campaign + lottery (rejects if one exists) |
-| `updateEvent`                                                  | Rename campaign                                    |
-| `replaceEvent`                                                 | Wipe event data, then create a new one             |
-| `updateLotterySettings`                                        | Enable / odds / win cooldown                       |
-| `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD + restock                               |
+| `updateEvent`                                                  | Rename campaign                                   |
+| `replaceEvent`                                                 | Wipe event data, then create a new one            |
+| `updateLotterySettings`                                        | Enable / odds / win cooldown                      |
+| `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD + restock                              |
 
 Runtime booth status (`getLotteryStatus`) stays public; draws only happen inside `prepareReceipt` / `printReceipt`. Print Configuration remains the global dither/template owner for now.
 

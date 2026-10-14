@@ -1,11 +1,11 @@
 import type { Rarity } from "@dither-booth/shared/lottery";
+import type { FC, SVGProps } from "react";
 
 import { Circle } from "pixelarticons/react/Circle.js";
 import { Crown } from "pixelarticons/react/Crown.js";
 import { DiamondGem } from "pixelarticons/react/DiamondGem.js";
 import { Sparkles } from "pixelarticons/react/Sparkles.js";
 import { Square } from "pixelarticons/react/Square.js";
-import type { FC, SVGProps } from "react";
 
 type RarityIcon = FC<SVGProps<SVGSVGElement>>;
 

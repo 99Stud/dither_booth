@@ -28,18 +28,18 @@ booth doctor            # health checks
 
 ### Commands
 
-| Command              | Description                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------- |
-| `install`            | Full provisioning: apt deps, Bun, repo, SSD, db, cert, service, doctor (needs root) |
-| `bun`                | Install the Bun runtime if missing                                                  |
-| `repo`               | Clone/pull repo into `/opt/dither-booth`, install deps, build, reinstall Puppeteer  |
-| `ssd`                | Mount the SSD and relocate the database onto it (needs root)                        |
-| `db`                 | Apply migrations and seed the default print configuration                           |
-| `cert`               | Generate the TLS certificate (same as `cert generate`; auto-detects LAN IP)         |
-| `cert generate [ip]` | Generate the TLS certificate for an explicit or auto-detected LAN IP                |
-| `cert copy`          | Print the `scp` command to copy the mkcert root CA to your machine                  |
+| Command              | Description                                                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `install`            | Full provisioning: apt deps, Bun, repo, SSD, db, cert, service, doctor (needs root)                                     |
+| `bun`                | Install the Bun runtime if missing                                                                                      |
+| `repo`               | Clone/pull repo into `/opt/dither-booth`, install deps, build, reinstall Puppeteer                                      |
+| `ssd`                | Mount the SSD and relocate the database onto it (needs root)                                                            |
+| `db`                 | Apply migrations and seed the default print configuration                                                               |
+| `cert`               | Generate the TLS certificate (same as `cert generate`; auto-detects LAN IP)                                             |
+| `cert generate [ip]` | Generate the TLS certificate for an explicit or auto-detected LAN IP                                                    |
+| `cert copy`          | Print the `scp` command to copy the mkcert root CA to your machine                                                      |
 | `service`            | Install and enable the `ditherbooth.service` systemd unit, which forks the PM2 daemon from `pm2.config.js` (needs root) |
-| `doctor`             | Check SSD mount, data symlink, Bun, cert IP, PM2 processes, and healthz             |
+| `doctor`             | Check SSD mount, data symlink, Bun, cert IP, PM2 processes, and healthz                                                 |
 
 ### Options
 

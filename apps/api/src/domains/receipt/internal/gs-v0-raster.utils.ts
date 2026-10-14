@@ -90,7 +90,8 @@ const snapGrayPixels = (image: GrayImage): Uint8Array => {
   const output = new Uint8Array(image.data.length);
 
   for (let index = 0; index < image.data.length; index++) {
-    output[index] = (image.data[index] ?? 255) < GRAPHICS_BLACK_CUTOFF ? 0 : 255;
+    output[index] =
+      (image.data[index] ?? 255) < GRAPHICS_BLACK_CUTOFF ? 0 : 255;
   }
 
   return output;

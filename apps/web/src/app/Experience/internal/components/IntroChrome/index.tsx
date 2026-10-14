@@ -92,7 +92,9 @@ export const IntroChrome = ({
                       )}
                     >
                       <span>{entry.remaining}x</span> {label}{" "}
-                      <Icon className={clsx("size-4 shrink-0", "drop-shadow-glow")} />
+                      <Icon
+                        className={clsx("size-4 shrink-0", "drop-shadow-glow")}
+                      />
                     </p>
                   </li>
                 );
