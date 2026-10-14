@@ -6,7 +6,7 @@ The software stack is also split into three main applications: a web app running
 
 ## Documentation
 
-- [Web app](apps/web/README.md): iPad-facing kiosk app commands and infrastructure notes.
+- [Web app](apps/shutter/README.md): iPad-facing kiosk app commands and infrastructure notes.
 - [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
 - [Engine](apps/engine/README.md): backend service, database management, and local HTTPS helper commands.
 - [CLI](apps/cli/README.md): `booth` provisioning CLI for installing and managing the Raspberry Pi.
@@ -196,7 +196,7 @@ bun run --filter @dither-booth/engine cert:clean
 
 Defaults live in:
 
-- `apps/web/.env.example`
+- `apps/shutter/.env.example`
 - `apps/admin/.env.example`
 - `apps/engine/.env.example`
 

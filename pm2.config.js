@@ -72,7 +72,7 @@ export const apps = [
   }),
   adminAppConfig,
   createAppConfig({
-    appDirectory: "web",
+    appDirectory: "shutter",
     max_memory_restart: "256M",
     name: PM2_PROCESS_NAMES.web,
   }),

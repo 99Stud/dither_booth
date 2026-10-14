@@ -3,7 +3,7 @@ import {
   getRepoRootFromAppRoot,
 } from "@dither-booth/shared/server/paths";
 
-/** App package root (`apps/web` - parent of `src` or `dist`). */
+/** App package root (`apps/shutter` - parent of `src` or `dist`). */
 export const WEB_APP_ROOT = getAppRootFromMain();
 
 /** Monorepo root - only for server/config code, not browser bundles. */
