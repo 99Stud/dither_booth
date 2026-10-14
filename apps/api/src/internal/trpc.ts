@@ -1,4 +1,4 @@
-import { isAllowedConfiguredOrigin } from "@dither-booth/ports";
+import { isAllowedConfiguredOrigin } from "@dither-booth/ports/origin";
 import { TRPCError, initTRPC } from "@trpc/server";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";

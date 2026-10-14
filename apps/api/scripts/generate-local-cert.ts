@@ -1,10 +1,10 @@
 import {
-  getMachineCertificateHostnames,
   getWebOrigin,
   getWebTlsCertPath,
   getWebTlsKeyPath,
   getWebTlsManifestPath,
 } from "@dither-booth/ports";
+import { getMachineCertificateHostnames } from "@dither-booth/ports/hostname";
 import { mkdirSync } from "node:fs";
 import { isIP } from "node:net";
 import { dirname, join } from "node:path";

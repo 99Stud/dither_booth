@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { isAllowedConfiguredOrigin } from "./origin.utils";
+import { isAllowedConfiguredOrigin } from "./origin";
 
 describe("isAllowedConfiguredOrigin", () => {
   const adminLan = "https://192.168.1.172:3002";

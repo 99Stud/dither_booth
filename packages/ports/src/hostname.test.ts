@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { getMachineCertificateHostnames } from "./hostname.utils";
+import { getMachineCertificateHostnames } from "./hostname";
 
 describe("getMachineCertificateHostnames", () => {
   it("returns bare hostname and .local alias", () => {

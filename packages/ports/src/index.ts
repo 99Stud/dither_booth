@@ -1,7 +1,7 @@
 import { dirname, isAbsolute, resolve } from "node:path";
 import { z } from "zod";
 
-import type { RepoPathOptions } from "./internal/ports.types";
+import type { RepoPathOptions } from "#internal/ports.types";
 
 import {
   ADMIN_BIND_HOST,
@@ -16,11 +16,9 @@ import {
   WEB_TLS_CERT_PATH,
   WEB_TLS_KEY_PATH,
   WEB_TLS_MANIFEST_SCHEMA,
-} from "./internal/ports.constants";
+} from "#internal/ports.constants";
 
 export { ADMIN_BIND_HOST, API_BIND_HOST, WEB_BIND_HOST };
-export { getMachineCertificateHostnames } from "./internal/hostname.utils";
-export { isAllowedConfiguredOrigin } from "./internal/origin.utils";
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
   return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);

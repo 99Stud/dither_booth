@@ -1,4 +1,4 @@
-import { isAllowedConfiguredOrigin } from "@dither-booth/ports";
+import { isAllowedConfiguredOrigin } from "@dither-booth/ports/origin";
 import { createHealthzPayload } from "@dither-booth/shared/healthz";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
