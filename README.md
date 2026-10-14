@@ -2,13 +2,13 @@
 
 Dither Booth is a physical kiosk system composed of three primary hardware components: a Raspberry Pi that hosts the backend services, a receipt printer for output generation, and an iPad that serves as the user interaction surface.
 
-The software stack is also split into three main applications: a web app running on the iPad as the primary user-facing interface, an admin app used by operators to configure and manage the experience, and an API that mediates communication between the web and admin clients and the receipt printer.
+The software stack is also split into three main applications: a web app running on the iPad as the primary user-facing interface, an admin app used by operators to configure and manage the experience, and an engine that mediates communication between the web and admin clients and the receipt printer.
 
 ## Documentation
 
 - [Web app](apps/web/README.md): iPad-facing kiosk app commands and infrastructure notes.
 - [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
-- [API](apps/api/README.md): backend service, database management, and local HTTPS helper commands.
+- [Engine](apps/engine/README.md): backend service, database management, and local HTTPS helper commands.
 - [CLI](apps/cli/README.md): `booth` provisioning CLI for installing and managing the Raspberry Pi.
 
 ## Provisioning CLI
@@ -43,7 +43,7 @@ Default local URLs:
 - Web: `https://<SERVER_LAN_IP>:3000`
 - Admin: `https://<SERVER_LAN_IP>:3002`
 
-Both apps use the same local TLS certificate and proxy `/api/trpc` to the API over loopback.
+Both apps use the same local TLS certificate and proxy `/engine/trpc` to the engine over loopback.
 
 ### 1. Install dependencies
 
@@ -64,18 +64,18 @@ bun run reinstall-puppeteer
 From the repository root, apply all the migrations to the local SQLite database:
 
 ```bash
-bun run --filter @dither-booth/api db:migrate
+bun run --filter @dither-booth/engine db:migrate
 ```
 
 Optionally seed a local lottery + sample prizes for Experience testing:
 
 ```bash
-bun run --filter @dither-booth/api db:seed:lottery
+bun run --filter @dither-booth/engine db:seed:lottery
 ```
 
-See the [API README](apps/api/README.md) for details about the database management.
+See the [engine README](apps/engine/README.md) for details about the database management.
 
-If `RECEIPT_TEMPLATES` changes in `packages/shared/src/isomorphic/routes.ts`, regenerate and apply the API DB migration so the `print_config.template` check constraint stays in sync. See the [API README](apps/api/README.md#receipt-template-migrations) for the exact workflow.
+If `RECEIPT_TEMPLATES` changes in `packages/shared/src/isomorphic/routes.ts`, regenerate and apply the engine DB migration so the `print_config.template` check constraint stays in sync. See the [engine README](apps/engine/README.md#receipt-template-migrations) for the exact workflow.
 
 ### 3. Install mkcert
 
@@ -108,7 +108,7 @@ Use IPv4 address from your active network interface, for example `192.168.1.42`.
 Run this from repo root:
 
 ```bash
-bun run --filter @dither-booth/api cert:generate 192.168.1.42
+bun run --filter @dither-booth/engine cert:generate 192.168.1.42
 ```
 
 This writes:
@@ -124,12 +124,12 @@ This writes:
 Run this on the machine where certificates was generated:
 
 ```bash
-bun run --filter @dither-booth/api cert:caroot
+bun run --filter @dither-booth/engine cert:caroot
 ```
 
 Copy `rootCA.pem` from that directory to each client device and trust it in the OS/browser certificate store. Without this step, browsers may reject the certificate and camera access will stay blocked.
 
-Browser traffic stays same-origin and both browser app servers proxy `/api/trpc` to the API over loopback, so client devices only need to trust the shared booth certificate.
+Browser traffic stays same-origin and both browser app servers proxy `/engine/trpc` to the engine over loopback, so client devices only need to trust the shared booth certificate.
 
 ### 7. Start apps
 
@@ -181,13 +181,13 @@ Then open:
 If LAN IP changes:
 
 ```bash
-bun run --filter @dither-booth/api cert:generate <NEW_LAN_IP>
+bun run --filter @dither-booth/engine cert:generate <NEW_LAN_IP>
 ```
 
 If local TLS files get stale or you want to reset setup:
 
 ```bash
-bun run --filter @dither-booth/api cert:clean
+bun run --filter @dither-booth/engine cert:clean
 ```
 
 `cert:clean` removes generated cert, key, and manifest. It does not remove mkcert root CA from your machine.
@@ -198,6 +198,6 @@ Defaults live in:
 
 - `apps/web/.env.example`
 - `apps/admin/.env.example`
-- `apps/api/.env.example`
+- `apps/engine/.env.example`
 
 Most setups can keep defaults. Override only if you need different ports. Each app has its own env example with only the variables that app uses.

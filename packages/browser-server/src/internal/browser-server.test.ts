@@ -311,7 +311,7 @@ function createRunBrowserServerOptions(
   overrides: Partial<RunBrowserServerOptions>,
 ): RunBrowserServerOptions {
   return {
-    apiOrigin: "https://api.local",
+    engineOrigin: "https://engine.local",
     appRoot: testTempRoot(),
     bindHost: "127.0.0.1",
     getTrpcProxyUpstreamPath: (path) => path,

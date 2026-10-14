@@ -1,7 +1,7 @@
 import { getWebPublicIp } from "@dither-booth/ports";
 import {
   adminHealthzPayloadSchema,
-  apiHealthzPayloadSchema,
+  engineHealthzPayloadSchema,
   webHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
 import { defineCommand } from "citty";
@@ -10,7 +10,7 @@ import type { BoothContext } from "#internal/context";
 
 import { printCommandBanner } from "#internal/banner";
 import {
-  API_DATA_RELATIVE,
+  ENGINE_DATA_RELATIVE,
   PM2_PROCESS_NAMES,
   SERVICE_NAME,
   SSD_DATA_DIR,
@@ -65,7 +65,7 @@ async function checkDataSymlink(
   results: CheckResult[],
   repoRoot: string,
 ): Promise<void> {
-  const dataPath = `${repoRoot}/${API_DATA_RELATIVE}`;
+  const dataPath = `${repoRoot}/${ENGINE_DATA_RELATIVE}`;
   const target = await capture(["bash", "-lc", `readlink "${dataPath}"`], {
     allowFailure: true,
   });
@@ -223,9 +223,9 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   const lanIp = (await detectLanIp()) ?? "127.0.0.1";
   await checkHealthz(
     results,
-    "api",
+    "engine",
     "http://127.0.0.1:3001/healthz",
-    apiHealthzPayloadSchema,
+    engineHealthzPayloadSchema,
   );
   await checkHealthz(
     results,

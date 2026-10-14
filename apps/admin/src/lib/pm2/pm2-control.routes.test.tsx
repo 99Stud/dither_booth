@@ -103,7 +103,7 @@ async function requestRestartFromRealWebSocket({
   service = "web",
 }: {
   port: number;
-  service?: "api" | "web";
+  service?: "engine" | "web";
 }) {
   return await new Promise<{
     closeCode: number;
@@ -291,7 +291,7 @@ describe("createPm2RestartRoute", () => {
     const second = createTestSocket();
 
     route.message?.(first.socket, JSON.stringify({ service: "web" }));
-    route.message?.(second.socket, JSON.stringify({ service: "api" }));
+    route.message?.(second.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
 
     expect(second.sentEvents).toEqual([
@@ -300,7 +300,7 @@ describe("createPm2RestartRoute", () => {
         code: "restart-in-progress",
         error: "Restart already in progress.",
         message: "Restart already in progress.",
-        service: "api",
+        service: "engine",
       },
     ]);
     expect(second.closes).toEqual([
@@ -340,9 +340,9 @@ describe("createPm2RestartRoute", () => {
     const first = createTestSocket();
     const second = createTestSocket();
 
-    route.message?.(first.socket, JSON.stringify({ service: "api" }));
+    route.message?.(first.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
-    route.message?.(second.socket, JSON.stringify({ service: "api" }));
+    route.message?.(second.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
 
     expect(first.closes).toContainEqual({
@@ -388,13 +388,13 @@ describe("createPm2RestartRoute", () => {
     });
     const { closes, sentEvents, socket } = createTestSocket();
 
-    route.message?.(socket, JSON.stringify({ service: "api" }));
+    route.message?.(socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
 
     expect(sentEvents).toEqual([
       {
         type: "accepted",
-        service: "api",
+        service: "engine",
         message: "PM2 restart request accepted.",
       },
       {
@@ -402,7 +402,7 @@ describe("createPm2RestartRoute", () => {
         code: "pm2-restart-failed",
         error: "Failed to restart PM2 process.",
         message: "Failed to restart PM2 process.",
-        service: "api",
+        service: "engine",
       },
     ]);
     expect(closes).toEqual([
@@ -515,7 +515,7 @@ describe("createPm2RestartRoute", () => {
 
     route.message?.(first.socket, JSON.stringify({ service: "web" }));
     await flushAsyncRoute();
-    route.message?.(second.socket, JSON.stringify({ service: "api" }));
+    route.message?.(second.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
 
     expect(second.sentEvents).toEqual([
@@ -524,7 +524,7 @@ describe("createPm2RestartRoute", () => {
         code: "restart-in-progress",
         error: "Restart already in progress.",
         message: "Restart already in progress.",
-        service: "api",
+        service: "engine",
       },
     ]);
 
@@ -534,7 +534,7 @@ describe("createPm2RestartRoute", () => {
       reason:
         "Timed out restarting dither-booth-web. Current PM2 status: online.",
     });
-    route.message?.(third.socket, JSON.stringify({ service: "api" }));
+    route.message?.(third.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
 
     expect(third.closes).toContainEqual({
@@ -577,7 +577,7 @@ describe("createPm2RestartRoute", () => {
 
     route.message?.(first.socket, JSON.stringify({ service: "web" }));
     await new Promise((resolve) => setTimeout(resolve, 5));
-    route.message?.(second.socket, JSON.stringify({ service: "api" }));
+    route.message?.(second.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
 
     expect(first.sentEvents).toContainEqual({
@@ -593,11 +593,11 @@ describe("createPm2RestartRoute", () => {
       code: "restart-in-progress",
       error: "Restart already in progress.",
       message: "Restart already in progress.",
-      service: "api",
+      service: "engine",
     });
 
     await new Promise((resolve) => setTimeout(resolve, 25));
-    route.message?.(third.socket, JSON.stringify({ service: "api" }));
+    route.message?.(third.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
 
     expect(third.closes).toContainEqual({

@@ -5,7 +5,7 @@ import path from "node:path";
 
 import {
   getAdminOrigin,
-  getApiInternalOrigin,
+  getEngineInternalOrigin,
   getPort,
   getWebInternalOrigin,
   getWebOrigin,
@@ -17,7 +17,7 @@ import {
   getWebTlsManifestPath,
 } from "../index";
 
-const ENV_NAMES = ["ADMIN_PORT", "API_PORT", "WEB_PORT"] as const;
+const ENV_NAMES = ["ADMIN_PORT", "ENGINE_PORT", "WEB_PORT"] as const;
 
 const originalEnv = Object.fromEntries(
   ENV_NAMES.map((name) => [name, process.env[name]]),
@@ -95,10 +95,10 @@ afterEach(() => {
 });
 
 describe("@dither-booth/ports", () => {
-  it("uses fixed loopback host for API internal origin", () => {
-    process.env.API_PORT = "4010";
+  it("uses fixed loopback host for engine internal origin", () => {
+    process.env.ENGINE_PORT = "4010";
 
-    expect(getApiInternalOrigin()).toBe("http://127.0.0.1:4010");
+    expect(getEngineInternalOrigin()).toBe("http://127.0.0.1:4010");
   });
 
   it("uses fixed loopback host for web internal origin", () => {
@@ -275,10 +275,10 @@ describe("@dither-booth/ports", () => {
   });
 
   it("rejects port values above 65535", () => {
-    process.env.API_PORT = "70000";
+    process.env.ENGINE_PORT = "70000";
 
-    expect(() => getPort("API_PORT")).toThrow(
-      /Invalid port in environment variable API_PORT: 70000\. must be between 1 and 65535/,
+    expect(() => getPort("ENGINE_PORT")).toThrow(
+      /Invalid port in environment variable ENGINE_PORT: 70000\. must be between 1 and 65535/,
     );
   });
 });

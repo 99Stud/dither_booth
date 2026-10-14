@@ -3,7 +3,7 @@ import { logKioskEvent } from "@dither-booth/logging";
 import {
   ADMIN_BIND_HOST,
   getAdminOrigin,
-  getApiInternalOrigin,
+  getEngineInternalOrigin,
   getPort,
   getWebTlsCertPath,
   getWebTlsHostnames,
@@ -20,7 +20,7 @@ import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
 import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
 import { ADMIN_APP_ROOT, ADMIN_REPO_ROOT } from "#lib/server-constants";
-const apiOrigin = getApiInternalOrigin();
+const engineOrigin = getEngineInternalOrigin();
 
 export async function runAdminServer(options: {
   mode: "development" | "production";
@@ -37,7 +37,7 @@ export async function runAdminServer(options: {
 
   return await runBrowserServer({
     allowedHostnames,
-    apiOrigin,
+    engineOrigin,
     appRoot: ADMIN_APP_ROOT,
     bindHost: ADMIN_BIND_HOST,
     getTrpcProxyUpstreamPath,

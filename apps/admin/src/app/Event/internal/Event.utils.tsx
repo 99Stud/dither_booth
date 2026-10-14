@@ -38,7 +38,7 @@ export const getRarityBreakdown = (event: CurrentEvent) => {
 };
 
 /**
- * The API rejects a prize edit or restock with CONFLICT when a kiosk win moved
+ * The engine rejects a prize edit or restock with CONFLICT when a kiosk win moved
  * the stock after the form opened, so the form's numbers are stale.
  */
 export const isStockConflictError = (error: unknown) => {

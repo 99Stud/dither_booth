@@ -143,7 +143,7 @@ export function getProxiedRequestHeaders(
   headers: Headers,
   options?: {
     /**
-     * Browsers often omit `Origin` on same-origin GETs. When proxying to the API,
+     * Browsers often omit `Origin` on same-origin GETs. When proxying to the engine,
      * fill it from the browser-facing request URL so admin origin checks still work.
      */
     fallbackOrigin?: string;
