@@ -1,0 +1,1 @@
+ALTER TABLE `campaign` ADD `ticket_item_names` text DEFAULT '["99stud","El Tony Mate","Épicerie Ginette"]' NOT NULL;

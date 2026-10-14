@@ -4,6 +4,7 @@ import {
   getWebTlsKeyPath,
   getWebTlsManifestPath,
 } from "@dither-booth/ports";
+import { getMachineCertificateHostnames } from "@dither-booth/ports/hostname";
 import { mkdirSync } from "node:fs";
 import { isIP } from "node:net";
 import { dirname, join } from "node:path";
@@ -48,8 +49,9 @@ if (isIP(requestedPublicIp) === 0) {
 }
 
 const publicIp = requestedPublicIp;
+const hostnames = getMachineCertificateHostnames();
 const certificateNames = [
-  ...new Set([publicIp, "localhost", "127.0.0.1", "::1"]),
+  ...new Set([publicIp, "localhost", "127.0.0.1", "::1", ...hostnames]),
 ];
 
 const directories = new Set([
@@ -128,6 +130,7 @@ await Bun.write(
       caPath,
       certPath,
       generatedAt: new Date().toISOString(),
+      hostnames,
       keyPath,
       publicIp,
     },

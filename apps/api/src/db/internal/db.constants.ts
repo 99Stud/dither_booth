@@ -1,4 +1,4 @@
-import type { ReceiptTemplate } from "@dither-booth/shared/routes";
+import type { PhotoReceiptTemplate } from "@dither-booth/shared/routes";
 
 import { resolve } from "node:path";
 
@@ -11,4 +11,5 @@ export const API_DB_FILE_PATH = resolve(
 );
 
 export const PRINT_CONFIG_SINGLETON_ID = 1;
-export const DEFAULT_RECEIPT_TEMPLATE = "tartines" satisfies ReceiptTemplate;
+export const DEFAULT_RECEIPT_TEMPLATE =
+  "tartines" satisfies PhotoReceiptTemplate;

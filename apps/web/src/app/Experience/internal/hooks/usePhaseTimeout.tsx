@@ -14,7 +14,7 @@ interface UsePhaseTimeoutOptions {
  *
  * The timer restarts on every phase change, including one between two phases
  * that both keep it active — `isActive` alone would keep a stale timer running
- * across e.g. cameraEntering -> cameraExiting.
+ * across them.
  *
  * `onElapsed` is latched in a ref so call sites can pass an inline closure and
  * still observe current state.

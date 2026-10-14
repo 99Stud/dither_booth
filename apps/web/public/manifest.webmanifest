@@ -1,0 +1,19 @@
+{
+  "name": "Dither Booth",
+  "short_name": "Dither Booth",
+  "description": "Dither Booth kiosk",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/ressources/99stud-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

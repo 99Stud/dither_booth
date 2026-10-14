@@ -19,12 +19,14 @@
     "./formatting": "./src/isomorphic/formatting.ts",
     "./healthz": "./src/isomorphic/healthz.ts",
     "./id": "./src/isomorphic/id.ts",
+    "./lottery": "./src/isomorphic/lottery.ts",
     "./printing": "./src/isomorphic/printing.ts",
     "./routes": "./src/isomorphic/routes.ts",
     "./runtime": "./src/isomorphic/runtime.ts",
     "./server/paths": "./src/server/paths.ts",
     "./server/runtime": "./src/server/runtime.ts",
     "./styles": "./src/isomorphic/styles.ts",
+    "./ticket": "./src/isomorphic/ticket.ts",
     "./trpc-proxy": "./src/isomorphic/trpc-proxy.ts"
   },
   "scripts": {

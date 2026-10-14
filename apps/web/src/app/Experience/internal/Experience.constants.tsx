@@ -18,6 +18,20 @@ export const COUNTDOWN_START = 3;
 
 export const COUNTDOWN_INTERVAL_MS = 1000;
 export const SMILE_HOLD_MS = 1000;
+/** How long the win/lose row stays on screen before the reels clear. */
+export const SLOT_RESULT_HOLD_MS = 2500;
+/** How long the claim text stays up before the ticket starts printing. */
+export const INSTRUCTIONS_HOLD_MS = 4000;
+
+/**
+ * Slot machine geometry, sized for the iPad Pro 11" kiosk in landscape
+ * (1194x834 CSS px). Photo and panel are the same square: the camera box
+ * scaled down, then centered as a pair with a gap between them.
+ */
+export const FROZEN_PHOTO_SCALE = 0.68;
+export const SPLIT_TILE_GAP_PX = 48;
+export const REEL_CELL_WIDTH_PX = 128;
+export const REEL_CELL_HEIGHT_PX = 160;
 export const PHASE_AUTO_ADVANCE_MS = 5000;
 
 /**
@@ -37,3 +51,12 @@ export const PHASE_AUTO_ADVANCE_MS = 5000;
  * runExclusivePrinterJob for why that gap is left open.
  */
 export const PRINT_ATTEMPT_TIMEOUT_MS = 45000;
+
+/**
+ * A failed print is retried this many times before the visit fails. The API
+ * keeps the prepared job across failures and only prints the parts that did
+ * not come out (photo, then lottery ticket), so a retry never duplicates one.
+ * Retries share the printing phase's PRINT_ATTEMPT_TIMEOUT_MS budget.
+ */
+export const PRINT_PREPARED_RECEIPT_RETRIES = 2;
+export const PRINT_PREPARED_RECEIPT_RETRY_DELAY_MS = 2000;
