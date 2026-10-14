@@ -7,7 +7,6 @@ import z from "zod";
 
 import type {
   CreateEventFormValues,
-  EventTab,
   PrizeFormValues,
   LotterySettingsFormValues,
   RestockPrizeFormValues,
@@ -16,13 +15,6 @@ import type {
 } from "./Event.types";
 
 export const EVENT_LOG_SOURCE = "admin.event";
-
-export const EVENT_TABS = [
-  "overview",
-  "lottery",
-  "prizes",
-  "draws",
-] as const satisfies ReadonlyArray<EventTab>;
 
 export const CREATE_EVENT_FORM_SCHEMA = z.object({
   name: z.string().trim().min(1).max(120),

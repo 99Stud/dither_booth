@@ -1,66 +1,32 @@
-import type { Rarity } from "@dither-booth/shared/lottery";
+import type { ApiRouter } from "@dither-booth/api/router.types";
+import type { TRPCOptionsProxy, inferOutput } from "@trpc/tanstack-react-query";
+import type z from "zod";
 
-export type EventPrize = {
-  id: string;
-  title: string;
-  winInstruction: string;
-  weight: number;
-  totalQuantity: number;
-  remainingQuantity: number;
-  rarity: Rarity;
-};
+import type {
+  CREATE_EVENT_FORM_SCHEMA,
+  LOTTERY_SETTINGS_FORM_SCHEMA,
+  PRIZE_FORM_SCHEMA,
+  RESTOCK_PRIZE_FORM_SCHEMA,
+  TICKET_ITEMS_FORM_SCHEMA,
+  UPDATE_EVENT_NAME_FORM_SCHEMA,
+} from "./Event.constants";
 
-export type CurrentEvent = {
-  campaign: {
-    id: string;
-    name: string;
-    ticketItemNames: string[];
-  };
-  lottery: {
-    id: string;
-    enabled: boolean;
-    noWinWeight: number;
-    winCooldownMinutes: number;
-    printLoserTicket: boolean;
-  };
-  prizes: EventPrize[];
-};
+type ApiProcedures = TRPCOptionsProxy<ApiRouter>;
+
+export type CurrentEvent = NonNullable<
+  inferOutput<ApiProcedures["getCurrentEvent"]>
+>;
+export type EventPrize = CurrentEvent["prizes"][number];
 
 export type EventTab = "overview" | "lottery" | "prizes" | "draws";
 
-export type CreateEventFormValues = {
-  name: string;
-  noWinWeight: number;
-  winCooldownMinutes: number;
-  printLoserTicket: boolean;
-  enabled: boolean;
-};
-
-export type UpdateEventNameFormValues = {
-  name: string;
-};
-
-export type TicketItemsFormValues = {
-  names: string[];
-};
-
-export type LotterySettingsFormValues = {
-  enabled: boolean;
-  noWinWeight: number;
-  winCooldownMinutes: number;
-  printLoserTicket: boolean;
-};
-
-export type PrizeFormValues = {
-  title: string;
-  winInstruction: string;
-  weight: number;
-  totalQuantity: number;
-  remainingQuantity: number;
-  rarity: Rarity;
-};
-
-export type RestockPrizeFormValues = {
-  remainingQuantity: number;
-  totalQuantity: number;
-};
+export type CreateEventFormValues = z.infer<typeof CREATE_EVENT_FORM_SCHEMA>;
+export type UpdateEventNameFormValues = z.infer<
+  typeof UPDATE_EVENT_NAME_FORM_SCHEMA
+>;
+export type TicketItemsFormValues = z.infer<typeof TICKET_ITEMS_FORM_SCHEMA>;
+export type LotterySettingsFormValues = z.infer<
+  typeof LOTTERY_SETTINGS_FORM_SCHEMA
+>;
+export type PrizeFormValues = z.infer<typeof PRIZE_FORM_SCHEMA>;
+export type RestockPrizeFormValues = z.infer<typeof RESTOCK_PRIZE_FORM_SCHEMA>;
