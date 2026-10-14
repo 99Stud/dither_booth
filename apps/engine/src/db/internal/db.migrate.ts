@@ -2,13 +2,13 @@ import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { resolve } from "node:path";
 
 import { db, sqlite } from "#db/index";
-import { API_APP_ROOT } from "#lib/constants";
+import { ENGINE_APP_ROOT } from "#lib/constants";
 
-import { API_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
+import { ENGINE_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
 import { runSqliteMigrations } from "./db.migrations";
 import { ensureDefaultPrintConfiguration } from "./db.seed";
 
-const migrationsFolder = resolve(API_APP_ROOT, "drizzle");
+const migrationsFolder = resolve(ENGINE_APP_ROOT, "drizzle");
 
 export const applySqliteMigrations = () => {
   const violations = runSqliteMigrations({ db, migrationsFolder, sqlite });
@@ -16,7 +16,7 @@ export const applySqliteMigrations = () => {
   if (violations.length > 0) {
     logKioskEvent(
       "warn",
-      API_DB_MIGRATE_LOG_SOURCE,
+      ENGINE_DB_MIGRATE_LOG_SOURCE,
       "sqlite-foreign-key-violations",
       { details: { count: violations.length, violations } },
     );
@@ -29,7 +29,7 @@ const runMigrateCli = async () => {
     await ensureDefaultPrintConfiguration();
     logKioskEvent(
       "info",
-      API_DB_MIGRATE_LOG_SOURCE,
+      ENGINE_DB_MIGRATE_LOG_SOURCE,
       "sqlite-migrations-applied",
       {
         details: {
@@ -40,7 +40,7 @@ const runMigrateCli = async () => {
   } catch (error) {
     logKioskEvent(
       "error",
-      API_DB_MIGRATE_LOG_SOURCE,
+      ENGINE_DB_MIGRATE_LOG_SOURCE,
       "sqlite-migrations-failed",
       {
         details: {

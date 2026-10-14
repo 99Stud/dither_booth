@@ -2,7 +2,7 @@
 
 The engine package runs the backend service that mediates communication between the web and admin browser apps and the receipt printer. It also owns the local TLS helper scripts used by the browser apps during local HTTPS setup.
 
-The web and admin production servers proxy `/api/trpc` to this service over loopback, so client devices only connect to the browser app origins.
+The web and admin production servers proxy `/engine/trpc` to this service over loopback, so client devices only connect to the browser app origins.
 
 ## Development
 

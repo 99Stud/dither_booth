@@ -9,11 +9,11 @@ import { mkdirSync } from "node:fs";
 import { isIP } from "node:net";
 import { dirname, join } from "node:path";
 
-import { API_REPO_ROOT } from "#lib/constants";
+import { ENGINE_REPO_ROOT } from "#lib/constants";
 
-const certPath = getWebTlsCertPath({ repoRoot: API_REPO_ROOT });
-const keyPath = getWebTlsKeyPath({ repoRoot: API_REPO_ROOT });
-const manifestPath = getWebTlsManifestPath({ repoRoot: API_REPO_ROOT });
+const certPath = getWebTlsCertPath({ repoRoot: ENGINE_REPO_ROOT });
+const keyPath = getWebTlsKeyPath({ repoRoot: ENGINE_REPO_ROOT });
+const manifestPath = getWebTlsManifestPath({ repoRoot: ENGINE_REPO_ROOT });
 const requestedPublicIp = process.argv[2]?.trim();
 const CERT_GENERATE_COMMAND =
   "bun run --filter @dither-booth/engine cert:generate <LAN_IP>";
@@ -143,7 +143,7 @@ console.log(`Certificate written to ${certPath}`);
 console.log(`Private key written to ${keyPath}`);
 console.log(`Root CA path recorded as ${caPath}`);
 console.log(`Manifest written to ${manifestPath}`);
-console.log(`Open ${await getWebOrigin({ repoRoot: API_REPO_ROOT })}`);
+console.log(`Open ${await getWebOrigin({ repoRoot: ENGINE_REPO_ROOT })}`);
 console.log(
   `If another device needs to trust this certificate, use "${CERT_CAROOT_COMMAND}" to locate mkcert root CA.`,
 );

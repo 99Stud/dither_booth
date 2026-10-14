@@ -1,10 +1,10 @@
-import { runApiServer } from "./server-app";
+import { runEngineServer } from "./server-app";
 
-const apiServer = await runApiServer({ mode: "production" });
+const engineServer = await runEngineServer({ mode: "production" });
 
 async function shutdown() {
   try {
-    await apiServer.close();
+    await engineServer.close();
     process.exit(0);
   } catch {
     process.exit(1);

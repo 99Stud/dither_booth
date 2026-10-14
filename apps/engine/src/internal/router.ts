@@ -8,7 +8,7 @@ import { receipt } from "#domains/receipt/index";
 
 import { router } from "./trpc";
 
-export const apiRouter = router({
+export const engineRouter = router({
   ...receipt,
   ...printConfiguration,
   ...imageManipulation,

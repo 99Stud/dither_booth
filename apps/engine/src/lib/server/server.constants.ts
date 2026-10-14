@@ -1,5 +1,5 @@
-import { API_BIND_HOST, getApiInternalOrigin } from "@dither-booth/ports";
+import { ENGINE_BIND_HOST, getEngineInternalOrigin } from "@dither-booth/ports";
 
-export const API_SERVER_LOG_SOURCE = "api.server";
-export const API_SERVER_BIND_HOST = API_BIND_HOST;
-export const API_SERVER_ORIGIN = getApiInternalOrigin();
+export const ENGINE_SERVER_LOG_SOURCE = "engine.server";
+export const ENGINE_SERVER_BIND_HOST = ENGINE_BIND_HOST;
+export const ENGINE_SERVER_ORIGIN = getEngineInternalOrigin();

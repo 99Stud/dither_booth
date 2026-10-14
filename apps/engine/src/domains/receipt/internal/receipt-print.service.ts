@@ -13,7 +13,7 @@ import {
   LOTTERY_LOG_SOURCE,
 } from "#domains/lottery/lottery.service";
 import { printRasterReceipt } from "#domains/printer/printer.service";
-import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
+import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 
 import {
@@ -64,7 +64,7 @@ const logLotteryTicketFailure = (
   );
   logKioskEvent(
     "error",
-    API_PRINTER_LOG_SOURCE,
+    ENGINE_PRINTER_LOG_SOURCE,
     "lottery-ticket-print-failed",
     payload,
   );

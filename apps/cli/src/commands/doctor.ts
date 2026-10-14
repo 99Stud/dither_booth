@@ -1,7 +1,7 @@
 import { getWebPublicIp } from "@dither-booth/ports";
 import {
   adminHealthzPayloadSchema,
-  apiHealthzPayloadSchema,
+  engineHealthzPayloadSchema,
   webHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
 import { defineCommand } from "citty";
@@ -223,9 +223,9 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   const lanIp = (await detectLanIp()) ?? "127.0.0.1";
   await checkHealthz(
     results,
-    "api",
+    "engine",
     "http://127.0.0.1:3001/healthz",
-    apiHealthzPayloadSchema,
+    engineHealthzPayloadSchema,
   );
   await checkHealthz(
     results,

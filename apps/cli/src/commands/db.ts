@@ -11,7 +11,7 @@ export async function runDbCommand(context: BoothContext): Promise<void> {
 
   heading("Apply database migrations");
 
-  // db:migrate also seeds the default print_config row via the API package,
+  // db:migrate also seeds the default print_config row via the engine package,
   // so no separate seed step is needed.
   step("Running bun run --filter @dither-booth/engine db:migrate");
   await run(["bun", "run", "--filter", "@dither-booth/engine", "db:migrate"], {

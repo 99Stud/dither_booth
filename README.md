@@ -43,7 +43,7 @@ Default local URLs:
 - Web: `https://<SERVER_LAN_IP>:3000`
 - Admin: `https://<SERVER_LAN_IP>:3002`
 
-Both apps use the same local TLS certificate and proxy `/api/trpc` to the API over loopback.
+Both apps use the same local TLS certificate and proxy `/engine/trpc` to the engine over loopback.
 
 ### 1. Install dependencies
 
@@ -75,7 +75,7 @@ bun run --filter @dither-booth/engine db:seed:lottery
 
 See the [engine README](apps/engine/README.md) for details about the database management.
 
-If `RECEIPT_TEMPLATES` changes in `packages/shared/src/isomorphic/routes.ts`, regenerate and apply the API DB migration so the `print_config.template` check constraint stays in sync. See the [engine README](apps/engine/README.md#receipt-template-migrations) for the exact workflow.
+If `RECEIPT_TEMPLATES` changes in `packages/shared/src/isomorphic/routes.ts`, regenerate and apply the engine DB migration so the `print_config.template` check constraint stays in sync. See the [engine README](apps/engine/README.md#receipt-template-migrations) for the exact workflow.
 
 ### 3. Install mkcert
 
@@ -129,7 +129,7 @@ bun run --filter @dither-booth/engine cert:caroot
 
 Copy `rootCA.pem` from that directory to each client device and trust it in the OS/browser certificate store. Without this step, browsers may reject the certificate and camera access will stay blocked.
 
-Browser traffic stays same-origin and both browser app servers proxy `/api/trpc` to the API over loopback, so client devices only need to trust the shared booth certificate.
+Browser traffic stays same-origin and both browser app servers proxy `/engine/trpc` to the engine over loopback, so client devices only need to trust the shared booth certificate.
 
 ### 7. Start apps
 

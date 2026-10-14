@@ -1,11 +1,11 @@
 import z from "zod";
 
-export const API_HEALTHZ_SERVICE = "api";
+export const ENGINE_HEALTHZ_SERVICE = "engine";
 export const WEB_HEALTHZ_SERVICE = "web";
 export const ADMIN_HEALTHZ_SERVICE = "admin";
 
 export const healthzServiceSchema = z.enum([
-  API_HEALTHZ_SERVICE,
+  ENGINE_HEALTHZ_SERVICE,
   WEB_HEALTHZ_SERVICE,
   ADMIN_HEALTHZ_SERVICE,
 ]);
@@ -20,8 +20,8 @@ export const healthzPayloadBaseSchema = z.object({
   }),
 });
 
-export const apiHealthzPayloadSchema = healthzPayloadBaseSchema.extend({
-  service: z.literal(API_HEALTHZ_SERVICE),
+export const engineHealthzPayloadSchema = healthzPayloadBaseSchema.extend({
+  service: z.literal(ENGINE_HEALTHZ_SERVICE),
 });
 
 export const webHealthzPayloadSchema = healthzPayloadBaseSchema.extend({

@@ -5,8 +5,8 @@ import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
 import { resolve } from "node:path";
 import puppeteer from "puppeteer";
 
-import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
-import { API_APP_ROOT } from "#lib/constants";
+import { ENGINE_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
+import { ENGINE_APP_ROOT } from "#lib/constants";
 
 import type {
   PuppeteerReceiptViewerNavigationDetails,
@@ -16,7 +16,7 @@ import type {
 } from "./puppeteer.types";
 
 const RECEIPT_VIEWER_FONTCONFIG_FILE = resolve(
-  API_APP_ROOT,
+  ENGINE_APP_ROOT,
   "fontconfig",
   "fonts.conf",
 );
@@ -118,7 +118,7 @@ export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerRecei
         "Puppeteer receipt viewer navigation skipped because browser launch failed.",
       details: createReceiptViewerDetails(),
     });
-    logKioskEvent("error", API_BROWSER_LOG_SOURCE, "browser-launch-failed", {
+    logKioskEvent("error", ENGINE_BROWSER_LOG_SOURCE, "browser-launch-failed", {
       error: getKioskErrorDiagnostics(error, "Browser launch failed."),
     });
   }
@@ -150,7 +150,7 @@ export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerRecei
       });
       logKioskEvent(
         "error",
-        API_BROWSER_LOG_SOURCE,
+        ENGINE_BROWSER_LOG_SOURCE,
         "browser-page-init-failed",
         {
           error: getKioskErrorDiagnostics(
@@ -201,7 +201,7 @@ export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerRecei
       });
       logKioskEvent(
         "error",
-        API_BROWSER_LOG_SOURCE,
+        ENGINE_BROWSER_LOG_SOURCE,
         "browser-navigation-failed",
         {
           details: navigationDetails,

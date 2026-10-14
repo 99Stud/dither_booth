@@ -2,7 +2,7 @@ import { PM2_RESTART_SERVER_TIMEOUT_MS } from "#lib/pm2/pm2-control.constants";
 
 export const HEALTHZ_SERVICE_LABELS = {
   web: "Web",
-  api: "API",
+  engine: "Engine",
 } as const;
 
 export const RESTART_HEALTHZ_REFETCH_DELAY_MS = 3000;

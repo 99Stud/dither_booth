@@ -5,7 +5,7 @@ import {
   getWebTlsHostnames,
 } from "@dither-booth/ports";
 import {
-  API_HEALTHZ_SERVICE,
+  ENGINE_HEALTHZ_SERVICE,
   createHealthzPayload,
 } from "@dither-booth/shared/healthz";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
@@ -18,23 +18,23 @@ import http from "node:http";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import { apiRouter } from "#internal/router";
-import { API_REPO_ROOT } from "#lib/constants";
-import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
+import { engineRouter } from "#internal/router";
+import { ENGINE_REPO_ROOT } from "#lib/constants";
+import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import { getRuntimeProcessManager } from "#lib/process-manager/process-manager.utils";
 import { createPuppeteerReceiptViewerLifecycle } from "#lib/puppeteer/puppeteer-lifecycle.utils";
 import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 import {
-  API_SERVER_BIND_HOST,
-  API_SERVER_LOG_SOURCE,
-  API_SERVER_ORIGIN,
+  ENGINE_SERVER_BIND_HOST,
+  ENGINE_SERVER_LOG_SOURCE,
+  ENGINE_SERVER_ORIGIN,
 } from "#lib/server/server.constants";
 
 import { db } from "./db";
 import { applySqliteMigrations } from "./db/internal/db.migrate";
 import { ensureDefaultPrintConfiguration } from "./db/internal/db.seed";
 
-type ApiServerLifecycle = {
+type EngineServerLifecycle = {
   close: () => Promise<void>;
   server: http.Server;
 };
@@ -71,12 +71,12 @@ async function closePrinterUSBAdapter(printerUSBAdapter: USB | undefined) {
   }
 }
 
-export async function runApiServer(options: {
+export async function runEngineServer(options: {
   mode: "development" | "production";
-}): Promise<ApiServerLifecycle> {
+}): Promise<EngineServerLifecycle> {
   assertNonProductionNodeEnvForDevelopmentMode({
     mode: options.mode,
-    serverName: "runApiServer",
+    serverName: "runEngineServer",
   });
 
   applySqliteMigrations();
@@ -88,7 +88,7 @@ export async function runApiServer(options: {
   if (receiptPrintDryRun) {
     logKioskEvent(
       "info",
-      API_PRINTER_LOG_SOURCE,
+      ENGINE_PRINTER_LOG_SOURCE,
       "receipt-print-dry-run-enabled",
       {
         details: {
@@ -101,7 +101,7 @@ export async function runApiServer(options: {
     try {
       printerUSBAdapter = new USB();
     } catch (error) {
-      logKioskEvent("error", API_PRINTER_LOG_SOURCE, "printer-init-failed", {
+      logKioskEvent("error", ENGINE_PRINTER_LOG_SOURCE, "printer-init-failed", {
         error: getKioskErrorDiagnostics(
           error,
           "Printer initialization failed.",
@@ -112,9 +112,9 @@ export async function runApiServer(options: {
 
   const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle();
 
-  const adminOrigin = await getAdminOrigin({ repoRoot: API_REPO_ROOT });
+  const adminOrigin = await getAdminOrigin({ repoRoot: ENGINE_REPO_ROOT });
   const allowedHostnames = await getWebTlsHostnames({
-    repoRoot: API_REPO_ROOT,
+    repoRoot: ENGINE_REPO_ROOT,
   });
   const processManager = getRuntimeProcessManager();
 
@@ -136,10 +136,10 @@ export async function runApiServer(options: {
   };
 
   const trpcHandler = createHTTPHandler({
-    router: apiRouter,
+    router: engineRouter,
     createContext,
     onError({ error, path, req, type }) {
-      logKioskEvent("error", API_SERVER_LOG_SOURCE, "trpc-request-failed", {
+      logKioskEvent("error", ENGINE_SERVER_LOG_SOURCE, "trpc-request-failed", {
         details: {
           code: error.code,
           method: req.method,
@@ -149,7 +149,7 @@ export async function runApiServer(options: {
         },
         error: getKioskErrorDiagnostics(
           error,
-          error.message || "API request failed.",
+          error.message || "Engine request failed.",
         ),
       });
     },
@@ -166,7 +166,7 @@ export async function runApiServer(options: {
       req.headers["access-control-request-headers"] ?? "Content-Type",
     );
 
-    const url = new URL(req.url ?? "/", API_SERVER_ORIGIN);
+    const url = new URL(req.url ?? "/", ENGINE_SERVER_ORIGIN);
 
     if (url.pathname === "/healthz") {
       if (req.method !== "GET") {
@@ -184,7 +184,7 @@ export async function runApiServer(options: {
         JSON.stringify(
           createHealthzPayload({
             mode: options.mode,
-            service: API_HEALTHZ_SERVICE,
+            service: ENGINE_HEALTHZ_SERVICE,
           }),
         ),
       );
@@ -201,17 +201,17 @@ export async function runApiServer(options: {
   });
 
   // Bind before Puppeteer init so the web proxy is not refused while Chrome starts.
-  server.listen(getPort("API_PORT"), API_SERVER_BIND_HOST);
+  server.listen(getPort("ENGINE_PORT"), ENGINE_SERVER_BIND_HOST);
 
   const address = server.address();
 
   if (address && typeof address !== "string") {
-    logKioskEvent("info", API_SERVER_LOG_SOURCE, "server-started", {
+    logKioskEvent("info", ENGINE_SERVER_LOG_SOURCE, "server-started", {
       details: {
         environment: process.env.NODE_ENV,
         processManager,
         boundAddress: `${address.address}:${address.port}`,
-        url: API_SERVER_ORIGIN,
+        url: ENGINE_SERVER_ORIGIN,
       },
     });
   }
@@ -222,7 +222,11 @@ export async function runApiServer(options: {
 
   const close = () => {
     closePromise ??= (async () => {
-      logKioskEvent("info", API_SERVER_LOG_SOURCE, "server-shutdown-started");
+      logKioskEvent(
+        "info",
+        ENGINE_SERVER_LOG_SOURCE,
+        "server-shutdown-started",
+      );
 
       const errors: unknown[] = [];
       const closeResource = async (
@@ -235,13 +239,13 @@ export async function runApiServer(options: {
           errors.push(error);
           logKioskEvent(
             "error",
-            API_SERVER_LOG_SOURCE,
+            ENGINE_SERVER_LOG_SOURCE,
             "server-shutdown-failed",
             {
               details: {
                 resource,
               },
-              error: getKioskErrorDiagnostics(error, "API shutdown failed."),
+              error: getKioskErrorDiagnostics(error, "Engine shutdown failed."),
             },
           );
         }
@@ -254,10 +258,14 @@ export async function runApiServer(options: {
       );
 
       if (errors.length > 0) {
-        throw new AggregateError(errors, "API server shutdown failed.");
+        throw new AggregateError(errors, "engine server shutdown failed.");
       }
 
-      logKioskEvent("info", API_SERVER_LOG_SOURCE, "server-shutdown-completed");
+      logKioskEvent(
+        "info",
+        ENGINE_SERVER_LOG_SOURCE,
+        "server-shutdown-completed",
+      );
     })();
 
     return closePromise;

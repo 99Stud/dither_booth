@@ -2,13 +2,13 @@ import { logKioskEvent } from "@dither-booth/logging";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
-import { API_APP_ROOT } from "#lib/constants";
-import { API_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
+import { ENGINE_APP_ROOT } from "#lib/constants";
+import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 
 import { gsV0RasterCommandToPngBuffer } from "./gs-v0-raster.utils";
 
 export const DEFAULT_RECEIPT_PREVIEW_DIR = join(
-  API_APP_ROOT,
+  ENGINE_APP_ROOT,
   "tmp",
   "receipt-previews",
 );
@@ -77,7 +77,7 @@ export async function previewReceiptRasters({
   const paths = lotteryPath ? [photoPath, lotteryPath] : [photoPath];
   await openPaths(paths);
 
-  logKioskEvent("info", API_PRINTER_LOG_SOURCE, "receipt-print-dry-run", {
+  logKioskEvent("info", ENGINE_PRINTER_LOG_SOURCE, "receipt-print-dry-run", {
     details: {
       lotteryPath,
       photoPath,
@@ -108,7 +108,7 @@ export async function previewLotteryTicketRaster({
 
   logKioskEvent(
     "info",
-    API_PRINTER_LOG_SOURCE,
+    ENGINE_PRINTER_LOG_SOURCE,
     "lottery-ticket-print-dry-run",
     {
       details: {

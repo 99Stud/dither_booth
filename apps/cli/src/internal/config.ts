@@ -14,7 +14,7 @@ export const SERVICE_PATH = `/etc/systemd/system/${SERVICE_NAME}`;
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";
 
 export const PM2_PROCESS_NAMES = [
-  "dither-booth-api",
+  "dither-booth-engine",
   "dither-booth-admin",
   "dither-booth-web",
 ] as const;

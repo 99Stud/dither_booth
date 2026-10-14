@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import { apiRouter } from "#internal/router";
+import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
 const ADMIN_ORIGIN = "https://admin.local";
@@ -43,7 +43,7 @@ function createTestCaller(
   } satisfies TRPCContext;
 
   return {
-    caller: apiRouter.createCaller(context),
+    caller: engineRouter.createCaller(context),
     getRestartCalls: () => restartCalls,
     restartResult,
   };

@@ -1,5 +1,5 @@
 import type {
-  apiHealthzPayloadSchema,
+  engineHealthzPayloadSchema,
   healthzModeSchema,
   healthzServiceSchema,
   webHealthzPayloadSchema,
@@ -11,7 +11,7 @@ import type { fetchWebHealthz } from "./healthz.utils";
 
 export type HealthzMode = z.infer<typeof healthzModeSchema>;
 export type HealthzService = z.infer<typeof healthzServiceSchema>;
-export type ApiHealthzPayload = z.infer<typeof apiHealthzPayloadSchema>;
+export type EngineHealthzPayload = z.infer<typeof engineHealthzPayloadSchema>;
 export type WebHealthzPayload = z.infer<typeof webHealthzPayloadSchema>;
 
 export type Timestamped<TPayload extends object> = TPayload & {

@@ -3,7 +3,7 @@ import type { Browser } from "puppeteer";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { withTimeout } from "@dither-booth/shared/async";
 
-import { API_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
+import { ENGINE_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
 
 import type {
   PuppeteerReceiptViewer,
@@ -117,7 +117,7 @@ async function terminatePuppeteerReceiptViewer(
       throw error;
     }
 
-    logKioskEvent("error", API_BROWSER_LOG_SOURCE, "browser-close-failed", {
+    logKioskEvent("error", ENGINE_BROWSER_LOG_SOURCE, "browser-close-failed", {
       error: getKioskErrorDiagnostics(error, "Puppeteer browser close failed."),
     });
 

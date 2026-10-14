@@ -9,7 +9,7 @@ import {
   prizeTable,
 } from "#db/internal/db.schema";
 
-import { API_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
+import { ENGINE_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
 
 export const DEV_LOTTERY_ID = "dev_lottery";
 export const DEV_CAMPAIGN_ID = "dev_campaign";
@@ -130,18 +130,23 @@ if (import.meta.main) {
     const result = await seedDevLottery({ reset });
 
     if (result.status === "skipped") {
-      logKioskEvent("info", API_DB_MIGRATE_LOG_SOURCE, "lottery-seed-skipped", {
-        details: {
-          reason: result.reason,
-          lotteryId: DEV_LOTTERY_ID,
-          hint: "Pass --reset to wipe lottery data and reseed.",
+      logKioskEvent(
+        "info",
+        ENGINE_DB_MIGRATE_LOG_SOURCE,
+        "lottery-seed-skipped",
+        {
+          details: {
+            reason: result.reason,
+            lotteryId: DEV_LOTTERY_ID,
+            hint: "Pass --reset to wipe lottery data and reseed.",
+          },
         },
-      });
+      );
       console.log(
         `Lottery already seeded (${DEV_LOTTERY_ID}). Pass --reset to wipe and reseed.`,
       );
     } else {
-      logKioskEvent("info", API_DB_MIGRATE_LOG_SOURCE, "lottery-seeded", {
+      logKioskEvent("info", ENGINE_DB_MIGRATE_LOG_SOURCE, "lottery-seeded", {
         details: {
           campaignId: result.campaignId,
           lotteryId: result.lotteryId,
@@ -158,9 +163,14 @@ if (import.meta.main) {
       );
     }
   } catch (error) {
-    logKioskEvent("error", API_DB_MIGRATE_LOG_SOURCE, "lottery-seed-failed", {
-      error: getKioskErrorDiagnostics(error, "Lottery seed failed."),
-    });
+    logKioskEvent(
+      "error",
+      ENGINE_DB_MIGRATE_LOG_SOURCE,
+      "lottery-seed-failed",
+      {
+        error: getKioskErrorDiagnostics(error, "Lottery seed failed."),
+      },
+    );
     throw error;
   } finally {
     sqlite.close();

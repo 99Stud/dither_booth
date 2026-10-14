@@ -6,12 +6,12 @@ import {
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { API_REPO_ROOT } from "#lib/constants";
+import { ENGINE_REPO_ROOT } from "#lib/constants";
 
 const managedFiles = [
-  getWebTlsCertPath({ repoRoot: API_REPO_ROOT }),
-  getWebTlsKeyPath({ repoRoot: API_REPO_ROOT }),
-  getWebTlsManifestPath({ repoRoot: API_REPO_ROOT }),
+  getWebTlsCertPath({ repoRoot: ENGINE_REPO_ROOT }),
+  getWebTlsKeyPath({ repoRoot: ENGINE_REPO_ROOT }),
+  getWebTlsManifestPath({ repoRoot: ENGINE_REPO_ROOT }),
 ];
 
 let removedFileCount = 0;

@@ -2,7 +2,7 @@ import { runBrowserServer } from "@dither-booth/browser-server";
 import { logKioskEvent } from "@dither-booth/logging";
 import {
   WEB_BIND_HOST,
-  getApiInternalOrigin,
+  getEngineInternalOrigin,
   getPort,
   getWebOrigin,
   getWebTlsCertPath,
@@ -17,7 +17,7 @@ import {
 
 import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
 import { WEB_APP_ROOT, WEB_REPO_ROOT } from "#lib/server-constants";
-const apiOrigin = getApiInternalOrigin();
+const engineOrigin = getEngineInternalOrigin();
 
 export async function runWebServer(options: {
   mode: "development" | "production";
@@ -32,7 +32,7 @@ export async function runWebServer(options: {
 
   return await runBrowserServer({
     allowedHostnames,
-    apiOrigin,
+    engineOrigin,
     appRoot: WEB_APP_ROOT,
     bindHost: WEB_BIND_HOST,
     getTrpcProxyUpstreamPath,

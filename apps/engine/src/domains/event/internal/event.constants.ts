@@ -2,7 +2,7 @@ import { raritySchema } from "@dither-booth/shared/lottery";
 import { ticketItemNamesSchema } from "@dither-booth/shared/ticket";
 import z from "zod";
 
-export const EVENT_LOG_SOURCE = "api.event";
+export const EVENT_LOG_SOURCE = "engine.event";
 
 export const createEventInputSchema = z.object({
   name: z.string().trim().min(1).max(120),

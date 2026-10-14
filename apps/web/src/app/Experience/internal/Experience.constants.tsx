@@ -38,7 +38,7 @@ export const PHASE_AUTO_ADVANCE_MS = 5000;
  * Escape hatch for a capture or print that never settles. Capture and print
  * each get a fresh budget, so the worst-case wait is two of these.
  *
- * The print half is the contract the API is bounded against. Bounded there:
+ * The print half is the contract the engine is bounded against. Bounded there:
  * receipt screenshot (12s) + printer open (5s) + flush (20s) = 37s, leaving 8s.
  * Raising any of those without raising this one lets the kiosk reset while a
  * receipt is still on its way to the printer.
@@ -53,7 +53,7 @@ export const PHASE_AUTO_ADVANCE_MS = 5000;
 export const PRINT_ATTEMPT_TIMEOUT_MS = 45000;
 
 /**
- * A failed print is retried this many times before the visit fails. The API
+ * A failed print is retried this many times before the visit fails. The engine
  * keeps the prepared job across failures and only prints the parts that did
  * not come out (photo, then lottery ticket), so a retry never duplicates one.
  * Retries share the printing phase's PRINT_ATTEMPT_TIMEOUT_MS budget.

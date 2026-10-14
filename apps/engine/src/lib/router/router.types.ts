@@ -1,3 +1,3 @@
-import type { apiRouter } from "#internal/router";
+import type { engineRouter } from "#internal/router";
 
-export type ApiRouter = typeof apiRouter;
+export type EngineRouter = typeof engineRouter;

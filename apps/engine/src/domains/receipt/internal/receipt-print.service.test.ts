@@ -49,7 +49,7 @@ mock.module("./receipt-raster.utils", () => ({
 const { prepareReceiptJob, printPreparedReceiptJob } =
   await import("./receipt-print.service");
 const { preparedReceiptStore } = await import("./prepared-receipt.store");
-const { apiRouter } = await import("#internal/router");
+const { engineRouter } = await import("#internal/router");
 
 const PHOTO = new Blob([new Uint8Array([1, 2, 3])]);
 const USB_ADAPTER = {} as USB;
@@ -304,7 +304,7 @@ describe("printPreparedReceiptJob", () => {
 
 describe("prepareReceipt → printPreparedReceipt", () => {
   test("a failed print can be retried and never prints the photo twice", async () => {
-    const caller = apiRouter.createCaller(
+    const caller = engineRouter.createCaller(
       createCtx(setupDb({ outcome: "win" })),
     );
 
@@ -341,7 +341,7 @@ describe("prepareReceipt → printPreparedReceipt", () => {
   });
 
   test("printPreparedReceipt rejects a malformed ticket ref", async () => {
-    const caller = apiRouter.createCaller(
+    const caller = engineRouter.createCaller(
       createCtx(setupDb({ outcome: "win" })),
     );
 
@@ -351,6 +351,6 @@ describe("prepareReceipt → printPreparedReceipt", () => {
   });
 
   test("drawLottery is no longer exposed", () => {
-    expect("drawLottery" in apiRouter._def.procedures).toBe(false);
+    expect("drawLottery" in engineRouter._def.procedures).toBe(false);
   });
 });

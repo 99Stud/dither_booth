@@ -95,11 +95,11 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     );
   }
 
-  async function proxyApiRequest(req: Request) {
+  async function proxyEngineRequest(req: Request) {
     const url = new URL(req.url);
     const upstreamUrl = new URL(
       options.getTrpcProxyUpstreamPath(`${url.pathname}${url.search}`),
-      options.apiOrigin,
+      options.engineOrigin,
     );
 
     return fetch(upstreamUrl, {
@@ -152,8 +152,8 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
       key: Bun.file(options.tlsKeyPath),
     },
     routes: {
-      [options.trpcProxyPath]: proxyApiRequest,
-      [`${options.trpcProxyPath}/*`]: proxyApiRequest,
+      [options.trpcProxyPath]: proxyEngineRequest,
+      [`${options.trpcProxyPath}/*`]: proxyEngineRequest,
       ...customRoutes,
       ...webSocketUpgradeRoutes,
       ...staticRoutes,

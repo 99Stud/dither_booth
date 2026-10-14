@@ -42,7 +42,7 @@ const extractUnhealthyServicesCount = (healthz: HealthzResponse) => {
     unhealthyServicesCount++;
   }
 
-  if (!healthz.api.healthz.ok) {
+  if (!healthz.engine.healthz.ok) {
     unhealthyServicesCount++;
   }
 
@@ -88,7 +88,7 @@ export const HealthCard = () => {
   const areAllChecksHealthy =
     isHealthzSuccess &&
     healthz.web.healthz.ok &&
-    healthz.api.healthz.ok &&
+    healthz.engine.healthz.ok &&
     healthz.puppeteer.healthz.ok &&
     healthz.printer.healthz.ok;
 
@@ -256,7 +256,7 @@ export const HealthCard = () => {
             healthz={healthz}
             isHealthzSuccess={isHealthzSuccess}
             isHealthzError={isHealthzError}
-            service="api"
+            service="engine"
             isRestarting={isRestarting}
             restartProgress={restartProgress?.event}
             restartingService={restartProgress?.service}

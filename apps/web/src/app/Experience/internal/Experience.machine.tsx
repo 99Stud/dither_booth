@@ -26,7 +26,7 @@ export interface ExperienceState {
   drawResult: DrawResult | null;
   /** Object URL of the captured square, shown as the frozen frame. */
   photoUrl: string | null;
-  /** Ref of the receipt the API is holding for us until the game is over. */
+  /** Ref of the receipt the engine is holding for us until the game is over. */
   ticketRef: string | null;
   nextPrintAttemptId: number;
   activePrintAttemptId: number | null;

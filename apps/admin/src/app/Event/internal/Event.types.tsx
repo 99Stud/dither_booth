@@ -1,4 +1,4 @@
-import type { ApiRouter } from "@dither-booth/engine/router.types";
+import type { EngineRouter } from "@dither-booth/engine/router.types";
 import type { TRPCOptionsProxy, inferOutput } from "@trpc/tanstack-react-query";
 import type z from "zod";
 
@@ -11,10 +11,10 @@ import type {
   UPDATE_EVENT_NAME_FORM_SCHEMA,
 } from "./Event.constants";
 
-type ApiProcedures = TRPCOptionsProxy<ApiRouter>;
+type EngineProcedures = TRPCOptionsProxy<EngineRouter>;
 
 export type CurrentEvent = NonNullable<
-  inferOutput<ApiProcedures["getCurrentEvent"]>
+  inferOutput<EngineProcedures["getCurrentEvent"]>
 >;
 export type EventPrize = CurrentEvent["prizes"][number];
 

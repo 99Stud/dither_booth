@@ -49,10 +49,10 @@ interface HealthzAccordionItemProps {
   onRestart: (service: Pm2RestartService) => void;
 }
 
-type ServiceHealthz<TService extends "api" | "web"> =
+type ServiceHealthz<TService extends "engine" | "web"> =
   HealthzResponse[TService]["healthz"];
 
-type RemoteServiceHealthz = ServiceHealthz<"api"> | ServiceHealthz<"web">;
+type RemoteServiceHealthz = ServiceHealthz<"engine"> | ServiceHealthz<"web">;
 
 const renderServiceTooltip = (check: RemoteServiceHealthz) => {
   if (check.ok) {
