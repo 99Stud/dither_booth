@@ -5,7 +5,6 @@ import { COUNTDOWN_START } from "./Experience.constants";
 export type ExperiencePhase =
   | "idle"
   | "introExiting"
-  | "cameraEntering"
   | "promptEntering"
   | "countdown"
   | "smile"
@@ -132,7 +131,7 @@ export const experienceReducer = (
     }
 
     case "cameraAnimationCompleted": {
-      if (state.phase === "introExiting" || state.phase === "cameraEntering") {
+      if (state.phase === "introExiting") {
         return { ...state, phase: "promptEntering" };
       }
 

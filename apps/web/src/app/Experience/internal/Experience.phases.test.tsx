@@ -25,7 +25,6 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
   {
     cameraVisible: [
       "introExiting",
-      "cameraEntering",
       "promptEntering",
       "countdown",
       "smile",
@@ -86,12 +85,7 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
       "resettingButtonRepositioning",
       "resettingButtonRevealing",
     ],
-    cameraAnimationFallback: [
-      "introExiting",
-      "cameraEntering",
-      "cameraExiting",
-      "resetting",
-    ],
+    cameraAnimationFallback: ["introExiting", "cameraExiting", "resetting"],
     promptAnimationFallback: ["promptEntering"],
   };
 
@@ -148,7 +142,9 @@ describe("PROMPT_TEXT_BY_PHASE", () => {
   // outlast the prompt fade, otherwise resetting the caption on the next phase
   // would be visible mid-fade.
   it("relies on the shutter outlasting the prompt fade", () => {
-    expect(PROMPT_TRANSITION.duration).toBeLessThan(SHUTTER_TRANSITION.duration);
+    expect(PROMPT_TRANSITION.duration).toBeLessThan(
+      SHUTTER_TRANSITION.duration,
+    );
   });
 
   // The outgoing caption has to finish leaving before the prompt itself has

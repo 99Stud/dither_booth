@@ -38,7 +38,6 @@ export const PHASE_FLAGS: Record<
     "startEnabled",
   ],
   introExiting: ["cameraVisible", "cameraAnimationFallback"],
-  cameraEntering: ["cameraVisible", "cameraAnimationFallback"],
   promptEntering: ["cameraVisible", "promptVisible", "promptAnimationFallback"],
   countdown: ["cameraVisible", "promptVisible"],
   smile: ["cameraVisible", "promptVisible", "smileHold"],
@@ -111,7 +110,6 @@ export const AUTO_ADVANCE_ACTION_BY_PHASE: Record<
 > = {
   idle: null,
   introExiting: null,
-  cameraEntering: null,
   promptEntering: null,
   countdown: null,
   smile: null,

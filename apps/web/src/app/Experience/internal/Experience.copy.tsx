@@ -38,7 +38,6 @@ const PRINTING_PROMPT_TEXT = "printing...";
 export const PROMPT_TEXT_BY_PHASE: Record<ExperiencePhase, string> = {
   idle: DEFAULT_PROMPT_TEXT,
   introExiting: DEFAULT_PROMPT_TEXT,
-  cameraEntering: DEFAULT_PROMPT_TEXT,
   promptEntering: DEFAULT_PROMPT_TEXT,
   countdown: DEFAULT_PROMPT_TEXT,
   smile: STRIKE_A_POSE_PROMPT_TEXT,
