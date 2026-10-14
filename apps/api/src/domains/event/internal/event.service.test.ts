@@ -1,18 +1,15 @@
 import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
-import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { resolve } from "node:path";
 
 import {
   campaignTable,
   drawTable,
   lotteryTable,
   prizeTable,
-  printConfigTable,
 } from "#db/internal/db.schema";
+import { createTestDb } from "#db/internal/db.test-utils";
+import { executeLotteryDraw } from "#domains/lottery/lottery.service";
 
 import {
   createEventForDb,
@@ -23,29 +20,12 @@ import {
   listDrawsForDb,
   replaceEventForDb,
   restockPrizeForDb,
+  updateEventForDb,
   updateLotterySettingsForDb,
+  updatePrizeForDb,
   updateTicketItemsForDb,
+  wipeAllEventData,
 } from "./event.service";
-
-function createTestDb() {
-  const sqlite = new Database(":memory:");
-  const db = drizzle({
-    client: sqlite,
-    schema: {
-      printConfigTable,
-      campaignTable,
-      lotteryTable,
-      prizeTable,
-      drawTable,
-    },
-  });
-
-  migrate(db, {
-    migrationsFolder: resolve(import.meta.dir, "../../../../drizzle"),
-  });
-
-  return { db, sqlite };
-}
 
 describe("event.service", () => {
   test("createEvent enforces singleton campaign", async () => {
@@ -201,6 +181,7 @@ describe("event.service", () => {
       const restocked = await restockPrizeForDb(db, {
         prizeId,
         remainingQuantity: 10,
+        expectedRemainingQuantity: 1,
       });
 
       expect(restocked.prizes[0]).toMatchObject({
@@ -281,6 +262,7 @@ describe("event.service", () => {
       await db.insert(drawTable).values({
         lotteryId: event.lottery.id,
         prizeId: prizeId,
+        prizeTitle: "legendary prize",
         ticketRef: "333333",
       });
 
@@ -368,6 +350,7 @@ describe("event.service", () => {
       await db.insert(drawTable).values({
         lotteryId: event.lottery.id,
         prizeId: prizeId,
+        prizeTitle: "sticker",
         ticketRef: "111111",
         createdAt: new Date("2026-01-01T10:00:00.000Z"),
       });
@@ -410,6 +393,290 @@ describe("event.service", () => {
         limit: 50,
       });
       expect(miss.draws).toEqual([]);
+    } finally {
+      sqlite.close();
+    }
+  });
+});
+
+describe("event.service — kiosk concurrency and history", () => {
+  const PRIZE_INPUT = {
+    title: "sticker",
+    winInstruction: "Show this ticket at the bar",
+    weight: 1,
+    totalQuantity: 5,
+    remainingQuantity: 5,
+    rarity: "common" as const,
+  };
+
+  async function setupLiveEvent() {
+    const { db, sqlite } = createTestDb();
+    await createEventForDb(db, {
+      name: "Live event",
+      noWinWeight: 0,
+      winCooldownMinutes: 0,
+      printLoserTicket: false,
+      enabled: true,
+    });
+    const withPrize = await createPrizeForDb(db, PRIZE_INPUT);
+    const prize = withPrize.prizes[0]!;
+    const kioskWin = () =>
+      executeLotteryDraw({ db, force: null, random: () => 0 });
+
+    return { db, sqlite, prize, kioskWin };
+  }
+
+  test("updatePrize rejects stale stock instead of undoing a kiosk win", async () => {
+    const { db, sqlite, prize, kioskWin } = await setupLiveEvent();
+
+    try {
+      // Admin opens the form at 5 left, a visitor wins, admin saves.
+      const win = await kioskWin();
+      expect(win.result.outcome).toBe("win");
+
+      await expect(
+        updatePrizeForDb(db, {
+          ...PRIZE_INPUT,
+          prizeId: prize.id,
+          title: "renamed",
+          expectedRemainingQuantity: 5,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+
+      const current = await getCurrentEventForDb(db);
+      expect(current?.prizes[0]).toMatchObject({
+        title: "sticker",
+        remainingQuantity: 4,
+      });
+
+      const saved = await updatePrizeForDb(db, {
+        ...PRIZE_INPUT,
+        prizeId: prize.id,
+        title: "renamed",
+        remainingQuantity: 4,
+        expectedRemainingQuantity: 4,
+      });
+      expect(saved.prizes[0]).toMatchObject({
+        title: "renamed",
+        remainingQuantity: 4,
+      });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("restockPrize rejects stale stock", async () => {
+    const { db, sqlite, prize, kioskWin } = await setupLiveEvent();
+
+    try {
+      await kioskWin();
+
+      await expect(
+        restockPrizeForDb(db, {
+          prizeId: prize.id,
+          remainingQuantity: 5,
+          totalQuantity: 5,
+          expectedRemainingQuantity: 5,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+
+      const current = await getCurrentEventForDb(db);
+      expect(current?.prizes[0]?.remainingQuantity).toBe(4);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("editing a won prize leaves past draws showing the title they won", async () => {
+    const { db, sqlite, prize, kioskWin } = await setupLiveEvent();
+
+    try {
+      const win = await kioskWin();
+
+      await updatePrizeForDb(db, {
+        ...PRIZE_INPUT,
+        prizeId: prize.id,
+        title: "a different prize",
+        rarity: "legendary",
+        remainingQuantity: 4,
+        expectedRemainingQuantity: 4,
+      });
+
+      const draws = await listDrawsForDb(db, { limit: 50 });
+      expect(draws.draws).toEqual([
+        expect.objectContaining({
+          ticketRef: win.ticketRef,
+          outcome: "win",
+          prizeTitle: "sticker",
+        }),
+      ]);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("deletePrize after a real kiosk win soft-deletes and keeps the draw", async () => {
+    const { db, sqlite, prize, kioskWin } = await setupLiveEvent();
+
+    try {
+      const win = await kioskWin();
+      const next = await deletePrizeForDb(db, prize.id);
+
+      expect(next.prizes).toEqual([]);
+      expect(
+        db.select().from(prizeTable).where(eq(prizeTable.id, prize.id)).get(),
+      ).toMatchObject({ removed: true, remainingQuantity: 0 });
+
+      const draws = await listDrawsForDb(db, { limit: 50 });
+      expect(draws.draws[0]).toMatchObject({
+        ticketRef: win.ticketRef,
+        prizeTitle: "sticker",
+      });
+
+      // A removed prize is gone for the admin and for the kiosk.
+      await expect(
+        updatePrizeForDb(db, {
+          ...PRIZE_INPUT,
+          prizeId: prize.id,
+          expectedRemainingQuantity: 0,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect((await kioskWin()).result.outcome).toBe("loss");
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("foreign keys are enforced, so a won prize cannot be hard-deleted", async () => {
+    const { db, sqlite, prize, kioskWin } = await setupLiveEvent();
+
+    try {
+      expect(
+        sqlite.query<{ foreign_keys: number }, []>("PRAGMA foreign_keys").get()
+          ?.foreign_keys,
+      ).toBe(1);
+
+      await kioskWin();
+
+      expect(() =>
+        db.delete(prizeTable).where(eq(prizeTable.id, prize.id)).run(),
+      ).toThrow(/FOREIGN KEY/);
+      expect(() =>
+        db
+          .insert(drawTable)
+          .values({ prizeId: "no-such-prize", ticketRef: "777777" })
+          .run(),
+      ).toThrow(/FOREIGN KEY/);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("replaceEvent is atomic: a failing create keeps the old event and its draws", async () => {
+    const { db, sqlite, kioskWin } = await setupLiveEvent();
+
+    try {
+      await kioskWin();
+
+      // Passes the API schema boundary only because the service is called
+      // directly; the DB CHECK constraint rejects it after the wipe ran.
+      await expect(
+        replaceEventForDb(db, {
+          name: "Broken",
+          noWinWeight: -1,
+          winCooldownMinutes: 0,
+          printLoserTicket: false,
+          enabled: false,
+        }),
+      ).rejects.toThrow();
+
+      const current = await getCurrentEventForDb(db);
+      expect(current?.campaign.name).toBe("Live event");
+      expect(current?.prizes).toHaveLength(1);
+      expect(db.select().from(drawTable).all()).toHaveLength(1);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("createEvent conflict leaves no stray lottery rows", async () => {
+    const { db, sqlite } = await setupLiveEvent();
+
+    try {
+      await expect(
+        createEventForDb(db, {
+          name: "Second",
+          noWinWeight: 1,
+          winCooldownMinutes: 0,
+          printLoserTicket: false,
+          enabled: false,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+
+      expect(db.select().from(lotteryTable).all()).toHaveLength(1);
+      expect(db.select().from(campaignTable).all()).toHaveLength(1);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("updateEvent returns the stored event", async () => {
+    const { db, sqlite } = await setupLiveEvent();
+
+    try {
+      const updated = await updateEventForDb(db, { name: "Renamed" });
+
+      expect(updated).toEqual((await getCurrentEventForDb(db))!);
+      expect(updated.campaign.name).toBe("Renamed");
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("wipeAllEventData clears an event with draws while FKs are on", async () => {
+    const { db, sqlite, kioskWin } = await setupLiveEvent();
+
+    try {
+      await kioskWin();
+      await wipeAllEventData(db);
+
+      expect(await getCurrentEventForDb(db)).toBeNull();
+      for (const table of [
+        drawTable,
+        prizeTable,
+        lotteryTable,
+        campaignTable,
+      ]) {
+        expect(db.select().from(table).all()).toEqual([]);
+      }
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("listDraws rejects an invalid ticket number", async () => {
+    const { db, sqlite } = await setupLiveEvent();
+
+    try {
+      await expect(
+        listDrawsForDb(db, { ticketRef: "STUD_12", limit: 50 }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("mutations without an event answer NOT_FOUND", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      await expect(updateEventForDb(db, { name: "x" })).rejects.toMatchObject({
+        code: "NOT_FOUND",
+      });
+      await expect(createPrizeForDb(db, PRIZE_INPUT)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+      });
+      expect(await listDrawsForDb(db, { limit: 50 })).toEqual({ draws: [] });
     } finally {
       sqlite.close();
     }

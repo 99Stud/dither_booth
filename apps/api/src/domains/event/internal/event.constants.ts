@@ -27,46 +27,18 @@ export const updateLotterySettingsInputSchema = z.object({
   printLoserTicket: z.boolean(),
 });
 
-export const createPrizeInputSchema = z
-  .object({
-    title: z.string().trim().min(1).max(120),
-    winInstruction: z.string().trim().min(1).max(240),
-    weight: z.number().gt(0),
-    totalQuantity: z.number().int().min(0),
-    remainingQuantity: z.number().int().min(0),
-    rarity: raritySchema,
-  })
-  .refine((value) => value.remainingQuantity <= value.totalQuantity, {
-    message: "remainingQuantity must be <= totalQuantity",
-    path: ["remainingQuantity"],
-  });
+const prizeIdSchema = z.string().min(1);
+const quantitySchema = z.number().int().min(0);
 
-export const updatePrizeInputSchema = z
-  .object({
-    prizeId: z.string().min(1),
-    title: z.string().trim().min(1).max(120),
-    winInstruction: z.string().trim().min(1).max(240),
-    weight: z.number().gt(0),
-    totalQuantity: z.number().int().min(0),
-    remainingQuantity: z.number().int().min(0),
-    rarity: raritySchema,
-  })
-  .refine((value) => value.remainingQuantity <= value.totalQuantity, {
-    message: "remainingQuantity must be <= totalQuantity",
-    path: ["remainingQuantity"],
-  });
-
-export const deletePrizeInputSchema = z.object({
-  prizeId: z.string().min(1),
-});
-
-export const restockPrizeInputSchema = z
-  .object({
-    prizeId: z.string().min(1),
-    remainingQuantity: z.number().int().min(0),
-    totalQuantity: z.number().int().min(0).optional(),
-  })
-  .refine(
+const remainingWithinTotal = <
+  TSchema extends z.ZodType<{
+    remainingQuantity: number;
+    totalQuantity?: number;
+  }>,
+>(
+  schema: TSchema,
+) =>
+  schema.refine(
     (value) =>
       value.totalQuantity === undefined ||
       value.remainingQuantity <= value.totalQuantity,
@@ -75,6 +47,44 @@ export const restockPrizeInputSchema = z
       path: ["remainingQuantity"],
     },
   );
+
+const prizeFieldsSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  winInstruction: z.string().trim().min(1).max(240),
+  weight: z.number().gt(0),
+  totalQuantity: quantitySchema,
+  remainingQuantity: quantitySchema,
+  rarity: raritySchema,
+});
+
+/**
+ * Stock the admin saw when opening the form. Kiosk wins keep decrementing
+ * `remainingQuantity`, so writes that set it absolutely are rejected with
+ * `CONFLICT` when it moved underneath the form.
+ */
+const expectedRemainingQuantitySchema = quantitySchema;
+
+export const createPrizeInputSchema = remainingWithinTotal(prizeFieldsSchema);
+
+export const updatePrizeInputSchema = remainingWithinTotal(
+  prizeFieldsSchema.extend({
+    prizeId: prizeIdSchema,
+    expectedRemainingQuantity: expectedRemainingQuantitySchema,
+  }),
+);
+
+export const deletePrizeInputSchema = z.object({
+  prizeId: prizeIdSchema,
+});
+
+export const restockPrizeInputSchema = remainingWithinTotal(
+  z.object({
+    prizeId: prizeIdSchema,
+    remainingQuantity: quantitySchema,
+    totalQuantity: quantitySchema.optional(),
+    expectedRemainingQuantity: expectedRemainingQuantitySchema,
+  }),
+);
 
 export const listDrawsInputSchema = z.object({
   ticketRef: z.string().trim().min(1).optional(),

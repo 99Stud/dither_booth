@@ -5,9 +5,9 @@ import {
 } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 
-import type { DB } from "#db/internal/db.types";
+import type { DB, DbExecutor, DbTransaction } from "#db/internal/db.types";
 
 import {
   campaignTable,
@@ -28,6 +28,16 @@ import type {
 } from "./event.constants";
 import type { CurrentEvent, EventPrize, ListDrawsResult } from "./event.types";
 
+const EVENT_PRIZE_COLUMNS = {
+  id: prizeTable.id,
+  title: prizeTable.title,
+  winInstruction: prizeTable.winInstruction,
+  weight: prizeTable.weight,
+  totalQuantity: prizeTable.totalQuantity,
+  remainingQuantity: prizeTable.remainingQuantity,
+  rarity: prizeTable.rarity,
+};
+
 function readTicketItemNames(value: unknown): string[] {
   const parsed = ticketItemNamesSchema.safeParse(value);
   if (!parsed.success) {
@@ -39,64 +49,38 @@ function readTicketItemNames(value: unknown): string[] {
 export async function getCurrentTicketItemNamesForDb(
   db: DB,
 ): Promise<string[]> {
-  const campaign = await db.query.campaignTable.findFirst({
-    columns: { ticketItemNames: true },
-  });
+  const campaign = db
+    .select({ ticketItemNames: campaignTable.ticketItemNames })
+    .from(campaignTable)
+    .get();
   if (!campaign) {
     return [...DEFAULT_TICKET_ITEM_NAMES];
   }
   return readTicketItemNames(campaign.ticketItemNames);
 }
 
-function mapPrize(prize: {
-  id: string;
-  title: string;
-  winInstruction: string;
-  weight: number;
-  totalQuantity: number;
-  remainingQuantity: number;
-  rarity: EventPrize["rarity"];
-}): EventPrize {
-  return {
-    id: prize.id,
-    title: prize.title,
-    winInstruction: prize.winInstruction,
-    weight: prize.weight,
-    totalQuantity: prize.totalQuantity,
-    remainingQuantity: prize.remainingQuantity,
-    rarity: prize.rarity,
-  };
-}
-
-export async function wipeAllEventData(db: DB): Promise<void> {
-  await db.delete(drawTable);
-  await db.delete(prizeTable);
-  await db.update(campaignTable).set({ lotteryId: null });
-  await db.delete(lotteryTable);
-  await db.delete(campaignTable);
-}
-
-export async function getCurrentEventForDb(
-  db: DB,
-): Promise<CurrentEvent | null> {
-  const campaign = await db.query.campaignTable.findFirst();
+function readCurrentEvent(executor: DbExecutor): CurrentEvent | null {
+  const campaign = executor.select().from(campaignTable).get();
   if (!campaign?.lotteryId) {
     return null;
   }
 
-  const lottery = await db.query.lotteryTable.findFirst({
-    where: eq(lotteryTable.id, campaign.lotteryId),
-  });
+  const lottery = executor
+    .select()
+    .from(lotteryTable)
+    .where(eq(lotteryTable.id, campaign.lotteryId))
+    .get();
   if (!lottery) {
     return null;
   }
 
-  const prizes = await db.query.prizeTable.findMany({
-    where: and(
-      eq(prizeTable.lotteryId, lottery.id),
-      eq(prizeTable.removed, false),
-    ),
-  });
+  const prizes = executor
+    .select(EVENT_PRIZE_COLUMNS)
+    .from(prizeTable)
+    .where(
+      and(eq(prizeTable.lotteryId, lottery.id), eq(prizeTable.removed, false)),
+    )
+    .all();
 
   return {
     campaign: {
@@ -111,12 +95,12 @@ export async function getCurrentEventForDb(
       winCooldownMinutes: lottery.winCooldownMinutes,
       printLoserTicket: lottery.printLoserTicket,
     },
-    prizes: prizes.map(mapPrize),
+    prizes,
   };
 }
 
-async function requireCurrentEvent(db: DB): Promise<CurrentEvent> {
-  const current = await getCurrentEventForDb(db);
+function requireCurrentEvent(executor: DbExecutor): CurrentEvent {
+  const current = readCurrentEvent(executor);
   if (!current) {
     throw new TRPCError({
       code: "NOT_FOUND",
@@ -126,11 +110,65 @@ async function requireCurrentEvent(db: DB): Promise<CurrentEvent> {
   return current;
 }
 
-export async function createEventForDb(
-  db: DB,
-  input: CreateEventInput,
-): Promise<CurrentEvent> {
-  const existing = await db.query.campaignTable.findFirst();
+/** The current event plus one of its active prizes, or `NOT_FOUND`. */
+function requireCurrentPrize(
+  executor: DbExecutor,
+  prizeId: string,
+): { current: CurrentEvent; prize: EventPrize } {
+  const current = requireCurrentEvent(executor);
+  const prize = current.prizes.find((entry) => entry.id === prizeId);
+  if (!prize) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Prize not found on the current event.",
+    });
+  }
+  return { current, prize };
+}
+
+function assertStockUnchanged(
+  prize: EventPrize,
+  expectedRemainingQuantity: number,
+) {
+  if (prize.remainingQuantity !== expectedRemainingQuantity) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: `Stock changed while you were editing (now ${prize.remainingQuantity} left). Reopen the prize and try again.`,
+    });
+  }
+}
+
+/**
+ * Runs `write` in one synchronous transaction and returns the event as it
+ * stands after the write, so a crash halfway never leaves a partial event.
+ */
+function writeEvent(db: DB, write: (tx: DbTransaction) => void): CurrentEvent {
+  return db.transaction((tx) => {
+    write(tx);
+    const next = readCurrentEvent(tx);
+    if (!next) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to load event after saving.",
+      });
+    }
+    return next;
+  });
+}
+
+function wipeEventData(tx: DbTransaction): void {
+  tx.delete(drawTable).run();
+  tx.delete(prizeTable).run();
+  tx.update(campaignTable).set({ lotteryId: null }).run();
+  tx.delete(lotteryTable).run();
+  tx.delete(campaignTable).run();
+}
+
+function insertEvent(tx: DbTransaction, input: CreateEventInput): void {
+  const existing = tx
+    .select({ id: campaignTable.id })
+    .from(campaignTable)
+    .get();
   if (existing) {
     throw new TRPCError({
       code: "CONFLICT",
@@ -140,285 +178,202 @@ export async function createEventForDb(
   }
 
   const lotteryId = createId();
-  const campaignId = createId();
 
-  await db.insert(lotteryTable).values({
-    id: lotteryId,
-    enabled: input.enabled,
-    noWinWeight: input.noWinWeight,
-    winCooldownMinutes: input.winCooldownMinutes,
-    printLoserTicket: input.printLoserTicket,
-  });
+  tx.insert(lotteryTable)
+    .values({
+      id: lotteryId,
+      enabled: input.enabled,
+      noWinWeight: input.noWinWeight,
+      winCooldownMinutes: input.winCooldownMinutes,
+      printLoserTicket: input.printLoserTicket,
+    })
+    .run();
 
-  await db.insert(campaignTable).values({
-    id: campaignId,
-    name: input.name,
-    lotteryId,
-  });
-
-  const created = await getCurrentEventForDb(db);
-  if (!created) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after create.",
-    });
-  }
-  return created;
+  tx.insert(campaignTable)
+    .values({ id: createId(), name: input.name, lotteryId })
+    .run();
 }
 
-export async function updateEventForDb(
-  db: DB,
-  input: UpdateEventInput,
-): Promise<CurrentEvent> {
-  const current = await requireCurrentEvent(db);
-
-  await db
-    .update(campaignTable)
-    .set({ name: input.name })
-    .where(eq(campaignTable.id, current.campaign.id));
-
-  return {
-    ...current,
-    campaign: {
-      ...current.campaign,
-      name: input.name,
-    },
-  };
+export async function wipeAllEventData(db: DB): Promise<void> {
+  db.transaction((tx) => wipeEventData(tx));
 }
 
-export async function updateTicketItemsForDb(
+export async function getCurrentEventForDb(
   db: DB,
-  input: UpdateTicketItemsInput,
+): Promise<CurrentEvent | null> {
+  return readCurrentEvent(db);
+}
+
+export async function createEventForDb(
+  db: DB,
+  input: CreateEventInput,
 ): Promise<CurrentEvent> {
-  const current = await requireCurrentEvent(db);
-
-  await db
-    .update(campaignTable)
-    .set({ ticketItemNames: input.names })
-    .where(eq(campaignTable.id, current.campaign.id));
-
-  return {
-    ...current,
-    campaign: {
-      ...current.campaign,
-      ticketItemNames: input.names,
-    },
-  };
+  return writeEvent(db, (tx) => insertEvent(tx, input));
 }
 
 export async function replaceEventForDb(
   db: DB,
   input: CreateEventInput,
 ): Promise<CurrentEvent> {
-  await wipeAllEventData(db);
-  return await createEventForDb(db, input);
+  return writeEvent(db, (tx) => {
+    wipeEventData(tx);
+    insertEvent(tx, input);
+  });
+}
+
+export async function updateEventForDb(
+  db: DB,
+  input: UpdateEventInput,
+): Promise<CurrentEvent> {
+  return writeEvent(db, (tx) => {
+    const current = requireCurrentEvent(tx);
+    tx.update(campaignTable)
+      .set({ name: input.name })
+      .where(eq(campaignTable.id, current.campaign.id))
+      .run();
+  });
+}
+
+export async function updateTicketItemsForDb(
+  db: DB,
+  input: UpdateTicketItemsInput,
+): Promise<CurrentEvent> {
+  return writeEvent(db, (tx) => {
+    const current = requireCurrentEvent(tx);
+    tx.update(campaignTable)
+      .set({ ticketItemNames: input.names })
+      .where(eq(campaignTable.id, current.campaign.id))
+      .run();
+  });
 }
 
 export async function updateLotterySettingsForDb(
   db: DB,
   input: UpdateLotterySettingsInput,
 ): Promise<CurrentEvent> {
-  const current = await requireCurrentEvent(db);
+  return writeEvent(db, (tx) => {
+    const current = requireCurrentEvent(tx);
 
-  if (input.enabled) {
-    await db
-      .update(lotteryTable)
-      .set({ enabled: false })
-      .where(ne(lotteryTable.id, current.lottery.id));
-  }
+    if (input.enabled) {
+      tx.update(lotteryTable)
+        .set({ enabled: false })
+        .where(ne(lotteryTable.id, current.lottery.id))
+        .run();
+    }
 
-  await db
-    .update(lotteryTable)
-    .set({
-      enabled: input.enabled,
-      noWinWeight: input.noWinWeight,
-      winCooldownMinutes: input.winCooldownMinutes,
-      printLoserTicket: input.printLoserTicket,
-    })
-    .where(eq(lotteryTable.id, current.lottery.id));
-
-  return {
-    ...current,
-    lottery: {
-      ...current.lottery,
-      enabled: input.enabled,
-      noWinWeight: input.noWinWeight,
-      winCooldownMinutes: input.winCooldownMinutes,
-      printLoserTicket: input.printLoserTicket,
-    },
-  };
+    tx.update(lotteryTable)
+      .set({
+        enabled: input.enabled,
+        noWinWeight: input.noWinWeight,
+        winCooldownMinutes: input.winCooldownMinutes,
+        printLoserTicket: input.printLoserTicket,
+      })
+      .where(eq(lotteryTable.id, current.lottery.id))
+      .run();
+  });
 }
 
 export async function createPrizeForDb(
   db: DB,
   input: CreatePrizeInput,
 ): Promise<CurrentEvent> {
-  const current = await requireCurrentEvent(db);
-
-  await db.insert(prizeTable).values({
-    lotteryId: current.lottery.id,
-    title: input.title,
-    winInstruction: input.winInstruction,
-    weight: input.weight,
-    totalQuantity: input.totalQuantity,
-    remainingQuantity: input.remainingQuantity,
-    rarity: input.rarity,
+  return writeEvent(db, (tx) => {
+    const current = requireCurrentEvent(tx);
+    tx.insert(prizeTable)
+      .values({
+        lotteryId: current.lottery.id,
+        title: input.title,
+        winInstruction: input.winInstruction,
+        weight: input.weight,
+        totalQuantity: input.totalQuantity,
+        remainingQuantity: input.remainingQuantity,
+        rarity: input.rarity,
+      })
+      .run();
   });
-
-  const next = await getCurrentEventForDb(db);
-  if (!next) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after creating prize.",
-    });
-  }
-  return next;
 }
 
 export async function updatePrizeForDb(
   db: DB,
   input: UpdatePrizeInput,
 ): Promise<CurrentEvent> {
-  const current = await requireCurrentEvent(db);
-  const prize = current.prizes.find((entry) => entry.id === input.prizeId);
-  if (!prize) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Prize not found on the current event.",
-    });
-  }
+  return writeEvent(db, (tx) => {
+    const { prize } = requireCurrentPrize(tx, input.prizeId);
+    assertStockUnchanged(prize, input.expectedRemainingQuantity);
 
-  await db
-    .update(prizeTable)
-    .set({
-      title: input.title,
-      winInstruction: input.winInstruction,
-      weight: input.weight,
-      totalQuantity: input.totalQuantity,
-      remainingQuantity: input.remainingQuantity,
-      rarity: input.rarity,
-    })
-    .where(
-      and(
-        eq(prizeTable.id, input.prizeId),
-        eq(prizeTable.lotteryId, current.lottery.id),
-      ),
-    );
-
-  const next = await getCurrentEventForDb(db);
-  if (!next) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after updating prize.",
-    });
-  }
-  return next;
+    tx.update(prizeTable)
+      .set({
+        title: input.title,
+        winInstruction: input.winInstruction,
+        weight: input.weight,
+        totalQuantity: input.totalQuantity,
+        remainingQuantity: input.remainingQuantity,
+        rarity: input.rarity,
+      })
+      .where(eq(prizeTable.id, prize.id))
+      .run();
+  });
 }
 
 export async function deletePrizeForDb(
   db: DB,
   prizeId: string,
 ): Promise<CurrentEvent> {
-  const current = await requireCurrentEvent(db);
-  const prize = current.prizes.find((entry) => entry.id === prizeId);
-  if (!prize) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Prize not found on the current event.",
-    });
-  }
+  return writeEvent(db, (tx) => {
+    const { prize } = requireCurrentPrize(tx, prizeId);
 
-  const referencedDraw = await db.query.drawTable.findFirst({
-    where: eq(drawTable.prizeId, prizeId),
+    // Checked in the same transaction as the delete, so a win cannot land
+    // in between and be left pointing at a deleted prize.
+    const referencedDraw = tx
+      .select({ id: drawTable.id })
+      .from(drawTable)
+      .where(eq(drawTable.prizeId, prize.id))
+      .get();
+
+    if (referencedDraw) {
+      // Draws point at the prize row, so a won prize stays stored and leaves the active pool.
+      tx.update(prizeTable)
+        .set({ removed: true, remainingQuantity: 0 })
+        .where(eq(prizeTable.id, prize.id))
+        .run();
+      return;
+    }
+
+    tx.delete(prizeTable).where(eq(prizeTable.id, prize.id)).run();
   });
-
-  if (referencedDraw) {
-    // Draws point at the prize row, so a won prize stays stored and leaves the active pool.
-    await db
-      .update(prizeTable)
-      .set({
-        removed: true,
-        remainingQuantity: 0,
-      })
-      .where(
-        and(
-          eq(prizeTable.id, prizeId),
-          eq(prizeTable.lotteryId, current.lottery.id),
-        ),
-      );
-  } else {
-    await db
-      .delete(prizeTable)
-      .where(
-        and(
-          eq(prizeTable.id, prizeId),
-          eq(prizeTable.lotteryId, current.lottery.id),
-        ),
-      );
-  }
-
-  const next = await getCurrentEventForDb(db);
-  if (!next) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after deleting prize.",
-    });
-  }
-  return next;
 }
 
 export async function restockPrizeForDb(
   db: DB,
   input: RestockPrizeInput,
 ): Promise<CurrentEvent> {
-  const current = await requireCurrentEvent(db);
-  const prize = current.prizes.find((entry) => entry.id === input.prizeId);
-  if (!prize) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Prize not found on the current event.",
-    });
-  }
+  return writeEvent(db, (tx) => {
+    const { prize } = requireCurrentPrize(tx, input.prizeId);
+    assertStockUnchanged(prize, input.expectedRemainingQuantity);
 
-  const totalQuantity =
-    input.totalQuantity ??
-    Math.max(prize.totalQuantity, input.remainingQuantity);
+    const totalQuantity =
+      input.totalQuantity ??
+      Math.max(prize.totalQuantity, input.remainingQuantity);
 
-  if (input.remainingQuantity > totalQuantity) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "remainingQuantity must be <= totalQuantity",
-    });
-  }
+    if (input.remainingQuantity > totalQuantity) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "remainingQuantity must be <= totalQuantity",
+      });
+    }
 
-  await db
-    .update(prizeTable)
-    .set({
-      remainingQuantity: input.remainingQuantity,
-      totalQuantity,
-    })
-    .where(
-      and(
-        eq(prizeTable.id, input.prizeId),
-        eq(prizeTable.lotteryId, current.lottery.id),
-      ),
-    );
-
-  const next = await getCurrentEventForDb(db);
-  if (!next) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to load event after restocking prize.",
-    });
-  }
-  return next;
+    tx.update(prizeTable)
+      .set({ remainingQuantity: input.remainingQuantity, totalQuantity })
+      .where(eq(prizeTable.id, prize.id))
+      .run();
+  });
 }
 
 export async function listDrawsForDb(
   db: DB,
   input: ListDrawsInput,
 ): Promise<ListDrawsResult> {
-  const current = await getCurrentEventForDb(db);
+  const current = readCurrentEvent(db);
   if (!current) {
     return { draws: [] };
   }
@@ -434,34 +389,18 @@ export async function listDrawsForDb(
     });
   }
 
-  const rows = parsedTicketRef
-    ? await db.query.drawTable.findMany({
-        where: and(
-          eq(drawTable.lotteryId, current.lottery.id),
-          eq(drawTable.ticketRef, parsedTicketRef),
-        ),
-        orderBy: [desc(drawTable.createdAt)],
-        limit: input.limit,
-      })
-    : await db.query.drawTable.findMany({
-        where: eq(drawTable.lotteryId, current.lottery.id),
-        orderBy: [desc(drawTable.createdAt)],
-        limit: input.limit,
-      });
-
-  const prizeIds = [
-    ...new Set(rows.flatMap((row) => (row.prizeId ? [row.prizeId] : []))),
-  ];
-  const prizes =
-    prizeIds.length === 0
-      ? []
-      : await db.query.prizeTable.findMany({
-          where: inArray(prizeTable.id, prizeIds),
-          columns: { id: true, title: true },
-        });
-  const prizeTitleById = new Map(
-    prizes.map((prize) => [prize.id, prize.title]),
-  );
+  const rows = db
+    .select()
+    .from(drawTable)
+    .where(
+      and(
+        eq(drawTable.lotteryId, current.lottery.id),
+        parsedTicketRef ? eq(drawTable.ticketRef, parsedTicketRef) : undefined,
+      ),
+    )
+    .orderBy(desc(drawTable.createdAt))
+    .limit(input.limit)
+    .all();
 
   return {
     draws: rows.map((row) => ({
@@ -469,9 +408,7 @@ export async function listDrawsForDb(
       ticketRef: row.ticketRef,
       createdAt: row.createdAt.toISOString(),
       outcome: row.prizeId ? "win" : "loss",
-      prizeTitle: row.prizeId
-        ? (prizeTitleById.get(row.prizeId) ?? null)
-        : null,
+      prizeTitle: row.prizeId ? row.prizeTitle : null,
     })),
   };
 }

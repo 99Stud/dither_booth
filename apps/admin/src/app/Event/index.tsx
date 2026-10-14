@@ -22,6 +22,7 @@ import { EventPrizesTable } from "./internal/components/EventPrizesTable";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";
 import { EventTicketPreview } from "./internal/components/EventTicketPreview";
+import { isStockConflictError } from "./internal/Event.utils";
 import { useEventQueries } from "./internal/hooks/useEventQueries";
 
 export const Event = () => {
@@ -191,10 +192,17 @@ export const Event = () => {
             return;
           }
           if (!editingPrize) return;
-          await updatePrizeMutation.mutateAsync({
-            prizeId: editingPrize.id,
-            ...values,
-          });
+          try {
+            await updatePrizeMutation.mutateAsync({
+              prizeId: editingPrize.id,
+              expectedRemainingQuantity: editingPrize.remainingQuantity,
+              ...values,
+            });
+          } catch (error) {
+            // Stale stock: close so the next edit starts from fresh numbers.
+            if (isStockConflictError(error)) setIsPrizeSheetOpen(false);
+            throw error;
+          }
         }}
       />
 
@@ -207,10 +215,16 @@ export const Event = () => {
         }}
         onSubmit={async (values) => {
           if (!restockPrize) return;
-          await restockPrizeMutation.mutateAsync({
-            prizeId: restockPrize.id,
-            ...values,
-          });
+          try {
+            await restockPrizeMutation.mutateAsync({
+              prizeId: restockPrize.id,
+              expectedRemainingQuantity: restockPrize.remainingQuantity,
+              ...values,
+            });
+          } catch (error) {
+            if (isStockConflictError(error)) setRestockPrize(null);
+            throw error;
+          }
         }}
       />
     </Tabs>

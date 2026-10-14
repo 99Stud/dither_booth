@@ -1,3 +1,5 @@
+import { TRPCClientError } from "@trpc/client";
+
 import { reportKioskError } from "#lib/logging/logging.utils";
 
 import type { CurrentEvent } from "./Event.types";
@@ -33,4 +35,12 @@ export const getRarityBreakdown = (event: CurrentEvent) => {
   return [...remainingByRarity.entries()]
     .filter(([, remaining]) => remaining > 0)
     .map(([rarity, remaining]) => ({ rarity, remaining }));
+};
+
+/**
+ * The API rejects a prize edit or restock with CONFLICT when a kiosk win moved
+ * the stock after the form opened, so the form's numbers are stale.
+ */
+export const isStockConflictError = (error: unknown) => {
+  return error instanceof TRPCClientError && error.data?.code === "CONFLICT";
 };
