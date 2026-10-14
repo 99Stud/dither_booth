@@ -160,7 +160,17 @@ export const drawTable = sqliteTable(
       .default(sql`(unixepoch())`),
     lotteryId: text("lottery_id").references(() => lotteryTable.id),
     prizeId: text("prize_id").references(() => prizeTable.id),
+    // Snapshot taken at draw time so prize edits never rewrite past wins.
+    prizeTitle: text("prize_title"),
     ticketRef: text("ticket_ref"),
   },
   (table) => [uniqueIndex("draw_ticket_ref_unique").on(table.ticketRef)],
 );
+
+export const dbSchema = {
+  printConfigTable,
+  campaignTable,
+  lotteryTable,
+  prizeTable,
+  drawTable,
+};

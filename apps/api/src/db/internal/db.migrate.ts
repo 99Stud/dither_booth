@@ -1,17 +1,26 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { resolve } from "node:path";
 
 import { db, sqlite } from "#db/index";
 import { API_APP_ROOT } from "#lib/constants";
 
 import { API_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
+import { runSqliteMigrations } from "./db.migrations";
 import { ensureDefaultPrintConfiguration } from "./db.seed";
 
 const migrationsFolder = resolve(API_APP_ROOT, "drizzle");
 
 export const applySqliteMigrations = () => {
-  migrate(db, { migrationsFolder });
+  const violations = runSqliteMigrations({ db, migrationsFolder, sqlite });
+
+  if (violations.length > 0) {
+    logKioskEvent(
+      "warn",
+      API_DB_MIGRATE_LOG_SOURCE,
+      "sqlite-foreign-key-violations",
+      { details: { count: violations.length, violations } },
+    );
+  }
 };
 
 const runMigrateCli = async () => {
