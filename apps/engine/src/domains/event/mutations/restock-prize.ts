@@ -1,9 +1,9 @@
-import { adminOriginProcedure } from "#internal/trpc";
+import { configProcedure } from "#internal/trpc";
 
 import { restockPrizeInputSchema } from "../internal/event.constants";
 import { restockPrizeForDb } from "../internal/event.service";
 
-export const restockPrize = adminOriginProcedure
+export const restockPrize = configProcedure
   .input(restockPrizeInputSchema)
   .mutation(async ({ ctx, input }) => {
     return await restockPrizeForDb(ctx.db, input);

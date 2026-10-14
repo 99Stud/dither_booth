@@ -54,7 +54,7 @@ describe("restartPuppeteerReceiptViewer", () => {
     const { caller, getRestartCalls, restartResult } =
       createTestCaller(ADMIN_ORIGIN);
 
-    await expect(caller.restartPuppeteerReceiptViewer()).resolves.toBe(
+    await expect(caller.ops.restartPuppeteerReceiptViewer()).resolves.toBe(
       restartResult,
     );
     expect(getRestartCalls()).toBe(1);
@@ -66,7 +66,7 @@ describe("restartPuppeteerReceiptViewer", () => {
       ADMIN_LAN_ORIGIN,
     );
 
-    await expect(caller.restartPuppeteerReceiptViewer()).resolves.toBe(
+    await expect(caller.ops.restartPuppeteerReceiptViewer()).resolves.toBe(
       restartResult,
     );
     expect(getRestartCalls()).toBe(1);
@@ -79,7 +79,7 @@ describe("restartPuppeteerReceiptViewer", () => {
       ["99framboises", "99framboises.local"],
     );
 
-    await expect(caller.restartPuppeteerReceiptViewer()).resolves.toBe(
+    await expect(caller.ops.restartPuppeteerReceiptViewer()).resolves.toBe(
       restartResult,
     );
     expect(getRestartCalls()).toBe(1);
@@ -88,7 +88,9 @@ describe("restartPuppeteerReceiptViewer", () => {
   test("rejects requests from a different origin", async () => {
     const { caller, getRestartCalls } = createTestCaller("https://evil.local");
 
-    await expect(caller.restartPuppeteerReceiptViewer()).rejects.toMatchObject({
+    await expect(
+      caller.ops.restartPuppeteerReceiptViewer(),
+    ).rejects.toMatchObject({
       code: "FORBIDDEN",
       message: "Request origin not allowed.",
     });
@@ -98,7 +100,9 @@ describe("restartPuppeteerReceiptViewer", () => {
   test("rejects requests with no origin", async () => {
     const { caller, getRestartCalls } = createTestCaller();
 
-    await expect(caller.restartPuppeteerReceiptViewer()).rejects.toMatchObject({
+    await expect(
+      caller.ops.restartPuppeteerReceiptViewer(),
+    ).rejects.toMatchObject({
       code: "FORBIDDEN",
       message: "Request origin not allowed.",
     });

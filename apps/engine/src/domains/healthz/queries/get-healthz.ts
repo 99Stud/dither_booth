@@ -20,7 +20,7 @@ import {
   type PuppeteerHealthz,
 } from "#domains/healthz/internal/healthz.puppeteer";
 import { fetchWebHealthz } from "#domains/healthz/internal/healthz.utils";
-import { publicProcedure } from "#internal/trpc";
+import { opsProcedure } from "#internal/trpc";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
 
 type GetHealthzResponse = {
@@ -39,7 +39,7 @@ type GetHealthzResponse = {
   };
 };
 
-export const getHealthz = publicProcedure.query(async ({ ctx }) => {
+export const getHealthz = opsProcedure.query(async ({ ctx }) => {
   const [webOrigin, caPath] = await Promise.all([
     getWebOrigin({ repoRoot: ENGINE_REPO_ROOT }),
     getWebTlsCaPath({ repoRoot: ENGINE_REPO_ROOT }),

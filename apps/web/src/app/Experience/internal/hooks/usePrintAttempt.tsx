@@ -46,10 +46,10 @@ export const usePrintAttempt = ({
   const trpc = useTRPC();
 
   const { mutateAsync: prepareReceipt } = useMutation(
-    trpc.prepareReceipt.mutationOptions(),
+    trpc.booth.prepareReceipt.mutationOptions(),
   );
   const { mutateAsync: printPreparedReceipt } = useMutation({
-    ...trpc.printPreparedReceipt.mutationOptions(),
+    ...trpc.booth.printPreparedReceipt.mutationOptions(),
     // NOT_FOUND means the job expired or was never prepared: nothing to retry.
     retry: (failureCount, error) =>
       failureCount < PRINT_PREPARED_RECEIPT_RETRIES &&
@@ -111,7 +111,9 @@ export const usePrintAttempt = ({
           drawResult: prepared.draw,
           ticketRef: prepared.ticketRef,
         });
-        void queryClient.invalidateQueries(trpc.getLotteryStatus.queryFilter());
+        void queryClient.invalidateQueries(
+          trpc.booth.getLotteryStatus.queryFilter(),
+        );
       } catch (error) {
         if (cancelled) return;
 
@@ -134,7 +136,7 @@ export const usePrintAttempt = ({
     prepareReceipt,
     reportFailure,
     takeSquarePhoto,
-    trpc.getLotteryStatus,
+    trpc.booth.getLotteryStatus,
   ]);
 
   useEffect(() => {

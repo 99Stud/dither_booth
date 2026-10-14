@@ -1,7 +1,7 @@
-import { adminOriginProcedure } from "#internal/trpc";
+import { configProcedure } from "#internal/trpc";
 
 import { getCurrentEventForDb } from "../internal/event.service";
 
-export const getCurrentEvent = adminOriginProcedure.query(async ({ ctx }) => {
+export const getCurrentEvent = configProcedure.query(async ({ ctx }) => {
   return await getCurrentEventForDb(ctx.db);
 });
