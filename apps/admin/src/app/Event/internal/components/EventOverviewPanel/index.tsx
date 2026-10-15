@@ -223,7 +223,7 @@ const RarityBar: FC<{
   return (
     <span
       className={clsx(
-        "flex h-1.5 w-16 overflow-hidden rounded-full bg-muted sm:w-20",
+        "hidden h-1.5 w-20 overflow-hidden rounded-full bg-muted sm:flex",
       )}
       title={breakdown
         .map((entry) => `${entry.remaining} ${entry.rarity}`)
