@@ -46,7 +46,8 @@ export const Root: FC = () => {
 
   return (
     <main
-      onClick={enterFullscreen}
+      // Only the kiosk goes fullscreen on tap, not the Darkroom's keypad.
+      onClick={isKioskShell ? enterFullscreen : undefined}
       ref={mainRef}
       data-dither-route-status="ready"
       className={
