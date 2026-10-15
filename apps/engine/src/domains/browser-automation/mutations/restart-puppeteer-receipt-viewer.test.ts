@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { createKioskChannel } from "#domains/kiosk/kiosk.service";
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
@@ -23,6 +24,7 @@ function createTestCaller(
     adminOrigin,
     allowedHostnames,
     db: {} as TRPCContext["db"],
+    kioskChannel: createKioskChannel(),
     mode: "production",
     page: undefined,
     printerUSBAdapter: undefined,

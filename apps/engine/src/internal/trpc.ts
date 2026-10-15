@@ -3,7 +3,14 @@ import { TRPCError, initTRPC } from "@trpc/server";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-const t = initTRPC.context<TRPCContext>().create();
+const t = initTRPC.context<TRPCContext>().create({
+  sse: {
+    // Subscriptions (the kiosk channel) reach the kiosk through the Shutter
+    // server's proxy, which Bun.serve closes after 10 s without traffic.
+    ping: { enabled: true, intervalMs: 5_000 },
+    client: { reconnectAfterInactivityMs: 15_000 },
+  },
+});
 
 export const router = t.router;
 
