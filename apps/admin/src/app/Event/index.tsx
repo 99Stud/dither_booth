@@ -21,7 +21,6 @@ import { EventPrizeSheet } from "./internal/components/EventPrizeSheet";
 import { EventPrizesTable } from "./internal/components/EventPrizesTable";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";
-import { EventTicketPreview } from "./internal/components/EventTicketPreview";
 import { useEventQueries } from "./internal/hooks/useEventQueries";
 
 export const Event = () => {
@@ -36,7 +35,6 @@ export const Event = () => {
     updatePrizeMutation,
     deletePrizeMutation,
     restockPrizeMutation,
-    printSampleLotteryTicketMutation,
   } = useEventQueries();
 
   const [tab, setTab] = useState<EventTab>("overview");
@@ -104,18 +102,10 @@ export const Event = () => {
                     await updateLotterySettingsMutation.mutateAsync(values);
                   }}
                 />
-                <EventTicketPreview
-                  prizes={event.prizes}
-                  isPrinting={printSampleLotteryTicketMutation.isPending}
-                  printingOutcome={
-                    printSampleLotteryTicketMutation.isPending
-                      ? printSampleLotteryTicketMutation.variables.outcome
-                      : null
-                  }
-                  onPrint={async (input) => {
-                    await printSampleLotteryTicketMutation.mutateAsync(input);
-                  }}
-                />
+                <p className={clsx("text-sm text-muted-foreground")}>
+                  Print sample win and lose tickets from the Darkroom, on the
+                  booth.
+                </p>
               </div>
             </TabsContent>
             <TabsContent value="prizes" className={clsx("mt-0")}>

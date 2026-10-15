@@ -12,6 +12,15 @@ import {
   DARKROOM_TOKEN_IDLE_TTL_MS,
 } from "./darkroom.constants";
 
+/** Over JSON: `updatedAt` as an ISO string, as the browser receives it. */
+export const serializePinStatus = ({
+  isSet,
+  updatedAt,
+}: ReturnType<DarkroomAccess["getPinStatus"]>) => ({
+  isSet,
+  updatedAt: updatedAt?.toISOString() ?? null,
+});
+
 /**
  * Who may open the Darkroom. The PIN hash lives in SQLite; the tokens it
  * hands out live in memory only, so an engine restart or a new PIN signs

@@ -4,6 +4,7 @@ import z from "zod";
 
 import { configProcedure } from "#internal/trpc";
 
+import { serializePinStatus } from "../internal/darkroom.access";
 import { DARKROOM_LOG_SOURCE } from "../internal/darkroom.constants";
 
 /**
@@ -15,5 +16,5 @@ export const setDarkroomPin = configProcedure
   .mutation(async ({ ctx, input }) => {
     await ctx.darkroomAccess.setPin(input.pin);
     logKioskEvent("info", DARKROOM_LOG_SOURCE, "darkroom-pin-changed");
-    return ctx.darkroomAccess.getPinStatus();
+    return serializePinStatus(ctx.darkroomAccess.getPinStatus());
   });
