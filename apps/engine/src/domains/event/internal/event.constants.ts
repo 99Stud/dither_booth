@@ -28,63 +28,45 @@ export const updateLotterySettingsInputSchema = z.object({
 });
 
 const prizeIdSchema = z.string().min(1);
-const quantitySchema = z.number().int().min(0);
 
-const remainingWithinTotal = <
-  TSchema extends z.ZodType<{
-    remainingQuantity: number;
-    totalQuantity?: number;
-  }>,
->(
-  schema: TSchema,
-) =>
-  schema.refine(
-    (value) =>
-      value.totalQuantity === undefined ||
-      value.remainingQuantity <= value.totalQuantity,
-    {
-      message: "remainingQuantity must be <= totalQuantity",
-      path: ["remainingQuantity"],
-    },
-  );
+/** Upper bound for one stock change, far above any real event. */
+export const MAX_STOCK_CHANGE = 100_000;
 
 const prizeFieldsSchema = z.object({
   title: z.string().trim().min(1).max(120),
   winInstruction: z.string().trim().min(1).max(240),
   weight: z.number().gt(0),
-  totalQuantity: quantitySchema,
-  remainingQuantity: quantitySchema,
   rarity: raritySchema,
 });
 
-/**
- * Stock the admin saw when opening the form. Kiosk wins keep decrementing
- * `remainingQuantity`, so writes that set it absolutely are rejected with
- * `CONFLICT` when it moved underneath the form.
- */
-const expectedRemainingQuantitySchema = quantitySchema;
+export const createPrizeInputSchema = prizeFieldsSchema.extend({
+  /** Initial stock, recorded as the prize's first ledger entry. */
+  quantity: z.number().int().min(0).max(MAX_STOCK_CHANGE),
+});
 
-export const createPrizeInputSchema = remainingWithinTotal(prizeFieldsSchema);
-
-export const updatePrizeInputSchema = remainingWithinTotal(
-  prizeFieldsSchema.extend({
-    prizeId: prizeIdSchema,
-    expectedRemainingQuantity: expectedRemainingQuantitySchema,
-  }),
-);
+export const updatePrizeInputSchema = prizeFieldsSchema.extend({
+  prizeId: prizeIdSchema,
+});
 
 export const deletePrizeInputSchema = z.object({
   prizeId: prizeIdSchema,
 });
 
-export const restockPrizeInputSchema = remainingWithinTotal(
-  z.object({
-    prizeId: prizeIdSchema,
-    remainingQuantity: quantitySchema,
-    totalQuantity: quantitySchema.optional(),
-    expectedRemainingQuantity: expectedRemainingQuantitySchema,
-  }),
-);
+export const restockPrizeInputSchema = z.object({
+  prizeId: prizeIdSchema,
+  /** Stock to add (positive) or remove (negative). */
+  delta: z
+    .number()
+    .int()
+    .min(-MAX_STOCK_CHANGE)
+    .max(MAX_STOCK_CHANGE)
+    .refine((delta) => delta !== 0, "A stock change cannot be zero."),
+  /**
+   * Chosen by the caller when the change is first requested and reused on
+   * every retry, so the same change is never applied twice.
+   */
+  adjustmentId: z.cuid2(),
+});
 
 export const listDrawsInputSchema = z.object({
   ticketRef: z.string().trim().min(1).optional(),

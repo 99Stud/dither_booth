@@ -5,6 +5,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
 import {
   check,
+  index,
   integer,
   real,
   sqliteTable,
@@ -132,18 +133,11 @@ export const prizeTable = sqliteTable(
     title: text("title").notNull(),
     winInstruction: text("win_instruction").notNull(),
     weight: real("weight").notNull().default(1),
-    totalQuantity: integer("total_quantity").notNull().default(0),
-    remainingQuantity: integer("remaining_quantity").notNull().default(0),
     rarity: text("rarity", { enum: RARITY_TYPES }).notNull().default("common"),
     removed: integer("removed", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [
     check("prize_weight_check", sql`${table.weight} > 0`),
-    check("prize_total_quantity_check", sql`${table.totalQuantity} >= 0`),
-    check(
-      "prize_remaining_quantity_check",
-      sql`${table.remainingQuantity} between 0 and ${table.totalQuantity}`,
-    ),
     check("prize_removed_check", sql`${table.removed} in (0, 1)`),
   ],
 );
@@ -164,7 +158,49 @@ export const drawTable = sqliteTable(
     prizeTitle: text("prize_title"),
     ticketRef: text("ticket_ref"),
   },
-  (table) => [uniqueIndex("draw_ticket_ref_unique").on(table.ticketRef)],
+  (table) => [
+    uniqueIndex("draw_ticket_ref_unique").on(table.ticketRef),
+    index("draw_prize_id_idx").on(table.prizeId),
+  ],
+);
+
+export const STOCK_ADJUSTMENT_REASONS = [
+  "initial",
+  "restock",
+  "correction",
+] as const;
+
+const STOCK_ADJUSTMENT_REASON_CHECK_VALUES = STOCK_ADJUSTMENT_REASONS.map(
+  (reason) => `'${reason}'`,
+).join(", ");
+
+/**
+ * Append-only stock ledger. A prize's stock is the sum of its adjustments
+ * minus its winning draws; nothing stores a running total. Ids are supplied
+ * by whoever requests the change, so a retried delta is applied once.
+ * Triggers added in `0011_stock_ledger` keep stock from going negative.
+ */
+export const stockAdjustmentTable = sqliteTable(
+  "stock_adjustment",
+  {
+    id: text().primaryKey().notNull(),
+    prizeId: text("prize_id")
+      .notNull()
+      .references(() => prizeTable.id),
+    delta: integer("delta").notNull(),
+    reason: text("reason", { enum: STOCK_ADJUSTMENT_REASONS }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    index("stock_adjustment_prize_id_idx").on(table.prizeId),
+    check("stock_adjustment_delta_check", sql`${table.delta} <> 0`),
+    check(
+      "stock_adjustment_reason_check",
+      sql`${table.reason} in (${sql.raw(STOCK_ADJUSTMENT_REASON_CHECK_VALUES)})`,
+    ),
+  ],
 );
 
 export const dbSchema = {
@@ -173,4 +209,5 @@ export const dbSchema = {
   lotteryTable,
   prizeTable,
   drawTable,
+  stockAdjustmentTable,
 };
