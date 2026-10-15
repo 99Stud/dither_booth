@@ -1,8 +1,8 @@
 # Dither Booth Engine
 
-The engine package runs the backend service that mediates communication between the web and admin browser apps and the receipt printer. It also owns the local TLS helper scripts used by the browser apps during local HTTPS setup.
+The engine package runs the backend service that mediates communication between the shutter and admin browser apps and the receipt printer. It also owns the local TLS helper scripts used by the browser apps during local HTTPS setup.
 
-The web and admin production servers proxy `/engine/trpc` to this service over loopback, so client devices only connect to the browser app origins.
+The shutter and admin production servers proxy `/engine/trpc` to this service over loopback, so client devices only connect to the browser app origins.
 
 ## Development
 
@@ -27,11 +27,11 @@ bun run start
 
 These flags are read from the engine process env. They must not be enabled when `NODE_ENV=production`.
 
-| Env                                 | Role                                                                                                                                                                                             |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `RECEIPT_PRINT_DRY_RUN=true`        | Skip USB printer init and USB writes. Still needs a running web app (Puppeteer loads `/receipt-viewer`). Builds photo + lottery tickets, writes PNGs to `tmp/receipt-previews/`, and opens them. |
-| `LOTTERY_FORCE_OUTCOME=win\|loss`   | Optional. Force the lottery draw outcome.                                                                                                                                                        |
-| `LOTTERY_FORCE_PRIZE_ID=<prize id>` | Optional. Force that prize (implies win). Required when forcing a win.                                                                                                                           |
+| Env                                 | Role                                                                                                                                                                                                 |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RECEIPT_PRINT_DRY_RUN=true`        | Skip USB printer init and USB writes. Still needs a running shutter app (Puppeteer loads `/receipt-viewer`). Builds photo + lottery tickets, writes PNGs to `tmp/receipt-previews/`, and opens them. |
+| `LOTTERY_FORCE_OUTCOME=win\|loss`   | Optional. Force the lottery draw outcome.                                                                                                                                                            |
+| `LOTTERY_FORCE_PRIZE_ID=<prize id>` | Optional. Force that prize (implies win). Required when forcing a win.                                                                                                                               |
 
 Rules:
 
@@ -68,7 +68,7 @@ bun run format:fix
 
 Development runs `src/server.ts` with Bun watch mode. Production first type-checks the engine, bundles `src/production-entry.ts`, and starts the resulting `dist/server.js`.
 
-The engine owns the local SQLite database at `data/dither-booth.sqlite` and applies SQL migrations from `drizzle`. It also owns the local HTTPS helper scripts that generate the certificate shared by the web and admin apps.
+The engine owns the local SQLite database at `data/dither-booth.sqlite` and applies SQL migrations from `drizzle`. It also owns the local HTTPS helper scripts that generate the certificate shared by the shutter and admin apps.
 
 Production keeps native runtime dependencies such as Puppeteer, Sharp, and printer USB packages external, so the workspace dependencies must remain installed wherever the production server runs.
 
@@ -172,7 +172,7 @@ Review the generated SQL before applying it. The `print_config_template_check` c
 
 ## Local HTTPS Helpers
 
-The local certificate is generated from this package and shared by the web and admin HTTPS servers.
+The local certificate is generated from this package and shared by the shutter and admin HTTPS servers.
 
 ### 1. Generate local certificate
 

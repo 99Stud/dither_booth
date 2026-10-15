@@ -1,7 +1,7 @@
 import { getErrorMessage } from "@dither-booth/shared/errors";
 import {
-  WEB_HEALTHZ_SERVICE,
-  webHealthzPayloadSchema,
+  SHUTTER_HEALTHZ_SERVICE,
+  shutterHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
 import { fetch } from "bun";
 
@@ -73,7 +73,7 @@ export function createUnhealthyDependencyHealthz<
   });
 }
 
-export async function fetchWebHealthz({
+export async function fetchShutterHealthz({
   timeoutMs,
   tlsCaFile,
   url,
@@ -99,18 +99,18 @@ export async function fetchWebHealthz({
   } catch (error) {
     const timedOut = error instanceof Error && error.name === "TimeoutError";
     const message = timedOut
-      ? `Web app server health check timed out.`
-      : `Failed to reach web app server health endpoint.`;
+      ? `Shutter server health check timed out.`
+      : `Failed to reach shutter server health endpoint.`;
 
     return createUnhealthyDependencyHealthz({
       cause: getErrorMessage(error),
       context: {
-        service: WEB_HEALTHZ_SERVICE,
+        service: SHUTTER_HEALTHZ_SERVICE,
         timeoutMs,
         url: url.toString(),
       },
       details: {
-        service: WEB_HEALTHZ_SERVICE,
+        service: SHUTTER_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       message,
@@ -118,16 +118,16 @@ export async function fetchWebHealthz({
   }
 
   if (!healthzRes.ok) {
-    const message = `Web app server health endpoint returned HTTP ${healthzRes.status}.`;
+    const message = `Shutter server health endpoint returned HTTP ${healthzRes.status}.`;
 
     return createUnhealthyDependencyHealthz({
       context: {
-        service: WEB_HEALTHZ_SERVICE,
+        service: SHUTTER_HEALTHZ_SERVICE,
         status: healthzRes.status,
         url: url.toString(),
       },
       details: {
-        service: WEB_HEALTHZ_SERVICE,
+        service: SHUTTER_HEALTHZ_SERVICE,
         status: healthzRes.status,
         url: url.toString(),
       },
@@ -140,34 +140,34 @@ export async function fetchWebHealthz({
   try {
     healthzResRaw = await healthzRes.json();
   } catch (error) {
-    const message = `Web app server health endpoint returned invalid JSON.`;
+    const message = `Shutter server health endpoint returned invalid JSON.`;
 
     return createUnhealthyDependencyHealthz({
       cause: getErrorMessage(error),
       context: {
-        service: WEB_HEALTHZ_SERVICE,
+        service: SHUTTER_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       details: {
-        service: WEB_HEALTHZ_SERVICE,
+        service: SHUTTER_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       message,
     });
   }
 
-  const healthzParsed = webHealthzPayloadSchema.safeParse(healthzResRaw);
+  const healthzParsed = shutterHealthzPayloadSchema.safeParse(healthzResRaw);
   if (!healthzParsed.success) {
-    const message = `Web app server health endpoint returned unexpected payload.`;
+    const message = `Shutter server health endpoint returned unexpected payload.`;
 
     return createUnhealthyDependencyHealthz({
       cause: getErrorMessage(healthzParsed.error),
       context: {
-        service: WEB_HEALTHZ_SERVICE,
+        service: SHUTTER_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       details: {
-        service: WEB_HEALTHZ_SERVICE,
+        service: SHUTTER_HEALTHZ_SERVICE,
         url: url.toString(),
       },
       message,

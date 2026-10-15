@@ -9,16 +9,16 @@ import {
   CERT_GENERATE_COMMAND,
   DEFAULT_ADMIN_PORT,
   DEFAULT_ENGINE_PORT,
-  DEFAULT_WEB_PORT,
+  DEFAULT_SHUTTER_PORT,
   DEFAULT_WEB_TLS_MANIFEST_FILE_NAME,
   PORT_SCHEMA,
-  WEB_BIND_HOST,
+  SHUTTER_BIND_HOST,
   WEB_TLS_CERT_PATH,
   WEB_TLS_KEY_PATH,
   WEB_TLS_MANIFEST_SCHEMA,
 } from "#internal/ports.constants";
 
-export { ADMIN_BIND_HOST, ENGINE_BIND_HOST, WEB_BIND_HOST };
+export { ADMIN_BIND_HOST, ENGINE_BIND_HOST, SHUTTER_BIND_HOST };
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
   return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);
@@ -81,7 +81,7 @@ async function readWebTlsManifest(options: RepoPathOptions) {
   };
 }
 
-export function getPort(name: "ENGINE_PORT" | "WEB_PORT" | "ADMIN_PORT") {
+export function getPort(name: "ENGINE_PORT" | "SHUTTER_PORT" | "ADMIN_PORT") {
   const value = process.env[name];
 
   if (!value) {
@@ -90,8 +90,8 @@ export function getPort(name: "ENGINE_PORT" | "WEB_PORT" | "ADMIN_PORT") {
         return DEFAULT_ADMIN_PORT;
       case "ENGINE_PORT":
         return DEFAULT_ENGINE_PORT;
-      case "WEB_PORT":
-        return DEFAULT_WEB_PORT;
+      case "SHUTTER_PORT":
+        return DEFAULT_SHUTTER_PORT;
     }
   }
 
@@ -112,8 +112,8 @@ export function getEngineInternalOrigin() {
 }
 
 /** Loopback HTTPS origin for server-side clients (e.g. Puppeteer). */
-export function getWebInternalOrigin() {
-  return formatOrigin("https", ENGINE_BIND_HOST, getPort("WEB_PORT"));
+export function getShutterInternalOrigin() {
+  return formatOrigin("https", ENGINE_BIND_HOST, getPort("SHUTTER_PORT"));
 }
 
 export async function getWebPublicIp(options: RepoPathOptions) {
@@ -149,11 +149,11 @@ export async function getWebTlsHostnames(options: RepoPathOptions) {
   return manifest?.hostnames ?? [];
 }
 
-export async function getWebOrigin(options: RepoPathOptions) {
+export async function getShutterOrigin(options: RepoPathOptions) {
   return formatOrigin(
     "https",
     await getWebPublicIp(options),
-    getPort("WEB_PORT"),
+    getPort("SHUTTER_PORT"),
   );
 }
 

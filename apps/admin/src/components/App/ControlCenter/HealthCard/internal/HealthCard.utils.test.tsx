@@ -80,17 +80,17 @@ function createCloseEvent(code: number, reason: string): CloseEvent {
 
 const result = {
   ok: true,
-  processName: "dither-booth-web",
+  processName: "dither-booth-shutter",
   restartedAt: "2026-05-12T00:00:00.000Z",
-  service: "web",
+  service: "shutter",
 } as const;
 
 const completedEvent: Pm2RestartProgressEvent = {
   type: "completed",
   result,
-  service: "web",
+  service: "shutter",
   processName: result.processName,
-  message: "dither-booth-web restarted.",
+  message: "dither-booth-shutter restarted.",
 };
 
 describe("requestPm2ServiceRestart", () => {
@@ -119,7 +119,7 @@ describe("requestPm2ServiceRestart", () => {
       onProgress: (event) => {
         progressEvents.push(event);
       },
-      service: "web",
+      service: "shutter",
     });
     const socket = TestWebSocket.instances[0]!;
 
@@ -128,7 +128,9 @@ describe("requestPm2ServiceRestart", () => {
 
     await expect(restartPromise).resolves.toEqual(result);
     expect(socket.url).toBe("wss://admin.local/admin/pm2/restart");
-    expect(socket.sentMessages).toEqual([JSON.stringify({ service: "web" })]);
+    expect(socket.sentMessages).toEqual([
+      JSON.stringify({ service: "shutter" }),
+    ]);
     expect(progressEvents).toEqual([completedEvent]);
     expect(socket.closeCalls).toEqual([
       {
@@ -213,7 +215,7 @@ describe("requestPm2ServiceRestart", () => {
 
   it("rejects normal closes before completion", async () => {
     const restartPromise = requestPm2ServiceRestart({
-      service: "web",
+      service: "shutter",
     });
     const socket = TestWebSocket.instances[0]!;
 
@@ -229,7 +231,7 @@ describe("requestPm2ServiceRestart", () => {
 
   it("ignores closes after completed events", async () => {
     const restartPromise = requestPm2ServiceRestart({
-      service: "web",
+      service: "shutter",
     });
     const socket = TestWebSocket.instances[0]!;
 

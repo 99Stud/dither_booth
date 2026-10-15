@@ -1,54 +1,54 @@
 import { runBrowserServer } from "@dither-booth/browser-server";
 import { logKioskEvent } from "@dither-booth/logging";
 import {
-  WEB_BIND_HOST,
+  SHUTTER_BIND_HOST,
   getEngineInternalOrigin,
   getPort,
-  getWebOrigin,
+  getShutterOrigin,
   getWebTlsCertPath,
   getWebTlsHostnames,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
-import { WEB_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
+import { SHUTTER_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
 import {
   TRPC_PROXY_PATH,
   getTrpcProxyUpstreamPath,
 } from "@dither-booth/shared/trpc-proxy";
 
-import { WEB_SERVER_LOG_SOURCE } from "#lib/constants";
-import { WEB_APP_ROOT, WEB_REPO_ROOT } from "#lib/server-constants";
+import { SHUTTER_SERVER_LOG_SOURCE } from "#lib/constants";
+import { SHUTTER_APP_ROOT, SHUTTER_REPO_ROOT } from "#lib/server-constants";
 const engineOrigin = getEngineInternalOrigin();
 
-export async function runWebServer(options: {
+export async function runShutterServer(options: {
   mode: "development" | "production";
   indexHtml: Bun.HTMLBundle;
 }) {
-  const tlsCertPath = getWebTlsCertPath({ repoRoot: WEB_REPO_ROOT });
-  const tlsKeyPath = getWebTlsKeyPath({ repoRoot: WEB_REPO_ROOT });
-  const webOrigin = await getWebOrigin({ repoRoot: WEB_REPO_ROOT });
+  const tlsCertPath = getWebTlsCertPath({ repoRoot: SHUTTER_REPO_ROOT });
+  const tlsKeyPath = getWebTlsKeyPath({ repoRoot: SHUTTER_REPO_ROOT });
+  const shutterOrigin = await getShutterOrigin({ repoRoot: SHUTTER_REPO_ROOT });
   const allowedHostnames = await getWebTlsHostnames({
-    repoRoot: WEB_REPO_ROOT,
+    repoRoot: SHUTTER_REPO_ROOT,
   });
 
   return await runBrowserServer({
     allowedHostnames,
     engineOrigin,
-    appRoot: WEB_APP_ROOT,
-    bindHost: WEB_BIND_HOST,
+    appRoot: SHUTTER_APP_ROOT,
+    bindHost: SHUTTER_BIND_HOST,
     getTrpcProxyUpstreamPath,
     healthz: {
-      service: WEB_HEALTHZ_SERVICE,
+      service: SHUTTER_HEALTHZ_SERVICE,
     },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {
-      logKioskEvent("info", WEB_SERVER_LOG_SOURCE, "server-started", {
+      logKioskEvent("info", SHUTTER_SERVER_LOG_SOURCE, "server-started", {
         details,
       });
     },
     mode: options.mode,
-    port: getPort("WEB_PORT"),
-    publicOrigin: webOrigin,
-    serverName: "runWebServer",
+    port: getPort("SHUTTER_PORT"),
+    publicOrigin: shutterOrigin,
+    serverName: "runShutterServer",
     tlsCertPath,
     tlsKeyPath,
     trpcProxyPath: TRPC_PROXY_PATH,

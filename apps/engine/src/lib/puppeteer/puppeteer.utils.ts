@@ -1,5 +1,5 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
-import { getWebInternalOrigin } from "@dither-booth/ports";
+import { getShutterInternalOrigin } from "@dither-booth/ports";
 import { getErrorMessage } from "@dither-booth/shared/errors";
 import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
 import { resolve } from "node:path";
@@ -167,8 +167,8 @@ export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerRecei
 
     try {
       // Loopback, not LAN public origin — same-host Chromium is flaky on LAN IP.
-      const webOrigin = getWebInternalOrigin();
-      receiptViewerUrl = new URL(RECEIPT_VIEWER_PATH, webOrigin).toString();
+      const shutterOrigin = getShutterInternalOrigin();
+      receiptViewerUrl = new URL(RECEIPT_VIEWER_PATH, shutterOrigin).toString();
       await page.goto(receiptViewerUrl, {
         waitUntil: "domcontentloaded",
       });

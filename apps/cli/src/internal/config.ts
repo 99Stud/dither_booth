@@ -21,7 +21,7 @@ export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";
 export const PM2_PROCESS_NAMES = [
   "dither-booth-engine",
   "dither-booth-admin",
-  "dither-booth-web",
+  "dither-booth-shutter",
 ] as const;
 
 // Compiled binaries cannot derive the repo from import.meta.url, so the repo

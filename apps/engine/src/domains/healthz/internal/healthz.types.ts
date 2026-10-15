@@ -2,17 +2,17 @@ import type {
   engineHealthzPayloadSchema,
   healthzModeSchema,
   healthzServiceSchema,
-  webHealthzPayloadSchema,
+  shutterHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
 import type z from "zod";
 
 import type { checkPrinterHealthz } from "./healthz.printer";
-import type { fetchWebHealthz } from "./healthz.utils";
+import type { fetchShutterHealthz } from "./healthz.utils";
 
 export type HealthzMode = z.infer<typeof healthzModeSchema>;
 export type HealthzService = z.infer<typeof healthzServiceSchema>;
 export type EngineHealthzPayload = z.infer<typeof engineHealthzPayloadSchema>;
-export type WebHealthzPayload = z.infer<typeof webHealthzPayloadSchema>;
+export type ShutterHealthzPayload = z.infer<typeof shutterHealthzPayloadSchema>;
 
 export type Timestamped<TPayload extends object> = TPayload & {
   timestamp: string;
@@ -84,4 +84,4 @@ export type PuppeteerRuntimeCheckMap = {
 
 export type PrinterHealthz = ReturnType<typeof checkPrinterHealthz>;
 
-export type WebHealthz = Awaited<ReturnType<typeof fetchWebHealthz>>;
+export type ShutterHealthz = Awaited<ReturnType<typeof fetchShutterHealthz>>;

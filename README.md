@@ -2,11 +2,11 @@
 
 Dither Booth is a physical kiosk system composed of three primary hardware components: a Raspberry Pi that hosts the backend services, a receipt printer for output generation, and an iPad that serves as the user interaction surface.
 
-The software stack is also split into three main applications: a web app running on the iPad as the primary user-facing interface, an admin app used by operators to configure and manage the experience, and an engine that mediates communication between the web and admin clients and the receipt printer.
+The software stack is also split into three main applications: a shutter app running on the iPad as the primary user-facing interface, an admin app used by operators to configure and manage the experience, and an engine that mediates communication between the web and admin clients and the receipt printer.
 
 ## Documentation
 
-- [Web app](apps/web/README.md): iPad-facing kiosk app commands and infrastructure notes.
+- [Shutter app](apps/shutter/README.md): iPad-facing kiosk app commands and infrastructure notes.
 - [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
 - [Engine](apps/engine/README.md): backend service, database management, and local HTTPS helper commands.
 - [CLI](apps/cli/README.md): `booth` provisioning CLI for installing and managing the Raspberry Pi.
@@ -36,11 +36,11 @@ bun -v
 
 ## First local HTTPS Setup
 
-This project serves the web and admin browser apps over HTTPS by default so camera access and same-origin API calls work from local network devices. No custom hostname, hosts file, or local DNS server is required.
+This project serves the shutter and admin browser apps over HTTPS by default so camera access and same-origin API calls work from local network devices. No custom hostname, hosts file, or local DNS server is required.
 
 Default local URLs:
 
-- Web: `https://<SERVER_LAN_IP>:3000`
+- Shutter: `https://<SERVER_LAN_IP>:3000`
 - Admin: `https://<SERVER_LAN_IP>:3002`
 
 Both apps use the same local TLS certificate and proxy `/engine/trpc` to the engine over loopback.
@@ -166,15 +166,15 @@ curl -k https://<SERVER_LAN_IP>:3002/healthz
 
 Then open:
 
-- Web: `https://<SERVER_LAN_IP>:3000` unless you changed `WEB_PORT`
+- Shutter: `https://<SERVER_LAN_IP>:3000` unless you changed `SHUTTER_PORT`
 - Admin: `https://<SERVER_LAN_IP>:3002` unless you changed `ADMIN_PORT`
 - Or via machine hostname: `https://<hostname>.local:3000` / `:3002` (included in the cert SANs and origin allowlist at generate time). Regenerate the cert if the machine hostname changes.
 
 ### 8. Verify setup
 
-- Startup logs should show the web and admin HTTPS origins you expect to open.
+- Startup logs should show the shutter and admin HTTPS origins you expect to open.
 - `.local/tls/booth-manifest.json` should show current `publicIp`.
-- iPad should load both Admin and Web apps.
+- iPad should load both the admin and shutter apps.
 
 ## Regenerate Or Clean Up
 
@@ -196,7 +196,7 @@ bun run --filter @dither-booth/engine cert:clean
 
 Defaults live in:
 
-- `apps/web/.env.example`
+- `apps/shutter/.env.example`
 - `apps/admin/.env.example`
 - `apps/engine/.env.example`
 

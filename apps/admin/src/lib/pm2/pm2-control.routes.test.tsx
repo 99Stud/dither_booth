@@ -100,10 +100,10 @@ function createRestartWebSocketServer(
 
 async function requestRestartFromRealWebSocket({
   port,
-  service = "web",
+  service = "shutter",
 }: {
   port: number;
-  service?: "engine" | "web";
+  service?: "engine" | "shutter";
 }) {
   return await new Promise<{
     closeCode: number;
@@ -148,9 +148,9 @@ describe("createPm2RestartRoute", () => {
   it("restarts a valid service over websocket messages", async () => {
     const result: Pm2RestartResult = {
       ok: true,
-      processName: "dither-booth-web",
+      processName: "dither-booth-shutter",
       restartedAt: "2026-05-12T00:00:00.000Z",
-      service: "web",
+      service: "shutter",
     };
     const route = createPm2RestartRoute({
       restartService: async ({ onProgress, service }) => {
@@ -165,7 +165,7 @@ describe("createPm2RestartRoute", () => {
     });
     const { closes, sentEvents, socket } = createTestSocket();
 
-    route.message?.(socket, JSON.stringify({ service: "web" }));
+    route.message?.(socket, JSON.stringify({ service: "shutter" }));
     await flushAsyncRoute();
 
     expect(sentEvents.map((event) => event.type)).toEqual([
@@ -258,8 +258,8 @@ describe("createPm2RestartRoute", () => {
     });
     const { closes, sentEvents, socket } = createTestSocket();
 
-    route.message?.(socket, JSON.stringify({ service: "web" }));
-    route.message?.(socket, JSON.stringify({ service: "web" }));
+    route.message?.(socket, JSON.stringify({ service: "shutter" }));
+    route.message?.(socket, JSON.stringify({ service: "shutter" }));
     await flushAsyncRoute();
 
     expect(sentEvents).toContainEqual({
@@ -275,9 +275,9 @@ describe("createPm2RestartRoute", () => {
 
     result.resolve({
       ok: true,
-      processName: "dither-booth-web",
+      processName: "dither-booth-shutter",
       restartedAt: "2026-05-12T00:00:00.000Z",
-      service: "web",
+      service: "shutter",
     });
     await flushAsyncRoute();
   });
@@ -290,7 +290,7 @@ describe("createPm2RestartRoute", () => {
     const first = createTestSocket();
     const second = createTestSocket();
 
-    route.message?.(first.socket, JSON.stringify({ service: "web" }));
+    route.message?.(first.socket, JSON.stringify({ service: "shutter" }));
     route.message?.(second.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
 
@@ -312,9 +312,9 @@ describe("createPm2RestartRoute", () => {
 
     result.resolve({
       ok: true,
-      processName: "dither-booth-web",
+      processName: "dither-booth-shutter",
       restartedAt: "2026-05-12T00:00:00.000Z",
-      service: "web",
+      service: "shutter",
     });
     await flushAsyncRoute();
   });
@@ -419,8 +419,8 @@ describe("createPm2RestartRoute", () => {
       restartService: async ({ service }) => {
         throw new Pm2RestartTimeoutError({
           completion: completion.promise,
-          message: "Timed out restarting dither-booth-web.",
-          processName: "dither-booth-web",
+          message: "Timed out restarting dither-booth-shutter.",
+          processName: "dither-booth-shutter",
           service,
         });
       },
@@ -428,7 +428,7 @@ describe("createPm2RestartRoute", () => {
     });
     const { closes, sentEvents, socket } = createTestSocket();
 
-    route.message?.(socket, JSON.stringify({ service: "web" }));
+    route.message?.(socket, JSON.stringify({ service: "shutter" }));
     await flushAsyncRoute();
     completion.resolve(undefined);
     await flushAsyncRoute();
@@ -451,8 +451,8 @@ describe("createPm2RestartRoute", () => {
       restartService: async ({ service }) => {
         throw new Pm2RestartTimeoutError({
           completion: completion.promise,
-          message: "Timed out restarting dither-booth-web.",
-          processName: "dither-booth-web",
+          message: "Timed out restarting dither-booth-shutter.",
+          processName: "dither-booth-shutter",
           service,
         });
       },
@@ -460,7 +460,7 @@ describe("createPm2RestartRoute", () => {
     });
     const { closes, sentEvents, socket } = createTestSocket();
 
-    route.message?.(socket, JSON.stringify({ service: "web" }));
+    route.message?.(socket, JSON.stringify({ service: "shutter" }));
     await flushAsyncRoute();
     completion.reject(new Error("late restart failure"));
     await flushAsyncRoute();
@@ -470,7 +470,7 @@ describe("createPm2RestartRoute", () => {
       code: "pm2-restart-failed",
       error: "Failed to restart PM2 process.",
       message: "Failed to restart PM2 process.",
-      service: "web",
+      service: "shutter",
     });
     expect(closes).toEqual([
       {
@@ -489,8 +489,8 @@ describe("createPm2RestartRoute", () => {
         if (attempts === 1) {
           throw new Pm2RestartTimeoutError({
             completion: new Promise<void>(() => undefined),
-            message: "Timed out restarting dither-booth-web.",
-            processName: "dither-booth-web",
+            message: "Timed out restarting dither-booth-shutter.",
+            processName: "dither-booth-shutter",
             service,
           });
         }
@@ -513,7 +513,7 @@ describe("createPm2RestartRoute", () => {
     const second = createTestSocket();
     const third = createTestSocket();
 
-    route.message?.(first.socket, JSON.stringify({ service: "web" }));
+    route.message?.(first.socket, JSON.stringify({ service: "shutter" }));
     await flushAsyncRoute();
     route.message?.(second.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
@@ -532,7 +532,7 @@ describe("createPm2RestartRoute", () => {
     expect(first.closes).toContainEqual({
       code: 1011,
       reason:
-        "Timed out restarting dither-booth-web. Current PM2 status: online.",
+        "Timed out restarting dither-booth-shutter. Current PM2 status: online.",
     });
     route.message?.(third.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
@@ -555,8 +555,8 @@ describe("createPm2RestartRoute", () => {
         if (attempts === 1) {
           throw new Pm2RestartTimeoutError({
             completion: new Promise<void>(() => undefined),
-            message: "Timed out restarting dither-booth-web.",
-            processName: "dither-booth-web",
+            message: "Timed out restarting dither-booth-shutter.",
+            processName: "dither-booth-shutter",
             service,
           });
         }
@@ -575,7 +575,7 @@ describe("createPm2RestartRoute", () => {
     const second = createTestSocket();
     const third = createTestSocket();
 
-    route.message?.(first.socket, JSON.stringify({ service: "web" }));
+    route.message?.(first.socket, JSON.stringify({ service: "shutter" }));
     await new Promise((resolve) => setTimeout(resolve, 5));
     route.message?.(second.socket, JSON.stringify({ service: "engine" }));
     await flushAsyncRoute();
@@ -585,8 +585,8 @@ describe("createPm2RestartRoute", () => {
       code: "pm2-status-unknown",
       error: "PM2 restart status unknown. Check PM2 before retrying.",
       message: "PM2 restart status unknown. Check PM2 before retrying.",
-      processName: "dither-booth-web",
-      service: "web",
+      processName: "dither-booth-shutter",
+      service: "shutter",
     });
     expect(second.sentEvents).toContainEqual({
       type: "failed",
@@ -609,17 +609,17 @@ describe("createPm2RestartRoute", () => {
   it("handles real websocket restart requests through the browser-server upgrade route", async () => {
     const result: Pm2RestartResult = {
       ok: true,
-      processName: "dither-booth-web",
+      processName: "dither-booth-shutter",
       restartedAt: "2026-05-12T00:00:00.000Z",
-      service: "web",
+      service: "shutter",
     };
     const route = createPm2RestartRoute({
       restartService: async ({ onProgress }) => {
         await onProgress?.({
           type: "restarting",
-          service: "web",
+          service: "shutter",
           processName: result.processName,
-          message: "Restarting dither-booth-web.",
+          message: "Restarting dither-booth-shutter.",
         });
 
         return result;
@@ -645,16 +645,16 @@ describe("createPm2RestartRoute", () => {
   });
 
   it("keeps full failure events but bounds real websocket close reasons", async () => {
-    const longMessage = `Failed to restart ${"dither-booth-web ".repeat(20)}`;
+    const longMessage = `Failed to restart ${"dither-booth-shutter ".repeat(20)}`;
     const route = createPm2RestartRoute({
       restartService: async () => {
         throw new Pm2RestartOperationError({
           code: "pm2-restart-failed",
           message: longMessage,
           phase: "restart",
-          processName: "dither-booth-web",
+          processName: "dither-booth-shutter",
           publicMessage: longMessage,
-          service: "web",
+          service: "shutter",
         });
       },
     });
@@ -673,8 +673,8 @@ describe("createPm2RestartRoute", () => {
         code: "pm2-restart-failed",
         error: longMessage,
         message: longMessage,
-        processName: "dither-booth-web",
-        service: "web",
+        processName: "dither-booth-shutter",
+        service: "shutter",
       });
       expect(response.closeCode).toBe(1011);
       expect(

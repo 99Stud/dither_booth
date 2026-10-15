@@ -4,7 +4,7 @@ import type { RefObject } from "react";
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { useEffect } from "react";
 
-import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
 
 import type { ExperiencePhase } from "../Experience.machine";
 
@@ -29,7 +29,7 @@ export const useWebcamPrewarm = ({
     void prewarmPromise?.catch((error: unknown) => {
       logKioskEvent(
         "warn",
-        WEB_CAMERA_LOG_SOURCE,
+        SHUTTER_CAMERA_LOG_SOURCE,
         "experience-camera-prewarm-failed",
         { error: getKioskErrorDiagnostics(error, "Camera prewarm failed.") },
       );

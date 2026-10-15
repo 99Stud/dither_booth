@@ -14,7 +14,7 @@ export default defineConfig({
   },
   printWidth: 80,
   sortTailwindcss: {
-    stylesheet: "./apps/web/src/styles/globals.css",
+    stylesheet: "./apps/shutter/src/styles/globals.css",
     functions: ["clsx", "cn"],
   },
   ignorePatterns: [
