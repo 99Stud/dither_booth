@@ -201,3 +201,17 @@ Defaults live in:
 - `apps/engine/.env.example`
 
 Most setups can keep defaults. Override only if you need different ports. Each app has its own env example with only the variables that app uses.
+
+## Checks and CI
+
+Every pull request and every push to `main` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml). It runs the same commands you can run locally from the repository root:
+
+```bash
+bun run format       # oxfmt --check (fix with bun run format:fix)
+bun run lint         # oxlint (fix with bun run lint:fix)
+bun run check-types  # tsc in every package, through Turbo
+bun run test         # bun test in every package that has tests, through Turbo
+bun run build        # production builds of shutter, admin and engine
+```
+
+The Bun version is pinned once, in the root `package.json` `packageManager` field. CI and the release workflow both read it.
