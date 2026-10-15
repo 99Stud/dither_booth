@@ -22,6 +22,8 @@ import clsx from "clsx";
 import { ChevronDown, Dices, Save } from "lucide-react";
 import { useEffect } from "react";
 
+import { ValuePill } from "#components/Misc/ValuePill/index";
+
 import type {
   CurrentEvent,
   LotterySettingsFormValues,
@@ -66,16 +68,6 @@ const SettingRow: FC<{
     </div>
     {children}
   </div>
-);
-
-const ValuePill: FC<{ children: ReactNode }> = ({ children }) => (
-  <span
-    className={clsx(
-      "shrink-0 rounded-md bg-muted px-2 py-0.5 text-sm font-semibold tabular-nums",
-    )}
-  >
-    {children}
-  </span>
 );
 
 interface EventLotteryFormProps {

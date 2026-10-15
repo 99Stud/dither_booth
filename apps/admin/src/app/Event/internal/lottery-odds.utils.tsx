@@ -206,6 +206,116 @@ const winsPerMinuteAtStart = (
   return 1 / (1 / (guestsPerMinute * winChance) + Math.max(cooldownMinutes, 0));
 };
 
+/** How rare a prize can be set, as "1 in N" guests: the slider's stops. */
+export const PRIZE_ONE_IN_STOPS = [
+  1000, 500, 300, 200, 150, 100, 75, 50, 40, 30, 25, 20, 15, 12, 10, 8, 6, 5, 4,
+  3, 2.5, 2, 1.5,
+] as const;
+
+/** The slider stop closest to a chance, on a log scale. */
+export const closestOneInStop = (chance: number): number => {
+  if (chance <= 0) return 0;
+  const oneIn = Math.log(1 / chance);
+  let best = 0;
+  PRIZE_ONE_IN_STOPS.forEach((stop, index) => {
+    const bestStop = PRIZE_ONE_IN_STOPS[best] ?? stop;
+    if (Math.abs(Math.log(stop) - oneIn) < Math.abs(Math.log(bestStop) - oneIn))
+      best = index;
+  });
+  return best;
+};
+
+/**
+ * The prize weight that gives one guest `chance` to win it, next to the rest
+ * of the draw (`otherWeight`: the no-win weight and the other in-stock
+ * prizes): the inverse of chance = w / (w + other). Three significant digits,
+ * so a rare prize next to small weights never rounds to 0. Null when the
+ * prize is the whole draw, where any weight means every guest wins it.
+ */
+export const weightForPrizeChance = (
+  chance: number,
+  otherWeight: number,
+): number | null => {
+  if (otherWeight <= 0 || chance >= 1) return null;
+  const clamped = Math.max(chance, 0.0001);
+  return Number(((otherWeight * clamped) / (1 - clamped)).toPrecision(3));
+};
+
+export type PrizePreview = {
+  /** Chance one guest wins this prize, once it is in stock. */
+  chance: number;
+  /** Chance one guest wins any other prize. */
+  otherChance: number;
+  /** Chance one guest wins nothing. */
+  noPrizeChance: number;
+  /** Chance to win anything, without this prize (or with its saved weight). */
+  winChanceBefore: number;
+  /** Chance to win anything with this prize as set in the form. */
+  winChanceAfter: number;
+  /** No-win weight plus the other in-stock prizes. */
+  otherWeight: number;
+  /** About how long `quantity` lasts, or null if never won. */
+  lastsMinutes: number | null;
+};
+
+/**
+ * What a prize's settings mean before saving it: its odds next to the rest
+ * of the draw, how it moves the overall win chance, and about how long its
+ * stock lasts at `guestsPerHour` (pause after a win included; the other
+ * prizes running out is not, so it is an estimate).
+ */
+export const previewPrize = ({
+  prizeId,
+  weight,
+  quantity,
+  noWinWeight,
+  cooldownMinutes,
+  guestsPerHour,
+  prizes,
+}: {
+  /** The prize being edited, or null for a new one. */
+  prizeId: string | null;
+  weight: number;
+  quantity: number;
+  noWinWeight: number;
+  cooldownMinutes: number;
+  guestsPerHour: number;
+  prizes: OddsPrize[];
+}): PrizePreview => {
+  const others = getDrawablePrizes(prizes).filter(
+    (prize) => prize.id !== prizeId,
+  );
+  const othersWeight = sumWeights(others);
+  const noWin = Math.max(noWinWeight, 0);
+  const ownWeight = Math.max(weight, 0);
+  const total = othersWeight + noWin + ownWeight;
+  const chanceOf = (value: number) => (total > 0 ? value / total : 0);
+
+  const { winChance: winChanceBefore } = computeOdds({ noWinWeight, prizes });
+  const winChanceAfter = chanceOf(othersWeight + ownWeight);
+  const chance = chanceOf(ownWeight);
+
+  const guestsPerMinute = Math.max(guestsPerHour, 0) / 60;
+  const winsPerMinute =
+    guestsPerMinute > 0 && winChanceAfter > 0
+      ? 1 /
+        (1 / (guestsPerMinute * winChanceAfter) + Math.max(cooldownMinutes, 0))
+      : 0;
+  const ownWinsPerMinute =
+    winChanceAfter > 0 ? (winsPerMinute * chance) / winChanceAfter : 0;
+
+  return {
+    chance,
+    otherChance: chanceOf(othersWeight),
+    noPrizeChance: chanceOf(noWin),
+    winChanceBefore,
+    winChanceAfter,
+    otherWeight: othersWeight + noWin,
+    lastsMinutes:
+      ownWinsPerMinute > 0 && quantity > 0 ? quantity / ownWinsPerMinute : null,
+  };
+};
+
 /** "1 h 40 min" / "25 min". */
 export const formatDuration = (minutes: number): string => {
   const hours = Math.floor(minutes / 60);

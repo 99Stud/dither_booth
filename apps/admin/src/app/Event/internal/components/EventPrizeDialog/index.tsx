@@ -1,6 +1,15 @@
-import type { FC } from "react";
+import type { Rarity } from "@dither-booth/shared/lottery";
+import type { FC, ReactNode } from "react";
 
+import { capitalize } from "@dither-booth/shared/formatting";
+import { RARITY_TYPES } from "@dither-booth/shared/lottery";
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@dither-booth/ui/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -9,40 +18,135 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@dither-booth/ui/components/ui/dialog";
+import { Slider } from "@dither-booth/ui/components/ui/slider";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@dither-booth/ui/components/ui/toggle-group";
 import { NumberField } from "@dither-booth/ui/fields/NumberField";
-import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import clsx from "clsx";
-import { Plus, Save } from "lucide-react";
-import { useEffect } from "react";
+import { ChevronDown, Gift, Hourglass, Plus, Save } from "lucide-react";
+import { useEffect, useMemo } from "react";
+
+import { RarityDot, rarityColor } from "#components/Misc/RarityBadge/index";
+import { ValuePill } from "#components/Misc/ValuePill/index";
 
 import type { EventPrize, PrizeFormValues } from "../../Event.types";
 
 import {
   DEFAULT_PRIZE_FORM_VALUES,
   PRIZE_FORM_SCHEMA,
-  RARITY_FIELD_OPTIONS,
   getPrizeFormValues,
 } from "../../Event.constants";
+import { useGuestsPerHour } from "../../hooks/useGuestsPerHour";
+import {
+  PRIZE_ONE_IN_STOPS,
+  closestOneInStop,
+  formatDuration,
+  formatOneIn,
+  type OddsPrize,
+  previewPrize,
+  weightForPrizeChance,
+} from "../../lottery-odds.utils";
+import {
+  DrawBar,
+  DrawBarLegend,
+  type DrawBarSegment,
+  NO_PRIZE_COLOR,
+} from "../DrawBar/index";
+
+/** Other prizes: a mid grey, between this prize and "no prize". */
+const OTHER_PRIZES_COLOR =
+  "color-mix(in oklch, var(--muted-foreground) 60%, transparent)";
+
+/** Where a new prize starts: noticeable, but not every other guest. */
+const NEW_PRIZE_ONE_IN = 20;
+
+/** Past this, "lasts all night" reads better than a duration. */
+const ALL_NIGHT_MINUTES = 12 * 60;
+
+const FieldBlock: FC<{
+  label: string;
+  hint?: ReactNode;
+  htmlFor?: string;
+  aside?: ReactNode;
+  children: ReactNode;
+}> = ({ label, hint, htmlFor, aside, children }) => (
+  <div className={clsx("flex flex-col gap-2")}>
+    <div className={clsx("flex items-start justify-between gap-4")}>
+      <div className={clsx("min-w-0")}>
+        <label className={clsx("text-sm font-medium")} htmlFor={htmlFor}>
+          {label}
+        </label>
+        {hint && (
+          <p className={clsx("text-sm text-muted-foreground")}>{hint}</p>
+        )}
+      </div>
+      {aside}
+    </div>
+    {children}
+  </div>
+);
 
 interface EventPrizeDialogProps {
   open: boolean;
   mode: "create" | "edit";
   prize: EventPrize | null;
+  /** The event's prizes and draw settings, for the live odds. */
+  prizes: OddsPrize[];
+  noWinWeight: number;
+  winCooldownMinutes: number;
   isPending: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: PrizeFormValues) => Promise<void>;
 }
 
+/**
+ * Add or edit a prize in plain words: what it is, how to claim it, its
+ * rarity as coloured chips, and how often it comes out as "1 in N guests"
+ * instead of a raw weight. Next to it, live: one draw as a stacked bar, how
+ * the prize moves the overall odds, and about how long its stock lasts.
+ */
 export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
-  const { open, mode, prize, isPending, onOpenChange, onSubmit } = props;
+  const {
+    open,
+    mode,
+    prize,
+    prizes,
+    noWinWeight,
+    winCooldownMinutes,
+    isPending,
+    onOpenChange,
+    onSubmit,
+  } = props;
+  const [guestsPerHour] = useGuestsPerHour();
+
+  // A new prize starts at "1 in 20" next to the current draw. The form's
+  // defaults and its reset on open must agree, or a re-render undoes it.
+  const initialValues = useMemo((): PrizeFormValues => {
+    if (mode === "edit" && prize) return getPrizeFormValues(prize);
+    const { otherWeight } = previewPrize({
+      prizeId: null,
+      weight: 0,
+      quantity: 0,
+      noWinWeight,
+      cooldownMinutes: 0,
+      guestsPerHour: 0,
+      prizes,
+    });
+    return {
+      ...DEFAULT_PRIZE_FORM_VALUES,
+      weight:
+        weightForPrizeChance(1 / NEW_PRIZE_ONE_IN, otherWeight) ??
+        DEFAULT_PRIZE_FORM_VALUES.weight,
+    };
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- fixed while the dialog is open
+  }, [open, mode, prize?.id]);
 
   const form = useForm({
-    defaultValues:
-      mode === "edit" && prize
-        ? getPrizeFormValues(prize)
-        : DEFAULT_PRIZE_FORM_VALUES,
+    defaultValues: initialValues,
     validators: {
       onChange: PRIZE_FORM_SCHEMA,
       onSubmit: PRIZE_FORM_SCHEMA,
@@ -52,58 +156,299 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
       onOpenChange(false);
     },
   });
+  const values = useStore(form.store, (state) => state.values);
 
   useEffect(() => {
     if (!open) return;
-    form.reset(
-      mode === "edit" && prize
-        ? getPrizeFormValues(prize)
-        : DEFAULT_PRIZE_FORM_VALUES,
-    );
+    form.reset(initialValues);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset on open/prize only
   }, [open, mode, prize?.id]);
 
+  const stock =
+    mode === "edit" && prize ? prize.remainingQuantity : values.quantity;
+  const preview = previewPrize({
+    prizeId: mode === "edit" ? (prize?.id ?? null) : null,
+    weight: values.weight,
+    quantity: stock,
+    noWinWeight,
+    cooldownMinutes: winCooldownMinutes,
+    guestsPerHour,
+    prizes,
+  });
+  const isWholeDraw = preview.otherWeight <= 0;
+  const prizeLabel = values.title.trim() || "This prize";
+
+  const segments: DrawBarSegment[] = [
+    {
+      key: "thisPrize",
+      label: prizeLabel,
+      chance: preview.chance,
+      color: rarityColor(values.rarity),
+    },
+    ...(preview.otherChance > 0
+      ? [
+          {
+            key: "otherPrizes",
+            label: "Other prizes",
+            chance: preview.otherChance,
+            color: OTHER_PRIZES_COLOR,
+          },
+        ]
+      : []),
+    ...(preview.noPrizeChance > 0
+      ? [
+          {
+            key: "noPrize",
+            label: "No prize",
+            chance: preview.noPrizeChance,
+            color: NO_PRIZE_COLOR,
+          },
+        ]
+      : []),
+  ];
+  const overallChanged =
+    formatOneIn(preview.winChanceBefore) !==
+    formatOneIn(preview.winChanceAfter);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={clsx("sm:max-w-md")}>
+      <DialogContent
+        className={clsx(
+          "max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg",
+        )}
+      >
         <DialogHeader>
-          <DialogTitle>
-            {mode === "create" ? "Add prize" : "Edit prize"}
+          <DialogTitle className={clsx("flex items-center gap-2.5")}>
+            <IconBubble tone="rose">
+              <Gift />
+            </IconBubble>
+            {mode === "create" ? "Add a prize" : "Edit prize"}
           </DialogTitle>
-          <DialogDescription>Weight controls relative odds.</DialogDescription>
+          <DialogDescription>Winners see it on their ticket.</DialogDescription>
         </DialogHeader>
         <form
-          className={clsx("flex flex-col gap-3")}
+          className={clsx("flex flex-col gap-5")}
           onSubmit={(event) => {
             event.preventDefault();
             event.stopPropagation();
             void form.handleSubmit();
           }}
         >
-          <TextField form={form} name="title" label="Title" />
+          <TextField
+            form={form}
+            name="title"
+            label="Prize"
+            placeholder="A free drink"
+          />
           <TextField
             form={form}
             name="winInstruction"
-            label="Win instruction"
+            label="How to claim it"
+            placeholder="Show this ticket at the bar"
           />
-          <SelectField
-            form={form}
-            name="rarity"
-            label="Rarity"
-            placeholder="Select rarity"
-            options={RARITY_FIELD_OPTIONS}
-          />
-          <NumberField form={form} name="weight" label="Weight" />
+
+          <form.Field name="rarity">
+            {(field) => (
+              <FieldBlock
+                label="Rarity"
+                hint="Sets the slot machine's reveal and the ticket's badge."
+              >
+                <ToggleGroup
+                  aria-label="Rarity"
+                  className={clsx("flex-wrap")}
+                  spacing={1.5}
+                  size="sm"
+                  variant="outline"
+                  value={[field.state.value]}
+                  onValueChange={(next: unknown[]) => {
+                    const [rarity] = next;
+                    if (rarity) field.handleChange(rarity as Rarity);
+                  }}
+                >
+                  {RARITY_TYPES.map((rarity) => (
+                    <ToggleGroupItem
+                      key={rarity}
+                      value={rarity}
+                      className={clsx(
+                        "gap-1.5 px-2.5",
+                        "data-[pressed]:border-foreground/40 data-[pressed]:bg-muted",
+                      )}
+                    >
+                      <RarityDot rarity={rarity} />
+                      {capitalize(rarity)}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </FieldBlock>
+            )}
+          </form.Field>
+
           {mode === "create" ? (
-            <NumberField form={form} name="quantity" label="Quantity" />
+            <NumberField
+              form={form}
+              name="quantity"
+              label="How many you have"
+              inputMode="numeric"
+              min={0}
+            />
           ) : prize ? (
             // Stock only moves through restock deltas, so an edit can never
             // overwrite wins that happened while the dialog was open.
             <p className={clsx("text-sm text-muted-foreground")}>
-              {prize.remainingQuantity} left of {prize.totalQuantity}. Use
-              Restock to change the stock.
+              <span className={clsx("font-medium text-foreground")}>
+                {prize.remainingQuantity} left
+              </span>{" "}
+              of {prize.totalQuantity}. Use Restock to change the stock.
             </p>
           ) : null}
+
+          <div
+            className={clsx(
+              "flex flex-col gap-4 rounded-xl border bg-muted/30 p-4",
+            )}
+          >
+            <FieldBlock
+              htmlFor="prize-chance"
+              label="Chance to win it"
+              hint={
+                isWholeDraw
+                  ? "It's the only outcome, so every guest wins it. Set a chance to win in the Lottery tab."
+                  : `About ${formatOneIn(preview.chance)} guests gets it.`
+              }
+              aside={<ValuePill>{formatOneIn(preview.chance)}</ValuePill>}
+            >
+              {!isWholeDraw && (
+                <div className={clsx("flex flex-col gap-1.5")}>
+                  <Slider
+                    id="prize-chance"
+                    aria-label="Chance to win it"
+                    min={0}
+                    max={PRIZE_ONE_IN_STOPS.length - 1}
+                    step={1}
+                    value={[closestOneInStop(preview.chance)]}
+                    onValueChange={(value) => {
+                      const index = Array.isArray(value)
+                        ? (value[0] ?? 0)
+                        : (value as number);
+                      const oneIn = PRIZE_ONE_IN_STOPS[index];
+                      if (oneIn === undefined) return;
+                      const weight = weightForPrizeChance(
+                        1 / oneIn,
+                        preview.otherWeight,
+                      );
+                      if (weight !== null) form.setFieldValue("weight", weight);
+                    }}
+                  />
+                  <div
+                    className={clsx(
+                      "flex justify-between text-xs text-muted-foreground",
+                    )}
+                  >
+                    <span>Rarely</span>
+                    <span>Often</span>
+                  </div>
+                </div>
+              )}
+            </FieldBlock>
+
+            <div className={clsx("flex flex-col gap-3")}>
+              <span
+                className={clsx("text-xs font-medium text-muted-foreground")}
+              >
+                One guest's draw
+              </span>
+              <DrawBar segments={segments} surface="var(--popover)" />
+              <DrawBarLegend segments={segments} />
+            </div>
+
+            {(overallChanged || stock > 0) && (
+              <ul
+                className={clsx(
+                  "flex flex-col gap-1.5 border-t pt-3 text-sm text-muted-foreground",
+                )}
+              >
+                {overallChanged && (
+                  <li>
+                    Any prize:{" "}
+                    <span className={clsx("tabular-nums")}>
+                      {formatOneIn(preview.winChanceBefore)}
+                    </span>{" "}
+                    →{" "}
+                    <span
+                      className={clsx(
+                        "font-medium text-foreground tabular-nums",
+                      )}
+                    >
+                      {formatOneIn(preview.winChanceAfter)}
+                    </span>{" "}
+                    guests
+                  </li>
+                )}
+                {stock > 0 && (
+                  <li className={clsx("flex items-start gap-1.5")}>
+                    <Hourglass className={clsx("mt-0.5 size-3.5 shrink-0")} />
+                    <span>
+                      At about {guestsPerHour} guests an hour,{" "}
+                      {stock === 1 ? "it" : `these ${stock}`}{" "}
+                      {preview.lastsMinutes === null ||
+                      preview.lastsMinutes > ALL_NIGHT_MINUTES ? (
+                        <span className={clsx("font-medium text-foreground")}>
+                          last{stock === 1 ? "s" : ""} all night
+                        </span>
+                      ) : (
+                        <>
+                          {stock === 1 ? "goes" : "go"} in about{" "}
+                          <span className={clsx("font-medium text-foreground")}>
+                            {formatDuration(preview.lastsMinutes)}
+                          </span>
+                        </>
+                      )}
+                      .
+                    </span>
+                  </li>
+                )}
+              </ul>
+            )}
+            {stock === 0 && (
+              <p className={clsx("text-sm text-muted-foreground")}>
+                With none in stock, it stays out of the draw.
+              </p>
+            )}
+          </div>
+
+          <Collapsible>
+            <CollapsibleTrigger
+              render={
+                <button
+                  type="button"
+                  className={clsx(
+                    "group flex items-center gap-1 text-sm text-muted-foreground",
+                    "hover:text-foreground",
+                  )}
+                />
+              }
+            >
+              <ChevronDown
+                className={clsx(
+                  "size-4 transition-transform group-data-[panel-open]:rotate-180",
+                )}
+              />
+              Advanced
+            </CollapsibleTrigger>
+            <CollapsibleContent className={clsx("pt-3")}>
+              <NumberField
+                form={form}
+                name="weight"
+                label="Weight"
+                step="any"
+              />
+              <p className={clsx("mt-1.5 text-xs text-muted-foreground")}>
+                Its weight next to the other prizes and the no-win weight. The
+                chance above sets it for you.
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
+
           <DialogFooter>
             <Button
               type="button"

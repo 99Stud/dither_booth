@@ -185,6 +185,9 @@ export const Event = () => {
         open={isPrizeDialogOpen}
         mode={prizeDialogMode}
         prize={editingPrize}
+        prizes={event?.prizes ?? []}
+        noWinWeight={event?.lottery.noWinWeight ?? 0}
+        winCooldownMinutes={event?.lottery.winCooldownMinutes ?? 0}
         isPending={
           createPrizeMutation.isPending || updatePrizeMutation.isPending
         }

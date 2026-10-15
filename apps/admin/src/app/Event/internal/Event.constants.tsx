@@ -106,13 +106,6 @@ export const KIT_FIELD_OPTIONS: Array<
   value: kitId,
 }));
 
-export const RARITY_FIELD_OPTIONS: Array<
-  SelectFieldOption<PrizeFormValues["rarity"]>
-> = RARITY_TYPES.map((rarity) => ({
-  label: capitalize(rarity),
-  value: rarity,
-}));
-
 export const getLotterySettingsFormValues = (event: {
   lottery: LotterySettingsFormValues;
 }): LotterySettingsFormValues => ({

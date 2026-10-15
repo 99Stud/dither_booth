@@ -17,32 +17,18 @@ import {
 import { Input } from "@dither-booth/ui/components/ui/input";
 import clsx from "clsx";
 import { Hourglass } from "lucide-react";
-import { useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
+import { useGuestsPerHour } from "../../hooks/useGuestsPerHour";
 import {
   forecastPrizes,
   formatDuration,
   type OddsPrize,
 } from "../../lottery-odds.utils";
 
-const GUESTS_PER_HOUR_STORAGE_KEY = "dither-booth.admin.guests-per-hour";
-const DEFAULT_GUESTS_PER_HOUR = 60;
-
 const chartConfig = {
   left: { label: "Prizes left", color: "var(--chart-1)" },
 } satisfies ChartConfig;
-
-const readGuestsPerHour = () => {
-  try {
-    const stored = Number(localStorage.getItem(GUESTS_PER_HOUR_STORAGE_KEY));
-    return Number.isFinite(stored) && stored > 0
-      ? stored
-      : DEFAULT_GUESTS_PER_HOUR;
-  } catch {
-    return DEFAULT_GUESTS_PER_HOUR;
-  }
-};
 
 /**
  * "Will the prizes last the night?" From an estimate of guests per hour,
@@ -55,7 +41,7 @@ export const LotteryForecastCard: FC<{
   winCooldownMinutes: number;
   prizes: OddsPrize[];
 }> = ({ noWinWeight, winCooldownMinutes, prizes }) => {
-  const [guestsPerHour, setGuestsPerHour] = useState(readGuestsPerHour);
+  const [guestsPerHour, updateGuestsPerHour] = useGuestsPerHour();
   const forecast = forecastPrizes({
     prizes,
     noWinWeight,
@@ -72,15 +58,6 @@ export const LotteryForecastCard: FC<{
   const isCappedByCooldown =
     forecast.cooldownCapPerHour !== null &&
     forecast.winsPerHour >= forecast.cooldownCapPerHour * 0.8;
-
-  const updateGuestsPerHour = (value: number) => {
-    setGuestsPerHour(value);
-    try {
-      localStorage.setItem(GUESTS_PER_HOUR_STORAGE_KEY, String(value));
-    } catch {
-      // Remembering the estimate is a convenience only.
-    }
-  };
 
   return (
     <Card>

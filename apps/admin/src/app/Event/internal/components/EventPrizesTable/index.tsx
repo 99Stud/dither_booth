@@ -26,6 +26,13 @@ import {
   DropdownMenuTrigger,
 } from "@dither-booth/ui/components/ui/dropdown-menu";
 import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@dither-booth/ui/components/ui/empty";
+import {
   Table,
   TableBody,
   TableCell,
@@ -48,6 +55,8 @@ import { RarityBadge } from "#components/Misc/RarityBadge/index";
 
 import type { CurrentEvent, EventPrize } from "../../Event.types";
 
+import { computeOdds, formatOneIn } from "../../lottery-odds.utils";
+
 interface EventPrizesTableProps {
   event: CurrentEvent;
   isDeleting: boolean;
@@ -65,8 +74,8 @@ const StockMeter: FC<{ remaining: number; total: number }> = ({
   const ratio = total > 0 ? Math.min(1, remaining / total) : 0;
 
   return (
-    <div className={clsx("flex min-w-28 items-center gap-2")}>
-      <span className={clsx("w-14 text-sm tabular-nums")}>
+    <div className={clsx("flex min-w-36 items-center gap-2")}>
+      <span className={clsx("min-w-16 text-sm whitespace-nowrap tabular-nums")}>
         {remaining}
         <span className={clsx("text-muted-foreground")}> / {total}</span>
       </span>
@@ -100,6 +109,12 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
   } = props;
 
   const [prizeToDelete, setPrizeToDelete] = useState<EventPrize | null>(null);
+  const chanceById = new Map(
+    computeOdds({
+      noWinWeight: event.lottery.noWinWeight,
+      prizes: event.prizes,
+    }).byPrize.map((prize) => [prize.id, prize.chance]),
+  );
 
   return (
     <>
@@ -120,9 +135,17 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
         </CardHeader>
         <CardContent>
           {event.prizes.length === 0 ? (
-            <p className={clsx("text-sm text-muted-foreground")}>
-              No prizes yet.
-            </p>
+            <Empty className={clsx("border border-dashed")}>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Gift />
+                </EmptyMedia>
+                <EmptyTitle>No prizes yet</EmptyTitle>
+                <EmptyDescription>
+                  Add a first prize: guests can win it with each photo.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className={clsx("overflow-hidden rounded-lg border")}>
               <Table>
@@ -130,7 +153,7 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
                   <TableRow>
                     <TableHead>Title</TableHead>
                     <TableHead>Rarity</TableHead>
-                    <TableHead>Weight</TableHead>
+                    <TableHead>Chance per guest</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead className={clsx("w-12")} />
                   </TableRow>
@@ -144,8 +167,17 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
                       <TableCell>
                         <RarityBadge rarity={prize.rarity} />
                       </TableCell>
-                      <TableCell className={clsx("tabular-nums")}>
-                        {prize.weight}
+                      <TableCell
+                        className={clsx("tabular-nums")}
+                        title={`Weight ${prize.weight}`}
+                      >
+                        {chanceById.has(prize.id) ? (
+                          formatOneIn(chanceById.get(prize.id) ?? 0)
+                        ) : (
+                          <span className={clsx("text-muted-foreground")}>
+                            Out of the draw
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <StockMeter

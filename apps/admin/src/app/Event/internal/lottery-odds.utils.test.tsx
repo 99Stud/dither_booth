@@ -7,6 +7,10 @@ import {
   formatOneIn,
   noWinWeightForChance,
   type OddsPrize,
+  PRIZE_ONE_IN_STOPS,
+  closestOneInStop,
+  previewPrize,
+  weightForPrizeChance,
 } from "./lottery-odds.utils";
 
 const prize = (overrides: Partial<OddsPrize> & { id: string }): OddsPrize => ({
@@ -130,5 +134,83 @@ describe("formatDuration", () => {
     expect(formatDuration(25)).toBe("25 min");
     expect(formatDuration(120)).toBe("2 h");
     expect(formatDuration(100)).toBe("1 h 40 min");
+  });
+});
+
+describe("weightForPrizeChance", () => {
+  test("is the inverse of the prize's chance next to the rest of the draw", () => {
+    // 1 in 20 next to a draw weighing 19: weight 1.
+    expect(weightForPrizeChance(1 / 20, 19)).toBe(1);
+  });
+
+  test("a rare prize next to small weights never rounds to 0", () => {
+    expect(weightForPrizeChance(1 / 1000, 1)).toBeGreaterThan(0);
+  });
+
+  test("a prize alone in the draw has no weight to solve", () => {
+    expect(weightForPrizeChance(0.5, 0)).toBeNull();
+  });
+});
+
+describe("closestOneInStop", () => {
+  test("snaps a chance to the nearest stop on a log scale", () => {
+    expect(PRIZE_ONE_IN_STOPS[closestOneInStop(1 / 21)]).toBe(20);
+    expect(PRIZE_ONE_IN_STOPS[closestOneInStop(1 / 5000)]).toBe(1000);
+    expect(PRIZE_ONE_IN_STOPS[closestOneInStop(0.9)]).toBe(1.5);
+  });
+});
+
+describe("previewPrize", () => {
+  const prizes = [prize({ id: "sticker", weight: 3 })];
+
+  test("a new prize joins the draw and raises the overall chance", () => {
+    const preview = previewPrize({
+      prizeId: null,
+      weight: 1,
+      quantity: 10,
+      noWinWeight: 6,
+      cooldownMinutes: 0,
+      guestsPerHour: 60,
+      prizes,
+    });
+
+    expect(preview.chance).toBeCloseTo(0.1);
+    expect(preview.otherChance).toBeCloseTo(0.3);
+    expect(preview.noPrizeChance).toBeCloseTo(0.6);
+    expect(preview.winChanceBefore).toBeCloseTo(1 / 3);
+    expect(preview.winChanceAfter).toBeCloseTo(0.4);
+    expect(preview.otherWeight).toBe(9);
+    // 60 guests an hour, 1 in 10 each: 6 an hour, so 10 last 100 minutes.
+    expect(preview.lastsMinutes).toBeCloseTo(100);
+  });
+
+  test("an edited prize is not counted twice", () => {
+    const preview = previewPrize({
+      prizeId: "sticker",
+      weight: 1,
+      quantity: 10,
+      noWinWeight: 3,
+      cooldownMinutes: 0,
+      guestsPerHour: 60,
+      prizes,
+    });
+
+    expect(preview.chance).toBeCloseTo(0.25);
+    expect(preview.winChanceBefore).toBeCloseTo(0.5);
+    expect(preview.otherWeight).toBe(3);
+  });
+
+  test("no stock, or no guests, never runs out", () => {
+    const preview = previewPrize({
+      prizeId: null,
+      weight: 1,
+      quantity: 0,
+      noWinWeight: 1,
+      cooldownMinutes: 0,
+      guestsPerHour: 60,
+      prizes: [],
+    });
+
+    expect(preview.lastsMinutes).toBeNull();
   });
 });
