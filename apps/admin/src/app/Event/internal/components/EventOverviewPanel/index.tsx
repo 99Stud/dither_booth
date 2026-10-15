@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 
+import { rarityColor } from "#components/Misc/RarityBadge/index";
+
 import type { CurrentEvent, UpdateEventFormValues } from "../../Event.types";
 
 import {
@@ -205,14 +207,6 @@ const Stat: FC<
   </div>
 );
 
-const RARITY_BAR_COLORS = {
-  common: "bg-zinc-400 dark:bg-zinc-500",
-  uncommon: "bg-emerald-500",
-  rare: "bg-sky-500",
-  epic: "bg-violet-500",
-  legendary: "bg-amber-400",
-} as const satisfies Record<Rarity, string>;
-
 /** The prizes left by rarity, as one small segmented bar (hover for counts). */
 const RarityBar: FC<{
   breakdown: Array<{ rarity: Rarity; remaining: number }>;
@@ -232,8 +226,10 @@ const RarityBar: FC<{
       {breakdown.map((entry) => (
         <span
           key={entry.rarity}
-          className={clsx(RARITY_BAR_COLORS[entry.rarity])}
-          style={{ width: `${(entry.remaining / total) * 100}%` }}
+          style={{
+            width: `${(entry.remaining / total) * 100}%`,
+            backgroundColor: rarityColor(entry.rarity),
+          }}
         />
       ))}
     </span>

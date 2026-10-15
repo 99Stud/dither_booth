@@ -4,6 +4,27 @@
 
 @source "../../../../packages/ui/src";
 
+/*
+ * Rarity colours for charts and dots: the dataviz reference categorical
+ * palette, assigned so neighbours in rarity order stay apart (validated
+ * light and dark: lightness, chroma, CVD and normal-vision separation).
+ * Text never wears them; they mark shapes next to neutral labels.
+ */
+:root {
+  --rarity-legendary: #eda100;
+  --rarity-epic: #e87ba4;
+  --rarity-rare: #2a78d6;
+  --rarity-uncommon: #1baf7a;
+  --rarity-common: #eb6834;
+}
+.dark {
+  --rarity-legendary: #c98500;
+  --rarity-epic: #d55181;
+  --rarity-rare: #3987e5;
+  --rarity-uncommon: #199e70;
+  --rarity-common: #d95926;
+}
+
 @theme inline {
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
