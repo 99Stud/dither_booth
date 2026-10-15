@@ -30,7 +30,8 @@
     "format:fix": "oxfmt",
     "lint:turbo": "turbo run lint",
     "check-types": "turbo run check-types",
-    "devtools": "turbo devtools"
+    "devtools": "turbo devtools",
+    "test": "turbo run test"
   },
   "dependencies": {
     "bun": "1.3.14",

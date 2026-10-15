@@ -19,7 +19,8 @@
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "check-types": "tsc --noEmit -p tsconfig.json",
-    "generate-qr": "bun scripts/generate-qr.ts"
+    "generate-qr": "bun scripts/generate-qr.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "@cheprasov/qrcode": "0.1.0",
