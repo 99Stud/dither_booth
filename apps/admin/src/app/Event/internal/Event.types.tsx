@@ -6,7 +6,7 @@ import type {
   CREATE_EVENT_FORM_SCHEMA,
   LOTTERY_SETTINGS_FORM_SCHEMA,
   PRIZE_FORM_SCHEMA,
-  RESTOCK_PRIZE_FORM_SCHEMA,
+  createRestockPrizeFormSchema,
   TICKET_ITEMS_FORM_SCHEMA,
   UPDATE_EVENT_NAME_FORM_SCHEMA,
 } from "./Event.constants";
@@ -29,4 +29,6 @@ export type LotterySettingsFormValues = z.infer<
   typeof LOTTERY_SETTINGS_FORM_SCHEMA
 >;
 export type PrizeFormValues = z.infer<typeof PRIZE_FORM_SCHEMA>;
-export type RestockPrizeFormValues = z.infer<typeof RESTOCK_PRIZE_FORM_SCHEMA>;
+export type RestockPrizeFormValues = z.infer<
+  ReturnType<typeof createRestockPrizeFormSchema>
+>;
