@@ -11,6 +11,7 @@
  */
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
+@import "./touch.css";
 
 html.saas {
   --font-sans:
@@ -122,5 +123,60 @@ html.saas.dark {
   }
   html.saas :is(h1, h2, h3) {
     letter-spacing: -0.015em;
+  }
+}
+
+/*
+ * Liquid Glass, after iOS 26: a translucent material for the controls that
+ * float over content (the phone's tab bar, round bar buttons). Blur and
+ * saturation pick up what scrolls beneath, a bright top edge catches the
+ * light, and a soft shadow lifts it off the page.
+ */
+html.saas {
+  --glass: color-mix(in oklch, var(--background) 62%, transparent);
+  --glass-edge: rgb(255 255 255 / 0.65);
+  --glass-highlight: rgb(255 255 255 / 0.8);
+  --glass-shadow:
+    0 12px 32px -10px rgb(0 0 0 / 0.22), 0 2px 8px -2px rgb(0 0 0 / 0.08);
+}
+html.saas.dark {
+  --glass: color-mix(in oklch, var(--card) 58%, transparent);
+  --glass-edge: rgb(255 255 255 / 0.12);
+  --glass-highlight: rgb(255 255 255 / 0.2);
+  --glass-shadow: 0 12px 32px -10px rgb(0 0 0 / 0.7);
+}
+
+@utility glass {
+  background-color: var(--glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+}
+
+/* Touch screens: iOS geometry, with larger, concentric corners. */
+@media (pointer: coarse) {
+  html.saas {
+    --radius: 1rem;
+  }
+}
+
+/*
+ * Phones: iOS grouped backgrounds. A grey canvas (black in dark mode) and
+ * borderless cards on it, so sections read as inset groups.
+ */
+@media (pointer: coarse) and (max-width: 767px) {
+  html.saas {
+    --background: oklch(0.968 0.003 286);
+  }
+  html.saas.dark {
+    --background: oklch(0 0 0);
+    --card: oklch(0.215 0.006 286);
+    --popover: oklch(0.215 0.006 286);
+  }
+  html.saas [data-slot="card"] {
+    --tw-ring-color: transparent;
   }
 }

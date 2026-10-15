@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs max-sm:bg-black/30 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className,
       )}
       {...props}
@@ -47,13 +47,26 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
 }) {
+  const popupRef = React.useRef<HTMLDivElement>(null);
+
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Popup
+        ref={popupRef}
+        // On touch, focus the sheet rather than its first field: opening
+        // must not pop the iPhone's keyboard over what the sheet shows.
+        initialFocus={(openType) =>
+          openType === "touch" || window.matchMedia("(pointer: coarse)").matches
+            ? popupRef.current
+            : true
+        }
         data-slot="dialog-content"
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // On phones: an iOS 26 sheet, floating above the home indicator with
+          // corners concentric to the screen's.
+          "max-sm:top-auto max-sm:right-2 max-sm:bottom-[max(0.5rem,env(safe-area-inset-bottom))] max-sm:left-2 max-sm:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] max-sm:w-auto max-sm:max-w-none! max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-y-auto max-sm:rounded-[2rem] max-sm:p-5 max-sm:shadow-2xl max-sm:ring-0 max-sm:duration-300 max-sm:ease-out max-sm:data-open:zoom-in-100 max-sm:data-open:slide-in-from-bottom max-sm:data-closed:zoom-out-100 max-sm:data-closed:slide-out-to-bottom",
           className,
         )}
         {...props}
@@ -65,7 +78,7 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                className="absolute top-2 right-2 max-sm:top-3.5 max-sm:right-3.5 max-sm:bg-muted"
                 size="icon-sm"
               />
             }
@@ -102,6 +115,7 @@ function DialogFooter({
       data-slot="dialog-footer"
       className={cn(
         "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "max-sm:-mx-5 max-sm:-mb-5 max-sm:rounded-b-[2rem] max-sm:border-t-0 max-sm:bg-transparent max-sm:px-5 max-sm:pt-2 max-sm:pb-5",
         className,
       )}
       {...props}

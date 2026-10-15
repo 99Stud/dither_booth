@@ -3,6 +3,7 @@ import { Outlet } from "@tanstack/react-router";
 import { type FC } from "react";
 
 import { AppSidebar } from "#components/Layout/AppSidebar/index";
+import { AppTabBar } from "#components/Layout/AppTabBar/index";
 
 export const Root: FC = () => {
   return (
@@ -11,6 +12,7 @@ export const Root: FC = () => {
       <SidebarInset>
         <Outlet />
       </SidebarInset>
+      <AppTabBar />
     </>
   );
 };

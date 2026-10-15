@@ -1,0 +1,120 @@
+/*
+ * The touch layer of the SaaS theme: phones and the Darkroom's iPad.
+ *
+ * Apple's HIG asks for 44 pt hit targets and 16 px text fields (iOS zooms
+ * into smaller ones on focus), so on a coarse pointer the shared controls
+ * grow to those sizes and press with a light scale, as iOS controls do.
+ * Shapes follow iOS 26 (Liquid Glass): capsule buttons, circular icon
+ * buttons, pill-shaped switch and slider thumbs.
+ * Desktop keeps the dense layout. Scoped to `html.saas`, so the kiosk and
+ * the receipts never match.
+ *
+ * Unlayered on purpose: it must win over the components' own height
+ * utilities, whatever their order.
+ */
+@media (pointer: coarse) {
+  html.saas {
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+
+  /* Buttons: 44 pt, 40 for small ones, square icon buttons. */
+  html.saas [data-slot="button"]:not([data-variant="link"]) {
+    min-height: 2.75rem;
+    border-radius: 9999px;
+    padding-inline: 1.125rem;
+    font-size: 0.9375rem;
+  }
+  html.saas [data-slot="button"]:is([data-size="sm"], [data-size="xs"]) {
+    min-height: 2.5rem;
+    padding-inline: 0.875rem;
+    font-size: 0.875rem;
+  }
+  html.saas [data-slot="button"][data-size^="icon"] {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding-inline: 0;
+  }
+  html.saas [data-slot="button"]:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  /* Text fields and pickers: 44 pt and 16 px, so iOS never zooms in. */
+  html.saas :is([data-slot="input"], [data-slot="select-trigger"]) {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+  html.saas textarea {
+    font-size: 1rem;
+  }
+
+  /* Menus and lists of choices: one comfortable row per item. */
+  html.saas
+    :is(
+      [data-slot="dropdown-menu-item"],
+      [data-slot="dropdown-menu-checkbox-item"],
+      [data-slot="dropdown-menu-radio-item"],
+      [data-slot="select-item"]
+    ) {
+    min-height: 2.75rem;
+    font-size: 0.9375rem;
+  }
+
+  /* Segmented controls, chips and tabs. */
+  html.saas :is([data-slot="toggle"], [data-slot="toggle-group-item"]) {
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+  }
+  html.saas [data-slot="tabs-trigger"] {
+    min-height: 2.5rem;
+  }
+  html.saas [data-slot="sidebar-menu-button"] {
+    min-height: 2.75rem;
+  }
+
+  /* The iOS 26 switch: a 64 × 28 track and a 40 × 24 pill thumb. */
+  html.saas [data-slot="switch"][data-size="default"] {
+    width: 4rem;
+    height: 1.75rem;
+    padding-inline: 2px;
+  }
+  html.saas
+    [data-slot="switch"][data-size="default"]
+    [data-slot="switch-thumb"] {
+    width: 2.5rem;
+    height: 1.5rem;
+    background-color: white;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.2);
+    translate: 0;
+  }
+  html.saas
+    [data-slot="switch"][data-size="default"]
+    [data-slot="switch-thumb"][data-checked] {
+    translate: 1.125rem;
+  }
+
+  /* The iOS 26 slider: a 38 × 24 pill thumb on a thicker track. */
+  html.saas [data-slot="slider"] {
+    padding-block: 0.5rem;
+  }
+  html.saas [data-slot="slider-track"] {
+    height: 0.375rem;
+  }
+  html.saas [data-slot="slider-thumb"] {
+    width: 2.375rem;
+    height: 1.5rem;
+    border-color: transparent;
+    background-color: white;
+    box-shadow:
+      0 2px 8px rgb(0 0 0 / 0.18),
+      0 0 0 0.5px rgb(0 0 0 / 0.06);
+  }
+
+  /* Segmented controls are capsules, their selection a raised pill. */
+  html.saas [data-slot="tabs-list"][data-variant="default"],
+  html.saas
+    [data-slot="tabs-list"][data-variant="default"]
+    [data-slot="tabs-trigger"] {
+    border-radius: 9999px;
+  }
+}

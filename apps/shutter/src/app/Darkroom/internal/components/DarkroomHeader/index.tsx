@@ -14,8 +14,8 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 
 /**
  * The Darkroom's app bar: who/where on the left, the print tuning tabs in
- * the middle, theme and the ways out on the right. Sized for an iPad, with
- * 40 px touch targets.
+ * the middle, theme and the ways out on the right. On the iPad, the theme's
+ * touch layer sizes every control to 44 pt.
  */
 export const DarkroomHeader: FC<{ tabs: ReactNode }> = ({ tabs }) => {
   const trpc = useTRPC();

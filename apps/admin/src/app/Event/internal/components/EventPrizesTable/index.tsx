@@ -52,7 +52,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { RarityBadge } from "#components/Misc/RarityBadge/index";
+import { RarityBadge, RarityDot } from "#components/Misc/RarityBadge/index";
 
 import type { CurrentEvent, EventPrize } from "../../Event.types";
 
@@ -103,6 +103,51 @@ const StockMeter: FC<{ remaining: number; total: number }> = ({
   );
 };
 
+/** Edit, restock or delete: the "…" menu on each prize. */
+const PrizeActions: FC<{
+  prize: EventPrize;
+  onEdit: (prize: EventPrize) => void;
+  onRestock: (prize: EventPrize) => void;
+  onDelete: (prize: EventPrize) => void;
+}> = ({ prize, onEdit, onRestock, onDelete }) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+      <MoreHorizontal />
+      <span className="sr-only">Open actions</span>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end">
+      <DropdownMenuItem onClick={() => onEdit(prize)}>
+        <Pencil />
+        Edit
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => onRestock(prize)}>
+        <PackagePlus />
+        Restock
+      </DropdownMenuItem>
+      <DropdownMenuItem variant="destructive" onClick={() => onDelete(prize)}>
+        <Trash2 />
+        Delete
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
+
+/** "1 in 13", flagged when set per prize, or out of the draw. */
+const PrizeChance: FC<{ prize: EventPrize; chance: number | undefined }> = ({
+  prize,
+  chance,
+}) =>
+  chance === undefined ? (
+    <span className={clsx("text-muted-foreground")}>Out of the draw</span>
+  ) : (
+    <span className={clsx("inline-flex items-center gap-1.5 tabular-nums")}>
+      {formatOneIn(chance)}
+      {!usesRarityDefaultWeight(prize) && (
+        <Badge variant="secondary">Custom</Badge>
+      )}
+    </span>
+  );
+
 export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
   const {
     event,
@@ -152,85 +197,110 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className={clsx("overflow-hidden rounded-lg border")}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Rarity</TableHead>
-                    <TableHead>Chance per guest</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead className={clsx("w-12")} />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {event.prizes.map((prize) => (
-                    <TableRow key={prize.id}>
-                      <TableCell className={clsx("font-medium")}>
-                        {prize.title}
-                      </TableCell>
-                      <TableCell>
-                        <RarityBadge rarity={prize.rarity} />
-                      </TableCell>
-                      <TableCell
-                        className={clsx("tabular-nums")}
-                        title={`Weight ${prize.weight}`}
+            <>
+              {/* Phones: the card is the inset group, a row per prize; tap one to edit it. */}
+              <ul className={clsx("-mx-4 -mb-4 divide-y border-t md:hidden")}>
+                {event.prizes.map((prize) => (
+                  <li key={prize.id} className={clsx("flex items-center")}>
+                    <button
+                      type="button"
+                      className={clsx(
+                        "flex min-h-16 min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left",
+                        "transition-colors active:bg-muted",
+                      )}
+                      onClick={() => onEditClick(prize)}
+                    >
+                      <RarityDot
+                        rarity={prize.rarity}
+                        className="size-2.5 shrink-0 rounded-full"
+                      />
+                      <span
+                        className={clsx("flex min-w-0 flex-1 flex-col gap-0.5")}
                       >
-                        {chanceById.has(prize.id) ? (
-                          <span className={clsx("flex items-center gap-1.5")}>
-                            {formatOneIn(chanceById.get(prize.id) ?? 0)}
-                            {!usesRarityDefaultWeight(prize) && (
-                              <Badge variant="secondary">Custom</Badge>
-                            )}
+                        <span className={clsx("truncate font-medium")}>
+                          {prize.title}
+                        </span>
+                        <span
+                          className={clsx(
+                            "flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground",
+                          )}
+                        >
+                          <PrizeChance
+                            prize={prize}
+                            chance={chanceById.get(prize.id)}
+                          />
+                          <span aria-hidden>·</span>
+                          <span className={clsx("tabular-nums")}>
+                            {prize.remainingQuantity} of {prize.totalQuantity}{" "}
+                            left
                           </span>
-                        ) : (
-                          <span className={clsx("text-muted-foreground")}>
-                            Out of the draw
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <StockMeter
-                          remaining={prize.remainingQuantity}
-                          total={prize.totalQuantity}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={<Button variant="ghost" size="icon-sm" />}
-                          >
-                            <MoreHorizontal />
-                            <span className="sr-only">Open actions</span>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => onEditClick(prize)}
-                            >
-                              <Pencil />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onRestockClick(prize)}
-                            >
-                              <PackagePlus />
-                              Restock
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() => setPrizeToDelete(prize)}
-                            >
-                              <Trash2 />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                        </span>
+                      </span>
+                    </button>
+                    <div className={clsx("pr-1.5")}>
+                      <PrizeActions
+                        prize={prize}
+                        onEdit={onEditClick}
+                        onRestock={onRestockClick}
+                        onDelete={setPrizeToDelete}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div
+                className={clsx(
+                  "hidden overflow-hidden rounded-lg border md:block",
+                )}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Rarity</TableHead>
+                      <TableHead>Chance per guest</TableHead>
+                      <TableHead>Stock</TableHead>
+                      <TableHead className={clsx("w-12")} />
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {event.prizes.map((prize) => (
+                      <TableRow key={prize.id}>
+                        <TableCell className={clsx("font-medium")}>
+                          {prize.title}
+                        </TableCell>
+                        <TableCell>
+                          <RarityBadge rarity={prize.rarity} />
+                        </TableCell>
+                        <TableCell
+                          className={clsx("tabular-nums")}
+                          title={`Weight ${prize.weight}`}
+                        >
+                          <PrizeChance
+                            prize={prize}
+                            chance={chanceById.get(prize.id)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <StockMeter
+                            remaining={prize.remainingQuantity}
+                            total={prize.totalQuantity}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <PrizeActions
+                            prize={prize}
+                            onEdit={onEditClick}
+                            onRestock={onRestockClick}
+                            onDelete={setPrizeToDelete}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
