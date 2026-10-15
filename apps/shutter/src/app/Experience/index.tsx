@@ -4,6 +4,7 @@ import { InteractiveBackground } from "#components/misc/InteractiveBackground/in
 
 import { CameraStage } from "./internal/components/CameraStage/index";
 import { CaptureFlash } from "./internal/components/CaptureFlash/index";
+import { DarkroomHotspot } from "./internal/components/DarkroomHotspot/index";
 import { FrozenPhoto } from "./internal/components/FrozenPhoto/index";
 import { IntroChrome } from "./internal/components/IntroChrome/index";
 import { PostPrintStage } from "./internal/components/PostPrintStage/index";
@@ -44,6 +45,7 @@ export const Experience = () => {
     <>
       <InteractiveBackground options={KIOSK_INTERACTIVE_BACKGROUND_OPTIONS} />
       <CaptureFlash captureId={captureFlashId} />
+      <DarkroomHotspot isEnabled={phase === "idle"} />
       <IntroChrome
         isVisible={isIntroDecorationsVisible}
         lotteryStatus={lotteryStatus}

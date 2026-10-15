@@ -40,6 +40,9 @@ export const PHASE_AUTO_ADVANCE_MS = 5000;
  */
 export const KIOSK_RELOAD_IDLE_TIMEOUT_MS = 90_000;
 
+/** How long staff hold the landing screen's top-left corner to open the Darkroom. */
+export const DARKROOM_HOTSPOT_HOLD_MS = 3000;
+
 /**
  * Escape hatch for a capture or print that never settles. Capture and print
  * each get a fresh budget, so the worst-case wait is two of these.

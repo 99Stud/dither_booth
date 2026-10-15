@@ -1,3 +1,4 @@
+import { DARKROOM_PATH } from "@dither-booth/shared/darkroom";
 import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
 import { Toaster } from "@dither-booth/ui/components/ui/sonner";
 import { Outlet, useRouterState } from "@tanstack/react-router";
@@ -11,7 +12,10 @@ export const Root: FC = () => {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
-  const isKioskShell = pathname !== RECEIPT_VIEWER_PATH;
+  // The receipt viewer and the Darkroom are regular pages that scroll, not
+  // the locked-down kiosk shell.
+  const isKioskShell =
+    pathname !== RECEIPT_VIEWER_PATH && pathname !== DARKROOM_PATH;
 
   useEffect(() => {
     document.documentElement.classList.toggle("kiosk-shell", isKioskShell);
