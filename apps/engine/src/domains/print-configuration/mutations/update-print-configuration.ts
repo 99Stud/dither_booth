@@ -4,9 +4,9 @@ import { eq } from "drizzle-orm";
 import { PRINT_CONFIG_SINGLETON_ID } from "#db/internal/db.constants";
 import { printConfigTable } from "#db/internal/db.schema";
 import { UPDATE_PRINT_CONFIGURATION_SCHEMA } from "#domains/print-configuration/internal/print-configuration.constants";
-import { configProcedure } from "#internal/trpc";
+import { darkroomProcedure } from "#internal/trpc";
 
-export const updatePrintConfiguration = configProcedure
+export const updatePrintConfiguration = darkroomProcedure
   .input(UPDATE_PRINT_CONFIGURATION_SCHEMA)
   .mutation(async ({ input, ctx }) => {
     return await ctx.db

@@ -3,9 +3,9 @@ import { octetInputParser } from "@trpc/server/http";
 
 import { db } from "#db/index";
 import { ditherImage } from "#domains/image-manipulation/internal/image-manipulation.utils";
-import { configProcedure } from "#internal/trpc";
+import { darkroomProcedure } from "#internal/trpc";
 
-export const dither = configProcedure
+export const dither = darkroomProcedure
   .input(octetInputParser)
   .mutation(async ({ input }) => {
     const inputBuffer = Buffer.from(await new Response(input).arrayBuffer());

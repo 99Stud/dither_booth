@@ -1,4 +1,5 @@
 import { browserAutomation } from "#domains/browser-automation/index";
+import { darkroom } from "#domains/darkroom/index";
 import { event } from "#domains/event/index";
 import { healthz } from "#domains/healthz/index";
 import { imageManipulation } from "#domains/image-manipulation/index";
@@ -17,6 +18,8 @@ export const engineRouter = router({
     prepareReceipt: receipt.prepareReceipt,
     printPreparedReceipt: receipt.printPreparedReceipt,
     onKioskCommand: kiosk.onKioskCommand,
+    unlockDarkroom: darkroom.unlockDarkroom,
+    lockDarkroom: darkroom.lockDarkroom,
   }),
   config: router({
     ...event,
@@ -25,6 +28,8 @@ export const engineRouter = router({
     generateReceipt: receipt.generateReceipt,
     printReceipt: receipt.printReceipt,
     printSampleLotteryTicket: receipt.printSampleLotteryTicket,
+    getDarkroomPinStatus: darkroom.getDarkroomPinStatus,
+    setDarkroomPin: darkroom.setDarkroomPin,
   }),
   ops: router({
     ...healthz,

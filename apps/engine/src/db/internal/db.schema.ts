@@ -236,6 +236,23 @@ export const stockAdjustmentTable = sqliteTable(
   ],
 );
 
+/**
+ * Who may open the Darkroom (print tuning on the booth iPad). One row once a
+ * PIN is set in admin; no row means the Darkroom stays locked. Only the
+ * argon2id hash is stored, never the PIN.
+ */
+export const darkroomAccessTable = sqliteTable(
+  "darkroom_access",
+  {
+    id: integer("id").primaryKey().notNull().default(1),
+    pinHash: text("pin_hash").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [check("darkroom_access_singleton_check", sql`${table.id} = 1`)],
+);
+
 export const dbSchema = {
   printConfigTable,
   campaignTable,
@@ -243,4 +260,5 @@ export const dbSchema = {
   prizeTable,
   drawTable,
   stockAdjustmentTable,
+  darkroomAccessTable,
 };

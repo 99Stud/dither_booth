@@ -20,11 +20,13 @@ import {
   type PuppeteerHealthz,
 } from "#domains/healthz/internal/healthz.puppeteer";
 import { fetchShutterHealthz } from "#domains/healthz/internal/healthz.utils";
-import { opsProcedure } from "#internal/trpc";
+import { darkroomProcedure } from "#internal/trpc";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
 
 type GetHealthzResponse = {
   shutter: {
+    /** Where the Shutter is served, so admin can link to its Darkroom. */
+    origin: string;
     healthz: ShutterHealthz;
     kiosk: {
       /** Kiosk pages subscribed to the kiosk channel right now. */
@@ -43,7 +45,7 @@ type GetHealthzResponse = {
   };
 };
 
-export const getHealthz = opsProcedure.query(async ({ ctx }) => {
+export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
   const [shutterOrigin, caPath] = await Promise.all([
     getShutterOrigin({ repoRoot: ENGINE_REPO_ROOT }),
     getWebTlsCaPath({ repoRoot: ENGINE_REPO_ROOT }),
@@ -83,6 +85,7 @@ export const getHealthz = opsProcedure.query(async ({ ctx }) => {
 
   const payload = {
     shutter: {
+      origin: shutterOrigin,
       healthz: shutterHealthz,
       kiosk: {
         pages: ctx.kioskChannel.listPages().map((page) => ({

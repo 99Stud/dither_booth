@@ -4,6 +4,7 @@ import {
   getPort,
   getWebTlsHostnames,
 } from "@dither-booth/ports";
+import { DARKROOM_TOKEN_HEADER } from "@dither-booth/shared/darkroom";
 import {
   ENGINE_HEALTHZ_SERVICE,
   createHealthzPayload,
@@ -18,6 +19,7 @@ import http from "node:http";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { createDarkroomAccess } from "#domains/darkroom/darkroom.service";
 import { createKioskChannel } from "#domains/kiosk/kiosk.service";
 import { engineRouter } from "#internal/router";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
@@ -119,9 +121,11 @@ export async function runEngineServer(options: {
   });
   const processManager = getRuntimeProcessManager();
   const kioskChannel = createKioskChannel();
+  const darkroomAccess = createDarkroomAccess({ db });
 
   const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
     const { page, state: puppeteerState } = puppeteerLifecycle.getCurrent();
+    const darkroomToken = req.headers[DARKROOM_TOKEN_HEADER];
 
     return {
       adminOrigin,
@@ -129,6 +133,9 @@ export async function runEngineServer(options: {
       printerUSBAdapter,
       page,
       db,
+      darkroomAccess,
+      darkroomToken:
+        typeof darkroomToken === "string" ? darkroomToken : undefined,
       kioskChannel,
       mode: options.mode,
       processManager,
