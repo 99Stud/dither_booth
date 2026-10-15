@@ -16,6 +16,7 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { RotateCw } from "lucide-react";
 
 import type { HealthzResponse } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.types";
 
@@ -56,7 +57,10 @@ export const KioskReloadSection: FC<KioskReloadSectionProps> = ({
                     <Spinner className="size-4" />
                   </>
                 ) : (
-                  "Reload kiosk"
+                  <>
+                    <RotateCw data-icon="inline-start" />
+                    Reload kiosk
+                  </>
                 )}
               </Button>
             }

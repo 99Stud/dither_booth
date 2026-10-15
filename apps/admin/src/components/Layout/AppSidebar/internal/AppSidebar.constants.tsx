@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { FolderCog, Ticket } from "lucide-react";
+import { Gauge, Ticket } from "lucide-react";
 
 import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
@@ -12,7 +12,7 @@ export const APP_SIDEBAR_MENU_LINKS: Array<{
   {
     label: "Control center",
     path: ROUTES_CONFIG.get("control-center")!.path,
-    icon: <FolderCog />,
+    icon: <Gauge />,
   },
   {
     label: "Event",

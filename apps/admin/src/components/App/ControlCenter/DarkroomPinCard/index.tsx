@@ -14,6 +14,7 @@ import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { KeyRound, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -61,15 +62,16 @@ export const DarkroomPinCard = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
+        <CardTitle className={clsx("flex items-center gap-2")}>
+          <KeyRound className={clsx("size-4 text-muted-foreground")} />
           <h2>Darkroom PIN</h2>
         </CardTitle>
         <CardDescription>
           {pinStatus === undefined
             ? "Checking…"
             : pinStatus.isSet && pinStatus.updatedAt
-              ? `Set, last changed ${format(new Date(pinStatus.updatedAt), "MM/dd/yyyy HH:mm")}. Staff tap the top-left logo of the booth screen 4 times to open the Darkroom.`
-              : "Not set: the Darkroom is locked. Set a PIN so staff can tune the print on the booth."}
+              ? `Changed ${format(new Date(pinStatus.updatedAt), "MMM d, HH:mm")}. Tap the booth's top-left logo 4 times to open the Darkroom.`
+              : "No PIN yet: the Darkroom stays locked."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -87,10 +89,11 @@ export const DarkroomPinCard = () => {
           <Button type="submit" disabled={!isPinValid || isPending}>
             {isPending ? (
               <Spinner className="size-4" />
-            ) : pinStatus?.isSet ? (
-              "Change PIN"
             ) : (
-              "Set PIN"
+              <>
+                <LockKeyhole data-icon="inline-start" />
+                {pinStatus?.isSet ? "Change PIN" : "Set PIN"}
+              </>
             )}
           </Button>
         </form>

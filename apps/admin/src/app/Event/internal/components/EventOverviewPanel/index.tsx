@@ -1,11 +1,10 @@
-import type { FC } from "react";
+import type { FC, PropsWithChildren, ReactNode } from "react";
 
-import { capitalize } from "@dither-booth/shared/formatting";
+import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -13,9 +12,18 @@ import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
+import {
+  CalendarDays,
+  Dices,
+  Gift,
+  Package,
+  RefreshCw,
+  Save,
+  Timer,
+} from "lucide-react";
 import { useEffect } from "react";
 
-import { StatusDot } from "#components/Misc/StatusDot/index";
+import { RarityBadge } from "#components/Misc/RarityBadge/index";
 
 import type { CurrentEvent, UpdateEventFormValues } from "../../Event.types";
 
@@ -65,102 +73,127 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
   }, [event.campaign.name, event.campaign.kitId, event.campaign.id]);
 
   return (
-    <div className={clsx("grid gap-4 md:grid-cols-2")}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Overview</CardTitle>
-          <CardDescription></CardDescription>
-        </CardHeader>
-        <CardContent className={clsx("flex flex-col gap-4")}>
-          <div className={clsx("flex flex-wrap items-center gap-2")}>
-            <span className={clsx("inline-flex items-center gap-2", "text-sm")}>
-              <StatusDot
-                size="md"
-                variant={event.lottery.enabled ? "success" : "neutral"}
-              />
-              {event.lottery.enabled ? "Lottery live" : "Lottery off"}
-            </span>
-            <span className={clsx("text-muted-foreground")}>
-              {remainingPrizes} remaining prizes
-            </span>
-          </div>
-          {rarityBreakdown.length > 0 && (
-            <ul className={clsx("flex flex-col gap-1")}>
-              {rarityBreakdown.map((entry) => (
-                <li key={entry.rarity} className={clsx("text-sm")}>
-                  <span className={clsx("font-medium")}>
-                    {entry.remaining}x
-                  </span>{" "}
-                  {capitalize(entry.rarity)}
-                </li>
-              ))}
-            </ul>
+    <div className={clsx("flex flex-col gap-4 md:gap-6")}>
+      <div className={clsx("grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4")}>
+        <StatTile icon={<Dices />} label="Lottery">
+          {event.lottery.enabled ? (
+            <Badge
+              className={clsx("bg-success/10 text-success dark:bg-success/15")}
+              variant="secondary"
+            >
+              <span className={clsx("size-1.5 rounded-full bg-success")} />
+              Live
+            </Badge>
+          ) : (
+            <Badge variant="outline">Off</Badge>
           )}
-          <form
-            className={clsx("flex flex-col gap-3")}
-            onSubmit={(submitEvent) => {
-              submitEvent.preventDefault();
-              submitEvent.stopPropagation();
-              void form.handleSubmit();
-            }}
-          >
-            <TextField form={form} name="name" label="Event name" />
-            <SelectField
-              form={form}
-              name="kitId"
-              label="Ticket kit"
-              placeholder="Select a ticket kit"
-              options={KIT_FIELD_OPTIONS}
-            />
-            <div className={clsx("flex gap-2")}>
-              <Button type="submit" disabled={isSavingDetails}>
-                Save
-              </Button>
-              <Button type="button" variant="outline" onClick={onReplaceClick}>
-                Replace event
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Lottery snapshot</CardTitle>
-          <CardDescription>
-            Odds and cooldown are edited in the Lottery tab. Prize stock is
-            managed under Prizes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className={clsx("flex flex-col gap-2 text-sm")}>
-          <p>
-            No-win weight:{" "}
-            <span className={clsx("font-medium")}>
-              {event.lottery.noWinWeight}
-            </span>
-          </p>
-          <p>
-            Win cooldown:{" "}
-            <span className={clsx("font-medium")}>
-              {event.lottery.winCooldownMinutes} min
-            </span>
-          </p>
-          <p>
-            Print loser ticket:{" "}
-            <span className={clsx("font-medium")}>
-              {event.lottery.printLoserTicket ? "Yes" : "No"}
-            </span>
-          </p>
-          <p>
-            Prizes configured:{" "}
-            <span className={clsx("font-medium")}>{event.prizes.length}</span>
-          </p>
-        </CardContent>
-      </Card>
-      <EventTicketItemsCard
-        event={event}
-        isSaving={isSavingTicketItems}
-        onSave={onSaveTicketItems}
-      />
+        </StatTile>
+        <StatTile
+          icon={<Gift />}
+          label="Prizes left"
+          footer={
+            rarityBreakdown.length > 0 && (
+              <div className={clsx("flex flex-wrap gap-1.5")}>
+                {rarityBreakdown.map((entry) => (
+                  <RarityBadge
+                    key={entry.rarity}
+                    count={entry.remaining}
+                    rarity={entry.rarity}
+                  />
+                ))}
+              </div>
+            )
+          }
+        >
+          {remainingPrizes}
+        </StatTile>
+        <StatTile icon={<Package />} label="Prizes">
+          {event.prizes.length}
+        </StatTile>
+        <StatTile icon={<Timer />} label="Win cooldown">
+          {event.lottery.winCooldownMinutes}
+          <span className={clsx("ml-1 text-sm text-muted-foreground")}>
+            min
+          </span>
+        </StatTile>
+      </div>
+
+      <div className={clsx("grid items-start gap-4 md:gap-6 lg:grid-cols-2")}>
+        <Card>
+          <CardHeader>
+            <CardTitle className={clsx("flex items-center gap-2")}>
+              <CalendarDays className={clsx("size-4 text-muted-foreground")} />
+              Event details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              className={clsx("flex flex-col gap-4")}
+              onSubmit={(submitEvent) => {
+                submitEvent.preventDefault();
+                submitEvent.stopPropagation();
+                void form.handleSubmit();
+              }}
+            >
+              <TextField form={form} name="name" label="Event name" />
+              <SelectField
+                form={form}
+                name="kitId"
+                label="Ticket kit"
+                placeholder="Select a ticket kit"
+                options={KIT_FIELD_OPTIONS}
+              />
+              <div className={clsx("flex flex-wrap justify-end gap-2")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onReplaceClick}
+                >
+                  <RefreshCw data-icon="inline-start" />
+                  Replace event
+                </Button>
+                <Button type="submit" disabled={isSavingDetails}>
+                  <Save data-icon="inline-start" />
+                  Save
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+        <EventTicketItemsCard
+          event={event}
+          isSaving={isSavingTicketItems}
+          onSave={onSaveTicketItems}
+        />
+      </div>
     </div>
   );
 };
+
+/** A KPI tile, as on Vercel's and Stripe's dashboards. */
+const StatTile: FC<
+  PropsWithChildren<{ label: string; icon: ReactNode; footer?: ReactNode }>
+> = ({ label, icon, footer, children }) => (
+  <Card size="sm">
+    <CardContent className={clsx("flex flex-col gap-1.5")}>
+      <span
+        className={clsx(
+          "flex items-center justify-between gap-2",
+          "text-xs font-medium text-muted-foreground",
+          "[&_svg]:size-4",
+        )}
+      >
+        {label}
+        {icon}
+      </span>
+      <span
+        className={clsx(
+          "flex min-h-8 items-center text-2xl font-semibold tabular-nums",
+        )}
+      >
+        {children}
+      </span>
+      {footer}
+    </CardContent>
+  </Card>
+);

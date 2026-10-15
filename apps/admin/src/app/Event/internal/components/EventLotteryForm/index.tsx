@@ -4,7 +4,6 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -12,6 +11,7 @@ import { NumberField } from "@dither-booth/ui/fields/NumberField";
 import { SwitchField } from "@dither-booth/ui/fields/SwitchField";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
+import { Dices, Save } from "lucide-react";
 import { useEffect } from "react";
 
 import type {
@@ -58,11 +58,10 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
   return (
     <Card className={clsx("max-w-xl")}>
       <CardHeader>
-        <CardTitle>Lottery settings</CardTitle>
-        <CardDescription>
-          The booth only draws against the lottery of the current event, and
-          only while it is enabled.
-        </CardDescription>
+        <CardTitle className={clsx("flex items-center gap-2")}>
+          <Dices className={clsx("size-4 text-muted-foreground")} />
+          Lottery settings
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form
@@ -85,7 +84,12 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
             name="winCooldownMinutes"
             label="Win cooldown (minutes)"
           />
-          <Button type="submit" disabled={isSaving} className={clsx("w-fit")}>
+          <Button
+            type="submit"
+            disabled={isSaving}
+            className={clsx("self-end")}
+          >
+            <Save data-icon="inline-start" />
             Save lottery settings
           </Button>
         </form>

@@ -4,11 +4,11 @@ import {
   formatBoothTicketNumber,
   parseBoothTicketRef,
 } from "@dither-booth/shared/formatting";
+import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -25,6 +25,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { History, ListRestart, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -57,15 +58,11 @@ export const EventDrawsTable: FC = () => {
 
   return (
     <Card>
-      <CardHeader
-        className={clsx("flex flex-row items-start justify-between gap-4")}
-      >
-        <div>
-          <CardTitle>Draws</CardTitle>
-          <CardDescription>
-            Match a printed ticket number to the recorded lottery outcome.
-          </CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle className={clsx("flex items-center gap-2")}>
+          <History className={clsx("size-4 text-muted-foreground")} />
+          Draws
+        </CardTitle>
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-4")}>
         <form
@@ -95,7 +92,10 @@ export const EventDrawsTable: FC = () => {
               onChange={(changeEvent) => setDraft(changeEvent.target.value)}
             />
           </label>
-          <Button type="submit">Look up</Button>
+          <Button type="submit">
+            <Search data-icon="inline-start" />
+            Look up
+          </Button>
           {isLookup ? (
             <Button
               type="button"
@@ -105,6 +105,7 @@ export const EventDrawsTable: FC = () => {
                 setTicketRef(undefined);
               }}
             >
+              <ListRestart data-icon="inline-start" />
               Show latest
             </Button>
           ) : null}
@@ -119,13 +120,18 @@ export const EventDrawsTable: FC = () => {
             Failed to load draws.
           </p>
         ) : draws.length === 0 ? (
-          <p className={clsx("text-sm text-muted-foreground")}>
+          <p
+            className={clsx(
+              "rounded-lg border border-dashed px-4 py-8 text-center",
+              "text-sm text-muted-foreground",
+            )}
+          >
             {isLookup
               ? "This ticket number is not on a draw."
               : "No draws yet."}
           </p>
         ) : (
-          <div className={clsx("overflow-hidden rounded-none border")}>
+          <div className={clsx("overflow-hidden rounded-lg border")}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -143,14 +149,24 @@ export const EventDrawsTable: FC = () => {
                         ? formatBoothTicketNumber(draw.ticketRef)
                         : "—"}
                     </TableCell>
-                    <TableCell>
-                      {format(
-                        new Date(draw.createdAt),
-                        "MM/dd/yyyy hh:mm:ss a",
-                      )}
+                    <TableCell
+                      className={clsx("text-muted-foreground tabular-nums")}
+                    >
+                      {format(new Date(draw.createdAt), "MMM d, HH:mm:ss")}
                     </TableCell>
                     <TableCell>
-                      {draw.outcome === "win" ? "Win" : "Loss"}
+                      {draw.outcome === "win" ? (
+                        <Badge
+                          className={clsx(
+                            "bg-success/10 text-success dark:bg-success/15",
+                          )}
+                          variant="secondary"
+                        >
+                          Win
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Loss</Badge>
+                      )}
                     </TableCell>
                     <TableCell>{draw.prizeTitle ?? "—"}</TableCell>
                   </TableRow>

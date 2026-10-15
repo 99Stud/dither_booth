@@ -39,7 +39,7 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
     open,
     isPending,
     title = "Create event",
-    description = "Sets up the campaign and its lottery. You can add prizes next.",
+    description,
     submitLabel = "Create event",
     onOpenChange,
     onSubmit,
@@ -71,7 +71,7 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
       <DialogContent className={clsx("sm:max-w-md")}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <form
           className={clsx("flex flex-col gap-3")}

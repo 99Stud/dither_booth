@@ -12,7 +12,7 @@ import {
 } from "@dither-booth/ui/components/ui/card";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { RefreshCcw } from "lucide-react";
+import { Activity, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -239,6 +239,7 @@ export const HealthCard = () => {
     <Card>
       <CardHeader>
         <CardTitle className={clsx("relative", "flex items-center gap-2")}>
+          <Activity className={clsx("size-4 text-muted-foreground")} />
           <h2>Health checks</h2>
           <StatusDot
             size="md"
@@ -259,6 +260,7 @@ export const HealthCard = () => {
             aria-label="Refresh health checks"
             className={clsx("absolute top-0 right-0")}
             size="icon-sm"
+            variant="ghost"
             onClick={refetchHealthzAndNotify}
             disabled={isHealthzFetching}
           >
@@ -327,14 +329,6 @@ export const HealthCard = () => {
             healthz={healthz}
           />
         </Accordion>
-        <p className={clsx("mt-3 text-right")}>
-          <span className="font-medium">Process manager:</span>&nbsp;
-          {isHealthzPending
-            ? "checking..."
-            : isHealthzSuccess
-              ? healthz.runtime.processManager
-              : "undefined"}
-        </p>
       </CardContent>
     </Card>
   );

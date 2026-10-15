@@ -1,6 +1,5 @@
 import type { FC } from "react";
 
-import { capitalize } from "@dither-booth/shared/formatting";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +14,7 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
+  CardAction,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -34,8 +33,17 @@ import {
   TableRow,
 } from "@dither-booth/ui/components/ui/table";
 import clsx from "clsx";
-import { MoreHorizontal } from "lucide-react";
+import {
+  Gift,
+  MoreHorizontal,
+  PackagePlus,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
+
+import { RarityBadge } from "#components/Misc/RarityBadge/index";
 
 import type { CurrentEvent, EventPrize } from "../../Event.types";
 
@@ -47,6 +55,38 @@ interface EventPrizesTableProps {
   onRestockClick: (prize: EventPrize) => void;
   onDelete: (prizeId: string) => Promise<void>;
 }
+
+/** "4 / 10" with a thin bar, so empty and nearly empty prizes stand out. */
+const StockMeter: FC<{ remaining: number; total: number }> = ({
+  remaining,
+  total,
+}) => {
+  const ratio = total > 0 ? Math.min(1, remaining / total) : 0;
+
+  return (
+    <div className={clsx("flex min-w-28 items-center gap-2")}>
+      <span className={clsx("w-14 text-sm tabular-nums")}>
+        {remaining}
+        <span className={clsx("text-muted-foreground")}> / {total}</span>
+      </span>
+      <div
+        className={clsx("h-1.5 flex-1 overflow-hidden rounded-full bg-muted")}
+      >
+        <div
+          className={clsx(
+            "h-full rounded-full",
+            remaining === 0
+              ? "bg-destructive"
+              : ratio < 0.2
+                ? "bg-warning"
+                : "bg-brand",
+          )}
+          style={{ width: `${Math.max(ratio * 100, remaining > 0 ? 4 : 0)}%` }}
+        />
+      </div>
+    </div>
+  );
+};
 
 export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
   const {
@@ -63,44 +103,53 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
   return (
     <>
       <Card>
-        <CardHeader
-          className={clsx("flex flex-row items-start justify-between gap-4")}
-        >
-          <div>
-            <CardTitle>Prizes</CardTitle>
-            <CardDescription>
-              Prizes available in the event lottery. Deleting a prize that was
-              already won keeps that draw in history.
-            </CardDescription>
-          </div>
-          <Button onClick={onAddClick}>Add prize</Button>
+        <CardHeader>
+          <CardTitle className={clsx("flex items-center gap-2")}>
+            <Gift className={clsx("size-4 text-muted-foreground")} />
+            Prizes
+          </CardTitle>
+          <CardAction>
+            <Button onClick={onAddClick}>
+              <Plus data-icon="inline-start" />
+              Add prize
+            </Button>
+          </CardAction>
         </CardHeader>
         <CardContent>
           {event.prizes.length === 0 ? (
             <p className={clsx("text-sm text-muted-foreground")}>
-              No prizes yet. Add the first prize to start stocking the lottery.
+              No prizes yet.
             </p>
           ) : (
-            <div className={clsx("overflow-hidden rounded-none border")}>
+            <div className={clsx("overflow-hidden rounded-lg border")}>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
                     <TableHead>Rarity</TableHead>
                     <TableHead>Weight</TableHead>
-                    <TableHead>Remaining</TableHead>
-                    <TableHead>Total</TableHead>
+                    <TableHead>Stock</TableHead>
                     <TableHead className={clsx("w-12")} />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {event.prizes.map((prize) => (
                     <TableRow key={prize.id}>
-                      <TableCell>{prize.title}</TableCell>
-                      <TableCell>{capitalize(prize.rarity)}</TableCell>
-                      <TableCell>{prize.weight}</TableCell>
-                      <TableCell>{prize.remainingQuantity}</TableCell>
-                      <TableCell>{prize.totalQuantity}</TableCell>
+                      <TableCell className={clsx("font-medium")}>
+                        {prize.title}
+                      </TableCell>
+                      <TableCell>
+                        <RarityBadge rarity={prize.rarity} />
+                      </TableCell>
+                      <TableCell className={clsx("tabular-nums")}>
+                        {prize.weight}
+                      </TableCell>
+                      <TableCell>
+                        <StockMeter
+                          remaining={prize.remainingQuantity}
+                          total={prize.totalQuantity}
+                        />
+                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger
@@ -113,17 +162,20 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
                             <DropdownMenuItem
                               onClick={() => onEditClick(prize)}
                             >
+                              <Pencil />
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => onRestockClick(prize)}
                             >
+                              <PackagePlus />
                               Restock
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => setPrizeToDelete(prize)}
                             >
+                              <Trash2 />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>

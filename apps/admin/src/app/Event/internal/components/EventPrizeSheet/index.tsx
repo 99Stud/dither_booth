@@ -14,6 +14,7 @@ import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
+import { Plus, Save } from "lucide-react";
 import { useEffect } from "react";
 
 import type { EventPrize, PrizeFormValues } from "../../Event.types";
@@ -113,6 +114,11 @@ export const EventPrizeSheet: FC<EventPrizeSheetProps> = (props) => {
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
+              {mode === "create" ? (
+                <Plus data-icon="inline-start" />
+              ) : (
+                <Save data-icon="inline-start" />
+              )}
               {mode === "create" ? "Add prize" : "Save prize"}
             </Button>
           </SheetFooter>

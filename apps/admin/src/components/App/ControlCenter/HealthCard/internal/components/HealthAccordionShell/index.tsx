@@ -14,6 +14,8 @@ import { StatusDot } from "#components/Misc/StatusDot/index";
 interface HealthAccordionShellProps extends PropsWithChildren {
   footer?: ReactNode;
   label: string;
+  /** A lucide icon naming the service. */
+  icon?: ReactNode;
   statusDotSize?: ComponentProps<typeof StatusDot>["size"];
   statusVariant: StatusDotVariant;
   value: string;
@@ -23,6 +25,7 @@ export const HealthAccordionShell: FC<HealthAccordionShellProps> = ({
   children,
   footer,
   label,
+  icon,
   statusDotSize,
   statusVariant,
   value,
@@ -31,6 +34,11 @@ export const HealthAccordionShell: FC<HealthAccordionShellProps> = ({
     <AccordionItem value={value}>
       <AccordionTrigger className={clsx("items-center gap-2")}>
         <StatusDot size={statusDotSize} variant={statusVariant} />
+        {icon && (
+          <span className={clsx("text-muted-foreground [&_svg]:size-4")}>
+            {icon}
+          </span>
+        )}
         {label}
       </AccordionTrigger>
       <AccordionContent>

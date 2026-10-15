@@ -5,10 +5,12 @@ import { TooltipProvider } from "@dither-booth/ui/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { ThemeProvider } from "next-themes";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
+import { ADMIN_THEME_STORAGE_KEY } from "#lib/constants";
 import { router } from "#lib/router/index";
 import { TRPCProvider, queryClient, trpcClient } from "#lib/trpc/trpc.client";
 
@@ -27,18 +29,26 @@ declare module "@tanstack/react-router" {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RootErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
-          <Toaster />
-          <SidebarProvider>
-            <TooltipProvider>
-              <RouterProvider router={router} />
-            </TooltipProvider>
-          </SidebarProvider>
-          {isDevelopment && <TanStackRouterDevtools router={router} />}
-        </TRPCProvider>
-      </QueryClientProvider>
-    </RootErrorBoundary>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      disableTransitionOnChange
+      enableSystem
+      storageKey={ADMIN_THEME_STORAGE_KEY}
+    >
+      <RootErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
+            <Toaster />
+            <SidebarProvider>
+              <TooltipProvider>
+                <RouterProvider router={router} />
+              </TooltipProvider>
+            </SidebarProvider>
+            {isDevelopment && <TanStackRouterDevtools router={router} />}
+          </TRPCProvider>
+        </QueryClientProvider>
+      </RootErrorBoundary>
+    </ThemeProvider>
   </StrictMode>,
 );

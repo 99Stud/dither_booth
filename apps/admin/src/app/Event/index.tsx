@@ -1,14 +1,16 @@
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@dither-booth/ui/components/ui/tabs";
+import { Tabs, TabsContent } from "@dither-booth/ui/components/ui/tabs";
 import clsx from "clsx";
+import { Dices, Gift, History, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 
-import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
+import {
+  AppPageBody,
+  AppPageHeading,
+  AppPageTab,
+  AppPageTabsList,
+  AppSidebarPageHeader,
+} from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 
 import type { EventPrize, EventTab } from "./internal/Event.types";
 
@@ -57,18 +59,34 @@ export const Event = () => {
       value={tab}
       onValueChange={(value) => setTab(value as EventTab)}
     >
-      <AppSidebarPageHeader title="Event">
-        {event && (
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="lottery">Lottery</TabsTrigger>
-            <TabsTrigger value="prizes">Prizes</TabsTrigger>
-            <TabsTrigger value="draws">Draws</TabsTrigger>
-          </TabsList>
-        )}
-      </AppSidebarPageHeader>
+      <AppSidebarPageHeader title="Event" />
 
-      <div className={clsx("px-4 pb-8")}>
+      <AppPageBody>
+        <AppPageHeading
+          title={event?.campaign.name ?? "Event"}
+          tabs={
+            event && (
+              <AppPageTabsList>
+                <AppPageTab value="overview">
+                  <LayoutDashboard />
+                  Overview
+                </AppPageTab>
+                <AppPageTab value="lottery">
+                  <Dices />
+                  Lottery
+                </AppPageTab>
+                <AppPageTab value="prizes">
+                  <Gift />
+                  Prizes
+                </AppPageTab>
+                <AppPageTab value="draws">
+                  <History />
+                  Draws
+                </AppPageTab>
+              </AppPageTabsList>
+            )
+          }
+        />
         {isLoading ? (
           <div
             className={clsx("flex min-h-[40vh] items-center justify-center")}
@@ -102,10 +120,6 @@ export const Event = () => {
                     await updateLotterySettingsMutation.mutateAsync(values);
                   }}
                 />
-                <p className={clsx("text-sm text-muted-foreground")}>
-                  Print sample win and lose tickets from the Darkroom, on the
-                  booth.
-                </p>
               </div>
             </TabsContent>
             <TabsContent value="prizes" className={clsx("mt-0")}>
@@ -133,7 +147,7 @@ export const Event = () => {
             </TabsContent>
           </>
         )}
-      </div>
+      </AppPageBody>
 
       <EventCreateDialog
         open={isCreateOpen}
