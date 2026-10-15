@@ -179,7 +179,7 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
               label="Chance to win"
               hint={
                 drawableWeight > 0
-                  ? `About ${formatOneIn(winChance)} guests win something.`
+                  ? `About ${formatOneIn(winChance)} guests wins something.`
                   : "Add prizes with stock to set the odds."
               }
               control={<ValuePill>{winPercent}%</ValuePill>}

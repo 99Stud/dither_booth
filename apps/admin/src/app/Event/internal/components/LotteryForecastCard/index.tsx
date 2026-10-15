@@ -63,6 +63,12 @@ export const LotteryForecastCard: FC<{
     guestsPerHour,
   });
   const totalLeft = forecast.points[0]?.left ?? 0;
+  const lastMinute = forecast.points.at(-1)?.minute ?? 0;
+  // Every hour for short forecasts, every 3 h past 8 h, so phones stay legible.
+  const tickHours = lastMinute > 8 * 60 ? 3 : 1;
+  const hourTicks = forecast.points
+    .map((point) => point.minute)
+    .filter((minute) => minute % (tickHours * 60) === 0);
   const isCappedByCooldown =
     forecast.cooldownCapPerHour !== null &&
     forecast.winsPerHour >= forecast.cooldownCapPerHour * 0.8;
@@ -150,16 +156,14 @@ export const LotteryForecastCard: FC<{
               <AreaChart
                 accessibilityLayer
                 data={forecast.points}
-                margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+                margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
               >
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis
                   dataKey="minute"
                   type="number"
                   domain={[0, "dataMax"]}
-                  ticks={forecast.points
-                    .map((point) => point.minute)
-                    .filter((minute) => minute % 60 === 0)}
+                  ticks={hourTicks}
                   tickFormatter={(minute: number) => `${minute / 60} h`}
                   tickLine={false}
                   axisLine={false}
@@ -169,7 +173,7 @@ export const LotteryForecastCard: FC<{
                   allowDecimals={false}
                   tickLine={false}
                   axisLine={false}
-                  width={40}
+                  width={36}
                 />
                 <ChartTooltip
                   content={
