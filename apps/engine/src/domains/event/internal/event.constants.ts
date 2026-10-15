@@ -1,3 +1,4 @@
+import { DEFAULT_KIT_ID, kitIdSchema } from "@dither-booth/shared/kits";
 import { raritySchema } from "@dither-booth/shared/lottery";
 import { ticketItemNamesSchema } from "@dither-booth/shared/ticket";
 import z from "zod";
@@ -6,6 +7,7 @@ export const EVENT_LOG_SOURCE = "engine.event";
 
 export const createEventInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  kitId: kitIdSchema.default(DEFAULT_KIT_ID),
   noWinWeight: z.number().min(0).default(50),
   winCooldownMinutes: z.number().int().min(0).default(5),
   printLoserTicket: z.boolean().default(false),
@@ -14,6 +16,7 @@ export const createEventInputSchema = z.object({
 
 export const updateEventInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  kitId: kitIdSchema,
 });
 
 export const updateTicketItemsInputSchema = z.object({

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@dither-booth/ui/components/ui/dialog";
 import { NumberField } from "@dither-booth/ui/fields/NumberField";
+import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { SwitchField } from "@dither-booth/ui/fields/SwitchField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
 import { useForm } from "@tanstack/react-form";
@@ -20,6 +21,7 @@ import type { CreateEventFormValues } from "../../Event.types";
 import {
   CREATE_EVENT_FORM_SCHEMA,
   DEFAULT_CREATE_EVENT_FORM_VALUES,
+  KIT_FIELD_OPTIONS,
 } from "../../Event.constants";
 
 interface EventCreateDialogProps {
@@ -80,6 +82,13 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
           }}
         >
           <TextField form={form} name="name" label="Event name" />
+          <SelectField
+            form={form}
+            name="kitId"
+            label="Ticket kit"
+            placeholder="Select a ticket kit"
+            options={KIT_FIELD_OPTIONS}
+          />
           <NumberField form={form} name="noWinWeight" label="No-win weight" />
           <NumberField
             form={form}

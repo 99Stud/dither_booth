@@ -1,3 +1,4 @@
+import type { KitId } from "@dither-booth/shared/kits";
 import type { DrawOutcome, Rarity } from "@dither-booth/shared/lottery";
 
 export type EventPrize = {
@@ -14,6 +15,8 @@ export type CurrentEvent = {
   campaign: {
     id: string;
     name: string;
+    /** The kit this release renders for the event, after any fallback. */
+    kitId: KitId;
     ticketItemNames: string[];
   };
   lottery: {
@@ -38,7 +41,13 @@ export type ListDrawsResult = {
   draws: EventDraw[];
 };
 
+export type ReceiptEventSettings = {
+  kitId: KitId;
+  ticketItems: string[];
+};
+
 /**
- * Future Appearance fields (logo, shader colors, photo template) belong on
- * campaign / a 1:1 event-config sibling — not on lottery. Lottery stays odds/stock.
+ * Future Appearance fields (logo, shader colors) belong on the campaign, next
+ * to `kit_id`, or on a 1:1 event-config sibling — not on lottery. Lottery
+ * stays odds/stock.
  */

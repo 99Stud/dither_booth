@@ -17,7 +17,6 @@ import {
   COLOR_SCHEME_CODE_FIELD_OPTIONS,
   DITHER_MODE_CODE_BLUE_NOISE,
   DITHER_MODE_CODE_FIELD_OPTIONS,
-  RECEIPT_TEMPLATE_FIELD_OPTIONS,
   SLIDER_FIELD_CONFIGS,
 } from "#app/PrintConfiguration/internal/PrintConfiguration.constants";
 
@@ -85,15 +84,6 @@ export const PrintConfigurationFormFields: FC<
           disabled={isSliderFieldDisabled || doesNotApply(sliderField.name)}
         />
       ))}
-      <SelectField
-        className={clsx("mt-6")}
-        form={form}
-        name="template"
-        label="Receipt Template"
-        placeholder="Select a receipt template"
-        options={RECEIPT_TEMPLATE_FIELD_OPTIONS}
-        disabled={isSelectFieldDisabled}
-      />
       <SliderField
         key="threshold"
         form={form}

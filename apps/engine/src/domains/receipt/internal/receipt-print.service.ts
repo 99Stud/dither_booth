@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import { getCurrentTicketItemNamesForDb } from "#domains/event/event.service";
+import { getReceiptEventSettingsForDb } from "#domains/event/event.service";
 import {
   createBoothTicketRef,
   executeLotteryDraw,
@@ -122,9 +122,9 @@ const loadPhotoReceiptSources = async ({
     });
   }
 
-  const ticketItems = await getCurrentTicketItemNamesForDb(ctx.db);
+  const { kitId, ticketItems } = await getReceiptEventSettingsForDb(ctx.db);
 
-  return { page, photoBuffer, printConfiguration, ticketItems };
+  return { kitId, page, photoBuffer, printConfiguration, ticketItems };
 };
 
 export const prepareReceiptJob = async ({
@@ -134,10 +134,11 @@ export const prepareReceiptJob = async ({
   ctx: Pick<TRPCContext, "db" | "puppeteerLifecycle">;
   input: PhotoReceiptInput;
 }): Promise<PreparedReceiptJob> => {
-  const { page, photoBuffer, printConfiguration, ticketItems } =
+  const { kitId, page, photoBuffer, printConfiguration, ticketItems } =
     await loadPhotoReceiptSources({ ctx, input });
   let ticketRef = createBoothTicketRef();
   let receiptRasterCmd = await buildReceiptRasterCommand({
+    kitId,
     page,
     photoBuffer,
     printConfiguration,
@@ -162,6 +163,7 @@ export const prepareReceiptJob = async ({
   if (execution.ticketRef !== ticketRef) {
     ticketRef = execution.ticketRef;
     receiptRasterCmd = await buildReceiptRasterCommand({
+      kitId,
       page,
       photoBuffer,
       printConfiguration,
@@ -286,10 +288,11 @@ export const printTestReceiptJob = async ({
   input: PhotoReceiptInput;
 }): Promise<void> => {
   const { dryRun, printerUSBAdapter } = assertPrinterAvailable(ctx);
-  const { page, photoBuffer, printConfiguration, ticketItems } =
+  const { kitId, page, photoBuffer, printConfiguration, ticketItems } =
     await loadPhotoReceiptSources({ ctx, input });
 
   const receiptRasterCmd = await buildReceiptRasterCommand({
+    kitId,
     page,
     photoBuffer,
     printConfiguration,

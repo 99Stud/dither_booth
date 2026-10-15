@@ -1,11 +1,13 @@
+import { logKioskEvent } from "@dither-booth/logging";
 import { parseBoothTicketRef } from "@dither-booth/shared/formatting";
+import { DEFAULT_KIT_ID, resolveKitId } from "@dither-booth/shared/kits";
 import {
   DEFAULT_TICKET_ITEM_NAMES,
   ticketItemNamesSchema,
 } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import type { DB, DbExecutor, DbTransaction } from "#db/internal/db.types";
 
@@ -31,7 +33,16 @@ import type {
   UpdateLotterySettingsInput,
   UpdateTicketItemsInput,
 } from "./event.constants";
-import type { CurrentEvent, EventPrize, ListDrawsResult } from "./event.types";
+import type {
+  CurrentEvent,
+  EventPrize,
+  ListDrawsResult,
+  ReceiptEventSettings,
+} from "./event.types";
+
+import { EVENT_LOG_SOURCE } from "./event.constants";
+
+const isActiveCampaign = eq(campaignTable.status, "active");
 
 const EVENT_PRIZE_COLUMNS = {
   id: prizeTable.id,
@@ -50,21 +61,56 @@ function readTicketItemNames(value: unknown): string[] {
   return parsed.data;
 }
 
-export async function getCurrentTicketItemNamesForDb(
+/**
+ * The kit this release renders for a stored id. An id it doesn't ship (set by
+ * a newer release, or a kit since removed) prints with the default kit rather
+ * than failing the visit, and is logged so it can be fixed.
+ */
+function readKitId(campaign: { id: string; kitId: string | null }) {
+  const { kitId, known } = resolveKitId(campaign.kitId);
+  if (!known) {
+    logKioskEvent("warn", EVENT_LOG_SOURCE, "event-kit-unknown", {
+      details: {
+        campaignId: campaign.id,
+        storedKitId: campaign.kitId,
+        fallbackKitId: kitId,
+      },
+    });
+  }
+  return kitId;
+}
+
+/** What a photo receipt takes from the active event, or the defaults. */
+export async function getReceiptEventSettingsForDb(
   db: DB,
-): Promise<string[]> {
+): Promise<ReceiptEventSettings> {
   const campaign = db
-    .select({ ticketItemNames: campaignTable.ticketItemNames })
+    .select({
+      id: campaignTable.id,
+      kitId: campaignTable.kitId,
+      ticketItemNames: campaignTable.ticketItemNames,
+    })
     .from(campaignTable)
+    .where(isActiveCampaign)
     .get();
   if (!campaign) {
-    return [...DEFAULT_TICKET_ITEM_NAMES];
+    return {
+      kitId: DEFAULT_KIT_ID,
+      ticketItems: [...DEFAULT_TICKET_ITEM_NAMES],
+    };
   }
-  return readTicketItemNames(campaign.ticketItemNames);
+  return {
+    kitId: readKitId(campaign),
+    ticketItems: readTicketItemNames(campaign.ticketItemNames),
+  };
 }
 
 function readCurrentEvent(executor: DbExecutor): CurrentEvent | null {
-  const campaign = executor.select().from(campaignTable).get();
+  const campaign = executor
+    .select()
+    .from(campaignTable)
+    .where(isActiveCampaign)
+    .get();
   if (!campaign?.lotteryId) {
     return null;
   }
@@ -90,6 +136,7 @@ function readCurrentEvent(executor: DbExecutor): CurrentEvent | null {
     campaign: {
       id: campaign.id,
       name: campaign.name,
+      kitId: readKitId(campaign),
       ticketItemNames: readTicketItemNames(campaign.ticketItemNames),
     },
     lottery: {
@@ -133,10 +180,16 @@ function requireCurrentPrize(
 /**
  * Runs `write` in one synchronous transaction and returns the event as it
  * stands after the write, so a crash halfway never leaves a partial event.
+ * Every write moves the active event's `updated_at`, whichever of its tables
+ * it touched.
  */
 function writeEvent(db: DB, write: (tx: DbTransaction) => void): CurrentEvent {
   return db.transaction((tx) => {
     write(tx);
+    tx.update(campaignTable)
+      .set({ updatedAt: new Date() })
+      .where(isActiveCampaign)
+      .run();
     const next = readCurrentEvent(tx);
     if (!next) {
       throw new TRPCError({
@@ -148,19 +201,22 @@ function writeEvent(db: DB, write: (tx: DbTransaction) => void): CurrentEvent {
   });
 }
 
-function wipeEventData(tx: DbTransaction): void {
-  tx.delete(drawTable).run();
-  tx.delete(stockAdjustmentTable).run();
-  tx.delete(prizeTable).run();
-  tx.update(campaignTable).set({ lotteryId: null }).run();
-  tx.delete(lotteryTable).run();
-  tx.delete(campaignTable).run();
+/**
+ * Takes the active event out of play. Its lottery, prizes, stock ledger and
+ * draws are left exactly as they were, as the record of that event.
+ */
+function archiveActiveEvent(tx: DbTransaction): void {
+  tx.update(campaignTable)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(isActiveCampaign)
+    .run();
 }
 
 function insertEvent(tx: DbTransaction, input: CreateEventInput): void {
   const existing = tx
     .select({ id: campaignTable.id })
     .from(campaignTable)
+    .where(isActiveCampaign)
     .get();
   if (existing) {
     throw new TRPCError({
@@ -183,12 +239,13 @@ function insertEvent(tx: DbTransaction, input: CreateEventInput): void {
     .run();
 
   tx.insert(campaignTable)
-    .values({ id: createId(), name: input.name, lotteryId })
+    .values({
+      id: createId(),
+      name: input.name,
+      kitId: input.kitId,
+      lotteryId,
+    })
     .run();
-}
-
-export async function wipeAllEventData(db: DB): Promise<void> {
-  db.transaction((tx) => wipeEventData(tx));
 }
 
 export async function getCurrentEventForDb(
@@ -209,7 +266,7 @@ export async function replaceEventForDb(
   input: CreateEventInput,
 ): Promise<CurrentEvent> {
   return writeEvent(db, (tx) => {
-    wipeEventData(tx);
+    archiveActiveEvent(tx);
     insertEvent(tx, input);
   });
 }
@@ -221,7 +278,7 @@ export async function updateEventForDb(
   return writeEvent(db, (tx) => {
     const current = requireCurrentEvent(tx);
     tx.update(campaignTable)
-      .set({ name: input.name })
+      .set({ name: input.name, kitId: input.kitId })
       .where(eq(campaignTable.id, current.campaign.id))
       .run();
   });
@@ -245,14 +302,9 @@ export async function updateLotterySettingsForDb(
   input: UpdateLotterySettingsInput,
 ): Promise<CurrentEvent> {
   return writeEvent(db, (tx) => {
+    // Only the active event's lottery is ever drawn against, so an archived
+    // event's lottery can keep its `enabled` flag as a record.
     const current = requireCurrentEvent(tx);
-
-    if (input.enabled) {
-      tx.update(lotteryTable)
-        .set({ enabled: false })
-        .where(ne(lotteryTable.id, current.lottery.id))
-        .run();
-    }
 
     tx.update(lotteryTable)
       .set({
@@ -394,7 +446,7 @@ export async function listDrawsForDb(
     .from(drawTable)
     .where(
       and(
-        eq(drawTable.lotteryId, current.lottery.id),
+        eq(drawTable.campaignId, current.campaign.id),
         parsedTicketRef ? eq(drawTable.ticketRef, parsedTicketRef) : undefined,
       ),
     )

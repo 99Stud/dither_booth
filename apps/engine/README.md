@@ -93,7 +93,7 @@ bun run db:studio
 
 - `db:generate` runs `drizzle-kit generate`. Use it after changing the Drizzle schema to create a SQL migration in `drizzle` from `drizzle.config.ts`.
 - `db:migrate` runs the internal migration script, applies pending migrations from `drizzle` to `data/dither-booth.sqlite`, logs success or failure, and closes the SQLite connection.
-- `db:seed:lottery` inserts a local event (`dev_campaign`), enabled lottery (`dev_lottery`), and sample prizes for Experience / admin / dry-run testing. Skips if that lottery already exists; pass `--reset` to wipe campaigns/draws/prizes/lotteries and reseed.
+- `db:seed:lottery` inserts a local event (`dev_campaign`), enabled lottery (`dev_lottery`), and sample prizes for Experience / admin / dry-run testing. The dev event becomes the active one, and any other active event is archived. Skips if that lottery already exists; pass `--reset` to wipe campaigns/draws/prizes/lotteries and reseed.
 - `db:studio` runs Drizzle Studio for inspecting or editing the local SQLite database during development.
 
 #### Seed lottery (dev)
@@ -140,20 +140,32 @@ The tRPC router (`src/internal/router.ts`) is split by caller. Each group's proc
 
 A new procedure goes in the group of whoever calls it, and is built on that group's base procedure.
 
-### Event admin (singleton campaign)
+### Event admin (one active event)
 
-The booth supports **one campaign (event) at a time**. Admin manages it from the Event page via `config.*` procedures:
+The booth runs **one active campaign (event) at a time**. Admin manages it from the Event page via `config.*` procedures:
 
-| Procedure                                                      | Role                                                          |
-| -------------------------------------------------------------- | ------------------------------------------------------------- |
-| `getCurrentEvent`                                              | Aggregate campaign + lottery + prizes, or `null`              |
-| `createEvent`                                                  | Create campaign + lottery (rejects if one exists)             |
-| `updateEvent`                                                  | Rename campaign                                               |
-| `replaceEvent`                                                 | Wipe event data, then create a new one                        |
-| `updateLotterySettings`                                        | Enable / odds / win cooldown                                  |
-| `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD. Stock moves only through `restockPrize` (`+N/−N`) |
+| Procedure                                                      | Role                                                           |
+| -------------------------------------------------------------- | -------------------------------------------------------------- |
+| `getCurrentEvent`                                              | Aggregate of the active campaign + lottery + prizes, or `null` |
+| `createEvent`                                                  | Create campaign + lottery (rejects if one is active)           |
+| `updateEvent`                                                  | Rename the campaign, pick its ticket kit                       |
+| `replaceEvent`                                                 | Archive the active event, then create a new one                |
+| `updateLotterySettings`                                        | Enable / odds / win cooldown                                   |
+| `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD. Stock moves only through `restockPrize` (`+N/−N`)  |
 
 Runtime booth status (`booth.getLotteryStatus`) stays public. Draws only happen inside `booth.prepareReceipt`; the admin test print (`config.printReceipt`) prints under the sample ref `000000` and never draws.
+
+#### Event lifecycle
+
+Events are never deleted. `campaign.status` is `active` or `archived`:
+
+- A partial unique index (`campaign_single_active_idx`) lets at most one campaign be `active`.
+- `replaceEvent` archives the active campaign and creates the next one in the same transaction. The archived campaign's lottery, prizes, stock ledger and draws stay exactly as they were.
+- Everything reads and draws through the active campaign: `getCurrentEvent`, `listDraws`, the receipt settings, the draw and `getLotteryStatus`. A lottery is only drawn against while it belongs to the active campaign and is `enabled`, so an archived event's lottery is never used, whatever its flag says.
+- Every draw records `draw.campaign_id`, the event active when it ran (null when there was none). `lottery_id` is only set while that event's lottery was enabled. `listDraws` lists the active event's draws, including losses recorded while its lottery was off.
+- `created_at` and `updated_at` are set on each campaign. Every event write (campaign, lottery, prizes or stock) moves `updated_at`.
+
+Ticket refs stay unique across all events, archived ones included, so a ref always points at one draw.
 
 #### Stock ledger
 
@@ -173,22 +185,18 @@ Prize stock is never stored as a number. `stock_adjustment` is an append-only le
 
 Deltas commute with kiosk wins, so a restock never needs to know the current stock, and a form can't go stale.
 
-Two triggers created in `drizzle/0011_stock_ledger.sql` refuse an adjustment or a win that would take stock below zero. drizzle-kit doesn't track triggers, and rebuilding `draw` or `stock_adjustment` would drop them. `db.migrations.test.ts` fails if they go missing. Print Configuration remains the global dither/template owner for now.
+Two triggers created in `drizzle/0011_stock_ledger.sql` refuse an adjustment or a win that would take stock below zero. drizzle-kit doesn't track triggers, and rebuilding `draw` or `stock_adjustment` would drop them. `db.migrations.test.ts` fails if they go missing.
 
-**Future Appearance:** logo, shader colors, and a linked photo template will belong on the campaign (or a 1:1 event-config sibling), not on lottery. Lottery stays odds/stock only.
+**Future Appearance:** logo and shader colors will belong on the campaign, next to `kit_id` (or on a 1:1 event-config sibling), not on lottery. Lottery stays odds/stock only.
 
-### Receipt Template Migrations
+### Kits
 
-`RECEIPT_TEMPLATES` in `packages/shared/src/isomorphic/routes.ts` is the source of truth for receipt template names. The `print_config.template` database check constraint must accept exactly those strings, and its default must stay `tartines` unless the shared default is intentionally changed.
+The look of an event's photo receipt is its **kit**, stored on the campaign as `campaign.kit_id`. Print Configuration (`print_config`) holds device tuning only.
 
-When `RECEIPT_TEMPLATES` changes, keep the Drizzle schema check derived from that constant, then run:
-
-```bash
-bun run db:generate
-bun run db:migrate
-```
-
-Review the generated SQL before applying it. The `print_config_template_check` constraint should match the current `RECEIPT_TEMPLATES` values.
+- `KIT_IDS` in `packages/shared/src/isomorphic/kits.ts` lists the kits this release ships. `DEFAULT_KIT_ID` (`tartines`) is used when an event names none.
+- `kit_id` is free text, with no CHECK constraint and no default. It is validated in code: `createEvent` and `updateEvent` accept shipped kits only, so **adding a kit needs no migration**.
+- A stored id this release doesn't ship (set by a newer release, or a kit since removed) renders the default kit and logs `event-kit-unknown` (`engine.event`, level `warn`) instead of failing the visit.
+- The receipt viewer still takes the kit through its `template` search param, so a photo receipt's templates are the kits (`PHOTO_RECEIPT_TEMPLATES = KIT_IDS`).
 
 ## Local HTTPS Helpers
 

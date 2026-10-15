@@ -8,7 +8,7 @@ import type {
   PRIZE_FORM_SCHEMA,
   createRestockPrizeFormSchema,
   TICKET_ITEMS_FORM_SCHEMA,
-  UPDATE_EVENT_NAME_FORM_SCHEMA,
+  UPDATE_EVENT_FORM_SCHEMA,
 } from "./Event.constants";
 
 type ConfigProcedures = TRPCOptionsProxy<EngineRouter>["config"];
@@ -21,9 +21,7 @@ export type EventPrize = CurrentEvent["prizes"][number];
 export type EventTab = "overview" | "lottery" | "prizes" | "draws";
 
 export type CreateEventFormValues = z.infer<typeof CREATE_EVENT_FORM_SCHEMA>;
-export type UpdateEventNameFormValues = z.infer<
-  typeof UPDATE_EVENT_NAME_FORM_SCHEMA
->;
+export type UpdateEventFormValues = z.infer<typeof UPDATE_EVENT_FORM_SCHEMA>;
 export type TicketItemsFormValues = z.infer<typeof TICKET_ITEMS_FORM_SCHEMA>;
 export type LotterySettingsFormValues = z.infer<
   typeof LOTTERY_SETTINGS_FORM_SCHEMA
