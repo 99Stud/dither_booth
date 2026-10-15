@@ -3,12 +3,19 @@ import type { FC } from "react";
 import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { SliderField } from "@dither-booth/ui/fields/SliderField";
 import { SwitchField } from "@dither-booth/ui/fields/SwitchField";
+import { useStore } from "@tanstack/react-form";
 import clsx from "clsx";
 
-import type { PrintConfigurationFormApi } from "#app/PrintConfiguration/internal/PrintConfiguration.types";
+import type {
+  PrintConfigurationField,
+  PrintConfigurationFormApi,
+} from "#app/PrintConfiguration/internal/PrintConfiguration.types";
 
 import {
+  BLUE_NOISE_IGNORED_FIELDS,
+  BLUE_NOISE_ONLY_FIELDS,
   COLOR_SCHEME_CODE_FIELD_OPTIONS,
+  DITHER_MODE_CODE_BLUE_NOISE,
   DITHER_MODE_CODE_FIELD_OPTIONS,
   RECEIPT_TEMPLATE_FIELD_OPTIONS,
   SLIDER_FIELD_CONFIGS,
@@ -29,6 +36,15 @@ export const PrintConfigurationFormFields: FC<
   isSliderFieldDisabled,
   isSwitchFieldDisabled,
 }) => {
+  const isBlueNoise = useStore(
+    form.store,
+    (state) => state.values.ditherModeCode === DITHER_MODE_CODE_BLUE_NOISE,
+  );
+  const doesNotApply = (field: PrintConfigurationField) =>
+    isBlueNoise
+      ? BLUE_NOISE_IGNORED_FIELDS.has(field)
+      : BLUE_NOISE_ONLY_FIELDS.has(field);
+
   return (
     <div className={clsx("flex flex-col gap-4")}>
       <SelectField
@@ -45,14 +61,14 @@ export const PrintConfigurationFormFields: FC<
         label="Color Scheme"
         placeholder="Select a color scheme"
         options={COLOR_SCHEME_CODE_FIELD_OPTIONS}
-        disabled={isSelectFieldDisabled}
+        disabled={isSelectFieldDisabled || doesNotApply("colorSchemeCode")}
       />
       <SwitchField
         className={clsx("mb-6")}
         form={form}
         name="serpentine"
         label="Serpentine"
-        disabled={isSwitchFieldDisabled}
+        disabled={isSwitchFieldDisabled || doesNotApply("serpentine")}
       />
       {SLIDER_FIELD_CONFIGS.map((sliderField) => (
         <SliderField
@@ -66,7 +82,7 @@ export const PrintConfigurationFormFields: FC<
           formatValue={sliderField.formatValue}
           sliderValueToValue={sliderField.sliderValueToValue}
           valueToSliderValue={sliderField.valueToSliderValue}
-          disabled={isSliderFieldDisabled}
+          disabled={isSliderFieldDisabled || doesNotApply(sliderField.name)}
         />
       ))}
       <SelectField

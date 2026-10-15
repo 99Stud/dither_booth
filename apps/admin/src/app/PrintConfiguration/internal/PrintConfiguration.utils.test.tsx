@@ -53,6 +53,15 @@ describe("PrintConfiguration utils", () => {
     ).toEqual(["dithering", "receipt"]);
   });
 
+  it("marks both preview tabs dirty for the tone gamma", () => {
+    expect(
+      getChangedPreviewTabs(formValues, {
+        ...formValues,
+        toneGamma: 2.2,
+      }),
+    ).toEqual(["dithering", "receipt"]);
+  });
+
   it("marks only the receipt tab dirty for receipt-only fields", () => {
     expect(
       getChangedPreviewTabs(formValues, {
@@ -88,6 +97,7 @@ describe("PrintConfiguration utils", () => {
         shadows: 0.5,
         template: "heirvey",
         threshold: 90,
+        toneGamma: 2.2,
       }),
     ).toEqual({
       colorSchemeCode: 9,
@@ -100,6 +110,7 @@ describe("PrintConfiguration utils", () => {
       shadows: 0.5,
       template: "heirvey",
       threshold: 90,
+      toneGamma: 2.2,
     });
   });
 

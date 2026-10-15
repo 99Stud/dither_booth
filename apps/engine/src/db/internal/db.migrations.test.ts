@@ -163,6 +163,34 @@ describe("runSqliteMigrations", () => {
     expect(String((failure as Error).cause)).toMatch(/FOREIGN KEY/);
   });
 
+  test("moves a booth on the old Burkes default to blue noise", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(11), sqlite });
+    sqlite.run("INSERT INTO print_config (id, exposure) VALUES (1, 1.5)");
+
+    runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
+
+    expect(
+      sqlite
+        .query(
+          "SELECT dither_mode_code, exposure, tone_gamma FROM print_config",
+        )
+        .all(),
+    ).toEqual([{ dither_mode_code: 10, exposure: 1.5, tone_gamma: 1.8 }]);
+  });
+
+  test("keeps a dither mode the booth picked on purpose", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(11), sqlite });
+    sqlite.run("INSERT INTO print_config (id, dither_mode_code) VALUES (1, 4)");
+
+    runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
+
+    expect(
+      sqlite.query("SELECT dither_mode_code FROM print_config").all(),
+    ).toEqual([{ dither_mode_code: 4 }]);
+  });
+
   test("reports legacy orphans without refusing to boot", () => {
     const { sqlite, db } = openDb({ foreignKeys: false });
     runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });

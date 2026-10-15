@@ -78,6 +78,13 @@
       "when": 1791980894652,
       "tag": "0010_draw_prize_title",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1792060922194,
+      "tag": "0011_blue_noise_dither",
+      "breakpoints": true
     }
   ]
 }

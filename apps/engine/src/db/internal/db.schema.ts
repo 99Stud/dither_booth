@@ -25,7 +25,7 @@ export const printConfigTable = sqliteTable(
   "print_config",
   {
     id: integer("id").primaryKey().notNull().default(PRINT_CONFIG_SINGLETON_ID),
-    ditherModeCode: integer("dither_mode_code").notNull().default(1),
+    ditherModeCode: integer("dither_mode_code").notNull().default(10),
     colorSchemeCode: integer("color_scheme_code").notNull().default(0),
     serpentine: integer("serpentine", { mode: "boolean" })
       .notNull()
@@ -34,6 +34,7 @@ export const printConfigTable = sqliteTable(
     saturation: real("saturation").notNull().default(1),
     shadows: real("shadows").notNull().default(0),
     highlights: real("highlights").notNull().default(0),
+    toneGamma: real("tone_gamma").notNull().default(1.8),
     threshold: integer("threshold").notNull().default(128),
     rotation: integer("rotation").notNull().default(0),
     template: text("template", { enum: PHOTO_RECEIPT_TEMPLATES })
@@ -44,7 +45,7 @@ export const printConfigTable = sqliteTable(
     check("print_config_singleton_check", sql`${table.id} = 1`),
     check(
       "print_config_dither_mode_code_check",
-      sql`${table.ditherModeCode} between 0 and 9`,
+      sql`${table.ditherModeCode} between 0 and 10`,
     ),
     check(
       "print_config_color_scheme_code_check",
@@ -63,6 +64,10 @@ export const printConfigTable = sqliteTable(
     check(
       "print_config_highlights_check",
       sql`${table.highlights} between 0 and 1`,
+    ),
+    check(
+      "print_config_tone_gamma_check",
+      sql`${table.toneGamma} between 1 and 3`,
     ),
     check(
       "print_config_threshold_check",
