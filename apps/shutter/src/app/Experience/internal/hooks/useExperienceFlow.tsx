@@ -30,6 +30,7 @@ import {
 } from "../Experience.phases";
 import { useCaptureFlash } from "./useCaptureFlash";
 import { useExperienceShellClass } from "./useExperienceShellClass";
+import { useKioskCommands } from "./useKioskCommands";
 import { usePhaseTimeout } from "./usePhaseTimeout";
 import { usePrintAttempt } from "./usePrintAttempt";
 import { useWebcamPrewarm } from "./useWebcamPrewarm";
@@ -58,6 +59,7 @@ export const useExperienceFlow = () => {
   const captureFlashId = useCaptureFlash(activePrintAttemptId);
 
   useExperienceShellClass();
+  useKioskCommands(phase);
   useWebcamPrewarm({ phase, webcamRef });
   usePrintAttempt({
     activePrintAttemptId,
