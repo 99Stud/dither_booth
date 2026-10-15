@@ -62,6 +62,33 @@ function openDb({ foreignKeys }: { foreignKeys: boolean }) {
   return { sqlite, db: drizzle({ client: sqlite, schema: dbSchema }) };
 }
 
+/** Stock derived from the ledger, the way the engine computes it. */
+const stockByPrize = (sqlite: Database) =>
+  sqlite
+    .query(
+      `SELECT
+        id,
+        COALESCE((SELECT SUM(delta) FROM stock_adjustment WHERE prize_id = prize.id), 0) AS total,
+        COALESCE((SELECT SUM(delta) FROM stock_adjustment WHERE prize_id = prize.id), 0)
+          - (SELECT COUNT(*) FROM draw WHERE prize_id = prize.id) AS remaining
+      FROM prize
+      ORDER BY id`,
+    )
+    .all();
+
+const STOCK_TRIGGERS = [
+  "draw_requires_stock",
+  "stock_adjustment_keeps_stock_non_negative",
+];
+
+const triggerNames = (sqlite: Database) =>
+  sqlite
+    .query<{ name: string }, []>(
+      "SELECT name FROM sqlite_master WHERE type = 'trigger' ORDER BY name",
+    )
+    .all()
+    .map((row) => row.name);
+
 const foreignKeysEnabled = (sqlite: Database) =>
   sqlite.query<{ foreign_keys: number }, []>("PRAGMA foreign_keys").get()
     ?.foreign_keys === 1;
@@ -135,12 +162,11 @@ describe("runSqliteMigrations", () => {
       { id: "d1", prize_id: "p1", prize_title: "a sticker" },
       { id: "d2", prize_id: null, prize_title: null },
     ]);
-    expect(
-      sqlite
-        .query("SELECT id, title, remaining_quantity, removed FROM prize")
-        .all(),
-    ).toEqual([
-      { id: "p1", title: "a sticker", remaining_quantity: 4, removed: 0 },
+    expect(sqlite.query("SELECT id, title, removed FROM prize").all()).toEqual([
+      { id: "p1", title: "a sticker", removed: 0 },
+    ]);
+    expect(stockByPrize(sqlite)).toEqual([
+      { id: "p1", total: 5, remaining: 4 },
     ]);
   });
 
@@ -168,8 +194,10 @@ describe("runSqliteMigrations", () => {
     runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
 
     sqlite.run("PRAGMA foreign_keys = OFF");
+    // An orphan lottery, not prize: the stock trigger stops a win on an
+    // unknown prize before the row exists.
     sqlite.run(
-      "INSERT INTO draw (id, prize_id, ticket_ref) VALUES ('orphan', 'ghost-prize', '123456')",
+      "INSERT INTO draw (id, lottery_id, ticket_ref) VALUES ('orphan', 'ghost-lottery', '123456')",
     );
 
     const violations = runSqliteMigrations({
@@ -178,7 +206,91 @@ describe("runSqliteMigrations", () => {
       sqlite,
     });
 
-    expect(violations).toMatchObject([{ table: "draw", parent: "prize" }]);
+    expect(violations).toMatchObject([{ table: "draw", parent: "lottery" }]);
     expect(foreignKeysEnabled(sqlite)).toBe(true);
+  });
+
+  test("0011 carries every prize's stock into the ledger", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    // Up to and including 0010: the last schema with stock columns.
+    runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(11), sqlite });
+
+    sqlite.run("INSERT INTO lottery (id) VALUES ('l1')");
+    const insertPrize = sqlite.prepare(
+      "INSERT INTO prize (id, lottery_id, title, win_instruction, total_quantity, remaining_quantity, removed) VALUES (?, 'l1', ?, 'Bar', ?, ?, ?)",
+    );
+    insertPrize.run("drained", "half won", 10, 4, 0);
+    insertPrize.run("fresh", "untouched", 5, 5, 0);
+    // Soft-deleted after a win: remaining was zeroed, total kept.
+    insertPrize.run("gone", "removed", 3, 0, 1);
+    insertPrize.run("empty", "no stock", 0, 0, 0);
+
+    const insertWin = sqlite.prepare(
+      "INSERT INTO draw (id, lottery_id, prize_id, ticket_ref) VALUES (?, 'l1', ?, ?)",
+    );
+    for (let i = 0; i < 6; i++) {
+      insertWin.run(`w${i}`, "drained", `00000${i}`);
+    }
+    insertWin.run("w-gone", "gone", "000099");
+
+    const before = sqlite
+      .query(
+        "SELECT id, remaining_quantity AS remaining FROM prize ORDER BY id",
+      )
+      .all() as Array<{ id: string; remaining: number }>;
+
+    const violations = runSqliteMigrations({
+      db,
+      migrationsFolder: MIGRATIONS_FOLDER,
+      sqlite,
+    });
+
+    expect(violations).toEqual([]);
+    const after = stockByPrize(sqlite) as Array<{
+      id: string;
+      remaining: number;
+      total: number;
+    }>;
+    expect(after.map(({ id, remaining }) => ({ id, remaining }))).toEqual(
+      before,
+    );
+    expect(after).toEqual([
+      { id: "drained", total: 10, remaining: 4 },
+      { id: "empty", total: 0, remaining: 0 },
+      { id: "fresh", total: 5, remaining: 5 },
+      { id: "gone", total: 1, remaining: 0 },
+    ]);
+    expect(
+      sqlite
+        .query("SELECT id, delta, reason FROM stock_adjustment ORDER BY id")
+        .all(),
+    ).toEqual([
+      { id: "backfill-correction-gone", delta: -2, reason: "correction" },
+      { id: "backfill-initial-drained", delta: 10, reason: "initial" },
+      { id: "backfill-initial-fresh", delta: 5, reason: "initial" },
+      { id: "backfill-initial-gone", delta: 3, reason: "initial" },
+    ]);
+    expect(
+      sqlite
+        .query<{ name: string }, []>("PRAGMA table_info(prize)")
+        .all()
+        .map((column) => column.name),
+    ).not.toContain("remaining_quantity");
+  });
+
+  test("leaves the stock triggers and prize checks in place", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
+
+    // A later migration that rebuilds `draw` or `stock_adjustment` drops
+    // these silently, since drizzle-kit does not track triggers.
+    expect(triggerNames(sqlite)).toEqual(STOCK_TRIGGERS);
+
+    sqlite.run("INSERT INTO lottery (id) VALUES ('l1')");
+    expect(() =>
+      sqlite.run(
+        "INSERT INTO prize (id, lottery_id, title, win_instruction, weight) VALUES ('p', 'l1', 't', 'w', 0)",
+      ),
+    ).toThrow(/CHECK constraint failed/);
   });
 });

@@ -7,6 +7,8 @@ import type { DB } from "#db/internal/db.types";
 
 import { drawTable, lotteryTable, prizeTable } from "#db/internal/db.schema";
 
+import { prizeStockColumns } from "./lottery.stock";
+
 export const EMPTY_LOTTERY_STATUS = {
   enabled: false,
   remainingPrizes: 0,
@@ -45,12 +47,13 @@ export async function getLotteryStatusForDb(db: DB): Promise<LotteryStatus> {
     return EMPTY_LOTTERY_STATUS;
   }
 
-  const prizes = await db.query.prizeTable.findMany({
-    where: and(
-      eq(prizeTable.lotteryId, lottery.id),
-      eq(prizeTable.removed, false),
-    ),
-  });
+  const prizes = db
+    .select({ rarity: prizeTable.rarity, ...prizeStockColumns })
+    .from(prizeTable)
+    .where(
+      and(eq(prizeTable.lotteryId, lottery.id), eq(prizeTable.removed, false)),
+    )
+    .all();
 
   const remainingPrizes = prizes.reduce(
     (sum, prize) => sum + prize.remainingQuantity,

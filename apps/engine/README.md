@@ -144,16 +144,36 @@ A new procedure goes in the group of whoever calls it, and is built on that grou
 
 The booth supports **one campaign (event) at a time**. Admin manages it from the Event page via `config.*` procedures:
 
-| Procedure                                                      | Role                                              |
-| -------------------------------------------------------------- | ------------------------------------------------- |
-| `getCurrentEvent`                                              | Aggregate campaign + lottery + prizes, or `null`  |
-| `createEvent`                                                  | Create campaign + lottery (rejects if one exists) |
-| `updateEvent`                                                  | Rename campaign                                   |
-| `replaceEvent`                                                 | Wipe event data, then create a new one            |
-| `updateLotterySettings`                                        | Enable / odds / win cooldown                      |
-| `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD + restock                              |
+| Procedure                                                      | Role                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------- |
+| `getCurrentEvent`                                              | Aggregate campaign + lottery + prizes, or `null`              |
+| `createEvent`                                                  | Create campaign + lottery (rejects if one exists)             |
+| `updateEvent`                                                  | Rename campaign                                               |
+| `replaceEvent`                                                 | Wipe event data, then create a new one                        |
+| `updateLotterySettings`                                        | Enable / odds / win cooldown                                  |
+| `createPrize` / `updatePrize` / `deletePrize` / `restockPrize` | Prize CRUD. Stock moves only through `restockPrize` (`+N/−N`) |
 
-Runtime booth status (`booth.getLotteryStatus`) stays public; draws only happen inside `booth.prepareReceipt` / `config.printReceipt`. Print Configuration remains the global dither/template owner for now.
+Runtime booth status (`booth.getLotteryStatus`) stays public. Draws only happen inside `booth.prepareReceipt`; the admin test print (`config.printReceipt`) prints under the sample ref `000000` and never draws.
+
+#### Stock ledger
+
+Prize stock is never stored as a number. `stock_adjustment` is an append-only ledger:
+
+- remaining stock = sum of a prize's `delta` − its winning draws;
+- `totalQuantity` = sum of its `delta`, the stock ever allocated net of corrections.
+
+`src/domains/lottery/internal/lottery.stock.ts` is the only place either is computed.
+
+- **Creating a prize** writes an `initial` entry for its quantity.
+- **`restockPrize({ prizeId, delta, adjustmentId })`** writes a `restock` entry for a positive delta or a `correction` entry for a negative one.
+  - The caller picks `adjustmentId` when the change is first requested and reuses it on retries, so the change is applied once.
+  - An id reused for a different change is `CONFLICT`.
+  - Removing more than what is left is `BAD_REQUEST`.
+- **A win** takes its unit by inserting its `draw` row, inside the draw transaction.
+
+Deltas commute with kiosk wins, so a restock never needs to know the current stock, and a form can't go stale.
+
+Two triggers created in `drizzle/0011_stock_ledger.sql` refuse an adjustment or a win that would take stock below zero. drizzle-kit doesn't track triggers, and rebuilding `draw` or `stock_adjustment` would drop them. `db.migrations.test.ts` fails if they go missing. Print Configuration remains the global dither/template owner for now.
 
 **Future Appearance:** logo, shader colors, and a linked photo template will belong on the campaign (or a 1:1 event-config sibling), not on lottery. Lottery stays odds/stock only.
 

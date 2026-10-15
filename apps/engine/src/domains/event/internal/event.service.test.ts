@@ -1,4 +1,5 @@
 import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
+import { createId } from "@paralleldrive/cuid2";
 import { describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 
@@ -7,6 +8,7 @@ import {
   drawTable,
   lotteryTable,
   prizeTable,
+  stockAdjustmentTable,
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 import { executeLotteryDraw } from "#domains/lottery/lottery.service";
@@ -117,8 +119,7 @@ describe("event.service", () => {
         title: "sticker",
         winInstruction: "Show this ticket at the bar",
         weight: 1,
-        totalQuantity: 5,
-        remainingQuantity: 5,
+        quantity: 5,
         rarity: "common",
       });
 
@@ -156,7 +157,7 @@ describe("event.service", () => {
     }
   });
 
-  test("restockPrize bumps total when remaining exceeds previous total", async () => {
+  test("restockPrize adds and removes stock by delta, once per adjustment id", async () => {
     const { db, sqlite } = createTestDb();
 
     try {
@@ -172,23 +173,91 @@ describe("event.service", () => {
         title: "drink",
         winInstruction: "Show this ticket at the bar",
         weight: 2,
-        totalQuantity: 3,
-        remainingQuantity: 1,
+        quantity: 1,
         rarity: "rare",
       });
 
       const prizeId = withPrize.prizes[0]!.id;
-      const restocked = await restockPrizeForDb(db, {
-        prizeId,
-        remainingQuantity: 10,
-        expectedRemainingQuantity: 1,
-      });
+      expect(
+        db
+          .select()
+          .from(stockAdjustmentTable)
+          .where(eq(stockAdjustmentTable.prizeId, prizeId))
+          .all(),
+      ).toMatchObject([{ delta: 1, reason: "initial" }]);
 
-      expect(restocked.prizes[0]).toMatchObject({
-        id: prizeId,
+      const plus = { prizeId, delta: 9, adjustmentId: createId() };
+      await restockPrizeForDb(db, plus);
+      // A retry of the same request (same id) is not applied again.
+      const retried = await restockPrizeForDb(db, plus);
+      expect(retried.prizes[0]).toMatchObject({
         remainingQuantity: 10,
         totalQuantity: 10,
       });
+
+      const minus = await restockPrizeForDb(db, {
+        prizeId,
+        delta: -4,
+        adjustmentId: createId(),
+      });
+      expect(minus.prizes[0]).toMatchObject({
+        remainingQuantity: 6,
+        totalQuantity: 6,
+      });
+
+      await expect(
+        restockPrizeForDb(db, {
+          prizeId,
+          delta: -7,
+          adjustmentId: createId(),
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      await expect(
+        restockPrizeForDb(db, { ...plus, delta: 3 }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+
+      expect(
+        db
+          .select()
+          .from(stockAdjustmentTable)
+          .where(eq(stockAdjustmentTable.prizeId, prizeId))
+          .all()
+          .map((row) => [row.reason, row.delta]),
+      ).toEqual([
+        ["initial", 1],
+        ["restock", 9],
+        ["correction", -4],
+      ]);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("createPrize with no quantity writes no ledger entry", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      await createEventForDb(db, {
+        name: "Empty prize",
+        noWinWeight: 1,
+        winCooldownMinutes: 0,
+        printLoserTicket: false,
+        enabled: false,
+      });
+
+      const created = await createPrizeForDb(db, {
+        title: "later",
+        winInstruction: "Show this ticket at the bar",
+        weight: 1,
+        quantity: 0,
+        rarity: "common",
+      });
+
+      expect(created.prizes[0]).toMatchObject({
+        remainingQuantity: 0,
+        totalQuantity: 0,
+      });
+      expect(db.select().from(stockAdjustmentTable).all()).toEqual([]);
     } finally {
       sqlite.close();
     }
@@ -253,8 +322,7 @@ describe("event.service", () => {
         title: "legendary prize",
         winInstruction: "Show this ticket at the bar",
         weight: 1,
-        totalQuantity: 1,
-        remainingQuantity: 1,
+        quantity: 1,
         rarity: "legendary",
       });
 
@@ -274,7 +342,6 @@ describe("event.service", () => {
       });
       expect(stored).toMatchObject({
         removed: true,
-        remainingQuantity: 0,
         title: "legendary prize",
       });
 
@@ -306,8 +373,7 @@ describe("event.service", () => {
         title: "unused prize",
         winInstruction: "Show this ticket at the bar",
         weight: 1,
-        totalQuantity: 1,
-        remainingQuantity: 1,
+        quantity: 1,
         rarity: "common",
       });
 
@@ -319,6 +385,8 @@ describe("event.service", () => {
         where: eq(prizeTable.id, prizeId),
       });
       expect(stored).toBeUndefined();
+      // Its ledger goes with it.
+      expect(db.select().from(stockAdjustmentTable).all()).toEqual([]);
     } finally {
       sqlite.close();
     }
@@ -340,8 +408,7 @@ describe("event.service", () => {
         title: "sticker",
         winInstruction: "Show this ticket at the bar",
         weight: 1,
-        totalQuantity: 5,
-        remainingQuantity: 5,
+        quantity: 5,
         rarity: "common",
       });
 
@@ -400,14 +467,13 @@ describe("event.service", () => {
 });
 
 describe("event.service — kiosk concurrency and history", () => {
-  const PRIZE_INPUT = {
+  const PRIZE_FIELDS = {
     title: "sticker",
     winInstruction: "Show this ticket at the bar",
     weight: 1,
-    totalQuantity: 5,
-    remainingQuantity: 5,
     rarity: "common" as const,
   };
+  const PRIZE_INPUT = { ...PRIZE_FIELDS, quantity: 5 };
 
   async function setupLiveEvent() {
     const { db, sqlite } = createTestDb();
@@ -426,7 +492,7 @@ describe("event.service — kiosk concurrency and history", () => {
     return { db, sqlite, prize, kioskWin };
   }
 
-  test("updatePrize rejects stale stock instead of undoing a kiosk win", async () => {
+  test("updatePrize never touches stock, so it cannot undo a kiosk win", async () => {
     const { db, sqlite, prize, kioskWin } = await setupLiveEvent();
 
     try {
@@ -434,54 +500,38 @@ describe("event.service — kiosk concurrency and history", () => {
       const win = await kioskWin();
       expect(win.result.outcome).toBe("win");
 
-      await expect(
-        updatePrizeForDb(db, {
-          ...PRIZE_INPUT,
-          prizeId: prize.id,
-          title: "renamed",
-          expectedRemainingQuantity: 5,
-        }),
-      ).rejects.toMatchObject({ code: "CONFLICT" });
-
-      const current = await getCurrentEventForDb(db);
-      expect(current?.prizes[0]).toMatchObject({
-        title: "sticker",
-        remainingQuantity: 4,
-      });
-
       const saved = await updatePrizeForDb(db, {
-        ...PRIZE_INPUT,
+        ...PRIZE_FIELDS,
         prizeId: prize.id,
         title: "renamed",
-        remainingQuantity: 4,
-        expectedRemainingQuantity: 4,
       });
       expect(saved.prizes[0]).toMatchObject({
         title: "renamed",
         remainingQuantity: 4,
+        totalQuantity: 5,
       });
     } finally {
       sqlite.close();
     }
   });
 
-  test("restockPrize rejects stale stock", async () => {
+  test("a restock after a kiosk win adds to what is left", async () => {
     const { db, sqlite, prize, kioskWin } = await setupLiveEvent();
 
     try {
+      // Admin opens the dialog at 5 left and asks for +3, a visitor wins
+      // before the request lands: both changes count.
       await kioskWin();
 
-      await expect(
-        restockPrizeForDb(db, {
-          prizeId: prize.id,
-          remainingQuantity: 5,
-          totalQuantity: 5,
-          expectedRemainingQuantity: 5,
-        }),
-      ).rejects.toMatchObject({ code: "CONFLICT" });
-
-      const current = await getCurrentEventForDb(db);
-      expect(current?.prizes[0]?.remainingQuantity).toBe(4);
+      const restocked = await restockPrizeForDb(db, {
+        prizeId: prize.id,
+        delta: 3,
+        adjustmentId: createId(),
+      });
+      expect(restocked.prizes[0]).toMatchObject({
+        remainingQuantity: 7,
+        totalQuantity: 8,
+      });
     } finally {
       sqlite.close();
     }
@@ -494,12 +544,10 @@ describe("event.service — kiosk concurrency and history", () => {
       const win = await kioskWin();
 
       await updatePrizeForDb(db, {
-        ...PRIZE_INPUT,
+        ...PRIZE_FIELDS,
         prizeId: prize.id,
         title: "a different prize",
         rarity: "legendary",
-        remainingQuantity: 4,
-        expectedRemainingQuantity: 4,
       });
 
       const draws = await listDrawsForDb(db, { limit: 50 });
@@ -525,7 +573,15 @@ describe("event.service — kiosk concurrency and history", () => {
       expect(next.prizes).toEqual([]);
       expect(
         db.select().from(prizeTable).where(eq(prizeTable.id, prize.id)).get(),
-      ).toMatchObject({ removed: true, remainingQuantity: 0 });
+      ).toMatchObject({ removed: true });
+      // The ledger stays as the prize's stock history.
+      expect(
+        db
+          .select()
+          .from(stockAdjustmentTable)
+          .where(eq(stockAdjustmentTable.prizeId, prize.id))
+          .all(),
+      ).toHaveLength(1);
 
       const draws = await listDrawsForDb(db, { limit: 50 });
       expect(draws.draws[0]).toMatchObject({
@@ -535,11 +591,7 @@ describe("event.service — kiosk concurrency and history", () => {
 
       // A removed prize is gone for the admin and for the kiosk.
       await expect(
-        updatePrizeForDb(db, {
-          ...PRIZE_INPUT,
-          prizeId: prize.id,
-          expectedRemainingQuantity: 0,
-        }),
+        updatePrizeForDb(db, { ...PRIZE_FIELDS, prizeId: prize.id }),
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
       expect((await kioskWin()).result.outcome).toBe("loss");
     } finally {
@@ -564,7 +616,9 @@ describe("event.service — kiosk concurrency and history", () => {
       expect(() =>
         db
           .insert(drawTable)
-          .values({ prizeId: "no-such-prize", ticketRef: "777777" })
+          // A missing lottery, not a missing prize: a win on an unknown
+          // prize is stopped earlier by the out-of-stock trigger.
+          .values({ lotteryId: "no-such-lottery", ticketRef: "777777" })
           .run(),
       ).toThrow(/FOREIGN KEY/);
     } finally {
@@ -643,6 +697,7 @@ describe("event.service — kiosk concurrency and history", () => {
       expect(await getCurrentEventForDb(db)).toBeNull();
       for (const table of [
         drawTable,
+        stockAdjustmentTable,
         prizeTable,
         lotteryTable,
         campaignTable,

@@ -7,6 +7,7 @@ import z from "zod";
 
 import type {
   CreateEventFormValues,
+  EventPrize,
   PrizeFormValues,
   LotterySettingsFormValues,
   RestockPrizeFormValues,
@@ -39,29 +40,39 @@ export const LOTTERY_SETTINGS_FORM_SCHEMA = z.object({
   printLoserTicket: z.boolean(),
 });
 
-export const PRIZE_FORM_SCHEMA = z
-  .object({
-    title: z.string().trim().min(1).max(120),
-    winInstruction: z.string().trim().min(1).max(240),
-    weight: z.number().gt(0),
-    totalQuantity: z.number().int().min(0),
-    remainingQuantity: z.number().int().min(0),
-    rarity: z.enum(RARITY_TYPES),
-  })
-  .refine((value) => value.remainingQuantity <= value.totalQuantity, {
-    message: "Remaining cannot exceed total",
-    path: ["remainingQuantity"],
-  });
+/** Mirrors the engine's bound on a single stock change. */
+const MAX_STOCK_CHANGE = 100_000;
 
-export const RESTOCK_PRIZE_FORM_SCHEMA = z
-  .object({
-    remainingQuantity: z.number().int().min(0),
-    totalQuantity: z.number().int().min(0),
-  })
-  .refine((value) => value.remainingQuantity <= value.totalQuantity, {
-    message: "Remaining cannot exceed total",
-    path: ["remainingQuantity"],
-  });
+/**
+ * `quantity` is the initial stock and is only sent when creating a prize.
+ * After that, stock only moves through restock deltas.
+ */
+export const PRIZE_FORM_SCHEMA = z.object({
+  title: z.string().trim().min(1).max(120),
+  winInstruction: z.string().trim().min(1).max(240),
+  weight: z.number().gt(0),
+  quantity: z.number().int().min(0).max(MAX_STOCK_CHANGE),
+  rarity: z.enum(RARITY_TYPES),
+});
+
+/** Built per prize, so a removal can be checked against what is left. */
+export const createRestockPrizeFormSchema = (remainingQuantity: number) =>
+  z
+    .object({
+      delta: z.number().int().min(-MAX_STOCK_CHANGE).max(MAX_STOCK_CHANGE),
+    })
+    .refine((value) => value.delta !== 0, {
+      message: "Enter how many to add, or a negative number to remove",
+      path: ["delta"],
+    })
+    .refine((value) => remainingQuantity + value.delta >= 0, {
+      message: `Only ${remainingQuantity} left to remove`,
+      path: ["delta"],
+    });
+
+export const DEFAULT_RESTOCK_PRIZE_FORM_VALUES: RestockPrizeFormValues = {
+  delta: 0,
+};
 
 export const DEFAULT_CREATE_EVENT_FORM_VALUES: CreateEventFormValues = {
   name: "",
@@ -75,8 +86,7 @@ export const DEFAULT_PRIZE_FORM_VALUES: PrizeFormValues = {
   title: "",
   winInstruction: "Show this ticket at the bar",
   weight: 1,
-  totalQuantity: 1,
-  remainingQuantity: 1,
+  quantity: 1,
   rarity: "common",
 };
 
@@ -108,21 +118,11 @@ export const getTicketItemsFormValues = (event: {
   names: [...event.campaign.ticketItemNames],
 });
 
-export const getPrizeFormValues = (
-  prize: PrizeFormValues,
-): PrizeFormValues => ({
+/** Edit form values. `quantity` is shown read-only and never sent. */
+export const getPrizeFormValues = (prize: EventPrize): PrizeFormValues => ({
   title: prize.title,
   winInstruction: prize.winInstruction,
   weight: prize.weight,
-  totalQuantity: prize.totalQuantity,
-  remainingQuantity: prize.remainingQuantity,
+  quantity: prize.remainingQuantity,
   rarity: prize.rarity,
-});
-
-export const getRestockPrizeFormValues = (prize: {
-  remainingQuantity: number;
-  totalQuantity: number;
-}): RestockPrizeFormValues => ({
-  remainingQuantity: prize.remainingQuantity,
-  totalQuantity: prize.totalQuantity,
 });

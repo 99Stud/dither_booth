@@ -1,14 +1,18 @@
 import type { Rarity } from "@dither-booth/shared/lottery";
 
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import { eq } from "drizzle-orm";
 
 import type { DB } from "#db/internal/db.types";
 
-import { drawTable, lotteryTable, prizeTable } from "#db/internal/db.schema";
+import {
+  drawTable,
+  lotteryTable,
+  stockAdjustmentTable,
+} from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 
 import { executeLotteryDraw } from "./lottery.draw";
+import { insertPrizeWithStock, stockOf } from "./lottery.test-utils";
 
 const TICKET_REF_PATTERN = /^\d{6}$/;
 const MINUTE_MS = 60_000;
@@ -52,34 +56,29 @@ function addPrize(
   prize: {
     id: string;
     remainingQuantity: number;
-    totalQuantity?: number;
     weight?: number;
     rarity?: Rarity;
     removed?: boolean;
     lotteryId?: string;
   },
 ) {
-  db.insert(prizeTable)
-    .values({
+  insertPrizeWithStock(
+    db,
+    {
       id: prize.id,
       lotteryId: prize.lotteryId ?? "lottery-1",
       title: `Title ${prize.id}`,
       winInstruction: "Show this ticket at the bar",
       weight: prize.weight ?? 1,
-      totalQuantity: prize.totalQuantity ?? prize.remainingQuantity,
-      remainingQuantity: prize.remainingQuantity,
       rarity: prize.rarity ?? "common",
       removed: prize.removed ?? false,
-    })
-    .run();
+    },
+    prize.remainingQuantity,
+  );
 }
 
 const remainingOf = (db: DB, prizeId: string) =>
-  db
-    .select({ remaining: prizeTable.remainingQuantity })
-    .from(prizeTable)
-    .where(eq(prizeTable.id, prizeId))
-    .get()?.remaining;
+  stockOf(db, prizeId)?.remainingQuantity;
 
 const allDraws = (db: DB) => db.select().from(drawTable).all();
 
@@ -153,7 +152,7 @@ describe("executeLotteryDraw — weighted draw", () => {
 
   test("never draws an out-of-stock or removed prize", async () => {
     const db = setup();
-    addPrize(db, { id: "empty", remainingQuantity: 0, totalQuantity: 4 });
+    addPrize(db, { id: "empty", remainingQuantity: 0 });
     addPrize(db, { id: "removed", remainingQuantity: 4, removed: true });
     addPrize(db, { id: "live", remainingQuantity: 1 });
 
@@ -259,12 +258,12 @@ describe("executeLotteryDraw — weighted draw", () => {
     ).toEqual([first.ticketRef, second.ticketRef].sort());
   });
 
-  test("rolls the stock decrement back when no ticket ref can be allocated", async () => {
+  test("rolls the win back when no ticket ref can be allocated", async () => {
     const db = setup();
     addPrize(db, { id: "p1", remainingQuantity: 5 });
 
     // Every generated ref is the same, so the second draw collides on all
-    // attempts after its decrement already ran.
+    // attempts and its whole transaction rolls back.
     const random = spyOn(Math, "random").mockReturnValue(0.5);
 
     try {
@@ -276,6 +275,48 @@ describe("executeLotteryDraw — weighted draw", () => {
 
     expect(remainingOf(db, "p1")).toBe(4);
     expect(allDraws(db)).toHaveLength(1);
+  });
+});
+
+describe("executeLotteryDraw — stock ledger", () => {
+  test("a restock between wins adds to what is left", async () => {
+    const db = setup();
+    addPrize(db, { id: "p1", remainingQuantity: 1 });
+
+    await draw(db, { random: ALWAYS_FIRST_PRIZE });
+    expect(stockOf(db, "p1")).toEqual({
+      totalQuantity: 1,
+      remainingQuantity: 0,
+    });
+
+    db.insert(stockAdjustmentTable)
+      .values({ id: "restock-1", prizeId: "p1", delta: 2, reason: "restock" })
+      .run();
+
+    const second = await draw(db, { random: ALWAYS_FIRST_PRIZE });
+    expect(second.result.prize?.id).toBe("p1");
+    expect(stockOf(db, "p1")).toEqual({
+      totalQuantity: 3,
+      remainingQuantity: 1,
+    });
+  });
+
+  test("remaining always equals allocated stock minus wins", async () => {
+    const db = setup({ noWinWeight: 1 });
+    addPrize(db, { id: "p1", remainingQuantity: 4 });
+    addPrize(db, { id: "p2", remainingQuantity: 2 });
+
+    let roll = 0;
+    // Cycles through p1, p2 and the no-win slot.
+    const random = () => [0, 0.5, 0.99][roll++ % 3]!;
+    for (let i = 0; i < 12; i++) await draw(db, { random });
+
+    for (const prizeId of ["p1", "p2"]) {
+      const wins = allDraws(db).filter((row) => row.prizeId === prizeId).length;
+      const stock = stockOf(db, prizeId)!;
+      expect(stock.remainingQuantity).toBeGreaterThanOrEqual(0);
+      expect(stock.remainingQuantity).toBe(stock.totalQuantity - wins);
+    }
   });
 });
 
@@ -335,7 +376,7 @@ describe("executeLotteryDraw — forced outcomes", () => {
 
   test("a forced win on an out-of-stock prize fails without recording", async () => {
     const db = setup();
-    addPrize(db, { id: "p1", remainingQuantity: 0, totalQuantity: 3 });
+    addPrize(db, { id: "p1", remainingQuantity: 0 });
 
     await expect(
       executeLotteryDraw({ db, force: { outcome: "win", prizeId: "p1" } }),

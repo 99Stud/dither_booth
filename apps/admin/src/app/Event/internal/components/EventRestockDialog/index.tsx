@@ -10,45 +10,62 @@ import {
   DialogTitle,
 } from "@dither-booth/ui/components/ui/dialog";
 import { NumberField } from "@dither-booth/ui/fields/NumberField";
+import { createId } from "@paralleldrive/cuid2";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import type { EventPrize, RestockPrizeFormValues } from "../../Event.types";
+import type { EventPrize } from "../../Event.types";
 
 import {
-  RESTOCK_PRIZE_FORM_SCHEMA,
-  getRestockPrizeFormValues,
+  DEFAULT_RESTOCK_PRIZE_FORM_VALUES,
+  createRestockPrizeFormSchema,
 } from "../../Event.constants";
+
+export interface RestockPrizeSubmission {
+  delta: number;
+  /** Reused on retries of the same change, so it is applied once. */
+  adjustmentId: string;
+}
 
 interface EventRestockDialogProps {
   open: boolean;
   prize: EventPrize | null;
   isPending: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: RestockPrizeFormValues) => Promise<void>;
+  onSubmit: (values: RestockPrizeSubmission) => Promise<void>;
 }
 
 export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
   const { open, prize, isPending, onOpenChange, onSubmit } = props;
+  const remaining = prize?.remainingQuantity ?? 0;
+
+  // One id per change: a double submit or a retried request sends the same
+  // id, so the engine applies the change once. A new change gets a new id.
+  const [adjustmentId, setAdjustmentId] = useState(createId);
+
+  const schema = useMemo(
+    () => createRestockPrizeFormSchema(remaining),
+    [remaining],
+  );
 
   const form = useForm({
-    defaultValues: prize
-      ? getRestockPrizeFormValues(prize)
-      : { remainingQuantity: 0, totalQuantity: 0 },
+    defaultValues: DEFAULT_RESTOCK_PRIZE_FORM_VALUES,
     validators: {
-      onChange: RESTOCK_PRIZE_FORM_SCHEMA,
-      onSubmit: RESTOCK_PRIZE_FORM_SCHEMA,
+      onChange: schema,
+      onSubmit: schema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value);
+      await onSubmit({ delta: value.delta, adjustmentId });
+      setAdjustmentId(createId());
       onOpenChange(false);
     },
   });
 
   useEffect(() => {
     if (!open || !prize) return;
-    form.reset(getRestockPrizeFormValues(prize));
+    form.reset(DEFAULT_RESTOCK_PRIZE_FORM_VALUES);
+    setAdjustmentId(createId());
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset on open/prize only
   }, [open, prize?.id]);
 
@@ -58,8 +75,8 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
         <DialogHeader>
           <DialogTitle>Restock prize</DialogTitle>
           <DialogDescription>
-            Set remaining stock. Total increases automatically if remaining goes
-            above the previous total.
+            Add stock, or enter a negative number to remove some. Wins at the
+            booth keep counting while this is open.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -70,16 +87,17 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
             void form.handleSubmit();
           }}
         >
-          <NumberField
-            form={form}
-            name="remainingQuantity"
-            label="Remaining quantity"
-          />
-          <NumberField
-            form={form}
-            name="totalQuantity"
-            label="Total quantity"
-          />
+          <NumberField form={form} name="delta" label="Change" />
+          <form.Subscribe selector={(state) => state.values.delta}>
+            {(delta) => (
+              <p className={clsx("text-sm text-muted-foreground")}>
+                {remaining} left
+                {Number.isInteger(delta) && delta !== 0
+                  ? ` → ${Math.max(remaining + delta, 0)} left`
+                  : ""}
+              </p>
+            )}
+          </form.Subscribe>
           <DialogFooter>
             <Button
               type="button"
