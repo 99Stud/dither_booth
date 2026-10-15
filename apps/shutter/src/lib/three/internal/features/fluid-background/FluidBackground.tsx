@@ -3,26 +3,27 @@ import type { Scene, WebGPURenderer } from "three/webgpu";
 
 import type { ViewportSize } from "#lib/three/internal/runtime/runtime.types";
 
-import type { FluidBackgroundOptions, Splat } from "./fluid-background.types";
+import type { BackgroundEffect } from "../background.types";
+import type { FluidBackgroundSettings, Splat } from "./fluid-background.types";
 
 import { FluidSimulation } from "./FluidSimulation";
 import { FluidTurbulencePlane } from "./FluidTurbulencePlane";
 
 interface FluidBackgroundParams {
-  options?: FluidBackgroundOptions;
+  settings: FluidBackgroundSettings;
   size: ViewportSize;
   splats: () => Splat[];
 }
 
-export class FluidBackground {
+export class FluidBackground implements BackgroundEffect {
   private readonly _simulation: FluidSimulation;
   private readonly _plane: FluidTurbulencePlane;
   private readonly _splats: () => Splat[];
   private _scene: Scene | null = null;
 
-  constructor({ options, size, splats }: FluidBackgroundParams) {
-    this._simulation = new FluidSimulation(options);
-    this._plane = new FluidTurbulencePlane(size);
+  constructor({ settings, size, splats }: FluidBackgroundParams) {
+    this._simulation = new FluidSimulation(settings.simulation);
+    this._plane = new FluidTurbulencePlane(size, settings.turbulence);
     this._splats = splats;
   }
 

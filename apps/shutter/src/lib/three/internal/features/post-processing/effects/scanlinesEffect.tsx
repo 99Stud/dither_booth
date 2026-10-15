@@ -16,6 +16,8 @@ import {
 import type {
   PostProcessingEffect,
   PostProcessingEffectNode,
+  PostProcessingSettings,
+  ScanlinesSettings,
 } from "../postProcessing.types";
 
 function scanlinesNode(
@@ -48,22 +50,31 @@ function scanlinesNode(
   })();
 }
 
-function createScanlinesUniforms() {
+function createScanlinesUniforms(settings: ScanlinesSettings) {
   return {
-    uScanLineThickness: uniform(6.2),
-    uScanLineIntensity: uniform(0.42),
-    uScanLineSpeed: uniform(1),
-    uScanLineFocus: uniform(4.1),
+    uScanLineThickness: uniform(settings.thickness),
+    uScanLineIntensity: uniform(settings.intensity),
+    uScanLineSpeed: uniform(settings.speed),
+    uScanLineFocus: uniform(settings.focus),
   };
 }
 
-export function createScanlinesEffect(enabled: boolean): PostProcessingEffect {
-  const uniforms = createScanlinesUniforms();
+export function createScanlinesEffect(
+  enabled: boolean,
+  settings: ScanlinesSettings,
+): PostProcessingEffect {
+  const uniforms = createScanlinesUniforms(settings);
 
   return {
     key: "scanlines",
     enabled,
     build: (inputNode) => scanlinesNode(inputNode, uniforms),
+    applySettings(next: PostProcessingSettings) {
+      uniforms.uScanLineThickness.value = next.scanlines.thickness;
+      uniforms.uScanLineIntensity.value = next.scanlines.intensity;
+      uniforms.uScanLineSpeed.value = next.scanlines.speed;
+      uniforms.uScanLineFocus.value = next.scanlines.focus;
+    },
     attachDebug(folder: ParametersGroup) {
       const scanlinesFolder = folder.addFolder("Scanlines");
       scanlinesFolder

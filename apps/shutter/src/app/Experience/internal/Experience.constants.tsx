@@ -1,17 +1,11 @@
 import type { InteractiveBackgroundOptions } from "#components/misc/InteractiveBackground/index";
 
 /**
- * Fluid simulation budget the kiosk hardware sustains at full screen. `satisfies`
- * rather than a bare object so a mistyped nested key fails to compile — the
- * options prop takes a variable, which skips excess property checking.
+ * `satisfies` rather than a bare object so a mistyped key fails to compile —
+ * the options prop takes a variable, which skips excess property checking.
  */
 export const KIOSK_INTERACTIVE_BACKGROUND_OPTIONS = {
-  fluidBackground: {
-    simRes: 128,
-    dyeRes: 512,
-    iterations: 2,
-    idleFrames: 240,
-  },
+  background: "fluid",
 } satisfies InteractiveBackgroundOptions;
 
 export const COUNTDOWN_START = 3;

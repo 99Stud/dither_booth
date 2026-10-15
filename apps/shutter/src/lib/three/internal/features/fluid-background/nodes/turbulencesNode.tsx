@@ -18,6 +18,8 @@ import {
   vec2,
 } from "three/tsl";
 
+import type { TurbulenceSettings } from "../fluid-background.types";
+
 const LUT_SIZE = 64;
 
 function smoothstepCPU(edge0: number, edge1: number, x: number): number {
@@ -32,25 +34,26 @@ function lerpCPU(a: number, b: number, t: number): number {
 const RCP_D0 = 1.0 / 0.6;
 const RCP_D1 = 1.0 / 1.6;
 
-export function createTurbulenceState() {
+export function createTurbulenceState(settings: TurbulenceSettings) {
+  const { palette, stops } = settings;
   const state = {
-    cScale: uniform(0.4),
-    cIntensity: uniform(0.002),
-    uSinSpeed: uniform(0.1),
-    uOverallSpeed: uniform(0.15),
-    uDirection: uniform(vec2(1.0, 0.44)),
-    uFluidStrength: uniform(0.0002),
-    uColor0: uniform(color("#000000")),
-    uColor1: uniform(color("#021820")),
-    uColor2: uniform(color("#0a5f7a")),
-    uColor3: uniform(color("#3edbff")),
-    uColor4: uniform(color("#7ee7ff")),
-    uColor5: uniform(color("#c9f5ff")),
-    uStop1: uniform(0.15),
-    uStop2: uniform(0.35),
-    uStop3: uniform(0.55),
-    uStop4: uniform(0.87),
-    uRcpIntensity: uniform(1.0 / 0.045),
+    cScale: uniform(settings.scale),
+    cIntensity: uniform(settings.intensity),
+    uSinSpeed: uniform(settings.sinSpeed),
+    uOverallSpeed: uniform(settings.overallSpeed),
+    uDirection: uniform(vec2(...settings.direction)),
+    uFluidStrength: uniform(settings.fluidStrength),
+    uColor0: uniform(color(palette[0])),
+    uColor1: uniform(color(palette[1])),
+    uColor2: uniform(color(palette[2])),
+    uColor3: uniform(color(palette[3])),
+    uColor4: uniform(color(palette[4])),
+    uColor5: uniform(color(palette[5])),
+    uStop1: uniform(stops[0]),
+    uStop2: uniform(stops[1]),
+    uStop3: uniform(stops[2]),
+    uStop4: uniform(stops[3]),
+    uRcpIntensity: uniform(1.0 / settings.intensity),
     uColorRampLUT: uniformTexture(),
   };
 
