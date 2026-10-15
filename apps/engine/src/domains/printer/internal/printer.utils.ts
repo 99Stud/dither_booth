@@ -9,7 +9,9 @@ import type {
   ReceiptPrinter,
 } from "./printer.types";
 
+import { gsV0ToGraphicsBands } from "./graphics-band.utils";
 import {
+  PRINT_RASTER_IN_GRAPHICS_BANDS,
   PRINTER_FLUSH_TIMEOUT_MS,
   PRINTER_INITIALIZE_COMMAND,
   PRINTER_OPEN_TIMEOUT_MS,
@@ -117,7 +119,11 @@ export async function printRasterReceipt(
 
       printer.raw(PRINTER_INITIALIZE_COMMAND);
       printer.align("ct");
-      printer.raw(rasterCommand);
+      printer.raw(
+        PRINT_RASTER_IN_GRAPHICS_BANDS
+          ? gsV0ToGraphicsBands(rasterCommand)
+          : rasterCommand,
+      );
       printer.feed(2);
       printer.cut();
 

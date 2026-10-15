@@ -18,13 +18,29 @@ import type {
 
 export const PRINT_CONFIGURATION_LOG_SOURCE = "admin.print-configuration";
 
-export const DITHER_MODE_CODE_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+/** Engine-side ordered dither that reproduces how macOS prints photos. */
+export const DITHER_MODE_CODE_BLUE_NOISE = 10;
+
+export const DITHER_MODE_CODE_OPTIONS = [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  DITHER_MODE_CODE_BLUE_NOISE,
+] as const;
 export const DITHER_MODE_CODE_SCHEMA = z.literal(DITHER_MODE_CODE_OPTIONS);
 export const DITHER_MODE_CODE_FIELD_OPTIONS: Array<
   SelectFieldOption<
     SelectFieldValue<PrintConfigurationFormValues, "ditherModeCode">
   >
 > = [
+  { label: "Blue noise (macOS)", value: DITHER_MODE_CODE_BLUE_NOISE },
   { label: "None", value: 0 },
   { label: "Burkes", value: 1 },
   { label: "Ordered", value: 2 },
@@ -65,20 +81,35 @@ export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   saturation: z.number().min(0).max(4),
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
+  toneGamma: z.number().min(1).max(3),
   threshold: z.number().int().min(0).max(255),
   rotation: z.number().int().min(0).max(360),
   template: photoReceiptTemplateSchema,
 });
 
+/** macOS encodes gray at gamma 1.8 before halftoning for the TM-T20III. */
+export const MACOS_TONE_GAMMA = 1.8;
+
+/** Library-only settings the blue-noise mode ignores, as macOS has no such step. */
+export const BLUE_NOISE_IGNORED_FIELDS = new Set<
+  keyof PrintConfigurationFormValues
+>(["colorSchemeCode", "serpentine", "saturation", "shadows", "highlights"]);
+
+/** Settings only the blue-noise mode reads. */
+export const BLUE_NOISE_ONLY_FIELDS = new Set<
+  keyof PrintConfigurationFormValues
+>(["toneGamma"]);
+
 export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValues =
   {
-    ditherModeCode: 1,
+    ditherModeCode: DITHER_MODE_CODE_BLUE_NOISE,
     colorSchemeCode: 0,
     serpentine: true,
     exposure: 1,
     saturation: 1,
     shadows: 0,
     highlights: 0,
+    toneGamma: MACOS_TONE_GAMMA,
     threshold: 128,
     rotation: 0,
     template: "tartines",
@@ -99,6 +130,7 @@ export const DITHERING_PREVIEW_FIELDS = [
   "saturation",
   "shadows",
   "highlights",
+  "toneGamma",
   "rotation",
 ] as const satisfies ReadonlyArray<keyof PrintConfigurationFormValues>;
 
@@ -141,6 +173,7 @@ export const getPrintConfigurationFormValues = (
     saturation: printConfiguration.saturation,
     shadows: printConfiguration.shadows,
     highlights: printConfiguration.highlights,
+    toneGamma: printConfiguration.toneGamma,
     threshold: printConfiguration.threshold,
     rotation: printConfiguration.rotation,
     template: printConfiguration.template,
@@ -190,5 +223,17 @@ export const SLIDER_FIELD_CONFIGS = [
     min: 0,
     name: "highlights",
     step: 0.05,
+  },
+  {
+    formatValue: (value) =>
+      // Slider steps accumulate float error, so compare at display precision.
+      value.toFixed(1) === MACOS_TONE_GAMMA.toFixed(1)
+        ? `${value.toFixed(1)} (macOS)`
+        : value.toFixed(1),
+    label: "Tone gamma",
+    max: 2.6,
+    min: 1.2,
+    name: "toneGamma",
+    step: 0.1,
   },
 ] satisfies ReadonlyArray<SliderFieldConfig>;

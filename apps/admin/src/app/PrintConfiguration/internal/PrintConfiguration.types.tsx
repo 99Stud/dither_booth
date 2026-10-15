@@ -16,6 +16,7 @@ type PrintConfigurationSliderFieldName = Extract<
   | "saturation"
   | "shadows"
   | "highlights"
+  | "toneGamma"
   | "threshold"
   | "rotation"
 >;

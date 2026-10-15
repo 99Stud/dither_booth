@@ -2,6 +2,13 @@ import { photoReceiptTemplateSchema } from "@dither-booth/shared/routes";
 import { ColorScheme, DitherMode } from "@opendisplay/epaper-dithering";
 import z from "zod";
 
+/**
+ * Engine-side ordered dither against a blue-noise mask with macOS's gamma 1.8
+ * tone, reproducing how macOS prints photos to the TM-T20III. The library's
+ * own modes stop at 9.
+ */
+export const DITHER_MODE_BLUE_NOISE = 10;
+
 export const DITHER_MODE_OPTIONS = [
   DitherMode.NONE,
   DitherMode.BURKES,
@@ -13,7 +20,8 @@ export const DITHER_MODE_OPTIONS = [
   DitherMode.SIERRA_LITE,
   DitherMode.JARVIS_JUDICE_NINKE,
   DitherMode.DIZZY,
-] satisfies Array<DitherMode>;
+  DITHER_MODE_BLUE_NOISE,
+] satisfies Array<DitherMode | typeof DITHER_MODE_BLUE_NOISE>;
 
 export const COLOR_SCHEME_CODE_OPTIONS = [
   ColorScheme.MONO,
@@ -30,6 +38,7 @@ const PRINT_CONFIGURATION_FIELD_SCHEMAS = {
   saturation: z.number().min(0).max(4),
   shadows: z.number().min(0).max(1),
   highlights: z.number().min(0).max(1),
+  toneGamma: z.number().min(1).max(3),
   threshold: z.number().int().min(0).max(255),
   rotation: z.number().int().min(0).max(360),
   template: photoReceiptTemplateSchema,
@@ -43,6 +52,7 @@ export const UPDATE_PRINT_CONFIGURATION_SCHEMA = z.object({
   saturation: PRINT_CONFIGURATION_FIELD_SCHEMAS.saturation.optional(),
   shadows: PRINT_CONFIGURATION_FIELD_SCHEMAS.shadows.optional(),
   highlights: PRINT_CONFIGURATION_FIELD_SCHEMAS.highlights.optional(),
+  toneGamma: PRINT_CONFIGURATION_FIELD_SCHEMAS.toneGamma.optional(),
   threshold: PRINT_CONFIGURATION_FIELD_SCHEMAS.threshold.optional(),
   rotation: PRINT_CONFIGURATION_FIELD_SCHEMAS.rotation.optional(),
   template: PRINT_CONFIGURATION_FIELD_SCHEMAS.template.optional(),
