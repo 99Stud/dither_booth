@@ -1,5 +1,5 @@
 import {
-  getWebOrigin,
+  getShutterOrigin,
   getWebTlsCertPath,
   getWebTlsKeyPath,
   getWebTlsManifestPath,
@@ -143,7 +143,7 @@ console.log(`Certificate written to ${certPath}`);
 console.log(`Private key written to ${keyPath}`);
 console.log(`Root CA path recorded as ${caPath}`);
 console.log(`Manifest written to ${manifestPath}`);
-console.log(`Open ${await getWebOrigin({ repoRoot: ENGINE_REPO_ROOT })}`);
+console.log(`Open ${await getShutterOrigin({ repoRoot: ENGINE_REPO_ROOT })}`);
 console.log(
   `If another device needs to trust this certificate, use "${CERT_CAROOT_COMMAND}" to locate mkcert root CA.`,
 );

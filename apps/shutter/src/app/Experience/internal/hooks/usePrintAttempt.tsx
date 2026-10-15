@@ -5,7 +5,7 @@ import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-m
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
 
-import { WEB_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 
@@ -59,7 +59,7 @@ export const usePrintAttempt = ({
 
   const takeSquarePhoto = useCallback(async () => {
     return await takeSquarePhotoAndFlipHorizontally(
-      WEB_CAMERA_LOG_SOURCE,
+      SHUTTER_CAMERA_LOG_SOURCE,
       async () => {
         if (!webcamRef.current) {
           throw new Error("Camera is not available.");
@@ -74,7 +74,7 @@ export const usePrintAttempt = ({
     (error: unknown, printAttemptId: number, event: string) => {
       reportKioskError(error, {
         event,
-        source: WEB_CAMERA_LOG_SOURCE,
+        source: SHUTTER_CAMERA_LOG_SOURCE,
         userMessage: "Print receipt failed.",
       });
       dispatch({ type: "printFailed", printAttemptId });
@@ -218,7 +218,7 @@ export const usePrintAttempt = ({
     const timeoutId = window.setTimeout(() => {
       reportKioskError(new Error(`Print attempt ${printAttemptId} stalled.`), {
         event: "experience-print-attempt-timed-out",
-        source: WEB_CAMERA_LOG_SOURCE,
+        source: SHUTTER_CAMERA_LOG_SOURCE,
         userMessage: "Print receipt timed out.",
       });
       dispatch({

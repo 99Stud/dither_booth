@@ -38,7 +38,7 @@ import { requestPm2ServiceRestart } from "./internal/HealthCard.utils";
 const extractUnhealthyServicesCount = (healthz: HealthzResponse) => {
   let unhealthyServicesCount = 0;
 
-  if (!healthz.web.healthz.ok) {
+  if (!healthz.shutter.healthz.ok) {
     unhealthyServicesCount++;
   }
 
@@ -87,7 +87,7 @@ export const HealthCard = () => {
 
   const areAllChecksHealthy =
     isHealthzSuccess &&
-    healthz.web.healthz.ok &&
+    healthz.shutter.healthz.ok &&
     healthz.engine.healthz.ok &&
     healthz.puppeteer.healthz.ok &&
     healthz.printer.healthz.ok;
@@ -245,7 +245,7 @@ export const HealthCard = () => {
             healthz={healthz}
             isHealthzSuccess={isHealthzSuccess}
             isHealthzError={isHealthzError}
-            service="web"
+            service="shutter"
             isRestarting={isRestarting}
             restartProgress={restartProgress?.event}
             restartingService={restartProgress?.service}

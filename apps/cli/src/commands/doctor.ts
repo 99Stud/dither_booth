@@ -2,7 +2,7 @@ import { getWebPublicIp } from "@dither-booth/ports";
 import {
   adminHealthzPayloadSchema,
   engineHealthzPayloadSchema,
-  webHealthzPayloadSchema,
+  shutterHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
 import { defineCommand } from "citty";
 
@@ -229,9 +229,9 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   );
   await checkHealthz(
     results,
-    "web",
+    "shutter",
     `https://${lanIp}:3000/healthz`,
-    webHealthzPayloadSchema,
+    shutterHealthzPayloadSchema,
   );
   await checkHealthz(
     results,

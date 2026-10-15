@@ -1,14 +1,14 @@
-# Dither Booth Web
+# Dither Booth Shutter
 
-Dither Booth Web is the primary user-facing browser app loaded on the iPad during the kiosk experience. It runs as a Bun-native React app in development and builds to a bundled Bun server for production through the shared browser-server helpers.
+Dither Booth Shutter is the primary user-facing browser app loaded on the iPad during the kiosk experience. It runs as a Bun-native React app in development and builds to a bundled Bun server for production through the shared browser-server helpers.
 
 Static files in `public` are served from root URLs in development and copied into `dist` for production with a small public asset manifest.
 
 ## Development
 
-The web app can be started independently from this directory. For the normal full-project workflow, launch the project from the repository root so Turbo can orchestrate all apps together.
+The shutter app can be started independently from this directory. For the normal full-project workflow, launch the project from the repository root so Turbo can orchestrate all apps together.
 
-### Start web app
+### Start shutter app
 
 Development:
 

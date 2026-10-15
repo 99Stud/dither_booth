@@ -8,7 +8,7 @@
       "passThroughEnv": [
         "ADMIN_PORT",
         "ENGINE_PORT",
-        "WEB_PORT",
+        "SHUTTER_PORT",
         "NODE_ENV",
         "PROCESS_MANAGER"
       ]
@@ -24,7 +24,7 @@
       "passThroughEnv": [
         "ADMIN_PORT",
         "ENGINE_PORT",
-        "WEB_PORT",
+        "SHUTTER_PORT",
         "NODE_ENV",
         "PROCESS_MANAGER"
       ]
