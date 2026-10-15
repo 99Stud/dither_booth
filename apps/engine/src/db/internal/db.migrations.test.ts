@@ -358,6 +358,49 @@ describe("runSqliteMigrations", () => {
     ).toThrow(/CHECK constraint failed/);
   });
 
+  test("0014–0015 move the receipt template from the device to each event", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    // Up to and including 0013: the last schema with print_config.template.
+    runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(14), sqlite });
+
+    sqlite.run(
+      "INSERT INTO print_config (id, template, threshold) VALUES (1, 'heirvey', 100)",
+    );
+    sqlite.run(
+      "INSERT INTO campaign (id, name, status) VALUES ('c1', 'Current', 'active'), ('c2', 'Past', 'archived')",
+    );
+
+    const violations = runSqliteMigrations({
+      db,
+      migrationsFolder: MIGRATIONS_FOLDER,
+      sqlite,
+    });
+
+    expect(violations).toEqual([]);
+    expect(
+      sqlite.query("SELECT id, kit_id FROM campaign ORDER BY id").all(),
+    ).toEqual([
+      { id: "c1", kit_id: "heirvey" },
+      { id: "c2", kit_id: "heirvey" },
+    ]);
+    expect(
+      sqlite
+        .query<{ name: string }, []>("PRAGMA table_info(print_config)")
+        .all()
+        .map((column) => column.name),
+    ).not.toContain("template");
+    expect(
+      sqlite.query("SELECT threshold, tone_gamma FROM print_config").all(),
+    ).toEqual([{ threshold: 100, tone_gamma: 1.8 }]);
+    // Free text: a kit from a newer release is stored as is.
+    sqlite.run(
+      "INSERT INTO campaign (id, name, status, kit_id) VALUES ('c3', 'Next', 'archived', 'halloween-2099')",
+    );
+    expect(() =>
+      sqlite.run("INSERT INTO print_config (id, exposure) VALUES (2, 1)"),
+    ).toThrow(/CHECK constraint failed/);
+  });
+
   test("leaves the stock triggers and prize checks in place", () => {
     const { sqlite, db } = openDb({ foreignKeys: true });
     runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });

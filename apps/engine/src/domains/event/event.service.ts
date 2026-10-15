@@ -1,4 +1,4 @@
 export {
   getCurrentEventForDb,
-  getCurrentTicketItemNamesForDb,
+  getReceiptEventSettingsForDb,
 } from "./internal/event.service";

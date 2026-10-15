@@ -84,10 +84,10 @@ export const Event = () => {
             <TabsContent value="overview" className={clsx("mt-0")}>
               <EventOverviewPanel
                 event={event}
-                isSavingName={updateEventMutation.isPending}
+                isSavingDetails={updateEventMutation.isPending}
                 isSavingTicketItems={updateTicketItemsMutation.isPending}
-                onSaveName={async (name) => {
-                  await updateEventMutation.mutateAsync({ name });
+                onSaveDetails={async (values) => {
+                  await updateEventMutation.mutateAsync(values);
                 }}
                 onSaveTicketItems={async (names) => {
                   await updateTicketItemsMutation.mutateAsync({ names });

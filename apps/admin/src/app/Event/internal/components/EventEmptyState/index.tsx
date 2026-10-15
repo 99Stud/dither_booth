@@ -29,9 +29,9 @@ export const EventEmptyState: FC<EventEmptyStateProps> = (props) => {
           </div>
           <CardTitle>No event yet</CardTitle>
           <CardDescription>
-            Create the booth event to configure its lottery and prizes. Only one
-            event can be active at a time. Appearance settings (logo, shaders,
-            template) will live here later.
+            Create the booth event to pick its ticket kit and configure its
+            lottery and prizes. Only one event can be active at a time.
+            Appearance settings (logo, shaders) will live here later.
           </CardDescription>
         </CardHeader>
         <CardContent>

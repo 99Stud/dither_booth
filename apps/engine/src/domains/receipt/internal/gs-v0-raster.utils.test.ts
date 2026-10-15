@@ -24,7 +24,6 @@ const PRINT_CONFIGURATION: PrintConfigRow = {
   toneGamma: 1.8,
   threshold: 109,
   rotation: 0,
-  template: "tartines",
 };
 
 async function createGrayRampPng(width: number, height: number) {

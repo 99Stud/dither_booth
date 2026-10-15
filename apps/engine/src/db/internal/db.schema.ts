@@ -1,5 +1,4 @@
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
-import { PHOTO_RECEIPT_TEMPLATES } from "@dither-booth/shared/routes";
 import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
@@ -13,14 +12,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
-import {
-  DEFAULT_RECEIPT_TEMPLATE,
-  PRINT_CONFIG_SINGLETON_ID,
-} from "./db.constants";
-
-const PHOTO_RECEIPT_TEMPLATE_CHECK_VALUES = PHOTO_RECEIPT_TEMPLATES.map(
-  (template) => `'${template}'`,
-).join(", ");
+import { PRINT_CONFIG_SINGLETON_ID } from "./db.constants";
 
 export const printConfigTable = sqliteTable(
   "print_config",
@@ -38,9 +30,6 @@ export const printConfigTable = sqliteTable(
     toneGamma: real("tone_gamma").notNull().default(1.8),
     threshold: integer("threshold").notNull().default(128),
     rotation: integer("rotation").notNull().default(0),
-    template: text("template", { enum: PHOTO_RECEIPT_TEMPLATES })
-      .notNull()
-      .default(DEFAULT_RECEIPT_TEMPLATE),
   },
   (table) => [
     check("print_config_singleton_check", sql`${table.id} = 1`),
@@ -78,10 +67,6 @@ export const printConfigTable = sqliteTable(
       "print_config_rotation_check",
       sql`${table.rotation} between 0 and 360`,
     ),
-    check(
-      "print_config_template_check",
-      sql`${table.template} in (${sql.raw(PHOTO_RECEIPT_TEMPLATE_CHECK_VALUES)})`,
-    ),
   ],
 );
 
@@ -109,6 +94,12 @@ export const campaignTable = sqliteTable(
       .$type<string[]>()
       .notNull()
       .default([...DEFAULT_TICKET_ITEM_NAMES]),
+    /**
+     * The event's kit, as free text with no CHECK: it is validated in code
+     * against the kits this release ships (`resolveKitId`), so a new kit
+     * needs no migration. Null means the release's default kit.
+     */
+    kitId: text("kit_id"),
     status: text("status", { enum: CAMPAIGN_STATUSES })
       .notNull()
       .default("active"),

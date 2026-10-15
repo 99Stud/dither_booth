@@ -1,3 +1,4 @@
+import type { KitId } from "@dither-booth/shared/kits";
 import type { DrawResult } from "@dither-booth/shared/lottery";
 import type { Page } from "puppeteer";
 
@@ -8,7 +9,7 @@ import { TRPCError } from "@trpc/server";
 import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import { getCurrentTicketItemNamesForDb } from "#domains/event/event.service";
+import { getReceiptEventSettingsForDb } from "#domains/event/event.service";
 import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
 
 import { screenshotToGsV0RasterCommand } from "./gs-v0-raster.utils";
@@ -70,22 +71,28 @@ export async function prepareReceiptRasterCommand({
     });
   }
 
+  const { kitId, ticketItems } = await getReceiptEventSettingsForDb(ctx.db);
+
   return await buildReceiptRasterCommand({
+    kitId,
     page,
     photoBuffer: inputBuffer,
     printConfiguration,
-    ticketItems: await getCurrentTicketItemNamesForDb(ctx.db),
+    ticketItems,
     ticketRef,
   });
 }
 
 export async function buildReceiptRasterCommand({
+  kitId,
   page,
   photoBuffer,
   printConfiguration,
   ticketItems,
   ticketRef,
 }: {
+  /** The event's kit, which picks the photo receipt's template. */
+  kitId: KitId;
   page: Page;
   photoBuffer: Buffer<ArrayBuffer>;
   printConfiguration: PrintConfigRow;
@@ -115,7 +122,7 @@ export async function buildReceiptRasterCommand({
             mimeType: "image/png",
           },
           page,
-          template: printConfiguration.template,
+          template: kitId,
           ticketItems,
           ticketRef,
         }),

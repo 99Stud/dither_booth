@@ -1,6 +1,7 @@
+import { DEFAULT_KIT_ID } from "@dither-booth/shared/kits";
 import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { eq } from "drizzle-orm";
 
 import {
@@ -13,12 +14,13 @@ import {
 import { createTestDb } from "#db/internal/db.test-utils";
 import { executeLotteryDraw } from "#domains/lottery/lottery.service";
 
+import { updateEventInputSchema } from "./event.constants";
 import {
   createEventForDb,
   createPrizeForDb,
   deletePrizeForDb,
   getCurrentEventForDb,
-  getCurrentTicketItemNamesForDb,
+  getReceiptEventSettingsForDb,
   listDrawsForDb,
   replaceEventForDb,
   restockPrizeForDb,
@@ -35,6 +37,7 @@ describe("event.service", () => {
     try {
       const created = await createEventForDb(db, {
         name: "Launch night",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 50,
         winCooldownMinutes: 5,
         printLoserTicket: false,
@@ -52,6 +55,7 @@ describe("event.service", () => {
       await expect(
         createEventForDb(db, {
           name: "Second event",
+          kitId: DEFAULT_KIT_ID,
           noWinWeight: 1,
           winCooldownMinutes: 0,
           printLoserTicket: false,
@@ -65,14 +69,68 @@ describe("event.service", () => {
     }
   });
 
-  test("getCurrentTicketItemNamesForDb uses the default names when no event exists", async () => {
+  test("receipts use the default kit and names when no event is active", async () => {
     const { db, sqlite } = createTestDb();
 
     try {
-      expect(await getCurrentTicketItemNamesForDb(db)).toEqual([
-        ...DEFAULT_TICKET_ITEM_NAMES,
-      ]);
+      expect(await getReceiptEventSettingsForDb(db)).toEqual({
+        kitId: DEFAULT_KIT_ID,
+        ticketItems: [...DEFAULT_TICKET_ITEM_NAMES],
+      });
     } finally {
+      sqlite.close();
+    }
+  });
+
+  test("receipts use the active event's kit and names", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      await createEventForDb(db, {
+        name: "Launch night",
+        kitId: "heirvey",
+        noWinWeight: 50,
+        winCooldownMinutes: 5,
+        printLoserTicket: false,
+        enabled: false,
+      });
+      await updateTicketItemsForDb(db, { names: ["Mate"] });
+
+      expect(await getReceiptEventSettingsForDb(db)).toEqual({
+        kitId: "heirvey",
+        ticketItems: ["Mate"],
+      });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("a kit this release doesn't ship falls back to the default and is logged", async () => {
+    const { db, sqlite } = createTestDb();
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      await createEventForDb(db, {
+        name: "Future event",
+        kitId: "heirvey",
+        noWinWeight: 50,
+        winCooldownMinutes: 5,
+        printLoserTicket: false,
+        enabled: false,
+      });
+      // Set by a newer release, or a kit since removed.
+      db.update(campaignTable).set({ kitId: "halloween-2099" }).run();
+
+      expect((await getCurrentEventForDb(db))?.campaign.kitId).toBe(
+        DEFAULT_KIT_ID,
+      );
+      expect((await getReceiptEventSettingsForDb(db)).kitId).toBe(
+        DEFAULT_KIT_ID,
+      );
+      expect(JSON.stringify(warn.mock.calls)).toContain("event-kit-unknown");
+      expect(JSON.stringify(warn.mock.calls)).toContain("halloween-2099");
+    } finally {
+      warn.mockRestore();
       sqlite.close();
     }
   });
@@ -83,6 +141,7 @@ describe("event.service", () => {
     try {
       await createEventForDb(db, {
         name: "Launch night",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 50,
         winCooldownMinutes: 5,
         printLoserTicket: false,
@@ -108,6 +167,7 @@ describe("event.service", () => {
     try {
       const first = await createEventForDb(db, {
         name: "Old event",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 10,
         winCooldownMinutes: 5,
         printLoserTicket: false,
@@ -135,6 +195,7 @@ describe("event.service", () => {
 
       const replaced = await replaceEventForDb(db, {
         name: "New event",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 20,
         winCooldownMinutes: 0,
         printLoserTicket: false,
@@ -203,6 +264,7 @@ describe("event.service", () => {
     try {
       await createEventForDb(db, {
         name: "Stock event",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 1,
         winCooldownMinutes: 0,
         printLoserTicket: false,
@@ -279,6 +341,7 @@ describe("event.service", () => {
     try {
       await createEventForDb(db, {
         name: "Empty prize",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 1,
         winCooldownMinutes: 0,
         printLoserTicket: false,
@@ -309,6 +372,7 @@ describe("event.service", () => {
     try {
       const event = await createEventForDb(db, {
         name: "Enable event",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 1,
         winCooldownMinutes: 0,
         printLoserTicket: false,
@@ -354,6 +418,7 @@ describe("event.service", () => {
     try {
       const event = await createEventForDb(db, {
         name: "History event",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 1,
         winCooldownMinutes: 0,
         printLoserTicket: false,
@@ -406,6 +471,7 @@ describe("event.service", () => {
     try {
       await createEventForDb(db, {
         name: "Empty history event",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 1,
         winCooldownMinutes: 0,
         printLoserTicket: false,
@@ -441,6 +507,7 @@ describe("event.service", () => {
     try {
       const event = await createEventForDb(db, {
         name: "Draws event",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 1,
         winCooldownMinutes: 0,
         printLoserTicket: false,
@@ -526,6 +593,7 @@ describe("event.service — kiosk concurrency and history", () => {
     const { db, sqlite } = createTestDb();
     await createEventForDb(db, {
       name: "Live event",
+      kitId: DEFAULT_KIT_ID,
       noWinWeight: 0,
       winCooldownMinutes: 0,
       printLoserTicket: false,
@@ -684,6 +752,7 @@ describe("event.service — kiosk concurrency and history", () => {
       await expect(
         replaceEventForDb(db, {
           name: "Broken",
+          kitId: DEFAULT_KIT_ID,
           noWinWeight: -1,
           winCooldownMinutes: 0,
           printLoserTicket: false,
@@ -710,6 +779,7 @@ describe("event.service — kiosk concurrency and history", () => {
       await expect(
         createEventForDb(db, {
           name: "Second",
+          kitId: DEFAULT_KIT_ID,
           noWinWeight: 1,
           winCooldownMinutes: 0,
           printLoserTicket: false,
@@ -728,10 +798,23 @@ describe("event.service — kiosk concurrency and history", () => {
     const { db, sqlite } = await setupLiveEvent();
 
     try {
-      const updated = await updateEventForDb(db, { name: "Renamed" });
+      const updated = await updateEventForDb(db, {
+        name: "Renamed",
+        kitId: "heirvey",
+      });
 
       expect(updated).toEqual((await getCurrentEventForDb(db))!);
-      expect(updated.campaign.name).toBe("Renamed");
+      expect(updated.campaign).toMatchObject({
+        name: "Renamed",
+        kitId: "heirvey",
+      });
+      // Kits are free text in the database; the API only accepts shipped ones.
+      expect(
+        updateEventInputSchema.safeParse({
+          name: "Renamed",
+          kitId: "halloween-2099",
+        }).success,
+      ).toBe(false);
     } finally {
       sqlite.close();
     }
@@ -746,6 +829,7 @@ describe("event.service — kiosk concurrency and history", () => {
 
       const created = await createEventForDb(db, {
         name: "Next",
+        kitId: DEFAULT_KIT_ID,
         noWinWeight: 1,
         winCooldownMinutes: 0,
         printLoserTicket: false,
@@ -817,7 +901,9 @@ describe("event.service — kiosk concurrency and history", () => {
     const { db, sqlite } = createTestDb();
 
     try {
-      await expect(updateEventForDb(db, { name: "x" })).rejects.toMatchObject({
+      await expect(
+        updateEventForDb(db, { name: "x", kitId: DEFAULT_KIT_ID }),
+      ).rejects.toMatchObject({
         code: "NOT_FOUND",
       });
       await expect(createPrizeForDb(db, PRIZE_INPUT)).rejects.toMatchObject({

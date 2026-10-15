@@ -1,6 +1,8 @@
 import type USB from "@node-escpos/usb-adapter";
 import type { Page } from "puppeteer";
 
+import { DEFAULT_KIT_ID } from "@dither-booth/shared/kits";
+import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import {
   afterAll,
   afterEach,
@@ -16,7 +18,11 @@ import {
 import type { DB } from "#db/internal/db.types";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import { drawTable, printConfigTable } from "#db/internal/db.schema";
+import {
+  campaignTable,
+  drawTable,
+  printConfigTable,
+} from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 import {
   insertLotteryEvent,
@@ -222,6 +228,31 @@ describe("prepareReceiptJob", () => {
     } finally {
       random.mockRestore();
     }
+  });
+
+  test("renders the photo receipt with the active event's kit and items", async () => {
+    const db = setupDb({ outcome: "win" });
+    db.update(campaignTable)
+      .set({ kitId: "heirvey", ticketItemNames: ["Mate", "Ginette"] })
+      .run();
+
+    await prepareReceiptJob({ ctx: createCtx(db), input: PHOTO });
+
+    expect(buildReceiptRasterCommand.mock.calls[0]?.[0]).toMatchObject({
+      kitId: "heirvey",
+      ticketItems: ["Mate", "Ginette"],
+    });
+  });
+
+  test("renders the default kit when no event is active", async () => {
+    const db = setupDb({ outcome: "no-lottery" });
+
+    await prepareReceiptJob({ ctx: createCtx(db), input: PHOTO });
+
+    expect(buildReceiptRasterCommand.mock.calls[0]?.[0]).toMatchObject({
+      kitId: DEFAULT_KIT_ID,
+      ticketItems: [...DEFAULT_TICKET_ITEM_NAMES],
+    });
   });
 
   test("rejects an empty photo before drawing", async () => {

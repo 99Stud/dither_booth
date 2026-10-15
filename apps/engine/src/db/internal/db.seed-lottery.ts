@@ -1,4 +1,5 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
+import { DEFAULT_KIT_ID } from "@dither-booth/shared/kits";
 import { eq, sql } from "drizzle-orm";
 
 import { db, sqlite } from "#db/index";
@@ -126,6 +127,7 @@ export async function seedDevLottery(
   await db.insert(campaignTable).values({
     id: DEV_CAMPAIGN_ID,
     name: "Dev event",
+    kitId: DEFAULT_KIT_ID,
     lotteryId: DEV_LOTTERY_ID,
   });
 

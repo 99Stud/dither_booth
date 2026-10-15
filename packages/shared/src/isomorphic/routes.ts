@@ -1,5 +1,6 @@
 import z from "zod";
 
+import { KIT_IDS } from "#isomorphic/kits";
 import { drawOutcomeSchema, raritySchema } from "#isomorphic/lottery";
 import {
   boothTicketRefSchema,
@@ -8,7 +9,8 @@ import {
 
 export const RECEIPT_VIEWER_PATH = "/receipt-viewer";
 
-export const PHOTO_RECEIPT_TEMPLATES = ["tartines", "heirvey"] as const;
+/** A photo receipt renders the event's kit, so its templates are the kits. */
+export const PHOTO_RECEIPT_TEMPLATES = KIT_IDS;
 export const LOTTERY_RECEIPT_TEMPLATE = "lottery" as const;
 export const RECEIPT_TEMPLATES = [
   ...PHOTO_RECEIPT_TEMPLATES,

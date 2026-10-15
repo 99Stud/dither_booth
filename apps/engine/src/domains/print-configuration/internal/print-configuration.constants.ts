@@ -1,4 +1,3 @@
-import { photoReceiptTemplateSchema } from "@dither-booth/shared/routes";
 import { ColorScheme, DitherMode } from "@opendisplay/epaper-dithering";
 import z from "zod";
 
@@ -41,7 +40,6 @@ const PRINT_CONFIGURATION_FIELD_SCHEMAS = {
   toneGamma: z.number().min(1).max(3),
   threshold: z.number().int().min(0).max(255),
   rotation: z.number().int().min(0).max(360),
-  template: photoReceiptTemplateSchema,
 };
 
 export const UPDATE_PRINT_CONFIGURATION_SCHEMA = z.object({
@@ -55,5 +53,4 @@ export const UPDATE_PRINT_CONFIGURATION_SCHEMA = z.object({
   toneGamma: PRINT_CONFIGURATION_FIELD_SCHEMAS.toneGamma.optional(),
   threshold: PRINT_CONFIGURATION_FIELD_SCHEMAS.threshold.optional(),
   rotation: PRINT_CONFIGURATION_FIELD_SCHEMAS.rotation.optional(),
-  template: PRINT_CONFIGURATION_FIELD_SCHEMAS.template.optional(),
 });

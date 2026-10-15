@@ -1,4 +1,6 @@
+import { logKioskEvent } from "@dither-booth/logging";
 import { parseBoothTicketRef } from "@dither-booth/shared/formatting";
+import { DEFAULT_KIT_ID, resolveKitId } from "@dither-booth/shared/kits";
 import {
   DEFAULT_TICKET_ITEM_NAMES,
   ticketItemNamesSchema,
@@ -31,7 +33,14 @@ import type {
   UpdateLotterySettingsInput,
   UpdateTicketItemsInput,
 } from "./event.constants";
-import type { CurrentEvent, EventPrize, ListDrawsResult } from "./event.types";
+import type {
+  CurrentEvent,
+  EventPrize,
+  ListDrawsResult,
+  ReceiptEventSettings,
+} from "./event.types";
+
+import { EVENT_LOG_SOURCE } from "./event.constants";
 
 const isActiveCampaign = eq(campaignTable.status, "active");
 
@@ -52,18 +61,48 @@ function readTicketItemNames(value: unknown): string[] {
   return parsed.data;
 }
 
-export async function getCurrentTicketItemNamesForDb(
+/**
+ * The kit this release renders for a stored id. An id it doesn't ship (set by
+ * a newer release, or a kit since removed) prints with the default kit rather
+ * than failing the visit, and is logged so it can be fixed.
+ */
+function readKitId(campaign: { id: string; kitId: string | null }) {
+  const { kitId, known } = resolveKitId(campaign.kitId);
+  if (!known) {
+    logKioskEvent("warn", EVENT_LOG_SOURCE, "event-kit-unknown", {
+      details: {
+        campaignId: campaign.id,
+        storedKitId: campaign.kitId,
+        fallbackKitId: kitId,
+      },
+    });
+  }
+  return kitId;
+}
+
+/** What a photo receipt takes from the active event, or the defaults. */
+export async function getReceiptEventSettingsForDb(
   db: DB,
-): Promise<string[]> {
+): Promise<ReceiptEventSettings> {
   const campaign = db
-    .select({ ticketItemNames: campaignTable.ticketItemNames })
+    .select({
+      id: campaignTable.id,
+      kitId: campaignTable.kitId,
+      ticketItemNames: campaignTable.ticketItemNames,
+    })
     .from(campaignTable)
     .where(isActiveCampaign)
     .get();
   if (!campaign) {
-    return [...DEFAULT_TICKET_ITEM_NAMES];
+    return {
+      kitId: DEFAULT_KIT_ID,
+      ticketItems: [...DEFAULT_TICKET_ITEM_NAMES],
+    };
   }
-  return readTicketItemNames(campaign.ticketItemNames);
+  return {
+    kitId: readKitId(campaign),
+    ticketItems: readTicketItemNames(campaign.ticketItemNames),
+  };
 }
 
 function readCurrentEvent(executor: DbExecutor): CurrentEvent | null {
@@ -97,6 +136,7 @@ function readCurrentEvent(executor: DbExecutor): CurrentEvent | null {
     campaign: {
       id: campaign.id,
       name: campaign.name,
+      kitId: readKitId(campaign),
       ticketItemNames: readTicketItemNames(campaign.ticketItemNames),
     },
     lottery: {
@@ -199,7 +239,12 @@ function insertEvent(tx: DbTransaction, input: CreateEventInput): void {
     .run();
 
   tx.insert(campaignTable)
-    .values({ id: createId(), name: input.name, lotteryId })
+    .values({
+      id: createId(),
+      name: input.name,
+      kitId: input.kitId,
+      lotteryId,
+    })
     .run();
 }
 
@@ -233,7 +278,7 @@ export async function updateEventForDb(
   return writeEvent(db, (tx) => {
     const current = requireCurrentEvent(tx);
     tx.update(campaignTable)
-      .set({ name: input.name })
+      .set({ name: input.name, kitId: input.kitId })
       .where(eq(campaignTable.id, current.campaign.id))
       .run();
   });

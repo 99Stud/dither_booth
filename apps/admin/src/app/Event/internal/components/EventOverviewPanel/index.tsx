@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
+import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
@@ -16,20 +17,21 @@ import { useEffect } from "react";
 
 import { StatusDot } from "#components/Misc/StatusDot/index";
 
-import type { CurrentEvent } from "../../Event.types";
+import type { CurrentEvent, UpdateEventFormValues } from "../../Event.types";
 
 import {
-  UPDATE_EVENT_NAME_FORM_SCHEMA,
-  getUpdateEventNameFormValues,
+  KIT_FIELD_OPTIONS,
+  UPDATE_EVENT_FORM_SCHEMA,
+  getUpdateEventFormValues,
 } from "../../Event.constants";
 import { getRarityBreakdown, getRemainingPrizes } from "../../Event.utils";
 import { EventTicketItemsCard } from "../EventTicketItemsCard/index";
 
 interface EventOverviewPanelProps {
   event: CurrentEvent;
-  isSavingName: boolean;
+  isSavingDetails: boolean;
   isSavingTicketItems: boolean;
-  onSaveName: (name: string) => Promise<void>;
+  onSaveDetails: (values: UpdateEventFormValues) => Promise<void>;
   onSaveTicketItems: (names: string[]) => Promise<void>;
   onReplaceClick: () => void;
 }
@@ -37,9 +39,9 @@ interface EventOverviewPanelProps {
 export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
   const {
     event,
-    isSavingName,
+    isSavingDetails,
     isSavingTicketItems,
-    onSaveName,
+    onSaveDetails,
     onSaveTicketItems,
     onReplaceClick,
   } = props;
@@ -47,20 +49,20 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
   const rarityBreakdown = getRarityBreakdown(event);
 
   const form = useForm({
-    defaultValues: getUpdateEventNameFormValues(event),
+    defaultValues: getUpdateEventFormValues(event),
     validators: {
-      onChange: UPDATE_EVENT_NAME_FORM_SCHEMA,
-      onSubmit: UPDATE_EVENT_NAME_FORM_SCHEMA,
+      onChange: UPDATE_EVENT_FORM_SCHEMA,
+      onSubmit: UPDATE_EVENT_FORM_SCHEMA,
     },
     onSubmit: async ({ value }) => {
-      await onSaveName(value.name);
+      await onSaveDetails(value);
     },
   });
 
   useEffect(() => {
-    form.reset(getUpdateEventNameFormValues(event));
+    form.reset(getUpdateEventFormValues(event));
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- sync on server identity only
-  }, [event.campaign.name, event.campaign.id]);
+  }, [event.campaign.name, event.campaign.kitId, event.campaign.id]);
 
   return (
     <div className={clsx("grid gap-4 md:grid-cols-2")}>
@@ -103,9 +105,16 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
             }}
           >
             <TextField form={form} name="name" label="Event name" />
+            <SelectField
+              form={form}
+              name="kitId"
+              label="Ticket kit"
+              placeholder="Select a ticket kit"
+              options={KIT_FIELD_OPTIONS}
+            />
             <div className={clsx("flex gap-2")}>
-              <Button type="submit" disabled={isSavingName}>
-                Save name
+              <Button type="submit" disabled={isSavingDetails}>
+                Save
               </Button>
               <Button type="button" variant="outline" onClick={onReplaceClick}>
                 Replace event
