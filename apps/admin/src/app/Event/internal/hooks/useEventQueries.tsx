@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import { useTRPC } from "#lib/trpc/trpc.client";
 
-import { isStockConflictError, reportEventError } from "../Event.utils";
+import { reportEventError } from "../Event.utils";
 
 export const useEventQueries = () => {
   const trpc = useTRPC();
@@ -102,9 +102,8 @@ export const useEventQueries = () => {
       toast.success("Prize updated");
       await invalidateCurrentEvent();
     },
-    onError: async (error) => {
+    onError: (error) => {
       reportEventError(error, "update-prize-failed", "Failed to update prize.");
-      if (isStockConflictError(error)) await invalidateCurrentEvent();
     },
   });
 
@@ -125,13 +124,12 @@ export const useEventQueries = () => {
       toast.success("Prize restocked");
       await invalidateCurrentEvent();
     },
-    onError: async (error) => {
+    onError: (error) => {
       reportEventError(
         error,
         "restock-prize-failed",
         "Failed to restock prize.",
       );
-      if (isStockConflictError(error)) await invalidateCurrentEvent();
     },
   });
 

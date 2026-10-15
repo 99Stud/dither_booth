@@ -14,7 +14,12 @@ import {
   drawTable,
   lotteryTable,
   prizeTable,
+  stockAdjustmentTable,
 } from "#db/internal/db.schema";
+import {
+  applyStockAdjustment,
+  prizeStockColumns,
+} from "#domains/lottery/lottery.service";
 
 import type {
   CreateEventInput,
@@ -33,9 +38,8 @@ const EVENT_PRIZE_COLUMNS = {
   title: prizeTable.title,
   winInstruction: prizeTable.winInstruction,
   weight: prizeTable.weight,
-  totalQuantity: prizeTable.totalQuantity,
-  remainingQuantity: prizeTable.remainingQuantity,
   rarity: prizeTable.rarity,
+  ...prizeStockColumns,
 };
 
 function readTicketItemNames(value: unknown): string[] {
@@ -126,18 +130,6 @@ function requireCurrentPrize(
   return { current, prize };
 }
 
-function assertStockUnchanged(
-  prize: EventPrize,
-  expectedRemainingQuantity: number,
-) {
-  if (prize.remainingQuantity !== expectedRemainingQuantity) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: `Stock changed while you were editing (now ${prize.remainingQuantity} left). Reopen the prize and try again.`,
-    });
-  }
-}
-
 /**
  * Runs `write` in one synchronous transaction and returns the event as it
  * stands after the write, so a crash halfway never leaves a partial event.
@@ -158,6 +150,7 @@ function writeEvent(db: DB, write: (tx: DbTransaction) => void): CurrentEvent {
 
 function wipeEventData(tx: DbTransaction): void {
   tx.delete(drawTable).run();
+  tx.delete(stockAdjustmentTable).run();
   tx.delete(prizeTable).run();
   tx.update(campaignTable).set({ lotteryId: null }).run();
   tx.delete(lotteryTable).run();
@@ -279,17 +272,26 @@ export async function createPrizeForDb(
 ): Promise<CurrentEvent> {
   return writeEvent(db, (tx) => {
     const current = requireCurrentEvent(tx);
+    const prizeId = createId();
     tx.insert(prizeTable)
       .values({
+        id: prizeId,
         lotteryId: current.lottery.id,
         title: input.title,
         winInstruction: input.winInstruction,
         weight: input.weight,
-        totalQuantity: input.totalQuantity,
-        remainingQuantity: input.remainingQuantity,
         rarity: input.rarity,
       })
       .run();
+
+    if (input.quantity > 0) {
+      applyStockAdjustment(tx, {
+        id: createId(),
+        prizeId,
+        delta: input.quantity,
+        reason: "initial",
+      });
+    }
   });
 }
 
@@ -298,16 +300,15 @@ export async function updatePrizeForDb(
   input: UpdatePrizeInput,
 ): Promise<CurrentEvent> {
   return writeEvent(db, (tx) => {
+    // Stock is not part of a prize edit: it only moves through
+    // `restockPrizeForDb`, so an edit can never overwrite kiosk wins.
     const { prize } = requireCurrentPrize(tx, input.prizeId);
-    assertStockUnchanged(prize, input.expectedRemainingQuantity);
 
     tx.update(prizeTable)
       .set({
         title: input.title,
         winInstruction: input.winInstruction,
         weight: input.weight,
-        totalQuantity: input.totalQuantity,
-        remainingQuantity: input.remainingQuantity,
         rarity: input.rarity,
       })
       .where(eq(prizeTable.id, prize.id))
@@ -331,41 +332,40 @@ export async function deletePrizeForDb(
       .get();
 
     if (referencedDraw) {
-      // Draws point at the prize row, so a won prize stays stored and leaves the active pool.
+      // Draws point at the prize row, so a won prize stays stored and leaves
+      // the active pool. Its ledger stays too, as the history of its stock.
       tx.update(prizeTable)
-        .set({ removed: true, remainingQuantity: 0 })
+        .set({ removed: true })
         .where(eq(prizeTable.id, prize.id))
         .run();
       return;
     }
 
+    tx.delete(stockAdjustmentTable)
+      .where(eq(stockAdjustmentTable.prizeId, prize.id))
+      .run();
     tx.delete(prizeTable).where(eq(prizeTable.id, prize.id)).run();
   });
 }
 
+/**
+ * Adds or removes stock by a delta. Deltas commute with kiosk wins, so there
+ * is nothing to go stale between opening the form and saving it, and the
+ * caller's `adjustmentId` makes a retried request apply once.
+ */
 export async function restockPrizeForDb(
   db: DB,
   input: RestockPrizeInput,
 ): Promise<CurrentEvent> {
   return writeEvent(db, (tx) => {
     const { prize } = requireCurrentPrize(tx, input.prizeId);
-    assertStockUnchanged(prize, input.expectedRemainingQuantity);
 
-    const totalQuantity =
-      input.totalQuantity ??
-      Math.max(prize.totalQuantity, input.remainingQuantity);
-
-    if (input.remainingQuantity > totalQuantity) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "remainingQuantity must be <= totalQuantity",
-      });
-    }
-
-    tx.update(prizeTable)
-      .set({ remainingQuantity: input.remainingQuantity, totalQuantity })
-      .where(eq(prizeTable.id, prize.id))
-      .run();
+    applyStockAdjustment(tx, {
+      id: input.adjustmentId,
+      prizeId: prize.id,
+      delta: input.delta,
+      reason: input.delta > 0 ? "restock" : "correction",
+    });
   });
 }
 

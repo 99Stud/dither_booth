@@ -7,6 +7,7 @@ import {
   drawTable,
   lotteryTable,
   prizeTable,
+  stockAdjustmentTable,
 } from "#db/internal/db.schema";
 
 import { ENGINE_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
@@ -28,8 +29,7 @@ const DEV_PRIZES = [
     title: "a 99stud sticker",
     winInstruction: DEFAULT_WIN_INSTRUCTION,
     weight: 40,
-    totalQuantity: 100,
-    remainingQuantity: 100,
+    quantity: 100,
     rarity: "common" as const,
   },
   {
@@ -37,8 +37,7 @@ const DEV_PRIZES = [
     title: "an El Tony Mate",
     winInstruction: DEFAULT_WIN_INSTRUCTION,
     weight: 8,
-    totalQuantity: 20,
-    remainingQuantity: 20,
+    quantity: 20,
     rarity: "rare" as const,
   },
   {
@@ -46,8 +45,7 @@ const DEV_PRIZES = [
     title: "a free drink at the bar",
     winInstruction: DEFAULT_WIN_INSTRUCTION,
     weight: 2,
-    totalQuantity: 8,
-    remainingQuantity: 8,
+    quantity: 8,
     rarity: "legendary" as const,
   },
 ] as const;
@@ -68,6 +66,7 @@ export type SeedDevLotteryResult =
 
 async function clearLotteryData() {
   await db.delete(drawTable);
+  await db.delete(stockAdjustmentTable);
   await db
     .update(campaignTable)
     .set({ lotteryId: null })
@@ -102,9 +101,18 @@ export async function seedDevLottery(
   });
 
   await db.insert(prizeTable).values(
-    DEV_PRIZES.map((prize) => ({
+    DEV_PRIZES.map(({ quantity: _quantity, ...prize }) => ({
       ...prize,
       lotteryId: DEV_LOTTERY_ID,
+    })),
+  );
+
+  await db.insert(stockAdjustmentTable).values(
+    DEV_PRIZES.map((prize) => ({
+      id: `dev_stock_${prize.id}`,
+      prizeId: prize.id,
+      delta: prize.quantity,
+      reason: "initial" as const,
     })),
   );
 

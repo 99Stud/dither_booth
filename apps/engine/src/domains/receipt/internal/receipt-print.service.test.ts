@@ -19,10 +19,13 @@ import type { TRPCContext } from "#lib/trpc/trpc.types";
 import {
   drawTable,
   lotteryTable,
-  prizeTable,
   printConfigTable,
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
+import {
+  insertPrizeWithStock,
+  stockOf,
+} from "#domains/lottery/internal/lottery.test-utils";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
 // The printer and the Puppeteer renders are the only I/O in the flow; every
@@ -115,18 +118,18 @@ function setupDb({
       printLoserTicket,
     })
     .run();
-  db.insert(prizeTable)
-    .values({
+  insertPrizeWithStock(
+    db,
+    {
       id: "p1",
       lotteryId: "lottery-1",
       title: "a sticker",
       winInstruction: "Show this ticket at the bar",
       weight: 1,
-      totalQuantity: 3,
-      remainingQuantity: 3,
       rarity: "rare",
-    })
-    .run();
+    },
+    3,
+  );
 
   return db;
 }
@@ -305,7 +308,7 @@ describe("printPreparedReceiptJob", () => {
 describe("config.printReceipt (admin test print)", () => {
   test("prints the photo receipt under the sample ref without drawing", async () => {
     const db = setupDb({ outcome: "win" });
-    const stockBefore = db.select().from(prizeTable).all();
+    const stockBefore = stockOf(db, "p1");
     const caller = engineRouter.createCaller({
       ...createCtx(db),
       requestOrigin: "https://admin.local",
@@ -316,7 +319,8 @@ describe("config.printReceipt (admin test print)", () => {
     expect(printedBuffers()).toEqual(["photo:000000"]);
     expect(buildLotteryTicketRasterCommand).not.toHaveBeenCalled();
     expect(db.select().from(drawTable).all()).toEqual([]);
-    expect(db.select().from(prizeTable).all()).toEqual(stockBefore);
+    expect(stockOf(db, "p1")).toEqual(stockBefore);
+    expect(stockBefore?.remainingQuantity).toBe(3);
   });
 });
 

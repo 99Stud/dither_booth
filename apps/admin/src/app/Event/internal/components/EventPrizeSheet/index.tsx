@@ -93,16 +93,16 @@ export const EventPrizeSheet: FC<EventPrizeSheetProps> = (props) => {
             options={RARITY_FIELD_OPTIONS}
           />
           <NumberField form={form} name="weight" label="Weight" />
-          <NumberField
-            form={form}
-            name="totalQuantity"
-            label="Total quantity"
-          />
-          <NumberField
-            form={form}
-            name="remainingQuantity"
-            label="Remaining quantity"
-          />
+          {mode === "create" ? (
+            <NumberField form={form} name="quantity" label="Quantity" />
+          ) : prize ? (
+            // Stock only moves through restock deltas, so an edit can never
+            // overwrite wins that happened while the sheet was open.
+            <p className={clsx("text-sm text-muted-foreground")}>
+              {prize.remainingQuantity} left of {prize.totalQuantity}. Use
+              Restock to change the stock.
+            </p>
+          ) : null}
           <SheetFooter>
             <Button
               type="button"

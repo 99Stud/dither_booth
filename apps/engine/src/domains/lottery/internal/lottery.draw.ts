@@ -1,7 +1,7 @@
 import type { DrawResult } from "@dither-booth/shared/lottery";
 
 import { logKioskEvent } from "@dither-booth/logging";
-import { and, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 
 import type { DB, DbTransaction } from "#db/internal/db.types";
 
@@ -13,6 +13,11 @@ import {
 
 import { LOTTERY_LOG_SOURCE } from "./lottery.constants";
 import { isWithinWinCooldown, runLotteryDraw } from "./lottery.engine";
+import {
+  getPrizeStock,
+  hasRemainingStock,
+  prizeStockColumns,
+} from "./lottery.stock";
 import {
   createBoothTicketRef,
   isUniqueTicketRefConstraintError,
@@ -70,24 +75,6 @@ function insertDraw(
   throw new Error("Failed to allocate a unique ticket number.");
 }
 
-/** Takes one unit of stock, or returns false when there is none left. */
-function decrementPrizeStock(tx: DbTransaction, prizeId: string): boolean {
-  const decremented = tx
-    .update(prizeTable)
-    .set({ remainingQuantity: sql`${prizeTable.remainingQuantity} - 1` })
-    .where(
-      and(
-        eq(prizeTable.id, prizeId),
-        eq(prizeTable.removed, false),
-        gt(prizeTable.remainingQuantity, 0),
-      ),
-    )
-    .returning({ id: prizeTable.id })
-    .all();
-
-  return decremented.length > 0;
-}
-
 function getEnabledLottery(tx: DbTransaction) {
   return tx
     .select()
@@ -134,9 +121,9 @@ function runForcedWin(
     throw new Error(`Forced lottery prize not found: ${params.prizeId}`);
   }
 
-  // Forcing skips the odds, the cooldown and `enabled`, never the stock:
-  // `remaining` must always match the number of win rows.
-  if (!decrementPrizeStock(tx, prize.id)) {
+  // Forcing skips the odds, the cooldown and `enabled`, never the stock: the
+  // win row inserted below is what takes the unit.
+  if ((getPrizeStock(tx, prize.id)?.remainingQuantity ?? 0) <= 0) {
     throw new Error(`Forced lottery prize is out of stock: ${params.prizeId}`);
   }
 
@@ -208,13 +195,20 @@ function runWeightedDraw(
   }
 
   const eligiblePrizes = tx
-    .select()
+    .select({
+      id: prizeTable.id,
+      rarity: prizeTable.rarity,
+      title: prizeTable.title,
+      weight: prizeTable.weight,
+      winInstruction: prizeTable.winInstruction,
+      ...prizeStockColumns,
+    })
     .from(prizeTable)
     .where(
       and(
         eq(prizeTable.lotteryId, lottery.id),
         eq(prizeTable.removed, false),
-        gt(prizeTable.remainingQuantity, 0),
+        hasRemainingStock,
       ),
     )
     .all();
@@ -225,10 +219,9 @@ function runWeightedDraw(
     random: params.random,
   });
 
-  if (
-    drawResult.outcome === "loss" ||
-    !decrementPrizeStock(tx, drawResult.prize.id)
-  ) {
+  // Eligible prizes all have stock, and the whole draw is one synchronous
+  // transaction, so the win row below always finds its unit.
+  if (drawResult.outcome === "loss") {
     return recordLoss(tx, {
       lottery,
       ticketRef: params.ticketRef,
