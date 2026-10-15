@@ -35,6 +35,12 @@ export const REEL_CELL_HEIGHT_PX = 160;
 export const PHASE_AUTO_ADVANCE_MS = 5000;
 
 /**
+ * How long a "reload when idle" command from the operator waits for the
+ * landing screen before reloading anyway, in case the flow is stuck.
+ */
+export const KIOSK_RELOAD_IDLE_TIMEOUT_MS = 90_000;
+
+/**
  * Escape hatch for a capture or print that never settles. Capture and print
  * each get a fresh budget, so the worst-case wait is two of these.
  *

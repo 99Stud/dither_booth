@@ -1,4 +1,9 @@
-import type { ComponentProps, FC, MouseEventHandler } from "react";
+import type {
+  ComponentProps,
+  FC,
+  MouseEventHandler,
+  PropsWithChildren,
+} from "react";
 
 import {
   AlertDialog,
@@ -37,7 +42,8 @@ import {
 import { HEALTHZ_SERVICE_LABELS } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.constants";
 import { getHealthStatusVariant } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
 
-interface HealthzAccordionItemProps {
+/** `children` render after the service's health details. */
+interface HealthzAccordionItemProps extends PropsWithChildren {
   service: Pm2RestartService;
   isHealthzSuccess: boolean;
   isHealthzPending: boolean;
@@ -87,6 +93,7 @@ const renderServiceTooltip = (check: RemoteServiceHealthz) => {
 };
 
 export const HealthzAccordionItem: FC<HealthzAccordionItemProps> = ({
+  children,
   service,
   isHealthzSuccess,
   isHealthzPending,
@@ -204,6 +211,7 @@ export const HealthzAccordionItem: FC<HealthzAccordionItemProps> = ({
         </>
       )}
       {isHealthzError && <p>Failed to gather {service} health information.</p>}
+      {children}
     </HealthAccordionShell>
   );
 };

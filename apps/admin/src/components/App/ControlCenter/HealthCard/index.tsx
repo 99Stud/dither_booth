@@ -1,3 +1,5 @@
+import type { KioskReloadMode } from "@dither-booth/shared/kiosk";
+
 import { sleep } from "@dither-booth/shared/async";
 import { Accordion } from "@dither-booth/ui/components/ui/accordion";
 import { Button } from "@dither-booth/ui/components/ui/button";
@@ -27,10 +29,12 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 import type { HealthzResponse } from "./internal/HealthCard.types";
 
 import { HealthzAccordionItem } from "./internal/components/HealthzAccordionItem";
+import { KioskReloadSection } from "./internal/components/KioskReloadSection";
 import { PrinterAccordionItem } from "./internal/components/PrinterAccordionItem";
 import { PuppeteerAccordionItem } from "./internal/components/PuppeteerAccordionItem";
 import {
   HEALTHZ_SERVICE_LABELS,
+  KIOSK_RELOAD_HEALTHZ_REFETCH_DELAY_MS,
   RESTART_HEALTHZ_REFETCH_DELAY_MS,
 } from "./internal/HealthCard.constants";
 import { requestPm2ServiceRestart } from "./internal/HealthCard.utils";
@@ -84,6 +88,8 @@ export const HealthCard = () => {
     mutateAsync: restartPuppeteerReceiptViewer,
     isPending: isRestartPuppeteerPending,
   } = useMutation(trpc.ops.restartPuppeteerReceiptViewer.mutationOptions());
+  const { mutateAsync: reloadKiosk, isPending: isReloadKioskPending } =
+    useMutation(trpc.ops.reloadKiosk.mutationOptions());
 
   const areAllChecksHealthy =
     isHealthzSuccess &&
@@ -159,6 +165,41 @@ export const HealthCard = () => {
     });
 
     setRestartProgress(undefined);
+  };
+
+  const requestKioskReload = async (mode: KioskReloadMode) => {
+    const reloadResult = await reloadKiosk({ mode }).catch((e) => {
+      reportKioskError(e, {
+        event: "control-center-kiosk-reload-failed",
+        source: CONTROL_CENTER_LOG_SOURCE,
+        userMessage: "Failed to send the reload to the kiosk.",
+      });
+    });
+
+    if (!reloadResult) {
+      return;
+    }
+
+    if (reloadResult.delivered === 0) {
+      toast.warning("No kiosk page is connected.");
+      return;
+    }
+
+    toast.success(
+      `Reload sent to ${reloadResult.delivered} kiosk page${reloadResult.delivered > 1 ? "s" : ""}${mode === "when-idle" ? ", once the current visit ends" : ""}.`,
+    );
+
+    await sleep(KIOSK_RELOAD_HEALTHZ_REFETCH_DELAY_MS);
+
+    await refetchHealthz({
+      throwOnError: true,
+    }).catch((e) => {
+      reportKioskError(e, {
+        event: "control-center-healthz-refetch-after-kiosk-reload-failed",
+        source: CONTROL_CENTER_LOG_SOURCE,
+        userMessage: "Failed to refresh health checks after the kiosk reload.",
+      });
+    });
   };
 
   const reinitializePuppeteer = async () => {
@@ -250,7 +291,15 @@ export const HealthCard = () => {
             restartProgress={restartProgress?.event}
             restartingService={restartProgress?.service}
             onRestart={restartService}
-          />
+          >
+            {isHealthzSuccess && (
+              <KioskReloadSection
+                pages={healthz.shutter.kiosk.pages}
+                isReloading={isReloadKioskPending}
+                onReload={(mode) => void requestKioskReload(mode)}
+              />
+            )}
+          </HealthzAccordionItem>
           <HealthzAccordionItem
             isHealthzPending={isHealthzPending}
             healthz={healthz}

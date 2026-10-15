@@ -24,6 +24,7 @@ import {
   printConfigTable,
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
+import { createKioskChannel } from "#domains/kiosk/kiosk.service";
 import {
   insertLotteryEvent,
   insertPrizeWithStock,
@@ -143,6 +144,7 @@ function createCtx(db: DB) {
     adminOrigin: "https://admin.local",
     allowedHostnames: [],
     db,
+    kioskChannel: createKioskChannel(),
     mode: "production",
     printerUSBAdapter: USB_ADAPTER,
     processManager: "unknown",

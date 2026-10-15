@@ -134,11 +134,25 @@ The tRPC router (`src/internal/router.ts`) is split by caller. Each group's proc
 
 | Group      | Base procedure    | Access             | Procedures                                                                                                                                                                |
 | ---------- | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `booth.*`  | `boothProcedure`  | Any origin (kiosk) | `getLotteryStatus`, `prepareReceipt`, `printPreparedReceipt`                                                                                                              |
+| `booth.*`  | `boothProcedure`  | Any origin (kiosk) | `getLotteryStatus`, `prepareReceipt`, `printPreparedReceipt`, `onKioskCommand`                                                                                            |
 | `config.*` | `configProcedure` | Admin origin only  | Event, prize and lottery CRUD, `listDraws`, `getPrintConfiguration` / `updatePrintConfiguration`, `dither`, `generateReceipt`, `printReceipt`, `printSampleLotteryTicket` |
-| `ops.*`    | `opsProcedure`    | Admin origin only  | `getHealthz`, `restartPuppeteerReceiptViewer`                                                                                                                             |
+| `ops.*`    | `opsProcedure`    | Admin origin only  | `getHealthz`, `restartPuppeteerReceiptViewer`, `reloadKiosk`                                                                                                              |
 
 A new procedure goes in the group of whoever calls it, and is built on that group's base procedure.
+
+### Kiosk channel
+
+The engine can push commands to the kiosk pages, for example to reload a Shutter page whose shader broke, without touching the iPad.
+
+- **`booth.onKioskCommand({ pageId, deviceId })`** is a tRPC subscription streamed over server-sent events through the Shutter's `/engine/trpc` proxy. Only the Experience route (`/`) subscribes, so the `/receipt-viewer` page that Puppeteer prints from is never reloaded.
+- **`ops.reloadKiosk({ mode })`** (admin origin only) sends `{ type: "reload", mode }` to every connected page and returns `{ delivered }`, the number of pages that got it. Admin's Control Center calls it from the Shutter health item, which also lists the connected pages (`ops.getHealthz` → `shutter.kiosk.pages`).
+  - `when-idle` reloads once the page is back on the landing screen, so a guest's visit is never cut off, and after 90 s anyway, since a stuck flow never gets back there.
+  - `now` reloads straight away.
+- The channel lives in memory (`src/domains/kiosk/internal/kiosk.channel.ts`), one per engine process. A command reaches the pages connected when it is sent and is **never replayed**: a page that was offline misses it (and `delivered` says so) rather than reloading in a loop later.
+- SSE pings every 5 s keep the stream open through Bun.serve's 10 s idle timeout, and the client reconnects after 15 s of silence. The proxy forwards the browser's abort signal, so a closed page also ends its engine stream.
+- A tab whose JavaScript is fully frozen can't react; it still needs a manual reload on the iPad.
+
+Commands are the `KIOSK_COMMAND_SCHEMA` union in `@dither-booth/shared/kiosk`, so new ones (such as a theme update) are added as a new `type`. Studio will reach the same channel through a Bell `kiosk.reload` message (Phase 3).
 
 ### Event admin (one active event)
 

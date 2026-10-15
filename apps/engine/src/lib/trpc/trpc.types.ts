@@ -2,6 +2,7 @@ import type USB from "@node-escpos/usb-adapter";
 import type { Page } from "puppeteer";
 
 import type { DB } from "#db/internal/db.types";
+import type { KioskChannel } from "#domains/kiosk/kiosk.service";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 import type {
   PuppeteerReceiptViewerLifecycle,
@@ -12,6 +13,8 @@ export type TRPCContext = {
   adminOrigin: string;
   allowedHostnames: readonly string[];
   db: DB;
+  /** Push channel to the connected kiosk pages, one per engine process. */
+  kioskChannel: KioskChannel;
   mode: "development" | "production";
   requestOrigin?: string;
   processManager: RuntimeProcessManager;

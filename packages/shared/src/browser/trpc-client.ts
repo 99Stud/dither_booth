@@ -6,6 +6,7 @@ import {
   createTRPCClient,
   httpBatchLink,
   httpLink,
+  httpSubscriptionLink,
   isNonJsonSerializable,
   splitLink,
 } from "@trpc/client";
@@ -44,13 +45,22 @@ export function createDitherBoothTRPCClient<TRouter extends JsonTRPCRouter>() {
   return createTRPCClient<TRouter>({
     links: [
       splitLink({
-        condition: (op) => isNonJsonSerializable(op.input),
-        true: httpLink<TRouter>({
+        // Subscriptions (the kiosk channel) stream over server-sent events.
+        condition: (op) => op.type === "subscription",
+        true: httpSubscriptionLink<TRouter, typeof EventSource>({
           url: TRPC_PROXY_PATH,
-        } as Parameters<typeof httpLink<TRouter>>[0]),
-        false: httpBatchLink<TRouter>({
-          url: TRPC_PROXY_PATH,
-        } as Parameters<typeof httpBatchLink<TRouter>>[0]),
+        } as Parameters<
+          typeof httpSubscriptionLink<TRouter, typeof EventSource>
+        >[0]),
+        false: splitLink({
+          condition: (op) => isNonJsonSerializable(op.input),
+          true: httpLink<TRouter>({
+            url: TRPC_PROXY_PATH,
+          } as Parameters<typeof httpLink<TRouter>>[0]),
+          false: httpBatchLink<TRouter>({
+            url: TRPC_PROXY_PATH,
+          } as Parameters<typeof httpBatchLink<TRouter>>[0]),
+        }),
       }),
     ],
   });

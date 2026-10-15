@@ -26,6 +26,10 @@ import { ENGINE_REPO_ROOT } from "#lib/constants";
 type GetHealthzResponse = {
   shutter: {
     healthz: ShutterHealthz;
+    kiosk: {
+      /** Kiosk pages subscribed to the kiosk channel right now. */
+      pages: Array<{ pageId: string; deviceId: string; connectedAt: string }>;
+    };
   };
   engine: {
     healthz: EngineHealthzPayload;
@@ -80,6 +84,13 @@ export const getHealthz = opsProcedure.query(async ({ ctx }) => {
   const payload = {
     shutter: {
       healthz: shutterHealthz,
+      kiosk: {
+        pages: ctx.kioskChannel.listPages().map((page) => ({
+          pageId: page.pageId,
+          deviceId: page.deviceId,
+          connectedAt: page.connectedAt.toISOString(),
+        })),
+      },
     },
     engine: {
       healthz: engineHealthz,
