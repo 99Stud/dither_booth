@@ -6,7 +6,10 @@ import {
   KIT_IDS,
   kitIdSchema,
 } from "@dither-booth/shared/kits";
-import { RARITY_TYPES } from "@dither-booth/shared/lottery";
+import {
+  RARITY_DEFAULT_WEIGHTS,
+  RARITY_TYPES,
+} from "@dither-booth/shared/lottery";
 import { ticketItemNamesSchema } from "@dither-booth/shared/ticket";
 import z from "zod";
 
@@ -93,7 +96,7 @@ export const DEFAULT_CREATE_EVENT_FORM_VALUES: CreateEventFormValues = {
 export const DEFAULT_PRIZE_FORM_VALUES: PrizeFormValues = {
   title: "",
   winInstruction: "Show this ticket at the bar",
-  weight: 1,
+  weight: RARITY_DEFAULT_WEIGHTS.common,
   quantity: 1,
   rarity: "common",
 };

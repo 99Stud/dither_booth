@@ -1,6 +1,9 @@
 import type { Rarity } from "@dither-booth/shared/lottery";
 
-import { RARITY_TYPES } from "@dither-booth/shared/lottery";
+import {
+  RARITY_DEFAULT_WEIGHTS,
+  RARITY_TYPES,
+} from "@dither-booth/shared/lottery";
 
 /** What the odds need from a prize: the engine's draw inputs. */
 export type OddsPrize = {
@@ -315,6 +318,29 @@ export const previewPrize = ({
       ownWinsPerMinute > 0 && quantity > 0 ? quantity / ownWinsPerMinute : null,
   };
 };
+
+/** Whether a prize still uses its rarity's default weight. */
+export const usesRarityDefaultWeight = (prize: {
+  rarity: Rarity;
+  weight: number;
+}): boolean => prize.weight === RARITY_DEFAULT_WEIGHTS[prize.rarity];
+
+/**
+ * The weight after a rarity change: a prize on its old rarity's default
+ * follows the new rarity's default; a custom weight is kept.
+ */
+export const weightAfterRarityChange = ({
+  weight,
+  from,
+  to,
+}: {
+  weight: number;
+  from: Rarity;
+  to: Rarity;
+}): number =>
+  usesRarityDefaultWeight({ rarity: from, weight })
+    ? RARITY_DEFAULT_WEIGHTS[to]
+    : weight;
 
 /** "1 h 40 min" / "25 min". */
 export const formatDuration = (minutes: number): string => {

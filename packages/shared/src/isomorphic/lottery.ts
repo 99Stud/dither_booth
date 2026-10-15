@@ -13,6 +13,19 @@ export const raritySchema = z.enum(RARITY_TYPES);
 
 export type Rarity = z.infer<typeof raritySchema>;
 
+/**
+ * The draw weight a prize gets from its rarity, unless set per prize.
+ * Next to the default no-win weight of 50, a common prize is about 1 in 2.3
+ * and a legendary one about 1 in 26 (fewer prizes in the draw, better odds).
+ */
+export const RARITY_DEFAULT_WEIGHTS: Record<Rarity, number> = {
+  common: 40,
+  uncommon: 20,
+  rare: 8,
+  epic: 4,
+  legendary: 2,
+};
+
 export const DRAW_OUTCOMES = ["win", "loss"] as const;
 
 export const drawOutcomeSchema = z.enum(DRAW_OUTCOMES);

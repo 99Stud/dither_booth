@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@dither-booth/ui/components/ui/alert-dialog";
+import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
@@ -55,7 +56,11 @@ import { RarityBadge } from "#components/Misc/RarityBadge/index";
 
 import type { CurrentEvent, EventPrize } from "../../Event.types";
 
-import { computeOdds, formatOneIn } from "../../lottery-odds.utils";
+import {
+  computeOdds,
+  formatOneIn,
+  usesRarityDefaultWeight,
+} from "../../lottery-odds.utils";
 
 interface EventPrizesTableProps {
   event: CurrentEvent;
@@ -172,7 +177,12 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
                         title={`Weight ${prize.weight}`}
                       >
                         {chanceById.has(prize.id) ? (
-                          formatOneIn(chanceById.get(prize.id) ?? 0)
+                          <span className={clsx("flex items-center gap-1.5")}>
+                            {formatOneIn(chanceById.get(prize.id) ?? 0)}
+                            {!usesRarityDefaultWeight(prize) && (
+                              <Badge variant="secondary">Custom</Badge>
+                            )}
+                          </span>
                         ) : (
                           <span className={clsx("text-muted-foreground")}>
                             Out of the draw

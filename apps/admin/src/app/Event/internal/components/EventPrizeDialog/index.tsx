@@ -2,7 +2,10 @@ import type { Rarity } from "@dither-booth/shared/lottery";
 import type { FC, ReactNode } from "react";
 
 import { capitalize } from "@dither-booth/shared/formatting";
-import { RARITY_TYPES } from "@dither-booth/shared/lottery";
+import {
+  RARITY_DEFAULT_WEIGHTS,
+  RARITY_TYPES,
+} from "@dither-booth/shared/lottery";
 import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
@@ -27,7 +30,15 @@ import { NumberField } from "@dither-booth/ui/fields/NumberField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
 import { useForm, useStore } from "@tanstack/react-form";
 import clsx from "clsx";
-import { ChevronDown, Gift, Hourglass, Plus, Save } from "lucide-react";
+import {
+  ChevronDown,
+  Gift,
+  Hourglass,
+  Plus,
+  RotateCcw,
+  Save,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 import { RarityDot, rarityColor } from "#components/Misc/RarityBadge/index";
@@ -48,6 +59,8 @@ import {
   formatOneIn,
   type OddsPrize,
   previewPrize,
+  usesRarityDefaultWeight,
+  weightAfterRarityChange,
   weightForPrizeChance,
 } from "../../lottery-odds.utils";
 import {
@@ -60,9 +73,6 @@ import {
 /** Other prizes: a mid grey, between this prize and "no prize". */
 const OTHER_PRIZES_COLOR =
   "color-mix(in oklch, var(--muted-foreground) 60%, transparent)";
-
-/** Where a new prize starts: noticeable, but not every other guest. */
-const NEW_PRIZE_ONE_IN = 20;
 
 /** Past this, "lasts all night" reads better than a duration. */
 const ALL_NIGHT_MINUTES = 12 * 60;
@@ -106,7 +116,8 @@ interface EventPrizeDialogProps {
 /**
  * Add or edit a prize in plain words: what it is, how to claim it, its
  * rarity as coloured chips, and how often it comes out as "1 in N guests"
- * instead of a raw weight. Next to it, live: one draw as a stacked bar, how
+ * instead of a raw weight. A rarity brings its default weight; moving the
+ * slider makes it custom for this prize, and one click restores the default. Next to it, live: one draw as a stacked bar, how
  * the prize moves the overall odds, and about how long its stock lasts.
  */
 export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
@@ -123,27 +134,16 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
   } = props;
   const [guestsPerHour] = useGuestsPerHour();
 
-  // A new prize starts at "1 in 20" next to the current draw. The form's
-  // defaults and its reset on open must agree, or a re-render undoes it.
-  const initialValues = useMemo((): PrizeFormValues => {
-    if (mode === "edit" && prize) return getPrizeFormValues(prize);
-    const { otherWeight } = previewPrize({
-      prizeId: null,
-      weight: 0,
-      quantity: 0,
-      noWinWeight,
-      cooldownMinutes: 0,
-      guestsPerHour: 0,
-      prizes,
-    });
-    return {
-      ...DEFAULT_PRIZE_FORM_VALUES,
-      weight:
-        weightForPrizeChance(1 / NEW_PRIZE_ONE_IN, otherWeight) ??
-        DEFAULT_PRIZE_FORM_VALUES.weight,
-    };
+  // The form's defaults and its reset on open must agree, or a re-render
+  // undoes the reset.
+  const initialValues = useMemo(
+    (): PrizeFormValues =>
+      mode === "edit" && prize
+        ? getPrizeFormValues(prize)
+        : DEFAULT_PRIZE_FORM_VALUES,
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- fixed while the dialog is open
-  }, [open, mode, prize?.id]);
+    [open, mode, prize?.id],
+  );
 
   const form = useForm({
     defaultValues: initialValues,
@@ -176,6 +176,10 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
     prizes,
   });
   const isWholeDraw = preview.otherWeight <= 0;
+  const rarityDefaultWeight = RARITY_DEFAULT_WEIGHTS[values.rarity];
+  const isRarityDefault = usesRarityDefaultWeight(values);
+  const rarityDefaultChance =
+    rarityDefaultWeight / (preview.otherWeight + rarityDefaultWeight);
   const prizeLabel = values.title.trim() || "This prize";
 
   const segments: DrawBarSegment[] = [
@@ -251,7 +255,7 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
             {(field) => (
               <FieldBlock
                 label="Rarity"
-                hint="Sets the slot machine's reveal and the ticket's badge."
+                hint="Sets its default chance, the slot machine's reveal and the ticket's badge."
               >
                 <ToggleGroup
                   aria-label="Rarity"
@@ -262,7 +266,17 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
                   value={[field.state.value]}
                   onValueChange={(next: unknown[]) => {
                     const [rarity] = next;
-                    if (rarity) field.handleChange(rarity as Rarity);
+                    if (!rarity) return;
+                    // A prize on its rarity's default follows the new one.
+                    form.setFieldValue(
+                      "weight",
+                      weightAfterRarityChange({
+                        weight: form.getFieldValue("weight"),
+                        from: field.state.value,
+                        to: rarity as Rarity,
+                      }),
+                    );
+                    field.handleChange(rarity as Rarity);
                   }}
                 >
                   {RARITY_TYPES.map((rarity) => (
@@ -349,6 +363,38 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
                   </div>
                 </div>
               )}
+              <div
+                className={clsx(
+                  "flex min-h-6 flex-wrap items-center justify-between gap-x-3 gap-y-1",
+                  "text-xs text-muted-foreground",
+                )}
+              >
+                {isRarityDefault ? (
+                  <span className={clsx("flex items-center gap-1.5")}>
+                    <RarityDot rarity={values.rarity} />
+                    {capitalize(values.rarity)} default
+                  </span>
+                ) : (
+                  <>
+                    <span className={clsx("flex items-center gap-1.5")}>
+                      <SlidersHorizontal className={clsx("size-3.5")} />
+                      Custom for this prize
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      onClick={() =>
+                        form.setFieldValue("weight", rarityDefaultWeight)
+                      }
+                    >
+                      <RotateCcw data-icon="inline-start" />
+                      {capitalize(values.rarity)} default (
+                      {formatOneIn(rarityDefaultChance)})
+                    </Button>
+                  </>
+                )}
+              </div>
             </FieldBlock>
 
             <div className={clsx("flex flex-col gap-3")}>
@@ -444,7 +490,9 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
               />
               <p className={clsx("mt-1.5 text-xs text-muted-foreground")}>
                 Its weight next to the other prizes and the no-win weight. The
-                chance above sets it for you.
+                chance above sets it for you; each rarity has a default (Common{" "}
+                {RARITY_DEFAULT_WEIGHTS.common}, Legendary{" "}
+                {RARITY_DEFAULT_WEIGHTS.legendary}).
               </p>
             </CollapsibleContent>
           </Collapsible>

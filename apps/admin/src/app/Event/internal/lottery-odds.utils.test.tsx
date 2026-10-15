@@ -10,6 +10,8 @@ import {
   PRIZE_ONE_IN_STOPS,
   closestOneInStop,
   previewPrize,
+  usesRarityDefaultWeight,
+  weightAfterRarityChange,
   weightForPrizeChance,
 } from "./lottery-odds.utils";
 
@@ -212,5 +214,28 @@ describe("previewPrize", () => {
     });
 
     expect(preview.lastsMinutes).toBeNull();
+  });
+});
+
+describe("rarity default weights", () => {
+  test("a prize on its rarity's default follows a rarity change", () => {
+    expect(
+      weightAfterRarityChange({ weight: 40, from: "common", to: "rare" }),
+    ).toBe(8);
+  });
+
+  test("a custom weight survives a rarity change", () => {
+    expect(
+      weightAfterRarityChange({ weight: 13, from: "common", to: "rare" }),
+    ).toBe(13);
+  });
+
+  test("tells a default weight from a custom one", () => {
+    expect(usesRarityDefaultWeight({ rarity: "legendary", weight: 2 })).toBe(
+      true,
+    );
+    expect(usesRarityDefaultWeight({ rarity: "legendary", weight: 3 })).toBe(
+      false,
+    );
   });
 });
