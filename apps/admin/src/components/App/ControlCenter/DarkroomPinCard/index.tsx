@@ -68,7 +68,7 @@ export const DarkroomPinCard = () => {
           {pinStatus === undefined
             ? "Checking…"
             : pinStatus.isSet && pinStatus.updatedAt
-              ? `Set, last changed ${format(new Date(pinStatus.updatedAt), "MM/dd/yyyy HH:mm")}. Staff hold the top-left corner of the booth screen for 3 s to open the Darkroom.`
+              ? `Set, last changed ${format(new Date(pinStatus.updatedAt), "MM/dd/yyyy HH:mm")}. Staff tap the top-left logo of the booth screen 4 times to open the Darkroom.`
               : "Not set: the Darkroom is locked. Set a PIN so staff can tune the print on the booth."}
         </CardDescription>
       </CardHeader>

@@ -31,7 +31,7 @@ const DarkroomWorkspace = () => {
 
 /**
  * Print tuning on the booth iPad, behind the Darkroom PIN. Opened with a
- * 3 s long-press on the landing screen's top-left corner, or at /darkroom.
+ * 4 quick taps on the landing screen's top-left logo, or at /darkroom.
  */
 export const Darkroom = () => {
   const session = useDarkroomSession();
