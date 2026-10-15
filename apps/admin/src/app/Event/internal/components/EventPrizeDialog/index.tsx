@@ -2,13 +2,13 @@ import type { FC } from "react";
 
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@dither-booth/ui/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@dither-booth/ui/components/ui/dialog";
 import { NumberField } from "@dither-booth/ui/fields/NumberField";
 import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
@@ -26,7 +26,7 @@ import {
   getPrizeFormValues,
 } from "../../Event.constants";
 
-interface EventPrizeSheetProps {
+interface EventPrizeDialogProps {
   open: boolean;
   mode: "create" | "edit";
   prize: EventPrize | null;
@@ -35,7 +35,7 @@ interface EventPrizeSheetProps {
   onSubmit: (values: PrizeFormValues) => Promise<void>;
 }
 
-export const EventPrizeSheet: FC<EventPrizeSheetProps> = (props) => {
+export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
   const { open, mode, prize, isPending, onOpenChange, onSubmit } = props;
 
   const form = useForm({
@@ -64,16 +64,16 @@ export const EventPrizeSheet: FC<EventPrizeSheetProps> = (props) => {
   }, [open, mode, prize?.id]);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className={clsx("w-full sm:max-w-md")}>
-        <SheetHeader>
-          <SheetTitle>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={clsx("sm:max-w-md")}>
+        <DialogHeader>
+          <DialogTitle>
             {mode === "create" ? "Add prize" : "Edit prize"}
-          </SheetTitle>
-          <SheetDescription>Weight controls relative odds.</SheetDescription>
-        </SheetHeader>
+          </DialogTitle>
+          <DialogDescription>Weight controls relative odds.</DialogDescription>
+        </DialogHeader>
         <form
-          className={clsx("flex flex-1 flex-col gap-3 px-4")}
+          className={clsx("flex flex-col gap-3")}
           onSubmit={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -98,13 +98,13 @@ export const EventPrizeSheet: FC<EventPrizeSheetProps> = (props) => {
             <NumberField form={form} name="quantity" label="Quantity" />
           ) : prize ? (
             // Stock only moves through restock deltas, so an edit can never
-            // overwrite wins that happened while the sheet was open.
+            // overwrite wins that happened while the dialog was open.
             <p className={clsx("text-sm text-muted-foreground")}>
               {prize.remainingQuantity} left of {prize.totalQuantity}. Use
               Restock to change the stock.
             </p>
           ) : null}
-          <SheetFooter>
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -121,9 +121,9 @@ export const EventPrizeSheet: FC<EventPrizeSheetProps> = (props) => {
               )}
               {mode === "create" ? "Add prize" : "Save prize"}
             </Button>
-          </SheetFooter>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 };
