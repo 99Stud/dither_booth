@@ -41,6 +41,10 @@
     "update": {
       "cache": false,
       "persistent": true
+    },
+    "test": {
+      "dependsOn": ["topo"],
+      "outputs": []
     }
   }
 }

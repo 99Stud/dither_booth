@@ -35,7 +35,8 @@
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
-    "check-types": "tsc --noEmit -p tsconfig.isomorphic.json && tsc --noEmit -p tsconfig.browser.json && tsc --noEmit -p tsconfig.server.json && tsc --noEmit -p tsconfig.test.json"
+    "check-types": "tsc --noEmit -p tsconfig.isomorphic.json && tsc --noEmit -p tsconfig.browser.json && tsc --noEmit -p tsconfig.server.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "bun test --isolate"
   },
   "dependencies": {
     "@tanstack/react-query": "5.101.4",

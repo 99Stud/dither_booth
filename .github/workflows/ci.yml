@@ -1,0 +1,70 @@
+name: CI
+
+# Every pull request and every push to main must pass the same checks a
+# developer runs locally (`bun run format|lint|check-types|test|build`).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same PR (or to main) supersedes the run in progress.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Tests mock Puppeteer and the build never launches it, so CI skips the
+      # Chrome download that puppeteer's postinstall would otherwise run.
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # No bun-version input: setup-bun reads `packageManager` from the root
+      # package.json, so CI, releases and local dev share one pinned version.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache Bun install cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Cheapest checks first, so a formatting slip fails in seconds.
+      - name: Format
+        run: bun run format
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Type check
+        run: bun run check-types
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
