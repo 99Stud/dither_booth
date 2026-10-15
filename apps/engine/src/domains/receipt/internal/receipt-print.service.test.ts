@@ -24,6 +24,7 @@ import {
   printConfigTable,
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
+import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
 import { createKioskChannel } from "#domains/kiosk/kiosk.service";
 import {
   insertLotteryEvent,
@@ -144,6 +145,7 @@ function createCtx(db: DB) {
     adminOrigin: "https://admin.local",
     allowedHostnames: [],
     db,
+    darkroomAccess: createDarkroomAccessStub(),
     kioskChannel: createKioskChannel(),
     mode: "production",
     printerUSBAdapter: USB_ADAPTER,

@@ -11,7 +11,7 @@ import type {
   SliderFieldConfig,
 } from "./PrintConfiguration.types";
 
-export const PRINT_CONFIGURATION_LOG_SOURCE = "admin.print-configuration";
+export const PRINT_CONFIGURATION_LOG_SOURCE = "shutter.darkroom.print-tuning";
 
 /** Engine-side ordered dither that reproduces how macOS prints photos. */
 export const DITHER_MODE_CODE_BLUE_NOISE = 10;

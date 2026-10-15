@@ -50,6 +50,16 @@ bun run lint:fix
 bun run format:fix
 ```
 
+## Darkroom
+
+`/darkroom` is where staff tune the print on the booth iPad: dither mode, exposure, threshold and the other print settings, with live dithering and receipt previews, a test print, sample lottery tickets, and a printer & service status strip.
+
+- **Opening it:** tap the Dither Booth logo at the landing screen's top left 4 times within 2 seconds (only while no visit is running), or go to `/darkroom`. Taps on the logo never start a visit.
+- **PIN:** set in admin's Control Center. The Darkroom trades it for a session token (kept in `sessionStorage`, so it survives a reload but not the tab), sent to the engine as `x-darkroom-token`.
+- **Locking:** the **Lock** button, a PIN change in admin, an engine restart or 30 minutes without use all lock it again.
+
+See the engine README's "Darkroom access" section for what the token allows.
+
 ## Infrastructure
 
 Development serves `src/index.html` and raw TypeScript entrypoints through Bun HTML imports with hot reloading.

@@ -4,6 +4,7 @@ import { describe, expect, test } from "bun:test";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
@@ -92,6 +93,7 @@ describe("kiosk channel through the router", () => {
       adminOrigin: ADMIN_ORIGIN,
       allowedHostnames: [],
       db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
+      darkroomAccess: createDarkroomAccessStub(),
       kioskChannel,
       mode: "production",
       processManager: "unknown",

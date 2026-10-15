@@ -1,4 +1,4 @@
-import type { DrawOutcome } from "@dither-booth/shared/lottery";
+import type { DrawOutcome, Rarity } from "@dither-booth/shared/lottery";
 import type { FC } from "react";
 
 import { capitalize } from "@dither-booth/shared/formatting";
@@ -19,18 +19,45 @@ import {
   SelectValue,
 } from "@dither-booth/ui/components/ui/select";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { useState } from "react";
 
-import type { EventPrize } from "../../Event.types";
+import { useTRPC } from "#lib/trpc/trpc.client";
 
-export const EventTicketPreview: FC<{
-  isPrinting: boolean;
-  printingOutcome: DrawOutcome | null;
-  prizes: EventPrize[];
-  onPrint: (input: { outcome: DrawOutcome; prizeId?: string }) => Promise<void>;
-}> = (props) => {
-  const { isPrinting, onPrint, printingOutcome, prizes } = props;
+import { reportPrintConfigurationError } from "../../PrintTuning/internal/PrintConfiguration.utils";
+
+type SamplePrize = { id: string; title: string; rarity: Rarity };
+
+const NO_PRIZES: SamplePrize[] = [];
+
+/**
+ * Prints sample win and lose tickets with the current event's prizes, moved
+ * from admin's Event page. Nothing is drawn and prize stock stays the same.
+ */
+export const SampleTicketsCard: FC = () => {
+  const trpc = useTRPC();
+  const { data: currentEvent } = useQuery(
+    trpc.config.getCurrentEvent.queryOptions(),
+  );
+  const prizes = currentEvent?.prizes ?? NO_PRIZES;
+  const {
+    mutateAsync: printSampleLotteryTicket,
+    isPending: isPrinting,
+    variables,
+  } = useMutation(trpc.config.printSampleLotteryTicket.mutationOptions());
+  const printingOutcome: DrawOutcome | null = isPrinting
+    ? (variables?.outcome ?? null)
+    : null;
+  const onPrint = async (input: { outcome: DrawOutcome; prizeId?: string }) => {
+    await printSampleLotteryTicket(input).catch((error: unknown) => {
+      reportPrintConfigurationError(
+        error,
+        "print-sample-ticket-failed",
+        "Failed to print the sample ticket.",
+      );
+    });
+  };
   const [prizeId, setPrizeId] = useState<string | null>(null);
   const selectedPrizeId =
     prizes.find((prize) => prize.id === prizeId)?.id ?? prizes[0]?.id ?? null;
@@ -42,7 +69,7 @@ export const EventTicketPreview: FC<{
   return (
     <Card className={clsx("max-w-xl")}>
       <CardHeader>
-        <CardTitle>Ticket preview</CardTitle>
+        <CardTitle>Sample tickets</CardTitle>
         <CardDescription>
           Print a sample win or lose ticket to check the layout. The draw is not
           recorded and prize stock stays the same.
@@ -78,7 +105,9 @@ export const EventTicketPreview: FC<{
           </Field>
         ) : (
           <p className={clsx("text-sm text-muted-foreground")}>
-            Add a prize to preview a win ticket.
+            {currentEvent === null
+              ? "No event is set up yet. Create one in admin to print a win ticket."
+              : "Add a prize in admin to print a win ticket."}
           </p>
         )}
         <div className={clsx("flex flex-wrap gap-2")}>

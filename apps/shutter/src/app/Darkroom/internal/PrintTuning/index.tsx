@@ -1,4 +1,5 @@
 import type { WebcamHandle } from "@dither-booth/ui/components/misc/Webcam";
+import type { ReactNode } from "react";
 
 import {
   Tabs,
@@ -12,8 +13,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { useCallback, useMemo, useRef } from "react";
 
-import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
-import { ADMIN_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 import type { PrintConfigurationFormValues } from "./internal/PrintConfiguration.types";
@@ -35,9 +35,18 @@ import { reportPrintConfigurationError } from "./internal/PrintConfiguration.uti
 const {
   reportUserMediaCameraStateChange,
   reportUserMediaConstraintFallbackError,
-} = createUserMediaReporters({ source: ADMIN_CAMERA_LOG_SOURCE });
+} = createUserMediaReporters({ source: SHUTTER_CAMERA_LOG_SOURCE });
 
-export const PrintConfiguration = () => {
+/**
+ * The print tuning screen, moved from admin: camera preview, dithering and
+ * receipt previews, the settings form (autosaved) and a test print.
+ * `renderHeader` places the Dithering / Receipt tabs in the Darkroom header.
+ */
+export const PrintTuning = ({
+  renderHeader,
+}: {
+  renderHeader: (tabs: ReactNode) => ReactNode;
+}) => {
   const webcamRef = useRef<WebcamHandle>(null);
 
   const trpc = useTRPC();
@@ -170,16 +179,17 @@ export const PrintConfiguration = () => {
       value={activeTab}
       onValueChange={handleActiveTabChange}
     >
-      <AppSidebarPageHeader title="Print configuration">
+      {renderHeader(
         <TabsList>
           <TabsTrigger value="dithering">Dithering</TabsTrigger>
           <TabsTrigger value="receipt">Receipt</TabsTrigger>
-        </TabsList>
-      </AppSidebarPageHeader>
+        </TabsList>,
+      )}
       <div
         className={clsx(
-          "h-[calc(100dvh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100dvh-3rem)]",
-          "pr-2 pb-2",
+          // Fills the iPad screen under the Darkroom header and health strip.
+          "h-[calc(100dvh-7rem)] min-h-[32rem]",
+          "px-2 pb-2",
           "flex gap-2",
         )}
       >

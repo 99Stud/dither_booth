@@ -18,6 +18,7 @@ import clsx from "clsx";
 import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
 import { APP_SIDEBAR_MENU_LINKS } from "./internal/AppSidebar.constants";
+import { DarkroomSidebarLink } from "./internal/components/DarkroomSidebarLink";
 
 interface AppSidebarProps extends Omit<
   ComponentProps<typeof Sidebar>,
@@ -80,6 +81,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
                 />
               </SidebarMenuButton>
             ))}
+            <DarkroomSidebarLink isSidebarOpen={open} />
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
