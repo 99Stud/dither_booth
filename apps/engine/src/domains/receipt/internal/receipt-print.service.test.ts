@@ -233,13 +233,13 @@ describe("prepareReceiptJob", () => {
   test("renders the photo receipt with the active event's kit and items", async () => {
     const db = setupDb({ outcome: "win" });
     db.update(campaignTable)
-      .set({ kitId: "heirvey", ticketItemNames: ["Mate", "Ginette"] })
+      .set({ kitId: "tartines", ticketItemNames: ["Mate", "Ginette"] })
       .run();
 
     await prepareReceiptJob({ ctx: createCtx(db), input: PHOTO });
 
     expect(buildReceiptRasterCommand.mock.calls[0]?.[0]).toMatchObject({
-      kitId: "heirvey",
+      kitId: "tartines",
       ticketItems: ["Mate", "Ginette"],
     });
   });

@@ -5,7 +5,7 @@ import z from "zod";
  * (`campaign.kit_id`), checked against this list in code, so adding a kit
  * never needs a database migration.
  */
-export const KIT_IDS = ["tartines", "heirvey"] as const;
+export const KIT_IDS = ["tartines"] as const;
 
 export const kitIdSchema = z.enum(KIT_IDS);
 

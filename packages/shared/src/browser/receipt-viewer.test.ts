@@ -168,7 +168,7 @@ describe("receipt viewer page helpers", () => {
   test("rejects URL-only match when DOM still has a stale template", async () => {
     const staleTemplateWindow = createFakeReceiptViewerWindow({
       search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=tartines`,
-      templateAttribute: "heirvey",
+      templateAttribute: "lottery",
     });
 
     await withFakeReceiptViewerWindow(staleTemplateWindow, () => {

@@ -363,6 +363,8 @@ describe("runSqliteMigrations", () => {
     // Up to and including 0013: the last schema with print_config.template.
     runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(14), sqlite });
 
+    // Heirvey has since been removed from the release: the backfill copies
+    // whatever the device had, and the engine falls back when reading it.
     sqlite.run(
       "INSERT INTO print_config (id, template, threshold) VALUES (1, 'heirvey', 100)",
     );

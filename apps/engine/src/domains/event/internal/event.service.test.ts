@@ -88,7 +88,7 @@ describe("event.service", () => {
     try {
       await createEventForDb(db, {
         name: "Launch night",
-        kitId: "heirvey",
+        kitId: "tartines",
         noWinWeight: 50,
         winCooldownMinutes: 5,
         printLoserTicket: false,
@@ -97,7 +97,7 @@ describe("event.service", () => {
       await updateTicketItemsForDb(db, { names: ["Mate"] });
 
       expect(await getReceiptEventSettingsForDb(db)).toEqual({
-        kitId: "heirvey",
+        kitId: "tartines",
         ticketItems: ["Mate"],
       });
     } finally {
@@ -112,7 +112,7 @@ describe("event.service", () => {
     try {
       await createEventForDb(db, {
         name: "Future event",
-        kitId: "heirvey",
+        kitId: "tartines",
         noWinWeight: 50,
         winCooldownMinutes: 5,
         printLoserTicket: false,
@@ -800,13 +800,13 @@ describe("event.service — kiosk concurrency and history", () => {
     try {
       const updated = await updateEventForDb(db, {
         name: "Renamed",
-        kitId: "heirvey",
+        kitId: "tartines",
       });
 
       expect(updated).toEqual((await getCurrentEventForDb(db))!);
       expect(updated.campaign).toMatchObject({
         name: "Renamed",
-        kitId: "heirvey",
+        kitId: "tartines",
       });
       // Kits are free text in the database; the API only accepts shipped ones.
       expect(
