@@ -133,24 +133,6 @@ export const useEventQueries = () => {
     },
   });
 
-  const printSampleLotteryTicketMutation = useMutation({
-    ...trpc.config.printSampleLotteryTicket.mutationOptions(),
-    onSuccess: (_data, variables) => {
-      toast.success(
-        variables.outcome === "win"
-          ? "Win ticket sent to the printer"
-          : "Lose ticket sent to the printer",
-      );
-    },
-    onError: (error) => {
-      reportEventError(
-        error,
-        "print-sample-lottery-ticket-failed",
-        "Failed to print sample ticket.",
-      );
-    },
-  });
-
   return {
     currentEventQuery,
     createEventMutation,
@@ -162,6 +144,5 @@ export const useEventQueries = () => {
     updatePrizeMutation,
     deletePrizeMutation,
     restockPrizeMutation,
-    printSampleLotteryTicketMutation,
   };
 };

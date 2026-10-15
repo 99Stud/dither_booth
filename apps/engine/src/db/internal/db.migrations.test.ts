@@ -403,6 +403,20 @@ describe("runSqliteMigrations", () => {
     ).toThrow(/CHECK constraint failed/);
   });
 
+  test("0016 keeps a single Darkroom PIN row", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
+
+    sqlite.run("INSERT INTO darkroom_access (pin_hash) VALUES ('hash')");
+
+    expect(
+      sqlite.query("SELECT id, pin_hash FROM darkroom_access").all(),
+    ).toEqual([{ id: 1, pin_hash: "hash" }]);
+    expect(() =>
+      sqlite.run("INSERT INTO darkroom_access (id, pin_hash) VALUES (2, 'x')"),
+    ).toThrow(/CHECK constraint failed/);
+  });
+
   test("leaves the stock triggers and prize checks in place", () => {
     const { sqlite, db } = openDb({ foreignKeys: true });
     runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });

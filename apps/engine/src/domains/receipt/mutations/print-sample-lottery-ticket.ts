@@ -3,12 +3,12 @@ import { TRPCError } from "@trpc/server";
 import z from "zod";
 
 import { getCurrentEventForDb } from "#domains/event/event.service";
-import { configProcedure } from "#internal/trpc";
+import { darkroomProcedure } from "#internal/trpc";
 
 import { printSampleLotteryTicketJob } from "../internal/receipt-print.service";
 import { resolveSampleLotteryDraw } from "../internal/sample-lottery-ticket";
 
-export const printSampleLotteryTicket = configProcedure
+export const printSampleLotteryTicket = darkroomProcedure
   .input(
     z.object({
       outcome: drawOutcomeSchema,

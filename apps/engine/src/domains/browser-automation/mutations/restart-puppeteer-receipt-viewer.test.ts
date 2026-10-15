@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
 import { createKioskChannel } from "#domains/kiosk/kiosk.service";
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
@@ -24,6 +25,7 @@ function createTestCaller(
     adminOrigin,
     allowedHostnames,
     db: {} as TRPCContext["db"],
+    darkroomAccess: createDarkroomAccessStub(),
     kioskChannel: createKioskChannel(),
     mode: "production",
     page: undefined,

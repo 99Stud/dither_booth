@@ -9,7 +9,7 @@ import clsx from "clsx";
 import type {
   PrintConfigurationField,
   PrintConfigurationFormApi,
-} from "#app/PrintConfiguration/internal/PrintConfiguration.types";
+} from "../../PrintConfiguration.types";
 
 import {
   BLUE_NOISE_IGNORED_FIELDS,
@@ -18,7 +18,7 @@ import {
   DITHER_MODE_CODE_BLUE_NOISE,
   DITHER_MODE_CODE_FIELD_OPTIONS,
   SLIDER_FIELD_CONFIGS,
-} from "#app/PrintConfiguration/internal/PrintConfiguration.constants";
+} from "../../PrintConfiguration.constants";
 
 interface PrintConfigurationFormFieldsProps {
   form: PrintConfigurationFormApi;

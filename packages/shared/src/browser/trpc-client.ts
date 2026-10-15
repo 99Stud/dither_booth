@@ -41,7 +41,16 @@ export function createDitherBoothQueryClient() {
   });
 }
 
-export function createDitherBoothTRPCClient<TRouter extends JsonTRPCRouter>() {
+export type DitherBoothTRPCClientOptions = {
+  /** Extra headers for every query and mutation, read at request time. */
+  getHeaders?: () => Record<string, string>;
+};
+
+export function createDitherBoothTRPCClient<TRouter extends JsonTRPCRouter>({
+  getHeaders,
+}: DitherBoothTRPCClientOptions = {}) {
+  const headers = () => getHeaders?.() ?? {};
+
   return createTRPCClient<TRouter>({
     links: [
       splitLink({
@@ -55,20 +64,28 @@ export function createDitherBoothTRPCClient<TRouter extends JsonTRPCRouter>() {
         false: splitLink({
           condition: (op) => isNonJsonSerializable(op.input),
           true: httpLink<TRouter>({
-            url: TRPC_PROXY_PATH,
-          } as Parameters<typeof httpLink<TRouter>>[0]),
+            ...({
+              url: TRPC_PROXY_PATH,
+            } as Parameters<typeof httpLink<TRouter>>[0]),
+            headers,
+          }),
           false: httpBatchLink<TRouter>({
-            url: TRPC_PROXY_PATH,
-          } as Parameters<typeof httpBatchLink<TRouter>>[0]),
+            ...({
+              url: TRPC_PROXY_PATH,
+            } as Parameters<typeof httpBatchLink<TRouter>>[0]),
+            headers,
+          }),
         }),
       }),
     ],
   });
 }
 
-export function createDitherBoothTRPCReact<TRouter extends JsonTRPCRouter>() {
+export function createDitherBoothTRPCReact<TRouter extends JsonTRPCRouter>(
+  options: DitherBoothTRPCClientOptions = {},
+) {
   const queryClient = createDitherBoothQueryClient();
-  const trpcClient = createDitherBoothTRPCClient<TRouter>();
+  const trpcClient = createDitherBoothTRPCClient<TRouter>(options);
   const trpc = createTRPCOptionsProxy<TRouter>({
     client: trpcClient,
     queryClient,

@@ -1,3 +1,4 @@
+import { DARKROOM_PATH } from "@dither-booth/shared/darkroom";
 import {
   RECEIPT_VIEWER_PATH,
   RECEIPT_VIEWER_SEARCH_SCHEMA,
@@ -8,6 +9,7 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 
+import { Darkroom } from "#app/Darkroom/index";
 import { Experience } from "#app/Experience/index";
 import { ReceiptViewer } from "#app/ReceiptViewer/index";
 import { Root } from "#app/Root/index";
@@ -36,13 +38,24 @@ export const receiptViewerRoute = createRoute({
   validateSearch: RECEIPT_VIEWER_SEARCH_SCHEMA,
 });
 
+export const darkroomRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: DARKROOM_PATH,
+  component: Darkroom,
+});
+
 export const sandboxRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sandbox",
   component: Sandbox,
 });
 
-const routes = [experienceRoute, receiptViewerRoute, sandboxRoute];
+const routes = [
+  experienceRoute,
+  receiptViewerRoute,
+  darkroomRoute,
+  sandboxRoute,
+];
 
 const routeTree = rootRoute.addChildren(routes);
 
