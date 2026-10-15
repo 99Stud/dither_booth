@@ -18,6 +18,7 @@ import http from "node:http";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { createKioskChannel } from "#domains/kiosk/kiosk.service";
 import { engineRouter } from "#internal/router";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
@@ -117,6 +118,7 @@ export async function runEngineServer(options: {
     repoRoot: ENGINE_REPO_ROOT,
   });
   const processManager = getRuntimeProcessManager();
+  const kioskChannel = createKioskChannel();
 
   const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
     const { page, state: puppeteerState } = puppeteerLifecycle.getCurrent();
@@ -127,6 +129,7 @@ export async function runEngineServer(options: {
       printerUSBAdapter,
       page,
       db,
+      kioskChannel,
       mode: options.mode,
       processManager,
       puppeteerLifecycle,

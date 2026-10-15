@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import type { KioskChannel } from "#domains/kiosk/kiosk.service";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
@@ -9,7 +10,12 @@ import { engineRouter } from "./router";
 const ADMIN_ORIGIN = "https://admin.local";
 
 const GROUPS = {
-  booth: ["getLotteryStatus", "prepareReceipt", "printPreparedReceipt"],
+  booth: [
+    "getLotteryStatus",
+    "onKioskCommand",
+    "prepareReceipt",
+    "printPreparedReceipt",
+  ],
   config: [
     "createEvent",
     "createPrize",
@@ -29,7 +35,7 @@ const GROUPS = {
     "updatePrize",
     "updateTicketItems",
   ],
-  ops: ["getHealthz", "restartPuppeteerReceiptViewer"],
+  ops: ["getHealthz", "reloadKiosk", "restartPuppeteerReceiptViewer"],
 } as const;
 
 const procedurePaths = Object.keys(engineRouter._def.procedures);
@@ -50,6 +56,7 @@ function createCaller(requestOrigin?: string) {
     adminOrigin: ADMIN_ORIGIN,
     allowedHostnames: [],
     db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
+    kioskChannel: new Proxy({}, { get: unreachable }) as KioskChannel,
     mode: "production",
     processManager: "unknown",
     puppeteerLifecycle: {

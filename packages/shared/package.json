@@ -19,6 +19,7 @@
     "./formatting": "./src/isomorphic/formatting.ts",
     "./healthz": "./src/isomorphic/healthz.ts",
     "./id": "./src/isomorphic/id.ts",
+    "./kiosk": "./src/isomorphic/kiosk.ts",
     "./kits": "./src/isomorphic/kits.ts",
     "./lottery": "./src/isomorphic/lottery.ts",
     "./printing": "./src/isomorphic/printing.ts",

@@ -104,6 +104,9 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
 
     return fetch(upstreamUrl, {
       method: req.method,
+      // Ends the upstream request when the browser goes away, so a closed
+      // kiosk page also closes its engine subscription stream.
+      signal: req.signal,
       headers: getProxiedRequestHeaders(req.headers, {
         fallbackOrigin: url.origin,
       }),
