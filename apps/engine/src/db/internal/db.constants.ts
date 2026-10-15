@@ -1,5 +1,3 @@
-import type { PhotoReceiptTemplate } from "@dither-booth/shared/routes";
-
 import { resolve } from "node:path";
 
 import { ENGINE_APP_ROOT } from "#lib/constants";
@@ -11,5 +9,3 @@ export const ENGINE_DB_FILE_PATH = resolve(
 );
 
 export const PRINT_CONFIG_SINGLETON_ID = 1;
-export const DEFAULT_RECEIPT_TEMPLATE =
-  "tartines" satisfies PhotoReceiptTemplate;

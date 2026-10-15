@@ -5,8 +5,9 @@ import { and, count, desc, eq, isNotNull } from "drizzle-orm";
 
 import type { DB } from "#db/internal/db.types";
 
-import { drawTable, lotteryTable, prizeTable } from "#db/internal/db.schema";
+import { drawTable, prizeTable } from "#db/internal/db.schema";
 
+import { getActiveEventLottery } from "./lottery.active";
 import { prizeStockColumns } from "./lottery.stock";
 
 export const EMPTY_LOTTERY_STATUS = {
@@ -39,11 +40,9 @@ export function buildRarityBreakdown(
 }
 
 export async function getLotteryStatusForDb(db: DB): Promise<LotteryStatus> {
-  const lottery = await db.query.lotteryTable.findFirst({
-    where: eq(lotteryTable.enabled, true),
-  });
+  const lottery = getActiveEventLottery(db)?.lottery;
 
-  if (!lottery) {
+  if (!lottery?.enabled) {
     return EMPTY_LOTTERY_STATUS;
   }
 

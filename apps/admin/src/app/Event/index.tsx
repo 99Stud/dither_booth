@@ -84,10 +84,10 @@ export const Event = () => {
             <TabsContent value="overview" className={clsx("mt-0")}>
               <EventOverviewPanel
                 event={event}
-                isSavingName={updateEventMutation.isPending}
+                isSavingDetails={updateEventMutation.isPending}
                 isSavingTicketItems={updateTicketItemsMutation.isPending}
-                onSaveName={async (name) => {
-                  await updateEventMutation.mutateAsync({ name });
+                onSaveDetails={async (values) => {
+                  await updateEventMutation.mutateAsync(values);
                 }}
                 onSaveTicketItems={async (names) => {
                   await updateTicketItemsMutation.mutateAsync({ names });
@@ -158,7 +158,7 @@ export const Event = () => {
         open={isReplaceFormOpen}
         isPending={replaceEventMutation.isPending}
         title="Replace event"
-        description="Creates a new event after wiping the current campaign, lottery, prizes, and draws."
+        description="Archives the current event, then creates this one. The archived event's prizes and draws are kept."
         submitLabel="Replace event"
         onOpenChange={setIsReplaceFormOpen}
         onSubmit={async (values) => {

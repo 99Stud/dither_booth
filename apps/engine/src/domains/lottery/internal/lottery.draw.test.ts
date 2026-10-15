@@ -4,15 +4,15 @@ import { afterEach, describe, expect, spyOn, test } from "bun:test";
 
 import type { DB } from "#db/internal/db.types";
 
-import {
-  drawTable,
-  lotteryTable,
-  stockAdjustmentTable,
-} from "#db/internal/db.schema";
+import { drawTable, stockAdjustmentTable } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 
 import { executeLotteryDraw } from "./lottery.draw";
-import { insertPrizeWithStock, stockOf } from "./lottery.test-utils";
+import {
+  insertLotteryEvent,
+  insertPrizeWithStock,
+  stockOf,
+} from "./lottery.test-utils";
 
 const TICKET_REF_PATTERN = /^\d{6}$/;
 const MINUTE_MS = 60_000;
@@ -20,6 +20,7 @@ const MINUTE_MS = 60_000;
 const ALWAYS_FIRST_PRIZE = () => 0;
 /** `random` that always lands past every prize weight, on the no-win slot. */
 const ALWAYS_NO_WIN = () => 0.999_999;
+const ACTIVE_CAMPAIGN_ID = "campaign-active";
 
 const openDbs: Array<{ close: () => void }> = [];
 
@@ -38,15 +39,17 @@ function setup(
   const { db, sqlite } = createTestDb();
   openDbs.push(sqlite);
 
-  db.insert(lotteryTable)
-    .values({
+  insertLotteryEvent(
+    db,
+    {
       id: "lottery-1",
       enabled: options.enabled ?? true,
       noWinWeight: options.noWinWeight ?? 0,
       winCooldownMinutes: options.winCooldownMinutes ?? 0,
       printLoserTicket: options.printLoserTicket ?? false,
-    })
-    .run();
+    },
+    { id: ACTIVE_CAMPAIGN_ID },
+  );
 
   return db;
 }
@@ -81,6 +84,14 @@ const remainingOf = (db: DB, prizeId: string) =>
   stockOf(db, prizeId)?.remainingQuantity;
 
 const allDraws = (db: DB) => db.select().from(drawTable).all();
+
+/** A replaced event: archived, its lottery still flagged enabled. */
+const insertArchivedEvent = (db: DB) =>
+  insertLotteryEvent(
+    db,
+    { id: "lottery-old", enabled: true, noWinWeight: 0 },
+    { id: "campaign-old", status: "archived" },
+  );
 
 const draw = (
   db: DB,
@@ -223,7 +234,7 @@ describe("executeLotteryDraw — weighted draw", () => {
 
   test("ignores wins recorded against another lottery for the cooldown", async () => {
     const db = setup({ winCooldownMinutes: 60 });
-    db.insert(lotteryTable).values({ id: "lottery-old", enabled: false }).run();
+    insertArchivedEvent(db);
     addPrize(db, { id: "old", remainingQuantity: 1, lotteryId: "lottery-old" });
     db.insert(drawTable)
       .values({ lotteryId: "lottery-old", prizeId: "old", ticketRef: "111111" })
@@ -399,5 +410,66 @@ describe("executeLotteryDraw — forced outcomes", () => {
     ).rejects.toThrow(/Forced lottery prize not found/);
     expect(allDraws(db)).toHaveLength(0);
     expect(remainingOf(db, "gone")).toBe(3);
+  });
+
+  test("a forced win on an archived event's prize fails without recording", async () => {
+    const db = setup();
+    insertArchivedEvent(db);
+    addPrize(db, { id: "old", remainingQuantity: 3, lotteryId: "lottery-old" });
+
+    await expect(
+      executeLotteryDraw({ db, force: { outcome: "win", prizeId: "old" } }),
+    ).rejects.toThrow(/Forced lottery prize not found/);
+    expect(allDraws(db)).toHaveLength(0);
+  });
+});
+
+describe("executeLotteryDraw — event lifecycle", () => {
+  test("every draw records the active event", async () => {
+    const db = setup({ printLoserTicket: true });
+    addPrize(db, { id: "p1", remainingQuantity: 1 });
+
+    await draw(db, { random: ALWAYS_FIRST_PRIZE });
+    await draw(db, { random: ALWAYS_FIRST_PRIZE });
+
+    expect(
+      allDraws(db).map(({ campaignId, lotteryId, prizeId }) => ({
+        campaignId,
+        lotteryId,
+        prizeId,
+      })),
+    ).toEqual([
+      { campaignId: ACTIVE_CAMPAIGN_ID, lotteryId: "lottery-1", prizeId: "p1" },
+      { campaignId: ACTIVE_CAMPAIGN_ID, lotteryId: "lottery-1", prizeId: null },
+    ]);
+  });
+
+  test("an archived event's lottery is never drawn against, even if still enabled", async () => {
+    const db = setup({ enabled: false });
+    insertArchivedEvent(db);
+    addPrize(db, { id: "old", remainingQuantity: 5, lotteryId: "lottery-old" });
+
+    const execution = await draw(db, { random: ALWAYS_FIRST_PRIZE });
+
+    expect(execution.result).toEqual({ outcome: "loss", prize: null });
+    expect(execution.printLoserTicket).toBe(false);
+    expect(allDraws(db)).toMatchObject([
+      { campaignId: ACTIVE_CAMPAIGN_ID, lotteryId: null, prizeId: null },
+    ]);
+    expect(remainingOf(db, "old")).toBe(5);
+  });
+
+  test("with only archived events, a draw is a loss outside any event", async () => {
+    const { db, sqlite } = createTestDb();
+    openDbs.push(sqlite);
+    insertArchivedEvent(db);
+    addPrize(db, { id: "old", remainingQuantity: 5, lotteryId: "lottery-old" });
+
+    const execution = await draw(db, { random: ALWAYS_FIRST_PRIZE });
+
+    expect(execution.result.outcome).toBe("loss");
+    expect(allDraws(db)).toMatchObject([
+      { campaignId: null, lotteryId: null, prizeId: null },
+    ]);
   });
 });

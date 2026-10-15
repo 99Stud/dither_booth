@@ -3,11 +3,6 @@ import type {
   SelectFieldValue,
 } from "@dither-booth/ui/fields/SelectField";
 
-import { capitalize } from "@dither-booth/shared/formatting";
-import {
-  PHOTO_RECEIPT_TEMPLATES,
-  photoReceiptTemplateSchema,
-} from "@dither-booth/shared/routes";
 import z from "zod";
 
 import type {
@@ -66,13 +61,6 @@ export const COLOR_SCHEME_CODE_FIELD_OPTIONS: Array<
   { label: "Grayscale 8", value: 9 },
 ];
 
-export const RECEIPT_TEMPLATE_FIELD_OPTIONS: Array<
-  SelectFieldOption<SelectFieldValue<PrintConfigurationFormValues, "template">>
-> = PHOTO_RECEIPT_TEMPLATES.map((template) => ({
-  label: capitalize(template),
-  value: template,
-}));
-
 export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   ditherModeCode: DITHER_MODE_CODE_SCHEMA,
   colorSchemeCode: COLOR_SCHEME_CODE_SCHEMA,
@@ -84,7 +72,6 @@ export const PRINT_CONFIGURATION_FORM_SCHEMA = z.object({
   toneGamma: z.number().min(1).max(3),
   threshold: z.number().int().min(0).max(255),
   rotation: z.number().int().min(0).max(360),
-  template: photoReceiptTemplateSchema,
 });
 
 /** macOS encodes gray at gamma 1.8 before halftoning for the TM-T20III. */
@@ -112,7 +99,6 @@ export const DEFAULT_PRINT_CONFIGURATION_FORM_VALUES: PrintConfigurationFormValu
     toneGamma: MACOS_TONE_GAMMA,
     threshold: 128,
     rotation: 0,
-    template: "tartines",
   };
 
 export const PRINT_CONFIGURATION_FORM_AUTOSAVE_DEBOUNCE_MS = 500;
@@ -136,7 +122,6 @@ export const DITHERING_PREVIEW_FIELDS = [
 
 export const RECEIPT_PREVIEW_FIELDS = [
   ...DITHERING_PREVIEW_FIELDS,
-  "template",
   "threshold",
 ] as const satisfies ReadonlyArray<keyof PrintConfigurationFormValues>;
 
@@ -176,7 +161,6 @@ export const getPrintConfigurationFormValues = (
     toneGamma: printConfiguration.toneGamma,
     threshold: printConfiguration.threshold,
     rotation: printConfiguration.rotation,
-    template: printConfiguration.template,
   };
 };
 

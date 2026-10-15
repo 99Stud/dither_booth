@@ -69,12 +69,6 @@ describe("PrintConfiguration utils", () => {
         threshold: 64,
       }),
     ).toEqual(["receipt"]);
-    expect(
-      getChangedPreviewTabs(formValues, {
-        ...formValues,
-        template: "heirvey",
-      }),
-    ).toEqual(["receipt"]);
   });
 
   it("returns no dirty tabs when preview fields do not change", () => {
@@ -95,7 +89,6 @@ describe("PrintConfiguration utils", () => {
         saturation: 2,
         serpentine: false,
         shadows: 0.5,
-        template: "heirvey",
         threshold: 90,
         toneGamma: 2.2,
       }),
@@ -108,7 +101,6 @@ describe("PrintConfiguration utils", () => {
       saturation: 2,
       serpentine: false,
       shadows: 0.5,
-      template: "heirvey",
       threshold: 90,
       toneGamma: 2.2,
     });

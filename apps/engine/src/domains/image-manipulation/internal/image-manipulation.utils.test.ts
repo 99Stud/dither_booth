@@ -20,7 +20,6 @@ const BLUE_NOISE_CONFIGURATION: PrintConfigRow = {
   toneGamma: 1.8,
   threshold: 128,
   rotation: 0,
-  template: "tartines",
 };
 
 const WIDTH = 96;

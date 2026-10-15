@@ -1,5 +1,4 @@
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
-import { PHOTO_RECEIPT_TEMPLATES } from "@dither-booth/shared/routes";
 import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
@@ -13,14 +12,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
-import {
-  DEFAULT_RECEIPT_TEMPLATE,
-  PRINT_CONFIG_SINGLETON_ID,
-} from "./db.constants";
-
-const PHOTO_RECEIPT_TEMPLATE_CHECK_VALUES = PHOTO_RECEIPT_TEMPLATES.map(
-  (template) => `'${template}'`,
-).join(", ");
+import { PRINT_CONFIG_SINGLETON_ID } from "./db.constants";
 
 export const printConfigTable = sqliteTable(
   "print_config",
@@ -38,9 +30,6 @@ export const printConfigTable = sqliteTable(
     toneGamma: real("tone_gamma").notNull().default(1.8),
     threshold: integer("threshold").notNull().default(128),
     rotation: integer("rotation").notNull().default(0),
-    template: text("template", { enum: PHOTO_RECEIPT_TEMPLATES })
-      .notNull()
-      .default(DEFAULT_RECEIPT_TEMPLATE),
   },
   (table) => [
     check("print_config_singleton_check", sql`${table.id} = 1`),
@@ -78,25 +67,60 @@ export const printConfigTable = sqliteTable(
       "print_config_rotation_check",
       sql`${table.rotation} between 0 and 360`,
     ),
-    check(
-      "print_config_template_check",
-      sql`${table.template} in (${sql.raw(PHOTO_RECEIPT_TEMPLATE_CHECK_VALUES)})`,
-    ),
   ],
 );
 
-export const campaignTable = sqliteTable("campaign", {
-  id: text()
-    .primaryKey()
-    .notNull()
-    .$defaultFn(() => createId()),
-  name: text("name").notNull(),
-  lotteryId: text("lottery_id").references(() => lotteryTable.id),
-  ticketItemNames: text("ticket_item_names", { mode: "json" })
-    .$type<string[]>()
-    .notNull()
-    .default([...DEFAULT_TICKET_ITEM_NAMES]),
-});
+export const CAMPAIGN_STATUSES = ["active", "archived"] as const;
+
+const CAMPAIGN_STATUS_CHECK_VALUES = CAMPAIGN_STATUSES.map(
+  (status) => `'${status}'`,
+).join(", ");
+
+/**
+ * One row per event. Replacing the event archives the old row instead of
+ * deleting it, so its lottery, prizes and draws stay on record. At most one
+ * row is `active`, and everything the booth reads or draws goes through it.
+ */
+export const campaignTable = sqliteTable(
+  "campaign",
+  {
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
+    name: text("name").notNull(),
+    lotteryId: text("lottery_id").references(() => lotteryTable.id),
+    ticketItemNames: text("ticket_item_names", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default([...DEFAULT_TICKET_ITEM_NAMES]),
+    /**
+     * The event's kit, as free text with no CHECK: it is validated in code
+     * against the kits this release ships (`resolveKitId`), so a new kit
+     * needs no migration. Null means the release's default kit.
+     */
+    kitId: text("kit_id"),
+    status: text("status", { enum: CAMPAIGN_STATUSES })
+      .notNull()
+      .default("active"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    /** Last change to anything in the event: campaign, lottery or prizes. */
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    check(
+      "campaign_status_check",
+      sql`${table.status} in (${sql.raw(CAMPAIGN_STATUS_CHECK_VALUES)})`,
+    ),
+    uniqueIndex("campaign_single_active_idx")
+      .on(table.status)
+      .where(sql`${table.status} = 'active'`),
+  ],
+);
 
 export const lotteryTable = sqliteTable(
   "lottery",
@@ -157,6 +181,9 @@ export const drawTable = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
+    /** The event active when the draw ran; null when there was none. */
+    campaignId: text("campaign_id").references(() => campaignTable.id),
+    /** The event's lottery, set only when it was enabled for this draw. */
     lotteryId: text("lottery_id").references(() => lotteryTable.id),
     prizeId: text("prize_id").references(() => prizeTable.id),
     // Snapshot taken at draw time so prize edits never rewrite past wins.
@@ -166,6 +193,7 @@ export const drawTable = sqliteTable(
   (table) => [
     uniqueIndex("draw_ticket_ref_unique").on(table.ticketRef),
     index("draw_prize_id_idx").on(table.prizeId),
+    index("draw_campaign_id_idx").on(table.campaignId),
   ],
 );
 
