@@ -132,13 +132,32 @@ bun run dev
 
 The tRPC router (`src/internal/router.ts`) is split by caller. Each group's procedures are built on one base procedure in `src/internal/trpc.ts`, which carries the group's access check:
 
-| Group      | Base procedure    | Access             | Procedures                                                                                                                                                                |
-| ---------- | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `booth.*`  | `boothProcedure`  | Any origin (kiosk) | `getLotteryStatus`, `prepareReceipt`, `printPreparedReceipt`, `onKioskCommand`                                                                                            |
-| `config.*` | `configProcedure` | Admin origin only  | Event, prize and lottery CRUD, `listDraws`, `getPrintConfiguration` / `updatePrintConfiguration`, `dither`, `generateReceipt`, `printReceipt`, `printSampleLotteryTicket` |
-| `ops.*`    | `opsProcedure`    | Admin origin only  | `getHealthz`, `restartPuppeteerReceiptViewer`, `reloadKiosk`                                                                                                              |
+| Group      | Base procedure    | Access             | Procedures                                                                                                                                                                                                           |
+| ---------- | ----------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `booth.*`  | `boothProcedure`  | Any origin (kiosk) | `getLotteryStatus`, `prepareReceipt`, `printPreparedReceipt`, `onKioskCommand`, `unlockDarkroom`, `lockDarkroom`                                                                                                     |
+| `config.*` | `configProcedure` | Admin origin only  | Event, prize and lottery CRUD, `listDraws`, `getPrintConfiguration` / `updatePrintConfiguration`, `dither`, `generateReceipt`, `printReceipt`, `printSampleLotteryTicket`, `getDarkroomPinStatus` / `setDarkroomPin` |
+| `ops.*`    | `opsProcedure`    | Admin origin only  | `getHealthz`, `restartPuppeteerReceiptViewer`, `reloadKiosk`                                                                                                                                                         |
 
 A new procedure goes in the group of whoever calls it, and is built on that group's base procedure.
+
+Some `config.*` and `ops.*` procedures also accept a Darkroom token; see [Darkroom access](#darkroom-access).
+
+### Darkroom access
+
+Print tuning happens on the booth iPad, in the Shutter's `/darkroom` route, behind a PIN.
+
+- **The PIN** (4–8 digits) is set in admin's Control Center (`config.setDarkroomPin`, admin origin only). Only its argon2id hash is stored, in the singleton `darkroom_access` table. Until a PIN is set, the Darkroom stays locked.
+- **`booth.unlockDarkroom({ pin })`** returns `{ token, expiresAt }`. Tokens live in memory (`src/domains/darkroom/internal/darkroom.access.ts`):
+  - a token expires 30 min after it was last used;
+  - a new PIN or an engine restart revokes every token;
+  - after 5 wrong PINs in a row, unlocking answers `TOO_MANY_REQUESTS` for 60 s;
+  - `booth.lockDarkroom` ends the caller's session.
+- **The token** travels in the `x-darkroom-token` header. `darkroomProcedure` accepts the admin origin **or** a live token, and only these procedures use it:
+  - print tuning: `config.getPrintConfiguration`, `updatePrintConfiguration`, `dither`, `generateReceipt`, `printReceipt`;
+  - sample tickets: `config.printSampleLotteryTicket`, plus `config.getCurrentEvent` for the prize list;
+  - status: `ops.getHealthz`.
+
+  Everything else in `config.*` and `ops.*`, including setting the PIN, stays admin-only. `src/internal/router.test.ts` checks every procedure both ways.
 
 ### Kiosk channel
 
