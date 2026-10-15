@@ -5,7 +5,7 @@ import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import clsx from "clsx";
-import { ArrowLeft, Delete } from "lucide-react";
+import { ArrowLeft, Delete, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 
 import { setDarkroomSession } from "#lib/darkroom/darkroom-token";
@@ -37,8 +37,8 @@ const KeypadKey: FC<{
       "touch-manipulation transition-colors select-none",
       "disabled:opacity-30",
       variant === "digit"
-        ? "bg-white/10 active:bg-white/30"
-        : "bg-transparent active:bg-white/10",
+        ? "bg-muted text-foreground active:bg-accent"
+        : "bg-transparent text-foreground active:bg-muted",
     )}
   >
     {children}
@@ -88,9 +88,8 @@ export const DarkroomUnlock: FC = () => {
   return (
     <div
       className={clsx(
-        "dark",
-        "min-h-dvh bg-black text-white",
-        "flex flex-col items-center justify-center gap-10 p-6",
+        "relative min-h-dvh bg-background text-foreground",
+        "flex flex-col items-center justify-center gap-8 p-6",
         "select-none",
       )}
     >
@@ -100,7 +99,7 @@ export const DarkroomUnlock: FC = () => {
         className={clsx(
           "absolute top-6 left-6",
           "flex items-center gap-2",
-          "text-base text-white/70 active:text-white",
+          "text-sm font-medium text-muted-foreground active:text-foreground",
         )}
       >
         <ArrowLeft className="size-5" />
@@ -108,9 +107,19 @@ export const DarkroomUnlock: FC = () => {
       </button>
 
       <div className={clsx("flex flex-col items-center gap-3 text-center")}>
-        <h1 className={clsx("text-2xl font-medium")}>Darkroom</h1>
-        <p className={clsx("text-base text-white/60")}>
-          Enter the Darkroom PIN
+        <span
+          className={clsx(
+            "flex size-12 items-center justify-center",
+            "rounded-2xl bg-primary text-primary-foreground",
+          )}
+        >
+          <LockKeyhole className="size-5" />
+        </span>
+        <h1 className={clsx("text-2xl font-semibold tracking-tight")}>
+          Darkroom
+        </h1>
+        <p className={clsx("text-sm text-muted-foreground")}>
+          Enter the PIN to tune the print
         </p>
       </div>
 
@@ -126,9 +135,9 @@ export const DarkroomUnlock: FC = () => {
               <span
                 key={index}
                 className={clsx(
-                  "size-3.5 rounded-full border border-white/80",
+                  "size-3.5 rounded-full border border-foreground/70",
                   "transition-colors",
-                  index < pin.length && "bg-white",
+                  index < pin.length && "bg-foreground",
                 )}
               />
             ),
@@ -137,7 +146,7 @@ export const DarkroomUnlock: FC = () => {
       </div>
 
       <p
-        className={clsx("h-5 text-base text-red-400")}
+        className={clsx("h-5 text-sm font-medium text-destructive")}
         role={errorMessage ? "alert" : undefined}
       >
         {errorMessage}

@@ -18,11 +18,13 @@ const DarkroomWorkspace = () => {
         renderHeader={(tabs) => (
           <>
             <DarkroomHeader tabs={tabs} />
-            <DarkroomHealthStrip />
+            <div className={clsx("px-4 pt-4 lg:px-6")}>
+              <DarkroomHealthStrip />
+            </div>
           </>
         )}
       />
-      <div className={clsx("p-2")}>
+      <div className={clsx("px-4 pb-6 lg:px-6")}>
         <SampleTicketsCard />
       </div>
     </div>

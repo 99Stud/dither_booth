@@ -21,6 +21,7 @@ import {
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
+import { Frown, Ticket, Trophy } from "lucide-react";
 import { useState } from "react";
 
 import { useTRPC } from "#lib/trpc/trpc.client";
@@ -67,12 +68,14 @@ export const SampleTicketsCard: FC = () => {
   }));
 
   return (
-    <Card className={clsx("max-w-xl")}>
+    <Card>
       <CardHeader>
-        <CardTitle>Sample tickets</CardTitle>
+        <CardTitle className={clsx("flex items-center gap-2")}>
+          <Ticket className={clsx("size-4 text-muted-foreground")} />
+          Sample tickets
+        </CardTitle>
         <CardDescription>
-          Print a sample win or lose ticket to check the layout. The draw is not
-          recorded and prize stock stays the same.
+          Check the lottery ticket on paper. Nothing is drawn.
         </CardDescription>
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-3")}>
@@ -110,9 +113,10 @@ export const SampleTicketsCard: FC = () => {
               : "Add a prize in admin to print a win ticket."}
           </p>
         )}
-        <div className={clsx("flex flex-wrap gap-2")}>
+        <div className={clsx("flex flex-wrap justify-end gap-2")}>
           <Button
             type="button"
+            size="lg"
             variant="outline"
             disabled={isPrinting}
             onClick={() => {
@@ -120,16 +124,15 @@ export const SampleTicketsCard: FC = () => {
             }}
           >
             {printingOutcome === "loss" ? (
-              <>
-                Printing lose ticket&nbsp;
-                <Spinner className="size-4" />
-              </>
+              <Spinner data-icon="inline-start" />
             ) : (
-              "Print lose ticket"
+              <Frown data-icon="inline-start" />
             )}
+            Lose ticket
           </Button>
           <Button
             type="button"
+            size="lg"
             disabled={isPrinting || !selectedPrizeId}
             onClick={() => {
               if (!selectedPrizeId) return;
@@ -137,13 +140,11 @@ export const SampleTicketsCard: FC = () => {
             }}
           >
             {printingOutcome === "win" ? (
-              <>
-                Printing win ticket&nbsp;
-                <Spinner className="size-4" />
-              </>
+              <Spinner data-icon="inline-start" />
             ) : (
-              "Print win ticket"
+              <Trophy data-icon="inline-start" />
             )}
+            Win ticket
           </Button>
         </div>
       </CardContent>
