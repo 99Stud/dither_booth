@@ -85,13 +85,16 @@ export const assertPrinterAvailable = (
   return { dryRun, printerUSBAdapter: ctx.printerUSBAdapter };
 };
 
-export const prepareReceiptJob = async ({
+type PhotoReceiptInput = ConstructorParameters<typeof Response>[0];
+
+/** What every photo receipt render needs, read and validated once. */
+const loadPhotoReceiptSources = async ({
   ctx,
   input,
 }: {
   ctx: Pick<TRPCContext, "db" | "puppeteerLifecycle">;
-  input: ConstructorParameters<typeof Response>[0];
-}): Promise<PreparedReceiptJob> => {
+  input: PhotoReceiptInput;
+}) => {
   const { page } = await ctx.puppeteerLifecycle.whenReady();
 
   if (!page) {
@@ -120,6 +123,19 @@ export const prepareReceiptJob = async ({
   }
 
   const ticketItems = await getCurrentTicketItemNamesForDb(ctx.db);
+
+  return { page, photoBuffer, printConfiguration, ticketItems };
+};
+
+export const prepareReceiptJob = async ({
+  ctx,
+  input,
+}: {
+  ctx: Pick<TRPCContext, "db" | "puppeteerLifecycle">;
+  input: PhotoReceiptInput;
+}): Promise<PreparedReceiptJob> => {
+  const { page, photoBuffer, printConfiguration, ticketItems } =
+    await loadPhotoReceiptSources({ ctx, input });
   let ticketRef = createBoothTicketRef();
   let receiptRasterCmd = await buildReceiptRasterCommand({
     page,
@@ -255,6 +271,43 @@ export const printPreparedReceiptJob = async ({
       cause: error,
     });
   }
+};
+
+/**
+ * Admin test print: the photo receipt only, under the sample ref `000000`.
+ * It never draws, so tuning the printer cannot take prize stock or add a row
+ * to the event's draws.
+ */
+export const printTestReceiptJob = async ({
+  ctx,
+  input,
+}: {
+  ctx: Pick<TRPCContext, "db" | "printerUSBAdapter" | "puppeteerLifecycle">;
+  input: PhotoReceiptInput;
+}): Promise<void> => {
+  const { dryRun, printerUSBAdapter } = assertPrinterAvailable(ctx);
+  const { page, photoBuffer, printConfiguration, ticketItems } =
+    await loadPhotoReceiptSources({ ctx, input });
+
+  const receiptRasterCmd = await buildReceiptRasterCommand({
+    page,
+    photoBuffer,
+    printConfiguration,
+    ticketItems,
+    ticketRef: SAMPLE_LOTTERY_TICKET_REF,
+  });
+
+  await printPreparedReceiptJob({
+    dryRun,
+    job: {
+      draw: { outcome: "loss", prize: null },
+      lotteryRasterCmd: null,
+      photoPrinted: false,
+      receiptRasterCmd,
+      ticketRef: SAMPLE_LOTTERY_TICKET_REF,
+    },
+    printerUSBAdapter,
+  });
 };
 
 export const printSampleLotteryTicketJob = async ({

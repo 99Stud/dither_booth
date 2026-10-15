@@ -302,6 +302,24 @@ describe("printPreparedReceiptJob", () => {
   });
 });
 
+describe("config.printReceipt (admin test print)", () => {
+  test("prints the photo receipt under the sample ref without drawing", async () => {
+    const db = setupDb({ outcome: "win" });
+    const stockBefore = db.select().from(prizeTable).all();
+    const caller = engineRouter.createCaller({
+      ...createCtx(db),
+      requestOrigin: "https://admin.local",
+    });
+
+    await caller.config.printReceipt(PHOTO.stream() as unknown as Blob);
+
+    expect(printedBuffers()).toEqual(["photo:000000"]);
+    expect(buildLotteryTicketRasterCommand).not.toHaveBeenCalled();
+    expect(db.select().from(drawTable).all()).toEqual([]);
+    expect(db.select().from(prizeTable).all()).toEqual(stockBefore);
+  });
+});
+
 describe("prepareReceipt → printPreparedReceipt", () => {
   test("a failed print can be retried and never prints the photo twice", async () => {
     const caller = engineRouter.createCaller(
