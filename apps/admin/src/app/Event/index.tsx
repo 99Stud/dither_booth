@@ -158,7 +158,7 @@ export const Event = () => {
         open={isReplaceFormOpen}
         isPending={replaceEventMutation.isPending}
         title="Replace event"
-        description="Creates a new event after wiping the current campaign, lottery, prizes, and draws."
+        description="Archives the current event, then creates this one. The archived event's prizes and draws are kept."
         submitLabel="Replace event"
         onOpenChange={setIsReplaceFormOpen}
         onSubmit={async (values) => {

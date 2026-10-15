@@ -26,7 +26,6 @@ import {
   updateLotterySettingsForDb,
   updatePrizeForDb,
   updateTicketItemsForDb,
-  wipeAllEventData,
 } from "./event.service";
 
 describe("event.service", () => {
@@ -103,7 +102,7 @@ describe("event.service", () => {
     }
   });
 
-  test("replaceEvent wipes previous lottery data and creates a new event", async () => {
+  test("replaceEvent archives the previous event and keeps its history", async () => {
     const { db, sqlite } = createTestDb();
 
     try {
@@ -127,9 +126,11 @@ describe("event.service", () => {
         names: ["Mate"],
       });
 
+      const oldPrizeId = withPrize.prizes[0]!.id;
       await db.insert(drawTable).values({
+        campaignId: first.campaign.id,
         lotteryId: first.lottery.id,
-        prizeId: withPrize.prizes[0]!.id,
+        prizeId: oldPrizeId,
       });
 
       const replaced = await replaceEventForDb(db, {
@@ -149,9 +150,48 @@ describe("event.service", () => {
 
       const current = await getCurrentEventForDb(db);
       expect(current?.campaign.name).toBe("New event");
+      expect(await listDrawsForDb(db, { limit: 50 })).toEqual({ draws: [] });
 
-      const draws = await db.query.drawTable.findMany();
-      expect(draws).toHaveLength(0);
+      // Nothing of the old event is deleted: it is archived as it stood.
+      expect(
+        db
+          .select({
+            id: campaignTable.id,
+            status: campaignTable.status,
+            ticketItemNames: campaignTable.ticketItemNames,
+          })
+          .from(campaignTable)
+          .where(eq(campaignTable.id, first.campaign.id))
+          .get(),
+      ).toEqual({
+        id: first.campaign.id,
+        status: "archived",
+        ticketItemNames: ["Mate"],
+      });
+      expect(
+        db
+          .select({ enabled: lotteryTable.enabled })
+          .from(lotteryTable)
+          .where(eq(lotteryTable.id, first.lottery.id))
+          .get(),
+      ).toEqual({ enabled: true });
+      expect(
+        db.select().from(prizeTable).where(eq(prizeTable.id, oldPrizeId)).all(),
+      ).toHaveLength(1);
+      expect(
+        db
+          .select()
+          .from(stockAdjustmentTable)
+          .where(eq(stockAdjustmentTable.prizeId, oldPrizeId))
+          .all(),
+      ).toHaveLength(1);
+      expect(
+        db
+          .select()
+          .from(drawTable)
+          .where(eq(drawTable.campaignId, first.campaign.id))
+          .all(),
+      ).toHaveLength(1);
     } finally {
       sqlite.close();
     }
@@ -263,7 +303,7 @@ describe("event.service", () => {
     }
   });
 
-  test("updateLotterySettings enables the current lottery and disables others", async () => {
+  test("updateLotterySettings changes only the current event's lottery", async () => {
     const { db, sqlite } = createTestDb();
 
     try {
@@ -297,10 +337,12 @@ describe("event.service", () => {
         printLoserTicket: true,
       });
 
+      // Draws only ever use the active event's lottery, so other lotteries
+      // keep their flags as a record.
       const orphan = await db.query.lotteryTable.findFirst({
         where: eq(lotteryTable.id, "orphan_lottery"),
       });
-      expect(orphan?.enabled).toBe(false);
+      expect(orphan?.enabled).toBe(true);
     } finally {
       sqlite.close();
     }
@@ -328,6 +370,7 @@ describe("event.service", () => {
 
       const prizeId = withPrize.prizes[0]!.id;
       await db.insert(drawTable).values({
+        campaignId: event.campaign.id,
         lotteryId: event.lottery.id,
         prizeId: prizeId,
         prizeTitle: "legendary prize",
@@ -415,14 +458,18 @@ describe("event.service", () => {
       const prizeId = withPrize.prizes[0]!.id;
 
       await db.insert(drawTable).values({
+        campaignId: event.campaign.id,
         lotteryId: event.lottery.id,
         prizeId: prizeId,
         prizeTitle: "sticker",
         ticketRef: "111111",
         createdAt: new Date("2026-01-01T10:00:00.000Z"),
       });
+      // A loss recorded while the lottery was off has no lottery, and still
+      // belongs to the event.
       await db.insert(drawTable).values({
-        lotteryId: event.lottery.id,
+        campaignId: event.campaign.id,
+        lotteryId: null,
         prizeId: null,
         ticketRef: "222222",
         createdAt: new Date("2026-01-01T11:00:00.000Z"),
@@ -633,7 +680,7 @@ describe("event.service — kiosk concurrency and history", () => {
       await kioskWin();
 
       // Passes the API schema boundary only because the service is called
-      // directly; the DB CHECK constraint rejects it after the wipe ran.
+      // directly; the DB CHECK constraint rejects it after the archive ran.
       await expect(
         replaceEventForDb(db, {
           name: "Broken",
@@ -647,6 +694,9 @@ describe("event.service — kiosk concurrency and history", () => {
       const current = await getCurrentEventForDb(db);
       expect(current?.campaign.name).toBe("Live event");
       expect(current?.prizes).toHaveLength(1);
+      expect(
+        db.select({ status: campaignTable.status }).from(campaignTable).all(),
+      ).toEqual([{ status: "active" }]);
       expect(db.select().from(drawTable).all()).toHaveLength(1);
     } finally {
       sqlite.close();
@@ -687,23 +737,65 @@ describe("event.service — kiosk concurrency and history", () => {
     }
   });
 
-  test("wipeAllEventData clears an event with draws while FKs are on", async () => {
-    const { db, sqlite, kioskWin } = await setupLiveEvent();
+  test("an archived event does not block creating the next one", async () => {
+    const { db, sqlite } = await setupLiveEvent();
 
     try {
-      await kioskWin();
-      await wipeAllEventData(db);
-
+      db.update(campaignTable).set({ status: "archived" }).run();
       expect(await getCurrentEventForDb(db)).toBeNull();
-      for (const table of [
-        drawTable,
-        stockAdjustmentTable,
-        prizeTable,
-        lotteryTable,
-        campaignTable,
-      ]) {
-        expect(db.select().from(table).all()).toEqual([]);
-      }
+
+      const created = await createEventForDb(db, {
+        name: "Next",
+        noWinWeight: 1,
+        winCooldownMinutes: 0,
+        printLoserTicket: false,
+        enabled: false,
+      });
+
+      expect(created.campaign.name).toBe("Next");
+      expect(created.prizes).toEqual([]);
+      expect(db.select().from(campaignTable).all()).toHaveLength(2);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("the database refuses a second active event", async () => {
+    const { db, sqlite } = await setupLiveEvent();
+
+    try {
+      expect(() =>
+        db.insert(campaignTable).values({ name: "Twin" }).run(),
+      ).toThrow(/UNIQUE constraint failed: campaign.status/);
+      db.insert(campaignTable)
+        .values([
+          { name: "Old", status: "archived" },
+          { name: "Older", status: "archived" },
+        ])
+        .run();
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("any change to the event moves its updated_at", async () => {
+    const { db, sqlite, prize } = await setupLiveEvent();
+    const longAgo = new Date("2020-01-01T00:00:00.000Z");
+
+    try {
+      db.update(campaignTable).set({ updatedAt: longAgo }).run();
+
+      await updatePrizeForDb(db, {
+        ...PRIZE_FIELDS,
+        prizeId: prize.id,
+        title: "renamed",
+      });
+
+      const campaign = db.select().from(campaignTable).get()!;
+      expect(campaign.updatedAt.getTime()).toBeGreaterThan(longAgo.getTime());
+      expect(campaign.createdAt.getTime()).toBeLessThanOrEqual(
+        campaign.updatedAt.getTime(),
+      );
     } finally {
       sqlite.close();
     }

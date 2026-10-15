@@ -60,8 +60,8 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
       <CardHeader>
         <CardTitle>Lottery settings</CardTitle>
         <CardDescription>
-          Only one lottery runs on the booth. Enabling this lottery disables any
-          other enabled lottery rows.
+          The booth only draws against the lottery of the current event, and
+          only while it is enabled.
         </CardDescription>
       </CardHeader>
       <CardContent>

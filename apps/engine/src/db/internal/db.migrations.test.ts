@@ -306,6 +306,58 @@ describe("runSqliteMigrations", () => {
     ).not.toContain("remaining_quantity");
   });
 
+  test("0013 keeps one event active and ties past draws to it", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    // Up to and including 0012: the last schema without event lifecycle.
+    runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(13), sqlite });
+
+    sqlite.run("INSERT INTO lottery (id, enabled) VALUES ('l1', 1)");
+    // A dev database seeded next to an admin-created event holds two.
+    sqlite.run(
+      "INSERT INTO campaign (id, name, lottery_id) VALUES ('c1', 'Admin event', 'l1'), ('c2', 'Dev event', NULL)",
+    );
+    sqlite.run(
+      "INSERT INTO prize (id, lottery_id, title, win_instruction) VALUES ('p1', 'l1', 'sticker', 'Bar')",
+    );
+    sqlite.run(
+      "INSERT INTO stock_adjustment (id, prize_id, delta, reason) VALUES ('s1', 'p1', 3, 'initial')",
+    );
+    sqlite.run(
+      "INSERT INTO draw (id, lottery_id, prize_id, ticket_ref) VALUES ('win', 'l1', 'p1', '000001'), ('loss', 'l1', NULL, '000002'), ('off', NULL, NULL, '000003')",
+    );
+
+    const violations = runSqliteMigrations({
+      db,
+      migrationsFolder: MIGRATIONS_FOLDER,
+      sqlite,
+    });
+
+    expect(violations).toEqual([]);
+    expect(
+      sqlite.query("SELECT id, status FROM campaign ORDER BY id").all(),
+    ).toEqual([
+      { id: "c1", status: "active" },
+      { id: "c2", status: "archived" },
+    ]);
+    // Recorded while no lottery was enabled, so it can't be placed.
+    expect(
+      sqlite.query("SELECT id, campaign_id FROM draw ORDER BY id").all(),
+    ).toEqual([
+      { id: "loss", campaign_id: "c1" },
+      { id: "off", campaign_id: null },
+      { id: "win", campaign_id: "c1" },
+    ]);
+    expect(triggerNames(sqlite)).toEqual(STOCK_TRIGGERS);
+    expect(() =>
+      sqlite.run("INSERT INTO campaign (id, name) VALUES ('c3', 'Twin')"),
+    ).toThrow(/UNIQUE constraint failed/);
+    expect(() =>
+      sqlite.run(
+        "INSERT INTO campaign (id, name, status) VALUES ('c3', 'Odd', 'paused')",
+      ),
+    ).toThrow(/CHECK constraint failed/);
+  });
+
   test("leaves the stock triggers and prize checks in place", () => {
     const { sqlite, db } = openDb({ foreignKeys: true });
     runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });

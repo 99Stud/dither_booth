@@ -5,7 +5,7 @@ import {
 } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import type { DB, DbExecutor, DbTransaction } from "#db/internal/db.types";
 
@@ -33,6 +33,8 @@ import type {
 } from "./event.constants";
 import type { CurrentEvent, EventPrize, ListDrawsResult } from "./event.types";
 
+const isActiveCampaign = eq(campaignTable.status, "active");
+
 const EVENT_PRIZE_COLUMNS = {
   id: prizeTable.id,
   title: prizeTable.title,
@@ -56,6 +58,7 @@ export async function getCurrentTicketItemNamesForDb(
   const campaign = db
     .select({ ticketItemNames: campaignTable.ticketItemNames })
     .from(campaignTable)
+    .where(isActiveCampaign)
     .get();
   if (!campaign) {
     return [...DEFAULT_TICKET_ITEM_NAMES];
@@ -64,7 +67,11 @@ export async function getCurrentTicketItemNamesForDb(
 }
 
 function readCurrentEvent(executor: DbExecutor): CurrentEvent | null {
-  const campaign = executor.select().from(campaignTable).get();
+  const campaign = executor
+    .select()
+    .from(campaignTable)
+    .where(isActiveCampaign)
+    .get();
   if (!campaign?.lotteryId) {
     return null;
   }
@@ -133,10 +140,16 @@ function requireCurrentPrize(
 /**
  * Runs `write` in one synchronous transaction and returns the event as it
  * stands after the write, so a crash halfway never leaves a partial event.
+ * Every write moves the active event's `updated_at`, whichever of its tables
+ * it touched.
  */
 function writeEvent(db: DB, write: (tx: DbTransaction) => void): CurrentEvent {
   return db.transaction((tx) => {
     write(tx);
+    tx.update(campaignTable)
+      .set({ updatedAt: new Date() })
+      .where(isActiveCampaign)
+      .run();
     const next = readCurrentEvent(tx);
     if (!next) {
       throw new TRPCError({
@@ -148,19 +161,22 @@ function writeEvent(db: DB, write: (tx: DbTransaction) => void): CurrentEvent {
   });
 }
 
-function wipeEventData(tx: DbTransaction): void {
-  tx.delete(drawTable).run();
-  tx.delete(stockAdjustmentTable).run();
-  tx.delete(prizeTable).run();
-  tx.update(campaignTable).set({ lotteryId: null }).run();
-  tx.delete(lotteryTable).run();
-  tx.delete(campaignTable).run();
+/**
+ * Takes the active event out of play. Its lottery, prizes, stock ledger and
+ * draws are left exactly as they were, as the record of that event.
+ */
+function archiveActiveEvent(tx: DbTransaction): void {
+  tx.update(campaignTable)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(isActiveCampaign)
+    .run();
 }
 
 function insertEvent(tx: DbTransaction, input: CreateEventInput): void {
   const existing = tx
     .select({ id: campaignTable.id })
     .from(campaignTable)
+    .where(isActiveCampaign)
     .get();
   if (existing) {
     throw new TRPCError({
@@ -187,10 +203,6 @@ function insertEvent(tx: DbTransaction, input: CreateEventInput): void {
     .run();
 }
 
-export async function wipeAllEventData(db: DB): Promise<void> {
-  db.transaction((tx) => wipeEventData(tx));
-}
-
 export async function getCurrentEventForDb(
   db: DB,
 ): Promise<CurrentEvent | null> {
@@ -209,7 +221,7 @@ export async function replaceEventForDb(
   input: CreateEventInput,
 ): Promise<CurrentEvent> {
   return writeEvent(db, (tx) => {
-    wipeEventData(tx);
+    archiveActiveEvent(tx);
     insertEvent(tx, input);
   });
 }
@@ -245,14 +257,9 @@ export async function updateLotterySettingsForDb(
   input: UpdateLotterySettingsInput,
 ): Promise<CurrentEvent> {
   return writeEvent(db, (tx) => {
+    // Only the active event's lottery is ever drawn against, so an archived
+    // event's lottery can keep its `enabled` flag as a record.
     const current = requireCurrentEvent(tx);
-
-    if (input.enabled) {
-      tx.update(lotteryTable)
-        .set({ enabled: false })
-        .where(ne(lotteryTable.id, current.lottery.id))
-        .run();
-    }
 
     tx.update(lotteryTable)
       .set({
@@ -394,7 +401,7 @@ export async function listDrawsForDb(
     .from(drawTable)
     .where(
       and(
-        eq(drawTable.lotteryId, current.lottery.id),
+        eq(drawTable.campaignId, current.campaign.id),
         parsedTicketRef ? eq(drawTable.ticketRef, parsedTicketRef) : undefined,
       ),
     )

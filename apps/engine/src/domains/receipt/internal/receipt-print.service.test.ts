@@ -16,13 +16,10 @@ import {
 import type { DB } from "#db/internal/db.types";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
-import {
-  drawTable,
-  lotteryTable,
-  printConfigTable,
-} from "#db/internal/db.schema";
+import { drawTable, printConfigTable } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 import {
+  insertLotteryEvent,
   insertPrizeWithStock,
   stockOf,
 } from "#domains/lottery/internal/lottery.test-utils";
@@ -108,16 +105,14 @@ function setupDb({
 
   if (outcome === "no-lottery") return db;
 
-  db.insert(lotteryTable)
-    .values({
-      id: "lottery-1",
-      enabled: true,
-      // A huge no-win weight makes every roll a loss; zero makes it a win.
-      noWinWeight: outcome === "win" ? 0 : 1_000_000_000,
-      winCooldownMinutes: 0,
-      printLoserTicket,
-    })
-    .run();
+  insertLotteryEvent(db, {
+    id: "lottery-1",
+    enabled: true,
+    // A huge no-win weight makes every roll a loss; zero makes it a win.
+    noWinWeight: outcome === "win" ? 0 : 1_000_000_000,
+    winCooldownMinutes: 0,
+    printLoserTicket,
+  });
   insertPrizeWithStock(
     db,
     {

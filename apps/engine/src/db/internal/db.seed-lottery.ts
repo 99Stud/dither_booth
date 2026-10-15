@@ -91,6 +91,13 @@ export async function seedDevLottery(
 
   if (reset) {
     await clearLotteryData();
+  } else {
+    // One event is active at a time: the dev event replaces whatever an admin
+    // set up, which stays on record as archived.
+    await db
+      .update(campaignTable)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(eq(campaignTable.status, "active"));
   }
 
   await db.insert(lotteryTable).values({

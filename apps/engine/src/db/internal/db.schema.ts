@@ -85,18 +85,51 @@ export const printConfigTable = sqliteTable(
   ],
 );
 
-export const campaignTable = sqliteTable("campaign", {
-  id: text()
-    .primaryKey()
-    .notNull()
-    .$defaultFn(() => createId()),
-  name: text("name").notNull(),
-  lotteryId: text("lottery_id").references(() => lotteryTable.id),
-  ticketItemNames: text("ticket_item_names", { mode: "json" })
-    .$type<string[]>()
-    .notNull()
-    .default([...DEFAULT_TICKET_ITEM_NAMES]),
-});
+export const CAMPAIGN_STATUSES = ["active", "archived"] as const;
+
+const CAMPAIGN_STATUS_CHECK_VALUES = CAMPAIGN_STATUSES.map(
+  (status) => `'${status}'`,
+).join(", ");
+
+/**
+ * One row per event. Replacing the event archives the old row instead of
+ * deleting it, so its lottery, prizes and draws stay on record. At most one
+ * row is `active`, and everything the booth reads or draws goes through it.
+ */
+export const campaignTable = sqliteTable(
+  "campaign",
+  {
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
+    name: text("name").notNull(),
+    lotteryId: text("lottery_id").references(() => lotteryTable.id),
+    ticketItemNames: text("ticket_item_names", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default([...DEFAULT_TICKET_ITEM_NAMES]),
+    status: text("status", { enum: CAMPAIGN_STATUSES })
+      .notNull()
+      .default("active"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    /** Last change to anything in the event: campaign, lottery or prizes. */
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    check(
+      "campaign_status_check",
+      sql`${table.status} in (${sql.raw(CAMPAIGN_STATUS_CHECK_VALUES)})`,
+    ),
+    uniqueIndex("campaign_single_active_idx")
+      .on(table.status)
+      .where(sql`${table.status} = 'active'`),
+  ],
+);
 
 export const lotteryTable = sqliteTable(
   "lottery",
@@ -157,6 +190,9 @@ export const drawTable = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
+    /** The event active when the draw ran; null when there was none. */
+    campaignId: text("campaign_id").references(() => campaignTable.id),
+    /** The event's lottery, set only when it was enabled for this draw. */
     lotteryId: text("lottery_id").references(() => lotteryTable.id),
     prizeId: text("prize_id").references(() => prizeTable.id),
     // Snapshot taken at draw time so prize edits never rewrite past wins.
@@ -166,6 +202,7 @@ export const drawTable = sqliteTable(
   (table) => [
     uniqueIndex("draw_ticket_ref_unique").on(table.ticketRef),
     index("draw_prize_id_idx").on(table.prizeId),
+    index("draw_campaign_id_idx").on(table.campaignId),
   ],
 );
 
