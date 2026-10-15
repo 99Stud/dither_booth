@@ -1,5 +1,6 @@
 import type { FC } from "react";
 
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -104,8 +105,10 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className={clsx("flex items-center gap-2")}>
-            <Gift className={clsx("size-4 text-muted-foreground")} />
+          <CardTitle className={clsx("flex items-center gap-2.5")}>
+            <IconBubble tone="rose">
+              <Gift />
+            </IconBubble>
             Prizes
           </CardTitle>
           <CardAction>

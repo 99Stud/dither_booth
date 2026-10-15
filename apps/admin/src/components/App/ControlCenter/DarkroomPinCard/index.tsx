@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 
 import { darkroomPinSchema } from "@dither-booth/shared/darkroom";
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
@@ -62,8 +63,10 @@ export const DarkroomPinCard = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className={clsx("flex items-center gap-2")}>
-          <KeyRound className={clsx("size-4 text-muted-foreground")} />
+        <CardTitle className={clsx("flex items-center gap-2.5")}>
+          <IconBubble tone="violet">
+            <KeyRound />
+          </IconBubble>
           <h2>Darkroom PIN</h2>
         </CardTitle>
         <CardDescription>

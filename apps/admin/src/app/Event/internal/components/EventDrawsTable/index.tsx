@@ -4,6 +4,7 @@ import {
   formatBoothTicketNumber,
   parseBoothTicketRef,
 } from "@dither-booth/shared/formatting";
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
@@ -59,8 +60,10 @@ export const EventDrawsTable: FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className={clsx("flex items-center gap-2")}>
-          <History className={clsx("size-4 text-muted-foreground")} />
+        <CardTitle className={clsx("flex items-center gap-2.5")}>
+          <IconBubble tone="emerald">
+            <History />
+          </IconBubble>
           Draws
         </CardTitle>
       </CardHeader>

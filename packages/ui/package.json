@@ -13,6 +13,7 @@
   "exports": {
     "./components/misc/Webcam": "./src/components/misc/Webcam/index.tsx",
     "./components/misc/ThemeToggle": "./src/components/misc/ThemeToggle/index.tsx",
+    "./components/misc/IconBubble": "./src/components/misc/IconBubble/index.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",
     "./components/svg/*": "./src/components/svg/*.tsx",
     "./fields/*": "./src/fields/*/index.tsx",

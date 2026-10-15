@@ -1,6 +1,10 @@
+import type { Rarity } from "@dither-booth/shared/lottery";
 import type { FC, PropsWithChildren, ReactNode } from "react";
 
-import { Badge } from "@dither-booth/ui/components/ui/badge";
+import {
+  IconBubble,
+  type IconBubbleTone,
+} from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
@@ -22,8 +26,6 @@ import {
   Timer,
 } from "lucide-react";
 import { useEffect } from "react";
-
-import { RarityBadge } from "#components/Misc/RarityBadge/index";
 
 import type { CurrentEvent, UpdateEventFormValues } from "../../Event.types";
 
@@ -74,55 +76,63 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
 
   return (
     <div className={clsx("flex flex-col gap-4 md:gap-6")}>
-      <div className={clsx("grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4")}>
-        <StatTile icon={<Dices />} label="Lottery">
-          {event.lottery.enabled ? (
-            <Badge
-              className={clsx("bg-success/10 text-success dark:bg-success/15")}
-              variant="secondary"
-            >
-              <span className={clsx("size-1.5 rounded-full bg-success")} />
-              Live
-            </Badge>
-          ) : (
-            <Badge variant="outline">Off</Badge>
+      <Card size="sm" className={clsx("py-0")}>
+        {/* 1px gaps over the border colour draw the dividers, in 2×2 on
+            phones and one row on desktop. */}
+        <div
+          className={clsx(
+            "grid grid-cols-2 gap-px bg-border lg:grid-cols-4",
+            "[&>*]:bg-card",
           )}
-        </StatTile>
-        <StatTile
-          icon={<Gift />}
-          label="Prizes left"
-          footer={
-            rarityBreakdown.length > 0 && (
-              <div className={clsx("flex flex-wrap gap-1.5")}>
-                {rarityBreakdown.map((entry) => (
-                  <RarityBadge
-                    key={entry.rarity}
-                    count={entry.remaining}
-                    rarity={entry.rarity}
-                  />
-                ))}
-              </div>
-            )
-          }
         >
-          {remainingPrizes}
-        </StatTile>
-        <StatTile icon={<Package />} label="Prizes">
-          {event.prizes.length}
-        </StatTile>
-        <StatTile icon={<Timer />} label="Win cooldown">
-          {event.lottery.winCooldownMinutes}
-          <span className={clsx("ml-1 text-sm text-muted-foreground")}>
-            min
-          </span>
-        </StatTile>
-      </div>
+          <Stat icon={<Dices />} tone="violet" label="Lottery">
+            {event.lottery.enabled ? (
+              <span className={clsx("inline-flex items-center gap-1.5")}>
+                <span className={clsx("relative flex size-2")}>
+                  <span
+                    className={clsx(
+                      "absolute inline-flex size-full animate-ping rounded-full bg-success/60",
+                    )}
+                  />
+                  <span
+                    className={clsx(
+                      "relative inline-flex size-2 rounded-full bg-success",
+                    )}
+                  />
+                </span>
+                Live
+              </span>
+            ) : (
+              <span className={clsx("text-muted-foreground")}>Off</span>
+            )}
+          </Stat>
+          <Stat icon={<Gift />} tone="rose" label="Prizes left">
+            <span className={clsx("flex items-center gap-3")}>
+              {remainingPrizes}
+              <RarityBar breakdown={rarityBreakdown} />
+            </span>
+          </Stat>
+          <Stat icon={<Package />} tone="amber" label="Prizes">
+            {event.prizes.length}
+          </Stat>
+          <Stat icon={<Timer />} tone="sky" label="Win cooldown">
+            {event.lottery.winCooldownMinutes}
+            <span
+              className={clsx("ml-1 text-sm font-normal text-muted-foreground")}
+            >
+              min
+            </span>
+          </Stat>
+        </div>
+      </Card>
 
       <div className={clsx("grid items-start gap-4 md:gap-6 lg:grid-cols-2")}>
         <Card>
           <CardHeader>
-            <CardTitle className={clsx("flex items-center gap-2")}>
-              <CalendarDays className={clsx("size-4 text-muted-foreground")} />
+            <CardTitle className={clsx("flex items-center gap-2.5")}>
+              <IconBubble tone="sky">
+                <CalendarDays />
+              </IconBubble>
               Event details
             </CardTitle>
           </CardHeader>
@@ -170,30 +180,62 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
   );
 };
 
-/** A KPI tile, as on Vercel's and Stripe's dashboards. */
-const StatTile: FC<
-  PropsWithChildren<{ label: string; icon: ReactNode; footer?: ReactNode }>
-> = ({ label, icon, footer, children }) => (
-  <Card size="sm">
-    <CardContent className={clsx("flex flex-col gap-1.5")}>
-      <span
+/**
+ * One stat of the strip: a tinted icon, a small label and the value, on a
+ * single compact row. The strip groups them in one card, split by
+ * dividers, rather than one big card per number.
+ */
+const Stat: FC<
+  PropsWithChildren<{ label: string; icon: ReactNode; tone: IconBubbleTone }>
+> = ({ label, icon, tone, children }) => (
+  <div className={clsx("flex items-center gap-3 px-4 py-3")}>
+    <IconBubble size="md" tone={tone}>
+      {icon}
+    </IconBubble>
+    <div className={clsx("min-w-0")}>
+      <div className={clsx("text-xs text-muted-foreground")}>{label}</div>
+      <div
         className={clsx(
-          "flex items-center justify-between gap-2",
-          "text-xs font-medium text-muted-foreground",
-          "[&_svg]:size-4",
-        )}
-      >
-        {label}
-        {icon}
-      </span>
-      <span
-        className={clsx(
-          "flex min-h-8 items-center text-2xl font-semibold tabular-nums",
+          "flex items-center text-lg leading-tight font-semibold tabular-nums",
         )}
       >
         {children}
-      </span>
-      {footer}
-    </CardContent>
-  </Card>
+      </div>
+    </div>
+  </div>
 );
+
+const RARITY_BAR_COLORS = {
+  common: "bg-zinc-400 dark:bg-zinc-500",
+  uncommon: "bg-emerald-500",
+  rare: "bg-sky-500",
+  epic: "bg-violet-500",
+  legendary: "bg-amber-400",
+} as const satisfies Record<Rarity, string>;
+
+/** The prizes left by rarity, as one small segmented bar (hover for counts). */
+const RarityBar: FC<{
+  breakdown: Array<{ rarity: Rarity; remaining: number }>;
+}> = ({ breakdown }) => {
+  const total = breakdown.reduce((sum, entry) => sum + entry.remaining, 0);
+  if (total === 0) return null;
+
+  return (
+    <span
+      className={clsx(
+        "flex h-1.5 w-16 overflow-hidden rounded-full bg-muted sm:w-20",
+      )}
+      title={breakdown
+        .map((entry) => `${entry.remaining} ${entry.rarity}`)
+        .join(" · ")}
+    >
+      {breakdown.map((entry) => (
+        <span
+          key={entry.rarity}
+          className={clsx(RARITY_BAR_COLORS[entry.rarity])}
+          style={{ width: `${(entry.remaining / total) * 100}%` }}
+        />
+      ))}
+    </span>
+  );
+};

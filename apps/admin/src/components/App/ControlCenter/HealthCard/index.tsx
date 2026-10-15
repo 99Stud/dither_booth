@@ -1,6 +1,7 @@
 import type { KioskReloadMode } from "@dither-booth/shared/kiosk";
 
 import { sleep } from "@dither-booth/shared/async";
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Accordion } from "@dither-booth/ui/components/ui/accordion";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
@@ -239,7 +240,9 @@ export const HealthCard = () => {
     <Card>
       <CardHeader>
         <CardTitle className={clsx("relative", "flex items-center gap-2")}>
-          <Activity className={clsx("size-4 text-muted-foreground")} />
+          <IconBubble tone="emerald">
+            <Activity />
+          </IconBubble>
           <h2>Health checks</h2>
           <StatusDot
             size="md"

@@ -2,6 +2,7 @@ import type { DrawOutcome, Rarity } from "@dither-booth/shared/lottery";
 import type { FC } from "react";
 
 import { capitalize } from "@dither-booth/shared/formatting";
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
@@ -70,8 +71,10 @@ export const SampleTicketsCard: FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className={clsx("flex items-center gap-2")}>
-          <Ticket className={clsx("size-4 text-muted-foreground")} />
+        <CardTitle className={clsx("flex items-center gap-2.5")}>
+          <IconBubble tone="amber">
+            <Ticket />
+          </IconBubble>
           Sample tickets
         </CardTitle>
         <CardDescription>

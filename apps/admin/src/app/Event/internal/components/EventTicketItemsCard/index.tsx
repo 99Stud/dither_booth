@@ -5,6 +5,7 @@ import {
   TICKET_ITEM_NAME_MAX_LENGTH,
   TICKET_ITEM_NAMES_MAX_COUNT,
 } from "@dither-booth/shared/ticket";
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
@@ -141,8 +142,10 @@ export const EventTicketItemsCard: FC<{
   return (
     <Card>
       <CardHeader>
-        <CardTitle className={clsx("flex items-center gap-2")}>
-          <ReceiptText className={clsx("size-4 text-muted-foreground")} />
+        <CardTitle className={clsx("flex items-center gap-2.5")}>
+          <IconBubble tone="amber">
+            <ReceiptText />
+          </IconBubble>
           Ticket items
         </CardTitle>
         <CardDescription>

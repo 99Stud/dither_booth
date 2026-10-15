@@ -49,8 +49,9 @@ export const PrintConfigurationPreviewPanel: FC<
       className={clsx(
         "relative mx-auto aspect-square w-full overflow-hidden",
         "rounded-xl bg-muted ring-1 ring-foreground/10",
-        // In landscape, the square fits the screen height under the header.
-        "lg:max-w-[calc(100dvh-9rem)]",
+        // Portrait: about half the screen, so the settings stay in reach.
+        // Landscape: the square fits the height under the header.
+        "max-w-[55dvh] lg:max-w-[calc(100dvh-9rem)]",
       )}
     >
       <div className={clsx("relative", "h-full overflow-y-auto")}>

@@ -1,5 +1,6 @@
 import type { FC } from "react";
 
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
@@ -58,8 +59,10 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
   return (
     <Card className={clsx("max-w-xl")}>
       <CardHeader>
-        <CardTitle className={clsx("flex items-center gap-2")}>
-          <Dices className={clsx("size-4 text-muted-foreground")} />
+        <CardTitle className={clsx("flex items-center gap-2.5")}>
+          <IconBubble tone="violet">
+            <Dices />
+          </IconBubble>
           Lottery settings
         </CardTitle>
       </CardHeader>

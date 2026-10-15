@@ -1,6 +1,7 @@
 import type { WebcamHandle } from "@dither-booth/ui/components/misc/Webcam";
 import type { ReactNode } from "react";
 
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import {
   Card,
   CardDescription,
@@ -217,18 +218,25 @@ export const PrintTuning = ({
           onCameraStateChange={reportUserMediaCameraStateChange}
           onConstraintFallbackError={reportUserMediaConstraintFallbackError}
         />
-        <Card className={clsx("gap-0 py-0 lg:self-start")}>
+        <Card
+          className={clsx(
+            "gap-0 py-0",
+            // Landscape: the card fills the height and scrolls inside, so
+            // Reset and Test print stay on screen.
+            "lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8.5rem)] lg:self-start",
+          )}
+        >
           <CardHeader className={clsx("border-b py-4")}>
-            <CardTitle className={clsx("flex items-center gap-2")}>
-              <SlidersHorizontal
-                className={clsx("size-4 text-muted-foreground")}
-              />
+            <CardTitle className={clsx("flex items-center gap-2.5")}>
+              <IconBubble tone="brand">
+                <SlidersHorizontal />
+              </IconBubble>
               Print settings
             </CardTitle>
             <CardDescription>Saved as you change them.</CardDescription>
           </CardHeader>
           <form
-            className={clsx("px-4 py-4")}
+            className={clsx("min-h-0 flex-1 overflow-y-auto px-4 py-4")}
             onSubmit={(e) => {
               e.preventDefault();
               void form.handleSubmit();
