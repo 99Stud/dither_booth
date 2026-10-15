@@ -27,7 +27,7 @@
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "check-types": "tsc --noEmit -p tsconfig.json",
-    "test": "bun test"
+    "test": "bun test --isolate"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",

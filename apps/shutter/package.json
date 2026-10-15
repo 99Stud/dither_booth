@@ -20,7 +20,7 @@
     "format:fix": "oxfmt",
     "check-types": "tsc --noEmit -p tsconfig.json",
     "generate-qr": "bun scripts/generate-qr.ts",
-    "test": "bun test"
+    "test": "bun test --isolate"
   },
   "dependencies": {
     "@cheprasov/qrcode": "0.1.0",

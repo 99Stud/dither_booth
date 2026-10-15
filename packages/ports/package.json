@@ -17,7 +17,7 @@
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "check-types": "tsc --noEmit -p tsconfig.json",
-    "test": "bun test"
+    "test": "bun test --isolate"
   },
   "dependencies": {
     "zod": "4.4.3"
