@@ -97,6 +97,36 @@ const snapGrayPixels = (image: GrayImage): Uint8Array => {
   return output;
 };
 
+const DLE = 0x10;
+const ESC = 0x1b;
+/** DLE EOT, DLE ENQ and DLE DC4 are real-time commands. */
+const REALTIME_COMMANDS_AFTER_DLE = new Set([0x04, 0x05, 0x14]);
+
+/**
+ * TM printers act on real-time commands (DLE EOT/ENQ/DC4) as soon as the
+ * bytes arrive, even inside image data, so a photo can trigger a status reply,
+ * a drawer pulse or a buffer clear. Epson's own macOS filter rewrites those
+ * byte pairs (and ESC =) before sending, at the cost of one extra dot each.
+ * We do the same, over `[start, end)` of `data`, in place.
+ */
+export const escapeRealtimeCommandBytes = (
+  data: Uint8Array,
+  start = 0,
+  end = data.length,
+) => {
+  for (let index = start; index < end - 1; index++) {
+    const next = data[index + 1] ?? 0;
+
+    if (data[index] === ESC && next === 0x3d) {
+      data[index] = 0x3b;
+    } else if (data[index] === DLE && REALTIME_COMMANDS_AFTER_DLE.has(next)) {
+      data[index] = 0x30;
+    }
+  }
+
+  return data;
+};
+
 export const screenshotToGsV0RasterCommand = async (
   screenshot: Uint8Array,
   options: {
@@ -140,7 +170,7 @@ export const screenshotToGsV0RasterCommand = async (
     }
   }
 
-  return command;
+  return escapeRealtimeCommandBytes(command, GS_V_0_HEADER_SIZE) as Buffer;
 };
 
 export const gsV0RasterCommandToPngBuffer = async (

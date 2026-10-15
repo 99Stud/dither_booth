@@ -3,9 +3,13 @@ import {
   type ColorScheme,
   type DitherMode,
 } from "@opendisplay/epaper-dithering";
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 
 import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
+
+import { DITHER_MODE_BLUE_NOISE } from "#domains/print-configuration/print-configuration.service";
+
+import { blueNoiseDither, buildToneLut } from "./ordered-dither";
 
 interface DitherImageOptions {
   width?: number;
@@ -30,6 +34,10 @@ export const ditherImage = async (
       width: options.width,
       withoutEnlargement: options.withoutEnlargement ?? true,
     });
+  }
+
+  if (ditherConfiguration.ditherModeCode === DITHER_MODE_BLUE_NOISE) {
+    return await blueNoiseDitherImage(image, ditherConfiguration);
   }
 
   const { data, info } = await image
@@ -75,4 +83,36 @@ export const ditherImage = async (
   return sharp(rgbaBuffer, {
     raw: { width: dithered.width, height: dithered.height, channels: 4 },
   });
+};
+
+/**
+ * Reproduces macOS printing to the TM-T20III: gray re-encoded at gamma 1.8,
+ * then thresholded against a 64x64 blue-noise mask. Saturation, shadows,
+ * highlights, serpentine and the color scheme do not apply.
+ */
+const blueNoiseDitherImage = async (
+  image: Sharp,
+  ditherConfiguration: PrintConfigRow,
+) => {
+  const { data, info } = await image
+    .flatten({ background: "#fff" })
+    .grayscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const dots = blueNoiseDither(
+    data,
+    info.width,
+    info.height,
+    buildToneLut({
+      exposure: ditherConfiguration.exposure,
+      gamma: ditherConfiguration.toneGamma,
+    }),
+  );
+
+  return sharp(dots, {
+    raw: { width: info.width, height: info.height, channels: 1 },
+  })
+    .toColourspace("srgb")
+    .ensureAlpha();
 };

@@ -7,6 +7,7 @@ import type { PrintConfigRow } from "#domains/print-configuration/print-configur
 import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
 
 import {
+  escapeRealtimeCommandBytes,
   gsV0RasterCommandToPngBuffer,
   screenshotToGsV0RasterCommand,
 } from "./gs-v0-raster.utils";
@@ -20,6 +21,7 @@ const PRINT_CONFIGURATION: PrintConfigRow = {
   saturation: 1,
   shadows: 0,
   highlights: 0,
+  toneGamma: 1.8,
   threshold: 109,
   rotation: 0,
   template: "tartines",
@@ -79,6 +81,29 @@ async function readMonoPixelsFromPng(
   return [...data];
 }
 
+/**
+ * Pixel-identical except for dots added by escapeRealtimeCommandBytes. Both of
+ * its rewrites (0x10 -> 0x30, 0x1b -> 0x3b) set bit 0x20: the third pixel of
+ * a byte, turned from paper to a dot.
+ */
+function expectIdenticalExceptEscapedDots(
+  actual: number[],
+  expected: number[],
+  width: number,
+) {
+  expect(actual).toHaveLength(expected.length);
+
+  for (let index = 0; index < expected.length; index++) {
+    if (actual[index] === expected[index]) continue;
+
+    expect({
+      x: (index % width) % 8,
+      from: expected[index],
+      to: actual[index],
+    }).toEqual({ x: 2, from: 255, to: 0 });
+  }
+}
+
 describe("screenshotToGsV0RasterCommand", () => {
   test("packs an all-white 8px-wide image as an empty raster byte", async () => {
     const screenshot = await createPngFromMonoPixels({
@@ -118,7 +143,7 @@ describe("screenshotToGsV0RasterCommand", () => {
     ]);
   });
 
-  test("keeps a print-width dithered photo pixel-identical", async () => {
+  test("keeps a print-width dithered photo pixel-identical apart from escaped bytes", async () => {
     const ramp = await createGrayRampPng(PRINT_WIDTH_PX, 32);
     const dithered = await ditherImage(ramp, PRINT_CONFIGURATION, {
       width: PRINT_WIDTH_PX,
@@ -133,12 +158,14 @@ describe("screenshotToGsV0RasterCommand", () => {
     });
     const png = await gsV0RasterCommandToPngBuffer(command);
 
-    expect(await readMonoPixelsFromPng(png, PRINT_WIDTH_PX, 32)).toEqual(
+    expectIdenticalExceptEscapedDots(
+      await readMonoPixelsFromPng(png, PRINT_WIDTH_PX, 32),
       await readMonoPixelsFromPng(ditheredPng, PRINT_WIDTH_PX, 32),
+      PRINT_WIDTH_PX,
     );
   });
 
-  test("keeps a dithered photo pixel-identical when downscaling a 2x screenshot", async () => {
+  test("keeps a dithered photo pixel-identical when downscaling a 2x screenshot apart from escaped bytes", async () => {
     const ramp = await createGrayRampPng(PRINT_WIDTH_PX, 32);
     const dithered = await ditherImage(ramp, PRINT_CONFIGURATION, {
       width: PRINT_WIDTH_PX,
@@ -157,8 +184,10 @@ describe("screenshotToGsV0RasterCommand", () => {
     });
     const png = await gsV0RasterCommandToPngBuffer(command);
 
-    expect(await readMonoPixelsFromPng(png, PRINT_WIDTH_PX, 32)).toEqual(
+    expectIdenticalExceptEscapedDots(
+      await readMonoPixelsFromPng(png, PRINT_WIDTH_PX, 32),
       await readMonoPixelsFromPng(ditheredPng, PRINT_WIDTH_PX, 32),
+      PRINT_WIDTH_PX,
     );
   });
 
@@ -202,6 +231,61 @@ describe("screenshotToGsV0RasterCommand", () => {
     expect(command.subarray(0, 8).toJSON().data).toEqual([
       0x1d, 0x76, 0x30, 0x00, 2, 0, 2, 0,
     ]);
+  });
+});
+
+describe("escapeRealtimeCommandBytes", () => {
+  test.each([
+    ["DLE EOT", [0x10, 0x04], [0x30, 0x04]],
+    ["DLE ENQ", [0x10, 0x05], [0x30, 0x05]],
+    ["DLE DC4", [0x10, 0x14], [0x30, 0x14]],
+    ["ESC =", [0x1b, 0x3d], [0x3b, 0x3d]],
+  ])("defuses %s by adding one dot", (_, input, expected) => {
+    expect([...escapeRealtimeCommandBytes(Uint8Array.from(input))]).toEqual(
+      expected,
+    );
+  });
+
+  test("leaves other DLE and ESC pairs alone", () => {
+    const bytes = [0x10, 0x06, 0x10, 0x15, 0x1b, 0x40, 0x10];
+
+    expect([...escapeRealtimeCommandBytes(Uint8Array.from(bytes))]).toEqual(
+      bytes,
+    );
+  });
+
+  test("catches a pair that spans two raster rows", () => {
+    const command = Uint8Array.from([
+      0x1d, 0x76, 0x30, 0x00, 1, 0, 2, 0, 0x10, 0x04,
+    ]);
+
+    escapeRealtimeCommandBytes(command, 8);
+
+    expect([...command.subarray(8)]).toEqual([0x30, 0x04]);
+  });
+
+  test("never rewrites bytes before the start offset", () => {
+    const command = Uint8Array.from([0x10, 0x04, 0x10, 0x04]);
+
+    expect([...escapeRealtimeCommandBytes(command, 2)]).toEqual([
+      0x10, 0x04, 0x30, 0x04,
+    ]);
+  });
+
+  test("is applied to rasters built from screenshots", async () => {
+    const screenshot = await createPngFromMonoPixels({
+      height: 2,
+      // Row 1 packs to 0x10, row 2 to 0x04: DLE EOT across the row break.
+      pixels: [
+        255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255,
+        255,
+      ],
+      width: 8,
+    });
+
+    const command = await screenshotToGsV0RasterCommand(screenshot);
+
+    expect([...command.subarray(8)]).toEqual([0x30, 0x04]);
   });
 });
 
