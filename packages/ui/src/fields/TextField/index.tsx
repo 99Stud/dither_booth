@@ -47,6 +47,8 @@ type TextFieldProps<
   >;
   name: TName;
   label: string;
+  /** Keep the label for screen readers only (e.g. repeated list rows). */
+  hideLabel?: boolean;
 } & Omit<
   ComponentProps<typeof Input>,
   "id" | "name" | "value" | "onChange" | "form" | "type"
@@ -83,7 +85,7 @@ export const TextField = <
     TSubmitMeta
   >,
 ) => {
-  const { className, form, name, label, ...inputProps } = props;
+  const { className, form, name, label, hideLabel, ...inputProps } = props;
 
   return (
     <form.Field
@@ -99,7 +101,12 @@ export const TextField = <
             className={className}
           >
             <FieldContent>
-              <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+              <FieldLabel
+                className={hideLabel ? "sr-only" : undefined}
+                htmlFor={field.name}
+              >
+                {label}
+              </FieldLabel>
               {isInvalid && <FieldError errors={field.state.meta.errors} />}
             </FieldContent>
             <Input

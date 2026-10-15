@@ -1,0 +1,126 @@
+/*
+ * The SaaS theme shared by admin and the Shutter's Darkroom.
+ *
+ * Inspired by Vercel's Geist and Linear: zinc neutrals, a single brand
+ * accent (the cyan of the kiosk's fluid shader), quiet borders, Geist type.
+ * Every rule is scoped to `html.saas` so the kiosk and the printed receipts,
+ * which share the Shutter's stylesheet, keep their own look. `html.saas.dark`
+ * is the dark variant (the class next-themes or the Darkroom toggles).
+ *
+ * The fonts are bundled woff2 files, so they work on a booth with no network.
+ */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+html.saas {
+  --font-sans:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:
+    "Geist Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-heading: var(--font-sans);
+  --radius: 0.625rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+  --primary: oklch(0.21 0.006 285.885);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.715 0.143 215.221);
+
+  --brand: oklch(0.715 0.143 215.221);
+  --brand-foreground: oklch(0.985 0 0);
+  --success: oklch(0.627 0.194 149.214);
+  --warning: oklch(0.769 0.188 70.08);
+
+  --chart-1: oklch(0.715 0.143 215.221);
+  --chart-2: oklch(0.609 0.126 221.723);
+  --chart-3: oklch(0.52 0.105 223.128);
+  --chart-4: oklch(0.45 0.085 224.283);
+  --chart-5: oklch(0.398 0.07 227.392);
+
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.21 0.006 285.885);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.715 0.143 215.221);
+
+  color-scheme: light;
+}
+
+html.saas.dark {
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.178 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.178 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.92 0.004 286.32);
+  --primary-foreground: oklch(0.21 0.006 285.885);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.789 0.154 211.53);
+
+  --brand: oklch(0.789 0.154 211.53);
+  --brand-foreground: oklch(0.21 0.006 285.885);
+  --success: oklch(0.723 0.219 149.579);
+  --warning: oklch(0.828 0.189 84.429);
+
+  --chart-1: oklch(0.789 0.154 211.53);
+  --chart-2: oklch(0.715 0.143 215.221);
+  --chart-3: oklch(0.609 0.126 221.723);
+  --chart-4: oklch(0.52 0.105 223.128);
+  --chart-5: oklch(0.45 0.085 224.283);
+
+  --sidebar: oklch(0.162 0.006 285.885);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.789 0.154 211.53);
+  --sidebar-primary-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.789 0.154 211.53);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+}
+
+@layer base {
+  html.saas {
+    font-feature-settings: "ss01", "cv11";
+    -webkit-tap-highlight-color: transparent;
+  }
+  html.saas body {
+    @apply bg-background text-foreground;
+  }
+  html.saas :is(h1, h2, h3) {
+    letter-spacing: -0.015em;
+  }
+}
