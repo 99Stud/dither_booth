@@ -75,7 +75,7 @@ bun run --filter @dither-booth/engine db:seed:lottery
 
 See the [engine README](apps/engine/README.md) for details about the database management.
 
-If `RECEIPT_TEMPLATES` changes in `packages/shared/src/isomorphic/routes.ts`, regenerate and apply the engine DB migration so the `print_config.template` check constraint stays in sync. See the [engine README](apps/engine/README.md#receipt-template-migrations) for the exact workflow.
+Each event picks its receipt kit (`campaign.kit_id`). Adding a kit to `KIT_IDS` in `packages/shared/src/isomorphic/kits.ts` needs no DB migration. See the [engine README](apps/engine/README.md#kits).
 
 ### 3. Install mkcert
 
