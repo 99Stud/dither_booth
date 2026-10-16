@@ -11,6 +11,7 @@
   "exports": {
     "./async": "./src/isomorphic/async.ts",
     "./browser/blob": "./src/browser/blob.ts",
+    "./browser/camera-preview": "./src/browser/camera-preview.ts",
     "./browser/image": "./src/browser/image.ts",
     "./browser/receipt-viewer": "./src/browser/receipt-viewer.ts",
     "./browser/storage": "./src/browser/storage.ts",
