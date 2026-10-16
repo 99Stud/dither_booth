@@ -26,10 +26,7 @@ export const EventEmptyState: FC<EventEmptyStateProps> = (props) => {
           <Ticket />
         </EmptyMedia>
         <EmptyTitle>No event yet</EmptyTitle>
-        <EmptyDescription>
-          Create the booth event to pick its ticket kit and set up its lottery
-          and prizes. One event is active at a time.
-        </EmptyDescription>
+        <EmptyDescription>One event runs at a time.</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <Button onClick={onCreateClick}>

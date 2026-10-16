@@ -6,7 +6,6 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -25,7 +24,7 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 
 /**
  * Sets the PIN staff type to open the Darkroom (print tuning) on the booth
- * iPad. Until one is set, the Darkroom stays locked.
+ * screen. Until one is set, the Darkroom stays locked.
  */
 export const DarkroomPinCard = () => {
   const trpc = useTRPC();
@@ -69,38 +68,42 @@ export const DarkroomPinCard = () => {
           </IconBubble>
           <h2>Darkroom PIN</h2>
         </CardTitle>
-        <CardDescription>
-          {pinStatus === undefined
-            ? "Checking…"
-            : pinStatus.isSet && pinStatus.updatedAt
-              ? `Changed ${format(new Date(pinStatus.updatedAt), "MMM d, HH:mm")}. Tap the booth's top-left logo 4 times to open the Darkroom.`
-              : "No PIN yet: the Darkroom stays locked."}
-        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form className={clsx("flex gap-2")} onSubmit={submit}>
-          <Input
-            aria-label="New Darkroom PIN"
-            autoComplete="off"
-            enterKeyHint="done"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={8}
-            placeholder="4 to 8 digits"
-            type="password"
-            value={pin}
-            onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))}
-          />
-          <Button type="submit" disabled={!isPinValid || isPending}>
-            {isPending ? (
-              <Spinner className="size-4" />
-            ) : (
-              <>
-                <LockKeyhole data-icon="inline-start" />
-                {pinStatus?.isSet ? "Change PIN" : "Set PIN"}
-              </>
-            )}
-          </Button>
+        <form className={clsx("flex flex-col gap-2")} onSubmit={submit}>
+          <div className={clsx("flex gap-2")}>
+            <Input
+              aria-label="New Darkroom PIN"
+              autoComplete="off"
+              enterKeyHint="done"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={8}
+              placeholder="4 to 8 digits"
+              type="password"
+              value={pin}
+              onChange={(event) =>
+                setPin(event.target.value.replace(/\D/g, ""))
+              }
+            />
+            <Button type="submit" disabled={!isPinValid || isPending}>
+              {isPending ? (
+                <Spinner className="size-4" />
+              ) : (
+                <>
+                  <LockKeyhole data-icon="inline-start" />
+                  {pinStatus?.isSet ? "Change PIN" : "Set PIN"}
+                </>
+              )}
+            </Button>
+          </div>
+          <p className={clsx("text-sm text-muted-foreground")}>
+            {pinStatus === undefined
+              ? "Checking…"
+              : pinStatus.isSet && pinStatus.updatedAt
+                ? `Changed ${format(new Date(pinStatus.updatedAt), "MMM d, HH:mm")}.`
+                : "No PIN yet: the Darkroom stays locked."}
+          </p>
         </form>
       </CardContent>
     </Card>

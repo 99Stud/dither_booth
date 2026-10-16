@@ -4,7 +4,6 @@ import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -68,7 +67,6 @@ export const LotteryForecastCard: FC<{
           </IconBubble>
           Will the prizes last?
         </CardTitle>
-        <CardDescription>An estimate, not a promise.</CardDescription>
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-4")}>
         <label

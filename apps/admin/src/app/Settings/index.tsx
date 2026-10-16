@@ -8,7 +8,7 @@ import {
   AppSidebarPageHeader,
 } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 
-/** The admin's settings: this device's look, and the booth's access. */
+/** What's set once: the Darkroom PIN, and this device's look. */
 export const Settings = () => {
   return (
     <>
@@ -16,8 +16,8 @@ export const Settings = () => {
       <AppPageBody>
         <AppPageHeading title="Settings" />
         <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
-          <AppearanceCard />
           <DarkroomPinCard />
+          <AppearanceCard />
         </div>
       </AppPageBody>
     </>

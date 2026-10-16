@@ -42,7 +42,12 @@ const GROUPS = {
     "updatePrize",
     "updateTicketItems",
   ],
-  ops: ["getHealthz", "reloadKiosk", "restartPuppeteerReceiptViewer"],
+  ops: [
+    "getHealthz",
+    "reloadKiosk",
+    "restartPuppeteerReceiptViewer",
+    "showKioskScreen",
+  ],
 } as const;
 
 /**

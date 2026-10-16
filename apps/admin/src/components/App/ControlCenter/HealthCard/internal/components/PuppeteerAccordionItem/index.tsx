@@ -237,13 +237,9 @@ export const PuppeteerAccordionItem: FC<PuppeteerAccordionItemProps> = ({
             />
             <AlertDialogContent size="sm">
               <AlertDialogHeader>
-                <AlertDialogTitle>
-                  Do you really want to re-initialize Puppeteer?
-                </AlertDialogTitle>
+                <AlertDialogTitle>Restart Puppeteer?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Re-initializing Puppeteer will terminate the current browser
-                  and launch a fresh receipt viewer. In-progress receipt
-                  generation may fail.
+                  A receipt printing right now may fail.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

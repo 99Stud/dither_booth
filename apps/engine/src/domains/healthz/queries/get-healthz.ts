@@ -1,3 +1,5 @@
+import type { KioskScreen } from "@dither-booth/shared/kiosk";
+
 import { getShutterOrigin, getWebTlsCaPath } from "@dither-booth/ports";
 import {
   ENGINE_HEALTHZ_SERVICE,
@@ -30,7 +32,12 @@ type GetHealthzResponse = {
     healthz: ShutterHealthz;
     kiosk: {
       /** Kiosk pages subscribed to the kiosk channel right now. */
-      pages: Array<{ pageId: string; deviceId: string; connectedAt: string }>;
+      pages: Array<{
+        pageId: string;
+        deviceId: string;
+        screen: KioskScreen;
+        connectedAt: string;
+      }>;
     };
   };
   engine: {
@@ -91,6 +98,7 @@ export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
         pages: ctx.kioskChannel.listPages().map((page) => ({
           pageId: page.pageId,
           deviceId: page.deviceId,
+          screen: page.screen,
           connectedAt: page.connectedAt.toISOString(),
         })),
       },

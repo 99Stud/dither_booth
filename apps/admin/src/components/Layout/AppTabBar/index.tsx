@@ -2,19 +2,17 @@ import type { FC, ReactNode } from "react";
 
 import { Link, useLocation } from "@tanstack/react-router";
 import clsx from "clsx";
-import { SlidersHorizontal } from "lucide-react";
 
 import {
   APP_SETTINGS_LINK,
   APP_SIDEBAR_MENU_LINKS,
 } from "#components/Layout/AppSidebar/internal/AppSidebar.constants";
-import { useDarkroomHref } from "#lib/darkroom/useDarkroomHref";
 
 const TAB_CLASS_NAME = clsx(
   "flex h-14 flex-col items-center justify-center gap-0.5 rounded-full",
   "text-[0.625rem] font-semibold text-foreground/80",
   "transition-[background-color,color,scale] duration-200",
-  "active:scale-95 aria-disabled:opacity-40 [&_svg]:size-6",
+  "active:scale-95 [&_svg]:size-6",
   // The selected tab sits in a lens of its own, tinted with the accent.
   "aria-[current=page]:bg-foreground/[0.07] aria-[current=page]:text-primary",
   "dark:aria-[current=page]:bg-white/10",
@@ -35,7 +33,6 @@ const TabLabel: FC<{ icon: ReactNode; label: string }> = ({ icon, label }) => (
  */
 export const AppTabBar: FC = () => {
   const pathname = useLocation({ select: (location) => location.pathname });
-  const darkroomHref = useDarkroomHref();
 
   return (
     <nav
@@ -51,7 +48,7 @@ export const AppTabBar: FC = () => {
     >
       <ul
         className={clsx(
-          "pointer-events-auto mx-auto grid max-w-md grid-cols-4 glass",
+          "pointer-events-auto mx-auto grid max-w-md grid-cols-3 glass",
           "rounded-full p-1",
         )}
       >
@@ -66,17 +63,6 @@ export const AppTabBar: FC = () => {
             </Link>
           </li>
         ))}
-        <li>
-          <a
-            href={darkroomHref}
-            aria-disabled={!darkroomHref}
-            rel="noreferrer"
-            target="_blank"
-            className={TAB_CLASS_NAME}
-          >
-            <TabLabel icon={<SlidersHorizontal />} label="Darkroom" />
-          </a>
-        </li>
         <li>
           <Link
             to={APP_SETTINGS_LINK.path}
