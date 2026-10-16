@@ -184,7 +184,7 @@ export const HealthCard = () => {
     }
 
     if (reloadResult.delivered === 0) {
-      notify.warning("No kiosk page is connected.");
+      notify.warning("The booth iPad is offline.");
       return;
     }
 

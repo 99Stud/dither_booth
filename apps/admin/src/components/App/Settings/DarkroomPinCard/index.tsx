@@ -10,12 +10,11 @@ import {
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
 import { Input } from "@dither-booth/ui/components/ui/input";
-import { Label } from "@dither-booth/ui/components/ui/label";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { LockKeyhole, SlidersHorizontal } from "lucide-react";
+import { KeyRound, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 
 import { SETTINGS_LOG_SOURCE } from "#app/Settings/internal/Settings.constants";
@@ -23,14 +22,11 @@ import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
-import { KioskScreenToggle } from "./internal/components/KioskScreenToggle";
-
 /**
- * The Darkroom (print tuning on the booth iPad), from one place: which
- * screen the kiosk shows, to open the Darkroom on it and send it back, and
- * the PIN staff type there. Until a PIN is set, the Darkroom stays locked.
+ * Sets the PIN staff type to open the Darkroom (print tuning) on the booth
+ * iPad. Until one is set, the Darkroom stays locked.
  */
-export const DarkroomCard = () => {
+export const DarkroomPinCard = () => {
   const trpc = useTRPC();
   const [pin, setPin] = useState("");
   const pinStatusQuery = useQuery(
@@ -68,18 +64,16 @@ export const DarkroomCard = () => {
       <CardHeader>
         <CardTitle className={clsx("flex items-center gap-2.5")}>
           <IconBubble tone="violet">
-            <SlidersHorizontal />
+            <KeyRound />
           </IconBubble>
-          <h2>Darkroom</h2>
+          <h2>Darkroom PIN</h2>
         </CardTitle>
       </CardHeader>
-      <CardContent className={clsx("flex flex-col gap-5")}>
-        <KioskScreenToggle isPinSet={pinStatus?.isSet ?? false} />
+      <CardContent>
         <form className={clsx("flex flex-col gap-2")} onSubmit={submit}>
-          <Label htmlFor="darkroom-pin">PIN</Label>
           <div className={clsx("flex gap-2")}>
             <Input
-              id="darkroom-pin"
+              aria-label="New Darkroom PIN"
               autoComplete="off"
               enterKeyHint="done"
               inputMode="numeric"

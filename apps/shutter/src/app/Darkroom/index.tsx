@@ -38,7 +38,7 @@ const DarkroomWorkspace = () => {
 
 /**
  * Print tuning on the booth iPad, behind the Darkroom PIN. Opened with a
- * 4 quick taps on the landing screen's top-left logo, from admin's Settings,
+ * 4 quick taps on the landing screen's top-left logo, from admin's Control Center,
  * or at /darkroom. Admin can send it back to the Shutter from there too.
  */
 export const Darkroom = () => {
