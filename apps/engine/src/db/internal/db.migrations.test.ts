@@ -417,6 +417,20 @@ describe("runSqliteMigrations", () => {
     ).toThrow(/CHECK constraint failed/);
   });
 
+  test("0017 keeps a single maintenance row, off by default", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
+
+    sqlite.run("INSERT INTO kiosk_maintenance DEFAULT VALUES");
+
+    expect(
+      sqlite.query("SELECT id, enabled FROM kiosk_maintenance").all(),
+    ).toEqual([{ id: 1, enabled: 0 }]);
+    expect(() =>
+      sqlite.run("INSERT INTO kiosk_maintenance (id, enabled) VALUES (2, 1)"),
+    ).toThrow(/CHECK constraint failed/);
+  });
+
   test("leaves the stock triggers and prize checks in place", () => {
     const { sqlite, db } = openDb({ foreignKeys: true });
     runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });

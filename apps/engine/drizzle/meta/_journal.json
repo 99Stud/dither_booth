@@ -120,6 +120,13 @@
       "when": 1792078747842,
       "tag": "0016_darkroom_pin",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1792145035802,
+      "tag": "0017_kiosk_maintenance",
+      "breakpoints": true
     }
   ]
 }

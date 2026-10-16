@@ -59,7 +59,7 @@ export const useExperienceFlow = () => {
   const captureFlashId = useCaptureFlash(activePrintAttemptId);
 
   useExperienceShellClass();
-  useKioskCommands(phase);
+  const isMaintenance = useKioskCommands(phase);
   useWebcamPrewarm({ phase, webcamRef });
   usePrintAttempt({
     activePrintAttemptId,
@@ -180,13 +180,17 @@ export const useExperienceFlow = () => {
     handleStartExperience,
     isCameraVisible: hasPhaseFlag(phase, "cameraVisible"),
     isFrozenPhotoVisible: hasPhaseFlag(phase, "frozenPhoto"),
-    isIntroDecorationsVisible: hasPhaseFlag(phase, "introDecorations"),
+    isIntroDecorationsVisible:
+      hasPhaseFlag(phase, "introDecorations") && !isMaintenance,
+    isMaintenance,
     isPostPrintVisible: hasPhaseFlag(phase, "postPrint"),
     isPromptVisible: hasPhaseFlag(phase, "promptVisible"),
     isSlotVisible: hasPhaseFlag(phase, "slotVisible"),
     isStartButtonAtOrigin: hasPhaseFlag(phase, "startButtonAtOrigin"),
-    isStartButtonVisible: hasPhaseFlag(phase, "startButtonVisible"),
-    isStartDisabled: !hasPhaseFlag(phase, "startEnabled"),
+    // Maintenance hides the start button and refuses a visit.
+    isStartButtonVisible:
+      hasPhaseFlag(phase, "startButtonVisible") && !isMaintenance,
+    isStartDisabled: !hasPhaseFlag(phase, "startEnabled") || isMaintenance,
     lotteryStatus,
     phase,
     photoUrl,

@@ -3,7 +3,10 @@ import type { Page } from "puppeteer";
 
 import type { DB } from "#db/internal/db.types";
 import type { DarkroomAccess } from "#domains/darkroom/darkroom.service";
-import type { KioskChannel } from "#domains/kiosk/kiosk.service";
+import type {
+  KioskChannel,
+  KioskMaintenance,
+} from "#domains/kiosk/kiosk.service";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 import type {
   PuppeteerReceiptViewerLifecycle,
@@ -20,6 +23,8 @@ export type TRPCContext = {
   darkroomToken?: string;
   /** Push channel to the connected kiosk pages, one per engine process. */
   kioskChannel: KioskChannel;
+  /** Whether the booth is in maintenance, kept in SQLite. */
+  kioskMaintenance: KioskMaintenance;
   mode: "development" | "production";
   requestOrigin?: string;
   processManager: RuntimeProcessManager;

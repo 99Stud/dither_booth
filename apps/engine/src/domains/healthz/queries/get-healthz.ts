@@ -22,6 +22,7 @@ import {
   type PuppeteerHealthz,
 } from "#domains/healthz/internal/healthz.puppeteer";
 import { fetchShutterHealthz } from "#domains/healthz/internal/healthz.utils";
+import { serializeKioskMaintenance } from "#domains/kiosk/kiosk.service";
 import { darkroomProcedure } from "#internal/trpc";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
 
@@ -31,6 +32,8 @@ type GetHealthzResponse = {
     origin: string;
     healthz: ShutterHealthz;
     kiosk: {
+      /** The saved maintenance switch; pages show it once a visit ends. */
+      maintenance: { enabled: boolean; updatedAt: string | null };
       /** Kiosk pages subscribed to the kiosk channel right now. */
       pages: Array<{
         pageId: string;
@@ -38,6 +41,8 @@ type GetHealthzResponse = {
         screen: KioskScreen;
         /** The page's camera as it last reported it; null while it runs none. */
         camera: KioskCamera | null;
+        /** Whether the page shows the maintenance screen right now. */
+        maintenance: boolean;
         connectedAt: string;
         reportedAt: string | null;
       }>;
@@ -98,11 +103,13 @@ export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
       origin: shutterOrigin,
       healthz: shutterHealthz,
       kiosk: {
+        maintenance: serializeKioskMaintenance(ctx.kioskMaintenance.get()),
         pages: ctx.kioskChannel.listPages().map((page) => ({
           pageId: page.pageId,
           deviceId: page.deviceId,
           screen: page.screen,
           camera: page.camera,
+          maintenance: page.maintenance,
           connectedAt: page.connectedAt.toISOString(),
           reportedAt: page.reportedAt?.toISOString() ?? null,
         })),

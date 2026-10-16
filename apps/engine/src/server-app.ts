@@ -20,7 +20,10 @@ import http from "node:http";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createDarkroomAccess } from "#domains/darkroom/darkroom.service";
-import { createKioskChannel } from "#domains/kiosk/kiosk.service";
+import {
+  createKioskChannel,
+  createKioskMaintenance,
+} from "#domains/kiosk/kiosk.service";
 import { engineRouter } from "#internal/router";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
@@ -121,6 +124,7 @@ export async function runEngineServer(options: {
   });
   const processManager = getRuntimeProcessManager();
   const kioskChannel = createKioskChannel();
+  const kioskMaintenance = createKioskMaintenance({ db });
   const darkroomAccess = createDarkroomAccess({ db });
 
   const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
@@ -137,6 +141,7 @@ export async function runEngineServer(options: {
       darkroomToken:
         typeof darkroomToken === "string" ? darkroomToken : undefined,
       kioskChannel,
+      kioskMaintenance,
       mode: options.mode,
       processManager,
       puppeteerLifecycle,

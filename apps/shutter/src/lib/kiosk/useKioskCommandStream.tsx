@@ -16,12 +16,14 @@ const STATUS_REPORT_ATTEMPTS = 5;
 
 /**
  * Subscribes this page to the kiosk channel as `screen`, hands each operator
- * command to `onCommand`, and reports the page's camera to the engine for
- * admin's health checks. Only the Experience and the Darkroom call it, so
- * the receipt-viewer page Puppeteer prints from never subscribes.
+ * command to `onCommand`, and reports the page's camera and whether it shows
+ * the maintenance screen to the engine for admin's health checks. Only the
+ * Experience and the Darkroom call it, so the receipt-viewer page Puppeteer
+ * prints from never subscribes.
  */
 export const useKioskCommandStream = (
   screen: KioskScreen,
+  isMaintenanceShown: boolean,
   onCommand: (command: KioskCommand) => void,
 ) => {
   const trpc = useTRPC();
@@ -44,7 +46,7 @@ export const useKioskCommandStream = (
   );
   const isConnected = status === "pending";
 
-  // Sent on every camera change and on every (re)connection: the engine
+  // Sent on every status change and on every (re)connection: the engine
   // forgets a page's report when its stream ends.
   useEffect(() => {
     if (!isConnected) return;
@@ -56,6 +58,7 @@ export const useKioskCommandStream = (
       const result = await reportKioskStatus({
         pageId: page.pageId,
         camera,
+        maintenance: isMaintenanceShown,
       }).catch(() => undefined);
 
       // The stream can be up here before the engine has listed the page.
@@ -73,5 +76,5 @@ export const useKioskCommandStream = (
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [camera, isConnected, page.pageId, reportKioskStatus]);
+  }, [camera, isConnected, isMaintenanceShown, page.pageId, reportKioskStatus]);
 };

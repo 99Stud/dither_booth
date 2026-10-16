@@ -27,6 +27,7 @@ function createTestCaller(
     db: {} as TRPCContext["db"],
     darkroomAccess: createDarkroomAccessStub(),
     kioskChannel: createKioskChannel(),
+    kioskMaintenance: {} as TRPCContext["kioskMaintenance"],
     mode: "production",
     page: undefined,
     printerUSBAdapter: undefined,

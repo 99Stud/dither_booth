@@ -17,7 +17,7 @@ export const useDarkroomKioskCommands = () => {
   const navigate = useNavigate();
   const { lock } = useLockDarkroom();
 
-  useKioskCommandStream("darkroom", (command) => {
+  useKioskCommandStream("darkroom", false, (command) => {
     logKioskEvent("info", DARKROOM_LOG_SOURCE, "darkroom-kiosk-command", {
       details: { commandId: command.commandId, type: command.type },
     });
@@ -27,7 +27,9 @@ export const useDarkroomKioskCommands = () => {
       return;
     }
 
-    if (command.screen !== "shutter") return;
+    // Maintenance only locks the photo booth: the Darkroom is how staff fix
+    // what it is for. Going back to `/` picks it up from the stream.
+    if (command.type !== "navigate" || command.screen !== "shutter") return;
 
     void (async () => {
       if (getDarkroomToken()) await lock();

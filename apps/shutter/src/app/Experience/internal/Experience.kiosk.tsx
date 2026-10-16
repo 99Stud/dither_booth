@@ -17,7 +17,8 @@ export type PendingKioskCommand = {
 
 /**
  * The Experience's action for a command, or undefined when it has nothing to
- * do (it already is the Shutter). Opening the Darkroom always waits for the
+ * do (it already is the Shutter, or the command is maintenance, which is
+ * state and goes through `isMaintenanceShown`). Opening the Darkroom always waits for the
  * landing screen: it would cut a guest's visit off just like a reload.
  */
 export const toPendingKioskCommand = (
@@ -33,7 +34,7 @@ export const toPendingKioskCommand = (
     };
   }
 
-  if (command.screen === "darkroom") {
+  if (command.type === "navigate" && command.screen === "darkroom") {
     return {
       commandId: command.commandId,
       action: "open-darkroom",
@@ -62,4 +63,40 @@ export const getKioskCommandTiming = ({
   if (mode === "now" || phase === "idle") return "run";
 
   return now - requestedAt >= KIOSK_RELOAD_IDLE_TIMEOUT_MS ? "run" : "wait";
+};
+
+/** The maintenance switch as the page last heard it. */
+export type KioskMaintenance = {
+  enabled: boolean;
+  /** `Date.now()` when it was switched on, or heard on (re)connecting. */
+  requestedAt: number;
+};
+
+/**
+ * Whether the maintenance screen shows. Switching on waits for the landing
+ * screen like any `when-idle` command, then stays on until switched off;
+ * switching off hides it straight away.
+ */
+export const isMaintenanceShown = ({
+  isShown,
+  maintenance,
+  now,
+  phase,
+}: {
+  isShown: boolean;
+  maintenance: KioskMaintenance | undefined;
+  now: number;
+  phase: ExperiencePhase;
+}): boolean => {
+  if (!maintenance?.enabled) return false;
+  if (isShown) return true;
+
+  return (
+    getKioskCommandTiming({
+      mode: "when-idle",
+      now,
+      phase,
+      requestedAt: maintenance.requestedAt,
+    }) === "run"
+  );
 };
