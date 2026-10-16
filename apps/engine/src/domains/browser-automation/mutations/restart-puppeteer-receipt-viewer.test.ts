@@ -28,6 +28,7 @@ function createTestCaller(
     darkroomAccess: createDarkroomAccessStub(),
     kioskChannel: createKioskChannel(),
     kioskMaintenance: {} as TRPCContext["kioskMaintenance"],
+    cameraPreview: {} as TRPCContext["cameraPreview"],
     mode: "production",
     page: undefined,
     printerUSBAdapter: undefined,

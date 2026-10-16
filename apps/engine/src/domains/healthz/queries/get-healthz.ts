@@ -32,6 +32,8 @@ type GetHealthzResponse = {
     origin: string;
     healthz: ShutterHealthz;
     kiosk: {
+      /** Live views of the booth camera open right now. */
+      cameraViewers: number;
       /** The saved maintenance switch; pages show it once a visit ends. */
       maintenance: { enabled: boolean; updatedAt: string | null };
       /** Kiosk pages subscribed to the kiosk channel right now. */
@@ -103,6 +105,7 @@ export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
       origin: shutterOrigin,
       healthz: shutterHealthz,
       kiosk: {
+        cameraViewers: ctx.cameraPreview.countViewers(),
         maintenance: serializeKioskMaintenance(ctx.kioskMaintenance.get()),
         pages: ctx.kioskChannel.listPages().map((page) => ({
           pageId: page.pageId,

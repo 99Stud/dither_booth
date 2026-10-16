@@ -21,6 +21,10 @@ import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createDarkroomAccess } from "#domains/darkroom/darkroom.service";
 import {
+  CAMERA_PREVIEW_ICE_SERVERS,
+  CAMERA_PREVIEW_MAX_DURATION_MS,
+  CAMERA_PREVIEW_MAX_VIEWERS,
+  createCameraPreview,
   createKioskChannel,
   createKioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
@@ -125,6 +129,12 @@ export async function runEngineServer(options: {
   const processManager = getRuntimeProcessManager();
   const kioskChannel = createKioskChannel();
   const kioskMaintenance = createKioskMaintenance({ db });
+  const cameraPreview = createCameraPreview({
+    kioskChannel,
+    iceServers: CAMERA_PREVIEW_ICE_SERVERS,
+    maxViewers: CAMERA_PREVIEW_MAX_VIEWERS,
+    maxDurationMs: CAMERA_PREVIEW_MAX_DURATION_MS,
+  });
   const darkroomAccess = createDarkroomAccess({ db });
 
   const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
@@ -142,6 +152,7 @@ export async function runEngineServer(options: {
         typeof darkroomToken === "string" ? darkroomToken : undefined,
       kioskChannel,
       kioskMaintenance,
+      cameraPreview,
       mode: options.mode,
       processManager,
       puppeteerLifecycle,

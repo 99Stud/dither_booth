@@ -4,6 +4,15 @@ export {
   type KioskPageConnection,
 } from "./internal/kiosk.channel";
 export {
+  type CameraPreview,
+  createCameraPreview,
+} from "./internal/kiosk.camera-preview";
+export {
+  CAMERA_PREVIEW_ICE_SERVERS,
+  CAMERA_PREVIEW_MAX_DURATION_MS,
+  CAMERA_PREVIEW_MAX_VIEWERS,
+} from "./internal/kiosk.constants";
+export {
   createKioskMaintenance,
   type KioskMaintenance,
   serializeKioskMaintenance,

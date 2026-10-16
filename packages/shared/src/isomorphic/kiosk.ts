@@ -1,5 +1,10 @@
 import z from "zod";
 
+import {
+  cameraPreviewSessionIdSchema,
+  cameraSignalSchema,
+} from "./camera-preview";
+
 /**
  * How a kiosk page reloads: `when-idle` waits for the landing screen so a
  * guest's visit is never cut off, `now` reloads straight away.
@@ -39,6 +44,17 @@ export const KIOSK_COMMAND_SCHEMA = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("maintenance"),
     enabled: z.boolean(),
+    commandId: z.string().min(1),
+  }),
+  /**
+   * A live view signal for one page: every page gets the broadcast, only
+   * the one with `pageId` acts on it.
+   */
+  z.object({
+    type: z.literal("camera"),
+    pageId: z.string().trim().min(1).max(64),
+    sessionId: cameraPreviewSessionIdSchema,
+    signal: cameraSignalSchema,
     commandId: z.string().min(1),
   }),
 ]);

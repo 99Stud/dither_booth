@@ -9,6 +9,10 @@ import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.te
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
+import {
+  type CameraPreview,
+  createCameraPreview,
+} from "./kiosk.camera-preview";
 import { createKioskChannel, type KioskChannel } from "./kiosk.channel";
 import { createKioskMaintenance } from "./kiosk.maintenance";
 
@@ -126,6 +130,20 @@ describe("createKioskChannel", () => {
     expect((await stream.next()).value).toEqual(RELOAD);
   });
 
+  test("reports a page once when it disconnects", () => {
+    const channel = createKioskChannel();
+    const left: string[] = [];
+    const stop = channel.onPageLeft((pageId) => left.push(pageId));
+    const controller = new AbortController();
+    channel.subscribe(page("a"), controller.signal);
+
+    controller.abort();
+    stop();
+    channel.subscribe(page("b"), AbortSignal.timeout(0));
+
+    expect(left).toEqual(["a"]);
+  });
+
   test("commands are not replayed to pages that connect later", async () => {
     const channel = createKioskChannel();
     channel.broadcast(RELOAD);
@@ -140,6 +158,21 @@ describe("createKioskChannel", () => {
 
 describe("kiosk channel through the router", () => {
   const ADMIN_ORIGIN = "https://admin.local";
+
+  // One live view registry per channel, as the engine has one per process.
+  const cameraPreviews = new WeakMap<KioskChannel, CameraPreview>();
+  const cameraPreviewFor = (kioskChannel: KioskChannel) => {
+    const existing = cameraPreviews.get(kioskChannel);
+    if (existing) return existing;
+    const created = createCameraPreview({
+      kioskChannel,
+      iceServers: [],
+      maxViewers: 2,
+      maxDurationMs: 60_000,
+    });
+    cameraPreviews.set(kioskChannel, created);
+    return created;
+  };
 
   function createCaller(
     kioskChannel: KioskChannel,
@@ -156,6 +189,7 @@ describe("kiosk channel through the router", () => {
       darkroomAccess: createDarkroomAccessStub(),
       kioskChannel,
       kioskMaintenance,
+      cameraPreview: cameraPreviewFor(kioskChannel),
       mode: "production",
       processManager: "unknown",
       puppeteerLifecycle: {
@@ -304,6 +338,58 @@ describe("kiosk channel through the router", () => {
     expect(kioskMaintenance.get().enabled).toBe(true);
   });
 
+  test("a live view goes from admin to the camera page and back", async () => {
+    const kioskChannel = createKioskChannel();
+    const kiosk = createCaller(kioskChannel, "https://192.168.1.10:3000");
+    const admin = createCaller(kioskChannel, ADMIN_ORIGIN);
+    const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
+    const pageStream = commands[Symbol.asyncIterator]();
+    await pageStream.next(); // The maintenance snapshot.
+    await kiosk.booth.reportKioskStatus({
+      pageId: "kiosk",
+      camera: { status: "ready", error: null },
+      maintenance: false,
+    });
+
+    const view = await admin.ops.watchCamera({ sessionId: "s1" });
+    const viewStream = view[Symbol.asyncIterator]();
+    expect((await viewStream.next()).value).toMatchObject({ kind: "start" });
+    expect((await pageStream.next()).value).toMatchObject({
+      type: "camera",
+      sessionId: "s1",
+      signal: { kind: "start" },
+    });
+
+    expect(
+      await kiosk.booth.sendKioskCameraSignal({
+        pageId: "kiosk",
+        sessionId: "s1",
+        signal: { kind: "offer", sdp: "v=0" },
+      }),
+    ).toEqual({ delivered: true });
+    expect((await viewStream.next()).value).toEqual({
+      kind: "offer",
+      sdp: "v=0",
+    });
+
+    expect(
+      await admin.ops.sendCameraSignal({
+        sessionId: "s1",
+        signal: { kind: "answer", sdp: "v=0" },
+      }),
+    ).toEqual({ delivered: true });
+    expect((await pageStream.next()).value).toMatchObject({
+      signal: { kind: "answer" },
+    });
+
+    // Stopping the view tells the page.
+    await viewStream.return?.();
+    expect((await pageStream.next()).value).toMatchObject({
+      signal: { kind: "end", reason: "viewer-left" },
+    });
+    await pageStream.return?.();
+  });
+
   test("the kiosk origin cannot send a reload or a navigate", async () => {
     const kiosk = createCaller(
       createKioskChannel(),
@@ -318,6 +404,12 @@ describe("kiosk channel through the router", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       kiosk.ops.setKioskMaintenance({ enabled: true }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      kiosk.ops.sendCameraSignal({
+        sessionId: "s1",
+        signal: { kind: "end", reason: "viewer-left" },
+      }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
