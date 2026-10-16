@@ -25,6 +25,7 @@ import {
 } from "@dither-booth/ui/components/ui/tooltip";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { Server, Tablet } from "lucide-react";
 
 import type { HealthzResponse } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.types";
 import type {
@@ -112,6 +113,7 @@ export const HealthzAccordionItem: FC<HealthzAccordionItemProps> = ({
     <HealthAccordionShell
       value={service}
       label={HEALTHZ_SERVICE_LABELS[service]}
+      icon={service === "shutter" ? <Tablet /> : <Server />}
       statusVariant={getHealthStatusVariant({
         isHealthzError,
         isHealthzPending,

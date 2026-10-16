@@ -62,7 +62,10 @@ export function createDitherBoothTRPCClient<TRouter extends JsonTRPCRouter>({
           typeof httpSubscriptionLink<TRouter, typeof EventSource>
         >[0]),
         false: splitLink({
-          condition: (op) => isNonJsonSerializable(op.input),
+          // Blobs can't be batched; neither can a slow call (`skipBatch`
+          // context) that would hold back the fast ones sharing its batch.
+          condition: (op) =>
+            isNonJsonSerializable(op.input) || Boolean(op.context.skipBatch),
           true: httpLink<TRouter>({
             ...({
               url: TRPC_PROXY_PATH,

@@ -1,31 +1,43 @@
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 
+import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
+import { FileImage, Printer, Server, Tablet } from "lucide-react";
 
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 import { DARKROOM_HEALTH_REFRESH_MS } from "../../Darkroom.constants";
 
-const StatusItem: FC<{ label: string; ok: boolean | undefined }> = ({
-  label,
-  ok,
-}) => (
-  <span className={clsx("inline-flex items-center gap-1.5")}>
+const StatusChip: FC<{
+  icon: ReactNode;
+  label: string;
+  ok: boolean | undefined;
+}> = ({ icon, label, ok }) => (
+  <Badge
+    variant="outline"
+    className={clsx("h-7 gap-1.5 px-2.5 text-xs font-medium")}
+  >
+    <span
+      aria-hidden
+      className={clsx("text-muted-foreground [&_svg]:size-3.5")}
+    >
+      {icon}
+    </span>
+    {label}
     <span
       aria-hidden
       className={clsx(
         "size-2 rounded-full",
-        ok === undefined && "animate-pulse bg-gray-500",
-        ok === true && "bg-green-500",
-        ok === false && "bg-red-500",
+        ok === undefined && "animate-pulse bg-muted-foreground/50",
+        ok === true && "bg-success",
+        ok === false && "bg-destructive",
       )}
     />
-    {label}
     <span className={clsx("sr-only")}>
       {ok === undefined ? "checking" : ok ? "ok" : "not ok"}
     </span>
-  </span>
+  </Badge>
 );
 
 /** Printer, receipt renderer, engine and Shutter, refreshed every 10 s. */
@@ -40,19 +52,30 @@ export const DarkroomHealthStrip: FC = () => {
 
   return (
     <div
-      className={clsx(
-        "h-10 px-3",
-        "flex items-center gap-5",
-        "text-sm text-muted-foreground",
-      )}
+      aria-label="Booth status"
+      className={clsx("flex flex-wrap items-center gap-2")}
+      role="status"
     >
-      <StatusItem label="Printer" ok={status(healthz?.printer.healthz.ok)} />
-      <StatusItem
+      <StatusChip
+        icon={<Printer />}
+        label="Printer"
+        ok={status(healthz?.printer.healthz.ok)}
+      />
+      <StatusChip
+        icon={<FileImage />}
         label="Receipt renderer"
         ok={status(healthz?.puppeteer.healthz.ok)}
       />
-      <StatusItem label="Engine" ok={status(healthz?.engine.healthz.ok)} />
-      <StatusItem label="Shutter" ok={status(healthz?.shutter.healthz.ok)} />
+      <StatusChip
+        icon={<Server />}
+        label="Engine"
+        ok={status(healthz?.engine.healthz.ok)}
+      />
+      <StatusChip
+        icon={<Tablet />}
+        label="Shutter"
+        ok={status(healthz?.shutter.healthz.ok)}
+      />
     </div>
   );
 };

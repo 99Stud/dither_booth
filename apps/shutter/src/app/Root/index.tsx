@@ -5,6 +5,7 @@ import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, type FC } from "react";
 
 import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants";
+import { useDarkroomTheme } from "#lib/darkroom/darkroom-theme";
 import { reportKioskError } from "#lib/logging/logging.utils";
 
 export const Root: FC = () => {
@@ -14,8 +15,23 @@ export const Root: FC = () => {
   });
   // The receipt viewer and the Darkroom are regular pages that scroll, not
   // the locked-down kiosk shell.
-  const isKioskShell =
-    pathname !== RECEIPT_VIEWER_PATH && pathname !== DARKROOM_PATH;
+  const isDarkroom = pathname === DARKROOM_PATH;
+  const isKioskShell = pathname !== RECEIPT_VIEWER_PATH && !isDarkroom;
+  const darkroomTheme = useDarkroomTheme();
+
+  // The Darkroom wears the shared SaaS theme (and its own dark mode); the
+  // kiosk and the receipt viewer never do, so prints stay unchanged.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("saas", isDarkroom);
+    root.classList.toggle(
+      "dark",
+      isDarkroom && darkroomTheme.resolved === "dark",
+    );
+    return () => {
+      root.classList.remove("saas", "dark");
+    };
+  }, [isDarkroom, darkroomTheme.resolved]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("kiosk-shell", isKioskShell);
@@ -54,7 +70,7 @@ export const Root: FC = () => {
         isKioskShell ? "relative min-h-dvh overflow-hidden" : "relative"
       }
     >
-      <Toaster />
+      <Toaster {...(isDarkroom ? { theme: darkroomTheme.resolved } : {})} />
       <Outlet />
     </main>
   );

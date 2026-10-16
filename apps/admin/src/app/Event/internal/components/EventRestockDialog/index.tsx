@@ -13,6 +13,7 @@ import { NumberField } from "@dither-booth/ui/fields/NumberField";
 import { createId } from "@paralleldrive/cuid2";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
+import { PackagePlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { EventPrize } from "../../Event.types";
@@ -75,8 +76,7 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
         <DialogHeader>
           <DialogTitle>Restock prize</DialogTitle>
           <DialogDescription>
-            Add stock, or enter a negative number to remove some. Wins at the
-            booth keep counting while this is open.
+            Add stock, or enter a negative number to remove some.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -87,7 +87,14 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
             void form.handleSubmit();
           }}
         >
-          <NumberField form={form} name="delta" label="Change" />
+          <NumberField
+            form={form}
+            name="delta"
+            label="Change"
+            // No inputmode: iOS then shows the numbers-and-punctuation
+            // keyboard, which has the minus sign a removal needs.
+            inputMode={undefined}
+          />
           <form.Subscribe selector={(state) => state.values.delta}>
             {(delta) => (
               <p className={clsx("text-sm text-muted-foreground")}>
@@ -108,6 +115,7 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
               Cancel
             </Button>
             <Button type="submit" disabled={isPending || !prize}>
+              <PackagePlus data-icon="inline-start" />
               Restock
             </Button>
           </DialogFooter>

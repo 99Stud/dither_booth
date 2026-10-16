@@ -1,14 +1,16 @@
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@dither-booth/ui/components/ui/tabs";
+import { Tabs, TabsContent } from "@dither-booth/ui/components/ui/tabs";
 import clsx from "clsx";
+import { Dices, Gift, History, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 
-import { AppSidebarPageHeader } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
+import {
+  AppPageBody,
+  AppPageHeading,
+  AppPageTab,
+  AppPageTabsList,
+  AppSidebarPageHeader,
+} from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 
 import type { EventPrize, EventTab } from "./internal/Event.types";
 
@@ -17,7 +19,7 @@ import { EventDrawsTable } from "./internal/components/EventDrawsTable";
 import { EventEmptyState } from "./internal/components/EventEmptyState";
 import { EventLotteryForm } from "./internal/components/EventLotteryForm";
 import { EventOverviewPanel } from "./internal/components/EventOverviewPanel";
-import { EventPrizeSheet } from "./internal/components/EventPrizeSheet";
+import { EventPrizeDialog } from "./internal/components/EventPrizeDialog";
 import { EventPrizesTable } from "./internal/components/EventPrizesTable";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";
@@ -41,10 +43,10 @@ export const Event = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isReplaceConfirmOpen, setIsReplaceConfirmOpen] = useState(false);
   const [isReplaceFormOpen, setIsReplaceFormOpen] = useState(false);
-  const [prizeSheetMode, setPrizeSheetMode] = useState<"create" | "edit">(
+  const [prizeDialogMode, setPrizeDialogMode] = useState<"create" | "edit">(
     "create",
   );
-  const [isPrizeSheetOpen, setIsPrizeSheetOpen] = useState(false);
+  const [isPrizeDialogOpen, setIsPrizeDialogOpen] = useState(false);
   const [editingPrize, setEditingPrize] = useState<EventPrize | null>(null);
   const [restockPrize, setRestockPrize] = useState<EventPrize | null>(null);
 
@@ -57,18 +59,34 @@ export const Event = () => {
       value={tab}
       onValueChange={(value) => setTab(value as EventTab)}
     >
-      <AppSidebarPageHeader title="Event">
-        {event && (
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="lottery">Lottery</TabsTrigger>
-            <TabsTrigger value="prizes">Prizes</TabsTrigger>
-            <TabsTrigger value="draws">Draws</TabsTrigger>
-          </TabsList>
-        )}
-      </AppSidebarPageHeader>
+      <AppSidebarPageHeader title="Event" />
 
-      <div className={clsx("px-4 pb-8")}>
+      <AppPageBody>
+        <AppPageHeading
+          title={event?.campaign.name ?? "Event"}
+          tabs={
+            event && (
+              <AppPageTabsList>
+                <AppPageTab value="overview">
+                  <LayoutDashboard />
+                  Overview
+                </AppPageTab>
+                <AppPageTab value="lottery">
+                  <Dices />
+                  Lottery
+                </AppPageTab>
+                <AppPageTab value="prizes">
+                  <Gift />
+                  Prizes
+                </AppPageTab>
+                <AppPageTab value="draws">
+                  <History />
+                  Draws
+                </AppPageTab>
+              </AppPageTabsList>
+            )
+          }
+        />
         {isLoading ? (
           <div
             className={clsx("flex min-h-[40vh] items-center justify-center")}
@@ -102,10 +120,6 @@ export const Event = () => {
                     await updateLotterySettingsMutation.mutateAsync(values);
                   }}
                 />
-                <p className={clsx("text-sm text-muted-foreground")}>
-                  Print sample win and lose tickets from the Darkroom, on the
-                  booth.
-                </p>
               </div>
             </TabsContent>
             <TabsContent value="prizes" className={clsx("mt-0")}>
@@ -113,14 +127,14 @@ export const Event = () => {
                 event={event}
                 isDeleting={deletePrizeMutation.isPending}
                 onAddClick={() => {
-                  setPrizeSheetMode("create");
+                  setPrizeDialogMode("create");
                   setEditingPrize(null);
-                  setIsPrizeSheetOpen(true);
+                  setIsPrizeDialogOpen(true);
                 }}
                 onEditClick={(prize) => {
-                  setPrizeSheetMode("edit");
+                  setPrizeDialogMode("edit");
                   setEditingPrize(prize);
-                  setIsPrizeSheetOpen(true);
+                  setIsPrizeDialogOpen(true);
                 }}
                 onRestockClick={(prize) => setRestockPrize(prize)}
                 onDelete={async (prizeId) => {
@@ -133,7 +147,7 @@ export const Event = () => {
             </TabsContent>
           </>
         )}
-      </div>
+      </AppPageBody>
 
       <EventCreateDialog
         open={isCreateOpen}
@@ -167,16 +181,19 @@ export const Event = () => {
         }}
       />
 
-      <EventPrizeSheet
-        open={isPrizeSheetOpen}
-        mode={prizeSheetMode}
+      <EventPrizeDialog
+        open={isPrizeDialogOpen}
+        mode={prizeDialogMode}
         prize={editingPrize}
+        prizes={event?.prizes ?? []}
+        noWinWeight={event?.lottery.noWinWeight ?? 0}
+        winCooldownMinutes={event?.lottery.winCooldownMinutes ?? 0}
         isPending={
           createPrizeMutation.isPending || updatePrizeMutation.isPending
         }
-        onOpenChange={setIsPrizeSheetOpen}
+        onOpenChange={setIsPrizeDialogOpen}
         onSubmit={async (values) => {
-          if (prizeSheetMode === "create") {
+          if (prizeDialogMode === "create") {
             await createPrizeMutation.mutateAsync(values);
             return;
           }
