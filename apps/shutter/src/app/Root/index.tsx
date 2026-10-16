@@ -5,7 +5,7 @@ import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, type FC } from "react";
 
 import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants";
-import { applyKitFonts } from "#kits/kitFonts";
+import { applyKitFonts, loadKitAssetFonts } from "#kits/kitFonts";
 import { isKitPreview } from "#kits/kitPreview";
 import { useKit } from "#kits/useKit";
 import { useDarkroomTheme } from "#lib/darkroom/darkroom-theme";
@@ -42,6 +42,15 @@ export const Root: FC = () => {
   // shared theme's.
   useEffect(() => {
     applyKitFonts(isDarkroom ? null : kitFonts);
+    if (!isDarkroom) {
+      loadKitAssetFonts(kitFonts).catch((error: unknown) => {
+        reportKioskError(error, {
+          event: "root-kit-font-load-failed",
+          source: ROOT_LOG_SOURCE,
+          userMessage: "A font added to the booth could not load.",
+        });
+      });
+    }
   }, [isDarkroom, kitFonts]);
 
   useEffect(() => {

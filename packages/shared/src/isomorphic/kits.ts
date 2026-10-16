@@ -22,6 +22,7 @@ import {
   readKitFontOverrides,
   type KitFontOverrides,
   type KitFonts,
+  type ResolvedKitFonts,
 } from "#isomorphic/kit-fonts";
 
 /**
@@ -156,7 +157,7 @@ export type ResolvedCameraScreen = Omit<CameraScreen, "tint"> & {
 export type ResolvedKit = {
   kitId: KitId;
   copy: KitCopy;
-  fonts: KitFonts;
+  fonts: ResolvedKitFonts;
   background: BackgroundPreset;
   camera: ResolvedCameraScreen;
 };

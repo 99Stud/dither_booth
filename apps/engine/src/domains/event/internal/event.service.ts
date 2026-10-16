@@ -25,6 +25,7 @@ import {
   prizeTable,
   stockAdjustmentTable,
 } from "#db/internal/db.schema";
+import { withInstalledFonts } from "#domains/font-library/font-library.service";
 import {
   applyStockAdjustment,
   prizeStockColumns,
@@ -123,7 +124,10 @@ export async function getKitForDb(db: DB): Promise<ResolvedKit> {
   if (!campaign) {
     return resolveKit(DEFAULT_KIT_ID, {});
   }
-  return resolveKit(readKitId(campaign), readCampaignKitSettings(campaign));
+  return resolveKit(
+    readKitId(campaign),
+    withInstalledFonts(db, readCampaignKitSettings(campaign)),
+  );
 }
 
 /** What a photo receipt takes from the active event, or the defaults. */

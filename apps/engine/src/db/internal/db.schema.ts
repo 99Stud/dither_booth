@@ -278,6 +278,48 @@ export const kioskMaintenanceTable = sqliteTable(
   (table) => [check("kiosk_maintenance_singleton_check", sql`${table.id} = 1`)],
 );
 
+export const FONT_ASSET_SOURCES = ["fontsource", "upload"] as const;
+
+const FONT_ASSET_SOURCE_CHECK_VALUES = FONT_ASSET_SOURCES.map(
+  (source) => `'${source}'`,
+).join(", ");
+
+export type FontAssetFile = {
+  weight: number;
+  style: "normal" | "italic";
+  /** Under the engine's font folder: `<asset id>/<weight>-<style>.woff2`. */
+  path: string;
+};
+
+/**
+ * A font added to the booth from admin (Google Fonts through Fontsource, or
+ * an uploaded woff2), so a kit role can use it offline. Its files sit on the
+ * SSD next to the database.
+ */
+export const fontAssetTable = sqliteTable(
+  "font_asset",
+  {
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
+    family: text("family").notNull(),
+    source: text("source", { enum: FONT_ASSET_SOURCES }).notNull(),
+    /** The font's licence as given by its source, or as staff confirmed it. */
+    license: text("license").notNull(),
+    files: text("files", { mode: "json" }).$type<FontAssetFile[]>().notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    check(
+      "font_asset_source_check",
+      sql`${table.source} in (${sql.raw(FONT_ASSET_SOURCE_CHECK_VALUES)})`,
+    ),
+  ],
+);
+
 export const dbSchema = {
   printConfigTable,
   campaignTable,
@@ -287,4 +329,5 @@ export const dbSchema = {
   stockAdjustmentTable,
   darkroomAccessTable,
   kioskMaintenanceTable,
+  fontAssetTable,
 };

@@ -35,3 +35,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # local SQLite database files
 data/*.sqlite*
+
+# fonts added to the booth from admin (font_asset)
+data/fonts/

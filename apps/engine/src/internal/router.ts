@@ -1,6 +1,7 @@
 import { browserAutomation } from "#domains/browser-automation/index";
 import { darkroom } from "#domains/darkroom/index";
 import { event, eventBooth } from "#domains/event/index";
+import { fontLibrary, fontLibraryBooth } from "#domains/font-library/index";
 import { healthz } from "#domains/healthz/index";
 import { imageManipulation } from "#domains/image-manipulation/index";
 import { kiosk } from "#domains/kiosk/index";
@@ -15,6 +16,7 @@ import { router } from "./trpc";
 export const engineRouter = router({
   booth: router({
     getKit: eventBooth.getKit,
+    getFontAsset: fontLibraryBooth.getFontAsset,
     getLotteryStatus: lottery.getLotteryStatus,
     prepareReceipt: receipt.prepareReceipt,
     printPreparedReceipt: receipt.printPreparedReceipt,
@@ -26,6 +28,7 @@ export const engineRouter = router({
   }),
   config: router({
     ...event,
+    ...fontLibrary,
     ...printConfiguration,
     ...imageManipulation,
     generateReceipt: receipt.generateReceipt,

@@ -5,8 +5,9 @@ import {
   BUNDLED_FONTS,
   FONT_ROLE_LABELS,
   FONT_ROLES,
-  type BundledFontId,
+  toFontAssetRef,
   type KitFontOverrides,
+  type KitFontRef,
 } from "@dither-booth/shared/kit-fonts";
 import { KIT_MANIFESTS, type KitId } from "@dither-booth/shared/kits";
 import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
@@ -31,13 +32,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dither-booth/ui/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { CaseSensitive, Undo2 } from "lucide-react";
+import { CaseSensitive, Library, Undo2 } from "lucide-react";
+import { useState } from "react";
 
-const FONT_OPTIONS = BUNDLED_FONT_IDS.map((id) => ({
-  value: id,
-  label: BUNDLED_FONTS[id].label,
-}));
+import { useTRPC } from "#lib/trpc/trpc.client";
+
+import { KitFontLibrarySheet } from "./KitFontLibrarySheet";
+
+const BUNDLED_OPTIONS: { value: KitFontRef; label: string }[] =
+  BUNDLED_FONT_IDS.map((id) => ({ value: id, label: BUNDLED_FONTS[id].label }));
 
 interface KitFontsSectionProps {
   kitId: KitId;
@@ -52,6 +57,16 @@ interface KitFontsSectionProps {
 export const KitFontsSection: FC<KitFontsSectionProps> = (props) => {
   const { kitId, value, onChange } = props;
   const kitFonts = KIT_MANIFESTS[kitId].fonts;
+  const trpc = useTRPC();
+  const assets = useQuery(trpc.config.listFontAssets.queryOptions());
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const fontOptions = [
+    ...BUNDLED_OPTIONS,
+    ...(assets.data ?? []).map((asset) => ({
+      value: toFontAssetRef(asset.id),
+      label: `${asset.family} (added)`,
+    })),
+  ];
 
   return (
     <Card>
@@ -63,7 +78,7 @@ export const KitFontsSection: FC<KitFontsSectionProps> = (props) => {
           Typography
         </CardTitle>
         <CardDescription>
-          The fonts on the booth screen and the tickets. They all ship with the
+          The fonts on the booth screen and the tickets. They all live on the
           booth, so they work without Wi-Fi.
         </CardDescription>
       </CardHeader>
@@ -86,18 +101,18 @@ export const KitFontsSection: FC<KitFontsSectionProps> = (props) => {
                 {/* ds-allow-native-select */}
                 <Select
                   id={id}
-                  items={FONT_OPTIONS}
+                  items={fontOptions}
                   value={current}
                   onValueChange={(next) => {
                     if (next)
-                      onChange({ ...value, [role]: next as BundledFontId });
+                      onChange({ ...value, [role]: next as KitFontRef });
                   }}
                 >
                   <SelectTrigger id={id} className={clsx("w-full sm:w-72")}>
                     <SelectValue placeholder="Choose a font" />
                   </SelectTrigger>
                   <SelectContent>
-                    {FONT_OPTIONS.map((option) => (
+                    {fontOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                         {option.value === kitFonts[role] ? " (kit's)" : ""}
@@ -121,6 +136,20 @@ export const KitFontsSection: FC<KitFontsSectionProps> = (props) => {
             </Field>
           );
         })}
+        <div className={clsx("flex justify-start")}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsLibraryOpen(true)}
+          >
+            <Library data-icon="inline-start" />
+            Font library
+          </Button>
+        </div>
+        <KitFontLibrarySheet
+          open={isLibraryOpen}
+          onOpenChange={setIsLibraryOpen}
+        />
       </CardContent>
     </Card>
   );

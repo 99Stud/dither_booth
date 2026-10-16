@@ -134,6 +134,13 @@
       "when": 1792163096113,
       "tag": "0018_kit_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1792165952280,
+      "tag": "0019_font_asset",
+      "breakpoints": true
     }
   ]
 }

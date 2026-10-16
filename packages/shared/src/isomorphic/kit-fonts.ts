@@ -66,18 +66,61 @@ export const bundledFontIdSchema = z.enum(
   BUNDLED_FONT_IDS as [BundledFontId, ...BundledFontId[]],
 );
 
+/** A kit's own fonts are always bundled ones. */
 export type KitFonts = Record<FontRole, BundledFontId>;
+
+/**
+ * A font added to this booth from admin (`font_asset`), named by its id.
+ * It lives on the booth's SSD, so it works offline too.
+ */
+export type FontAssetRef = `asset:${string}`;
+
+/** A role's font: bundled with Shutter, or added to this booth. */
+export type KitFontRef = BundledFontId | FontAssetRef;
+
+export type ResolvedKitFonts = Record<FontRole, KitFontRef>;
+
+const FONT_ASSET_PREFIX = "asset:";
+
+export const fontAssetRefSchema = z
+  .string()
+  .regex(/^asset:[a-z0-9]{8,40}$/u)
+  .transform((ref) => ref as FontAssetRef);
+
+export const kitFontRefSchema = z.union([
+  bundledFontIdSchema,
+  fontAssetRefSchema,
+]);
+
+export const toFontAssetRef = (assetId: string): FontAssetRef =>
+  `${FONT_ASSET_PREFIX}${assetId}`;
+
+/** The asset id a role points at, or null for a bundled font. */
+export const parseFontAssetRef = (ref: KitFontRef): string | null =>
+  ref.startsWith(FONT_ASSET_PREFIX)
+    ? ref.slice(FONT_ASSET_PREFIX.length)
+    : null;
+
+/** The `font-family` Shutter registers an added font under. */
+export const fontAssetFamily = (assetId: string) => `Kit Font ${assetId}`;
+
+const familyOf = (ref: KitFontRef): string => {
+  const assetId = parseFontAssetRef(ref);
+  return assetId
+    ? fontAssetFamily(assetId)
+    : BUNDLED_FONTS[ref as BundledFontId].family;
+};
 
 /** An event's font swaps: only the roles it changes. */
 export const kitFontOverridesSchema = z
   .object({
-    display: bundledFontIdSchema.optional(),
-    body: bundledFontIdSchema.optional(),
-    mono: bundledFontIdSchema.optional(),
+    display: kitFontRefSchema.optional(),
+    body: kitFontRefSchema.optional(),
+    mono: kitFontRefSchema.optional(),
   })
   .strict();
 
-export type KitFontOverrides = z.infer<typeof kitFontOverridesSchema>;
+export type KitFontOverrides = Partial<Record<FontRole, KitFontRef>>;
 
 /** Stored font swaps, keeping each role this release can render. */
 export function readKitFontOverrides(stored: unknown): {
@@ -91,7 +134,7 @@ export function readKitFontOverrides(stored: unknown): {
   }
   for (const [key, value] of Object.entries(stored)) {
     const role = FONT_ROLES.find((entry) => entry === key);
-    const font = bundledFontIdSchema.safeParse(value);
+    const font = kitFontRefSchema.safeParse(value);
     if (role && font.success) overrides[role] = font.data;
     else rejectedKeys.push(key);
   }
@@ -102,9 +145,9 @@ export function readKitFontOverrides(stored: unknown): {
  * The `font-family` value for a role: its font, then the body font for the
  * display role (as the kiosk always did), then system fonts.
  */
-export function fontStack(fonts: KitFonts, role: FontRole): string {
-  const families = [BUNDLED_FONTS[fonts[role]].family];
-  if (role === "display") families.push(BUNDLED_FONTS[fonts.body].family);
+export function fontStack(fonts: ResolvedKitFonts, role: FontRole): string {
+  const families = [familyOf(fonts[role])];
+  if (role === "display") families.push(familyOf(fonts.body));
   return [...families.map((family) => `"${family}"`), FALLBACKS[role]].join(
     ", ",
   );

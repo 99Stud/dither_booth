@@ -27,6 +27,14 @@ describe("font overrides", () => {
     });
   });
 
+  test("a role can use a font added to the booth", () => {
+    const { overrides } = readKitFontOverrides({ mono: "asset:abc12345xyz" });
+    expect(overrides).toEqual({ mono: "asset:abc12345xyz" });
+    expect(
+      fontStack({ ...KIT_MANIFESTS.tartines.fonts, ...overrides }, "mono"),
+    ).toStartWith('"Kit Font abc12345xyz", ');
+  });
+
   test("a font this release doesn't ship is dropped, role by role", () => {
     expect(
       readKitFontOverrides({ display: "comic-sans", body: "special-elite" }),

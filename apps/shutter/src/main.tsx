@@ -21,7 +21,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
-import { applyKitFonts, waitForKitFonts } from "#kits/kitFonts";
+import {
+  applyKitFonts,
+  loadKitAssetFonts,
+  waitForKitFonts,
+} from "#kits/kitFonts";
 import { installKitPreview, isKitPreview } from "#kits/kitPreview";
 import { installKioskFullscreen } from "#lib/kiosk-fullscreen";
 import { router } from "#lib/router/index";
@@ -89,6 +93,7 @@ installReceiptViewerNavigationBridge({
       staleTime: 0,
     });
     applyKitFonts(kit.fonts);
+    await loadKitAssetFonts(kit.fonts);
     // Function form ignores previous params so lottery fields cannot leak/stick.
     await router.navigate({
       to: RECEIPT_VIEWER_PATH,
