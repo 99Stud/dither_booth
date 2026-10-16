@@ -39,15 +39,27 @@ export type KioskChannel = {
    */
   reportStatus: (pageId: string, status: KioskPageStatus) => boolean;
   listPages: () => KioskPageConnection[];
+  /** Calls `listener` with a page's id once it disconnects; returns an unsubscribe. */
+  onPageLeft: (listener: (pageId: string) => void) => () => void;
 };
 
 const COMMAND_EVENT = "command";
+const PAGE_LEFT_EVENT = "page-left";
 
 export function createKioskChannel(): KioskChannel {
   const emitter = new EventEmitter();
   // One listener per connected page; there is no fixed upper bound.
   emitter.setMaxListeners(0);
   const pages = new Map<symbol, KioskPageConnection>();
+
+  // Both the abort listener and the stream's `finally` end a page: whichever
+  // runs first reports it, once.
+  const removePage = (connection: symbol) => {
+    const page = pages.get(connection);
+    if (!page) return;
+    pages.delete(connection);
+    emitter.emit(PAGE_LEFT_EVENT, page.pageId);
+  };
 
   async function* streamCommands(
     connection: symbol,
@@ -63,7 +75,7 @@ export function createKioskChannel(): KioskChannel {
     } catch (error) {
       if (!signal?.aborted) throw error;
     } finally {
-      pages.delete(connection);
+      removePage(connection);
     }
   }
 
@@ -87,7 +99,7 @@ export function createKioskChannel(): KioskChannel {
         connectedAt: new Date(),
         reportedAt: null,
       });
-      signal?.addEventListener("abort", () => pages.delete(connection), {
+      signal?.addEventListener("abort", () => removePage(connection), {
         once: true,
       });
 
@@ -108,6 +120,10 @@ export function createKioskChannel(): KioskChannel {
     },
     listPages() {
       return [...pages.values()];
+    },
+    onPageLeft(listener) {
+      emitter.on(PAGE_LEFT_EVENT, listener);
+      return () => emitter.off(PAGE_LEFT_EVENT, listener);
     },
   };
 }

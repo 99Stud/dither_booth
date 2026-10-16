@@ -4,6 +4,7 @@ import type { Page } from "puppeteer";
 import type { DB } from "#db/internal/db.types";
 import type { DarkroomAccess } from "#domains/darkroom/darkroom.service";
 import type {
+  CameraPreview,
   KioskChannel,
   KioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
@@ -23,6 +24,8 @@ export type TRPCContext = {
   darkroomToken?: string;
   /** Push channel to the connected kiosk pages, one per engine process. */
   kioskChannel: KioskChannel;
+  /** Live views of the booth camera, one registry per engine process. */
+  cameraPreview: CameraPreview;
   /** Whether the booth is in maintenance, kept in SQLite. */
   kioskMaintenance: KioskMaintenance;
   mode: "development" | "production";

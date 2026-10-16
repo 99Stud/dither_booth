@@ -19,6 +19,7 @@ export const engineRouter = router({
     printPreparedReceipt: receipt.printPreparedReceipt,
     onKioskCommand: kiosk.onKioskCommand,
     reportKioskStatus: kiosk.reportKioskStatus,
+    sendKioskCameraSignal: kiosk.sendKioskCameraSignal,
     unlockDarkroom: darkroom.unlockDarkroom,
     lockDarkroom: darkroom.lockDarkroom,
   }),
@@ -36,7 +37,9 @@ export const engineRouter = router({
     ...healthz,
     ...browserAutomation,
     reloadKiosk: kiosk.reloadKiosk,
+    sendCameraSignal: kiosk.sendCameraSignal,
     setKioskMaintenance: kiosk.setKioskMaintenance,
     showKioskScreen: kiosk.showKioskScreen,
+    watchCamera: kiosk.watchCamera,
   }),
 });

@@ -15,6 +15,7 @@
     "./browser/receipt-viewer": "./src/browser/receipt-viewer.ts",
     "./browser/storage": "./src/browser/storage.ts",
     "./browser/trpc-client": "./src/browser/trpc-client.ts",
+    "./camera-preview": "./src/isomorphic/camera-preview.ts",
     "./darkroom": "./src/isomorphic/darkroom.ts",
     "./errors": "./src/isomorphic/errors.ts",
     "./formatting": "./src/isomorphic/formatting.ts",

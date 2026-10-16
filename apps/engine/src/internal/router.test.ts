@@ -20,6 +20,7 @@ const GROUPS = {
     "prepareReceipt",
     "printPreparedReceipt",
     "reportKioskStatus",
+    "sendKioskCameraSignal",
     "unlockDarkroom",
   ],
   config: [
@@ -47,8 +48,10 @@ const GROUPS = {
     "getHealthz",
     "reloadKiosk",
     "restartPuppeteerReceiptViewer",
+    "sendCameraSignal",
     "setKioskMaintenance",
     "showKioskScreen",
+    "watchCamera",
   ],
 } as const;
 
@@ -89,6 +92,10 @@ function createCaller(requestOrigin?: string, darkroomToken?: string) {
     darkroomToken,
     db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
     kioskChannel: new Proxy({}, { get: unreachable }) as KioskChannel,
+    cameraPreview: new Proxy(
+      {},
+      { get: unreachable },
+    ) as TRPCContext["cameraPreview"],
     kioskMaintenance: new Proxy(
       {},
       { get: unreachable },
