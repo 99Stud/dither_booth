@@ -91,8 +91,8 @@ export const KioskScreenToggle: FC<{ isPinSet: boolean }> = ({ isPinSet }) => {
     setRequested(screen);
     notify.success(
       screen === "darkroom"
-        ? "The kiosk opens the Darkroom once the current visit ends. Enter the PIN there."
-        : "The kiosk is back on the Shutter. The Darkroom is locked.",
+        ? "Opening the Darkroom on the kiosk."
+        : "Kiosk back on the Shutter, Darkroom locked.",
     );
   };
 
@@ -141,8 +141,8 @@ export const KioskScreenToggle: FC<{ isPinSet: boolean }> = ({ isPinSet }) => {
                   ? "Opening the Darkroom once the current visit ends…"
                   : "Going back to the Shutter…"
                 : !isPinSet
-                  ? "Set a PIN below to open the Darkroom."
-                  : "What the booth iPad shows right now."}
+                  ? "Set a PIN to open the Darkroom."
+                  : null}
       </p>
     </div>
   );
