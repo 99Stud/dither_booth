@@ -269,7 +269,7 @@ With `bun run dev` running, this prints a QR code for a setup page on the LAN (`
 
 - serves the mkcert root CA (the public certificate, never its key) to install as a profile;
 - shows the two trust steps in iOS Settings;
-- links to the admin and the Darkroom.
+- links to the Shutter, the admin and the Darkroom.
 
 Do this once per phone. If the page doesn't load, allow incoming connections for `bun` in the macOS firewall.
 

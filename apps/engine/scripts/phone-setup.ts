@@ -1,5 +1,6 @@
 /**
- * Test the admin and the Darkroom from a phone on the same network.
+ * Test the Shutter, the admin and the Darkroom from a phone on the same
+ * network.
  *
  * Serves a small setup page over plain HTTP (a phone can't open the HTTPS
  * apps before it trusts the local certificate) that hands out the mkcert
@@ -73,6 +74,7 @@ const page = `<!doctype html>
     and turn on full trust for <em>mkcert development CA</em>.</li>
 </ol>
 <p>Then open the apps:</p>
+<a class="button" href="${shutterOrigin}">Shutter (the booth)</a>
 <a class="button" href="${adminOrigin}">Admin</a>
 <a class="button secondary" href="${darkroomUrl}">Darkroom</a>
 <p><small>Tip: in Safari, Share → Add to Home Screen opens the admin full screen, like an app.
@@ -110,6 +112,7 @@ Scan with the iPhone's camera (same Wi-Fi as this computer):
 ${renderUnicodeCompact(setupUrl, { border: 2 })}
   ${setupUrl}
 
+  Shutter   ${shutterOrigin}
   Admin     ${adminOrigin}
   Darkroom  ${darkroomUrl}
 
