@@ -70,6 +70,34 @@ describe("createKioskChannel", () => {
     expect(channel.listPages()).toEqual([]);
   });
 
+  test("a page's report is listed with it, until it disconnects", () => {
+    const channel = createKioskChannel();
+    const controller = new AbortController();
+    channel.subscribe(page("a"), controller.signal);
+    const camera = {
+      status: "error",
+      error: "Camera permission denied.",
+    } as const;
+
+    expect(channel.listPages()[0]).toMatchObject({
+      camera: null,
+      reportedAt: null,
+    });
+    expect(channel.reportStatus("a", { camera })).toBe(true);
+    expect(channel.listPages()[0]?.camera).toEqual(camera);
+    expect(channel.listPages()[0]?.reportedAt).toBeInstanceOf(Date);
+
+    controller.abort();
+    expect(channel.reportStatus("a", { camera })).toBe(false);
+    expect(channel.listPages()).toEqual([]);
+  });
+
+  test("a report for a page that never subscribed is refused", () => {
+    expect(createKioskChannel().reportStatus("ghost", { camera: null })).toBe(
+      false,
+    );
+  });
+
   test("a broadcast with no page connected reaches no one", () => {
     expect(createKioskChannel().broadcast(RELOAD)).toBe(0);
   });
@@ -156,6 +184,30 @@ describe("kiosk channel through the router", () => {
     });
     expect(kioskChannel.listPages()[0]?.screen).toBe("shutter");
 
+    await iterator.return?.();
+  });
+
+  test("the kiosk page's camera report reaches admin's health checks", async () => {
+    const kioskChannel = createKioskChannel();
+    const kiosk = createCaller(kioskChannel, "https://192.168.1.10:3000");
+    const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
+    const iterator = commands[Symbol.asyncIterator]();
+    const received = iterator.next();
+    await Bun.sleep(0);
+
+    expect(
+      await kiosk.booth.reportKioskStatus({
+        pageId: "kiosk",
+        camera: { status: "ready", error: null },
+      }),
+    ).toEqual({ registered: true });
+    expect(kioskChannel.listPages()[0]?.camera).toEqual({
+      status: "ready",
+      error: null,
+    });
+
+    kioskChannel.broadcast(RELOAD);
+    await received;
     await iterator.return?.();
   });
 

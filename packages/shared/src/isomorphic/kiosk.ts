@@ -34,6 +34,31 @@ export const KIOSK_COMMAND_SCHEMA = z.discriminatedUnion("type", [
   }),
 ]);
 
+/**
+ * The camera of a kiosk page, as the page last reported it. Mirrors the
+ * Shutter's `useUserMedia` states.
+ */
+export const KIOSK_CAMERA_STATUSES = [
+  "initializing",
+  "ready",
+  "error",
+  "unsupported",
+] as const;
+
+export const kioskCameraSchema = z.object({
+  status: z.enum(KIOSK_CAMERA_STATUSES),
+  error: z.string().max(200).nullable(),
+});
+
+/**
+ * What a kiosk page reports about itself (`booth.reportKioskStatus`).
+ * `camera` is null while the page runs no camera, e.g. the Darkroom's PIN
+ * screen.
+ */
+export const kioskPageStatusSchema = z.object({
+  camera: kioskCameraSchema.nullable(),
+});
+
 /** Identifies one kiosk page load on one device, and the screen it shows. */
 export const kioskPageSchema = z.object({
   pageId: z.string().trim().min(1).max(64),
@@ -43,5 +68,7 @@ export const kioskPageSchema = z.object({
 
 export type KioskReloadMode = z.infer<typeof kioskReloadModeSchema>;
 export type KioskScreen = z.infer<typeof kioskScreenSchema>;
+export type KioskCamera = z.infer<typeof kioskCameraSchema>;
+export type KioskPageStatus = z.infer<typeof kioskPageStatusSchema>;
 export type KioskCommand = z.infer<typeof KIOSK_COMMAND_SCHEMA>;
 export type KioskPage = z.infer<typeof kioskPageSchema>;

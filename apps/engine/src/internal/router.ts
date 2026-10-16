@@ -18,6 +18,7 @@ export const engineRouter = router({
     prepareReceipt: receipt.prepareReceipt,
     printPreparedReceipt: receipt.printPreparedReceipt,
     onKioskCommand: kiosk.onKioskCommand,
+    reportKioskStatus: kiosk.reportKioskStatus,
     unlockDarkroom: darkroom.unlockDarkroom,
     lockDarkroom: darkroom.lockDarkroom,
   }),

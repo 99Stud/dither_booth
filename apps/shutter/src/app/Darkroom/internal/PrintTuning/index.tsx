@@ -23,6 +23,7 @@ import { Contrast, ReceiptText, SlidersHorizontal } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 
 import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { useKioskCameraReporter } from "#lib/kiosk/kiosk-camera";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 import type { PrintConfigurationFormValues } from "./internal/PrintConfiguration.types";
@@ -57,6 +58,9 @@ export const PrintTuning = ({
   renderHeader: (tabs: ReactNode) => ReactNode;
 }) => {
   const webcamRef = useRef<WebcamHandle>(null);
+  const onCameraStateChange = useKioskCameraReporter(
+    reportUserMediaCameraStateChange,
+  );
 
   const trpc = useTRPC();
 
@@ -215,7 +219,7 @@ export const PrintTuning = ({
           isRefreshDisabled={isRefreshingActivePreview}
           previewSrc={activePreviewSrc}
           onRefreshPreview={refreshActivePreview}
-          onCameraStateChange={reportUserMediaCameraStateChange}
+          onCameraStateChange={onCameraStateChange}
           onConstraintFallbackError={reportUserMediaConstraintFallbackError}
         />
         <Card

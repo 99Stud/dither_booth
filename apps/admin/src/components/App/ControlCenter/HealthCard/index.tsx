@@ -29,6 +29,7 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 
 import type { HealthzResponse } from "./internal/HealthCard.types";
 
+import { CameraAccordionItem } from "./internal/components/CameraAccordionItem";
 import { HealthzAccordionItem } from "./internal/components/HealthzAccordionItem";
 import { KioskReloadSection } from "./internal/components/KioskReloadSection";
 import { PrinterAccordionItem } from "./internal/components/PrinterAccordionItem";
@@ -38,7 +39,10 @@ import {
   KIOSK_RELOAD_HEALTHZ_REFETCH_DELAY_MS,
   RESTART_HEALTHZ_REFETCH_DELAY_MS,
 } from "./internal/HealthCard.constants";
-import { requestPm2ServiceRestart } from "./internal/HealthCard.utils";
+import {
+  getKioskCameraHealth,
+  requestPm2ServiceRestart,
+} from "./internal/HealthCard.utils";
 
 const extractUnhealthyServicesCount = (healthz: HealthzResponse) => {
   let unhealthyServicesCount = 0;
@@ -56,6 +60,11 @@ const extractUnhealthyServicesCount = (healthz: HealthzResponse) => {
   }
 
   if (!healthz.printer.healthz.ok) {
+    unhealthyServicesCount++;
+  }
+
+  // Only a failed camera counts: none running (no kiosk) isn't a failure.
+  if (getKioskCameraHealth(healthz.shutter.kiosk.pages) === false) {
     unhealthyServicesCount++;
   }
 
@@ -99,7 +108,8 @@ export const HealthCard = () => {
     healthz.shutter.healthz.ok &&
     healthz.engine.healthz.ok &&
     healthz.puppeteer.healthz.ok &&
-    healthz.printer.healthz.ok;
+    healthz.printer.healthz.ok &&
+    getKioskCameraHealth(healthz.shutter.kiosk.pages) !== false;
 
   const unhealthyServices = isHealthzSuccess
     ? extractUnhealthyServicesCount(healthz)
@@ -326,6 +336,12 @@ export const HealthCard = () => {
             isRestarting={isRestarting}
             isRestartingPuppeteer={isRestartPuppeteerPending}
             onRestart={reinitializePuppeteer}
+          />
+          <CameraAccordionItem
+            isHealthzPending={isHealthzPending}
+            isHealthzSuccess={isHealthzSuccess}
+            isHealthzError={isHealthzError}
+            healthz={healthz}
           />
           <PrinterAccordionItem
             isHealthzPending={isHealthzPending}
