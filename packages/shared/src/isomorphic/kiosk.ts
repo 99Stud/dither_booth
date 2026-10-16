@@ -32,6 +32,15 @@ export const KIOSK_COMMAND_SCHEMA = z.discriminatedUnion("type", [
     screen: kioskScreenSchema,
     commandId: z.string().min(1),
   }),
+  /**
+   * Maintenance on or off. Unlike the other commands it is state: the engine
+   * also sends it to every page as it connects, so a reload stays locked.
+   */
+  z.object({
+    type: z.literal("maintenance"),
+    enabled: z.boolean(),
+    commandId: z.string().min(1),
+  }),
 ]);
 
 /**
@@ -53,10 +62,12 @@ export const kioskCameraSchema = z.object({
 /**
  * What a kiosk page reports about itself (`booth.reportKioskStatus`).
  * `camera` is null while the page runs no camera, e.g. the Darkroom's PIN
- * screen.
+ * screen. `maintenance` is whether the page shows the maintenance screen
+ * right now, which lags the setting while a guest finishes their visit.
  */
 export const kioskPageStatusSchema = z.object({
   camera: kioskCameraSchema.nullable(),
+  maintenance: z.boolean(),
 });
 
 /** Identifies one kiosk page load on one device, and the screen it shows. */

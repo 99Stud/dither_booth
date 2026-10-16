@@ -7,6 +7,7 @@ import { CaptureFlash } from "./internal/components/CaptureFlash/index";
 import { DarkroomHotspot } from "./internal/components/DarkroomHotspot/index";
 import { FrozenPhoto } from "./internal/components/FrozenPhoto/index";
 import { IntroChrome } from "./internal/components/IntroChrome/index";
+import { MaintenanceScreen } from "./internal/components/MaintenanceScreen/index";
 import { PostPrintStage } from "./internal/components/PostPrintStage/index";
 import { SlotMachineStage } from "./internal/components/SlotMachineStage/index";
 import { StartExperienceButton } from "./internal/components/StartExperienceButton/index";
@@ -27,6 +28,7 @@ export const Experience = () => {
     isCameraVisible,
     isFrozenPhotoVisible,
     isIntroDecorationsVisible,
+    isMaintenance,
     isPostPrintVisible,
     isPromptVisible,
     isSlotVisible,
@@ -57,6 +59,7 @@ export const Experience = () => {
         onAnimationComplete={handleStartButtonAnimationComplete}
         onStart={handleStartExperience}
       />
+      <MaintenanceScreen isVisible={isMaintenance} />
       <div className={experienceStageClassName}>
         <CameraStage
           countdown={countdown}

@@ -11,22 +11,75 @@ import type { ExperiencePhase } from "../Experience.machine";
 import { KIOSK_RELOAD_IDLE_TIMEOUT_MS } from "../Experience.constants";
 import {
   getKioskCommandTiming,
+  isMaintenanceShown,
+  type KioskMaintenance,
   type PendingKioskCommand,
   toPendingKioskCommand,
 } from "../Experience.kiosk";
 
 /**
  * Listens on the kiosk channel and runs the operator's commands (reload,
- * open the Darkroom) once the guest's visit allows it.
+ * open the Darkroom) once the guest's visit allows it. Returns whether the
+ * maintenance screen shows.
  */
 export const useKioskCommands = (phase: ExperiencePhase) => {
   const navigate = useNavigate();
   const [pending, setPending] = useState<PendingKioskCommand>();
+  const [maintenance, setMaintenance] = useState<KioskMaintenance>();
+  const [isMaintenance, setIsMaintenance] = useState(false);
 
-  useKioskCommandStream("shutter", (command) => {
+  useKioskCommandStream("shutter", isMaintenance, (command) => {
+    if (command.type === "maintenance") {
+      // Every (re)connection restates it: keep the first request's time so
+      // the wait for the guest doesn't start over.
+      setMaintenance((current) =>
+        current?.enabled === command.enabled
+          ? current
+          : { enabled: command.enabled, requestedAt: Date.now() },
+      );
+      return;
+    }
+
     const next = toPendingKioskCommand(command, Date.now());
     if (next) setPending(next);
   });
+
+  useEffect(() => {
+    const isDue = () =>
+      isMaintenanceShown({
+        isShown: isMaintenance,
+        maintenance,
+        now: Date.now(),
+        phase,
+      });
+
+    if (isDue() !== isMaintenance) {
+      logKioskEvent(
+        "info",
+        SHUTTER_KIOSK_LOG_SOURCE,
+        isMaintenance ? "kiosk-maintenance-hidden" : "kiosk-maintenance-shown",
+        { details: { phase } },
+      );
+      setIsMaintenance(!isMaintenance);
+      return;
+    }
+
+    if (isMaintenance || !maintenance?.enabled) return;
+
+    // Waiting for the guest: re-checked on every phase change by this
+    // effect; the timer covers a flow that never gets back to idle.
+    const timeoutId = window.setTimeout(
+      () => {
+        if (isDue()) setIsMaintenance(true);
+      },
+      Math.max(
+        0,
+        maintenance.requestedAt + KIOSK_RELOAD_IDLE_TIMEOUT_MS - Date.now(),
+      ),
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isMaintenance, maintenance, phase]);
 
   useEffect(() => {
     if (!pending) return;
@@ -78,4 +131,6 @@ export const useKioskCommands = (phase: ExperiencePhase) => {
 
     return () => window.clearTimeout(timeoutId);
   }, [navigate, pending, phase]);
+
+  return isMaintenance;
 };

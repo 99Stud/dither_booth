@@ -17,15 +17,19 @@ export type KioskPageConnection = KioskPage &
  * In-memory push channel from the engine to the kiosk pages. Each page holds
  * one subscription; a command reaches the pages connected when it is sent and
  * is never replayed, so a page that reconnects later can't reload in a loop.
+ * State a page needs on (re)connecting, like maintenance, is passed as the
+ * subscription's `initial` command instead.
  */
 export type KioskChannel = {
   /**
-   * Registers the page straight away and streams the commands broadcast from
-   * then on, until `signal` aborts or the caller stops iterating.
+   * Registers the page straight away and streams `initial`, if given, then
+   * the commands broadcast from then on, until `signal` aborts or the caller
+   * stops iterating.
    */
   subscribe: (
     page: KioskPage,
     signal?: AbortSignal,
+    initial?: KioskCommand,
   ) => AsyncGenerator<KioskCommand, void, undefined>;
   /** Sends a command to every connected page and returns how many got it. */
   broadcast: (command: KioskCommand) => number;
@@ -49,8 +53,10 @@ export function createKioskChannel(): KioskChannel {
     connection: symbol,
     commands: AsyncIterableIterator<unknown[]>,
     signal: AbortSignal | undefined,
+    initial: KioskCommand | undefined,
   ): AsyncGenerator<KioskCommand, void, undefined> {
     try {
+      if (initial) yield initial;
       for await (const [command] of commands) {
         yield command as KioskCommand;
       }
@@ -66,7 +72,7 @@ export function createKioskChannel(): KioskChannel {
   async function* noCommands(): AsyncGenerator<KioskCommand, void, undefined> {}
 
   return {
-    subscribe(page, signal) {
+    subscribe(page, signal, initial) {
       if (signal?.aborted) return noCommands();
 
       const connection = Symbol(page.pageId);
@@ -77,6 +83,7 @@ export function createKioskChannel(): KioskChannel {
       pages.set(connection, {
         ...page,
         camera: null,
+        maintenance: false,
         connectedAt: new Date(),
         reportedAt: null,
       });
@@ -84,7 +91,7 @@ export function createKioskChannel(): KioskChannel {
         once: true,
       });
 
-      return streamCommands(connection, commands, signal);
+      return streamCommands(connection, commands, signal, initial);
     },
     broadcast(command) {
       const reached = pages.size;

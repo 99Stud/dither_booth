@@ -274,6 +274,7 @@ describe("getKioskCameraHealth", () => {
     deviceId: "d",
     screen: "shutter" as const,
     camera,
+    maintenance: false,
     connectedAt: "2026-10-16T09:00:00.000Z",
     reportedAt: null,
   });

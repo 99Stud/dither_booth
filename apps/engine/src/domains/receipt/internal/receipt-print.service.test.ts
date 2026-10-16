@@ -25,7 +25,10 @@ import {
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
-import { createKioskChannel } from "#domains/kiosk/kiosk.service";
+import {
+  createKioskChannel,
+  createKioskMaintenance,
+} from "#domains/kiosk/kiosk.service";
 import {
   insertLotteryEvent,
   insertPrizeWithStock,
@@ -147,6 +150,7 @@ function createCtx(db: DB) {
     db,
     darkroomAccess: createDarkroomAccessStub(),
     kioskChannel: createKioskChannel(),
+    kioskMaintenance: createKioskMaintenance({ db }),
     mode: "production",
     printerUSBAdapter: USB_ADAPTER,
     processManager: "unknown",

@@ -7,11 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
+import { Separator } from "@dither-booth/ui/components/ui/separator";
+import { Switch } from "@dither-booth/ui/components/ui/switch";
 import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@dither-booth/ui/components/ui/toggle-group";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
 import { Camera, Monitor, SlidersHorizontal } from "lucide-react";
@@ -27,6 +29,7 @@ import {
   BOOTH_MODE_SWITCH_TIMEOUT_MS,
   BOOTH_MODE_SWITCHING_POLL_MS,
 } from "./internal/BoothScreenCard.constants";
+import { getMaintenanceStatus } from "./internal/BoothScreenCard.utils";
 
 /**
  * The booth screen's modes, as staff name them. The engine calls them kiosk
@@ -51,19 +54,30 @@ const isKioskScreen = (value: unknown): value is KioskScreen =>
   MODE_OPTIONS.some((option) => option.value === value);
 
 /**
- * What the booth screen is doing, and the switch to change it: one tile per
+ * What the booth screen is doing, and the switches to change it: one tile per
  * mode, the lit one being the screen's mode right now. The Darkroom opens once
  * the current guest is done, on its PIN screen; going back to the photo booth
- * locks it.
+ * locks it. Below, maintenance tells guests to come back later, also once
+ * the current guest is done; it is saved, so it holds while the screen is
+ * offline or reloads, and the Darkroom still opens.
  */
 export const BoothScreenCard = () => {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [requested, setRequested] = useState<KioskScreen>();
   const healthzQuery = useQuery(
     trpc.ops.getHealthz.queryOptions(undefined, {
-      refetchInterval: requested
-        ? BOOTH_MODE_SWITCHING_POLL_MS
-        : BOOTH_MODE_POLL_MS,
+      refetchInterval: (query) => {
+        const kiosk = query.state.data?.shutter.kiosk;
+        const isMaintenancePending =
+          kiosk?.maintenance.enabled === true &&
+          kiosk.pages.length > 0 &&
+          !kiosk.pages.some((page) => page.maintenance);
+
+        return requested || isMaintenancePending
+          ? BOOTH_MODE_SWITCHING_POLL_MS
+          : BOOTH_MODE_POLL_MS;
+      },
       // Alone: it waits on the Shutter, which may be the thing that's down.
       trpc: { context: { skipBatch: true } },
     }),
@@ -74,8 +88,12 @@ export const BoothScreenCard = () => {
   const { mutateAsync: showKioskScreen, isPending } = useMutation(
     trpc.ops.showKioskScreen.mutationOptions(),
   );
+  const maintenanceMutation = useMutation(
+    trpc.ops.setKioskMaintenance.mutationOptions(),
+  );
 
-  const pages = healthzQuery.data?.shutter.kiosk.pages;
+  const kiosk = healthzQuery.data?.shutter.kiosk;
+  const pages = kiosk?.pages;
   const current: KioskScreen | undefined = pages?.length
     ? pages.some((page) => page.screen === "darkroom")
       ? "darkroom"
@@ -120,6 +138,32 @@ export const BoothScreenCard = () => {
         : "Back to the photo booth. Darkroom locked.",
     );
   };
+
+  const setMaintenance = async (enabled: boolean) => {
+    const result = await maintenanceMutation
+      .mutateAsync({ enabled })
+      .catch((error) => {
+        reportKioskError(error, {
+          event: "control-center-maintenance-failed",
+          source: CONTROL_CENTER_LOG_SOURCE,
+          userMessage: "Couldn't change maintenance.",
+        });
+      });
+
+    await queryClient.invalidateQueries(trpc.ops.getHealthz.queryFilter());
+    if (result)
+      notify.success(enabled ? "Maintenance on." : "Back in service.");
+  };
+
+  // The switch shows the request while it is on its way, then what is saved.
+  const isMaintenanceOn = maintenanceMutation.isPending
+    ? maintenanceMutation.variables.enabled
+    : (kiosk?.maintenance.enabled ?? false);
+  const maintenanceStatus = getMaintenanceStatus({
+    enabled: isMaintenanceOn,
+    isShown: pages?.some((page) => page.maintenance) ?? false,
+    screen: current,
+  });
 
   const selected = requested ?? current;
   const isSwitching = requested !== undefined && requested !== current;
@@ -200,6 +244,34 @@ export const BoothScreenCard = () => {
                 .
               </>
             )}
+          </p>
+        )}
+        <Separator className={clsx("my-1")} />
+        <div className={clsx("flex items-start justify-between gap-4")}>
+          <div className={clsx("min-w-0")}>
+            <label
+              className={clsx("text-sm font-medium")}
+              htmlFor="booth-maintenance"
+            >
+              Maintenance
+            </label>
+            <p className={clsx("text-sm text-muted-foreground")}>
+              Guests see “be right back”. The Darkroom still opens.
+            </p>
+          </div>
+          <Switch
+            id="booth-maintenance"
+            checked={isMaintenanceOn}
+            disabled={!kiosk || maintenanceMutation.isPending}
+            onCheckedChange={(checked) => void setMaintenance(checked)}
+          />
+        </div>
+        {maintenanceStatus && (
+          <p
+            className={clsx("text-sm text-muted-foreground")}
+            aria-live="polite"
+          >
+            {maintenanceStatus}
           </p>
         )}
       </CardContent>
