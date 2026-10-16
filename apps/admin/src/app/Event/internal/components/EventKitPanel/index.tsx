@@ -1,4 +1,5 @@
 import type { KitCopyOverrides } from "@dither-booth/shared/kit-copy";
+import type { KitFontOverrides } from "@dither-booth/shared/kit-fonts";
 import type {
   CameraScreen,
   KitId,
@@ -78,11 +79,13 @@ import { KIT_FIELD_OPTIONS } from "../../Event.constants";
 import { KitBackgroundSection } from "./internal/KitBackgroundSection";
 import { KitCameraSection } from "./internal/KitCameraSection";
 import { KitCopyField } from "./internal/KitCopyField";
+import { KitFontsSection } from "./internal/KitFontsSection";
 
 /** What the tab edits, in the shape it is saved in. */
 type KitDraft = {
   kitId: KitId;
   copy: KitCopyOverrides;
+  fonts?: KitFontOverrides;
   background?: BackgroundSettings;
   camera?: Partial<CameraScreen>;
 };
@@ -90,6 +93,7 @@ type KitDraft = {
 const toDraft = (event: CurrentEvent): KitDraft => ({
   kitId: event.campaign.kitId,
   copy: event.campaign.kitSettings.copy ?? {},
+  fonts: event.campaign.kitSettings.fonts,
   background: event.campaign.kitSettings.background,
   camera: event.campaign.kitSettings.camera,
 });
@@ -134,6 +138,11 @@ const toSettings = (draft: KitDraft): KitSettings => {
     const value = draft.copy[key]?.trim();
     if (value !== undefined && value !== manifest.copy[key]) copy[key] = value;
   }
+  const fonts: KitFontOverrides = {};
+  for (const [role, font] of Object.entries(draft.fonts ?? {})) {
+    const key = role as keyof KitFontOverrides;
+    if (font !== manifest.fonts[key]) fonts[key] = font;
+  }
   const camera: Partial<CameraScreen> = {};
   for (const [key, value] of Object.entries(draft.camera ?? {})) {
     const cameraKey = key as keyof CameraScreen;
@@ -145,6 +154,7 @@ const toSettings = (draft: KitDraft): KitSettings => {
 
   return {
     ...(Object.keys(copy).length > 0 ? { copy } : {}),
+    ...(Object.keys(fonts).length > 0 ? { fonts } : {}),
     ...(background ? { background } : {}),
     ...(Object.keys(camera).length > 0 ? { camera } : {}),
   };
@@ -226,9 +236,9 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
             Kit
           </CardTitle>
           <CardDescription>
-            The kit sets how the booth screen and the tickets look. The shader,
-            the camera screen and the text below start from the kit&apos;s own;
-            in the text, wrap words in ** to make them bold.
+            The kit sets how the booth screen and the tickets look. The fonts,
+            the shader, the camera screen and the text below start from the
+            kit&apos;s own; in the text, wrap words in ** to make them bold.
           </CardDescription>
         </CardHeader>
         <CardContent className={clsx("flex flex-col gap-4")}>
@@ -243,7 +253,7 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
               value={draft.kitId}
               onValueChange={(value) => {
                 if (value) {
-                  // Shader and camera tuning start from a kit's look, so a
+                  // Fonts, shader and camera start from a kit's look, so a
                   // new kit starts them over; the text edits carry across.
                   setDraft((current) => ({
                     kitId: value as KitId,
@@ -296,12 +306,21 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
             setDraft((current) => ({ ...current, background }))
           }
         />
-        <KitCameraSection
-          kitId={draft.kitId}
-          value={draft.camera}
-          backgroundHighlight={getBackgroundHighlight(shaderPreview)}
-          onChange={(camera) => setDraft((current) => ({ ...current, camera }))}
-        />
+        <div className={clsx("flex flex-col gap-4 md:gap-6")}>
+          <KitFontsSection
+            kitId={draft.kitId}
+            value={draft.fonts}
+            onChange={(fonts) => setDraft((current) => ({ ...current, fonts }))}
+          />
+          <KitCameraSection
+            kitId={draft.kitId}
+            value={draft.camera}
+            backgroundHighlight={getBackgroundHighlight(shaderPreview)}
+            onChange={(camera) =>
+              setDraft((current) => ({ ...current, camera }))
+            }
+          />
+        </div>
       </div>
 
       <div className={clsx("grid items-start gap-4 md:gap-6 xl:grid-cols-2")}>

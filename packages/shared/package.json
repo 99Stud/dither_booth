@@ -26,6 +26,7 @@
     "./background-controls": "./src/isomorphic/background-controls.ts",
     "./backgrounds": "./src/isomorphic/backgrounds.ts",
     "./kit-copy": "./src/isomorphic/kit-copy.ts",
+    "./kit-fonts": "./src/isomorphic/kit-fonts.ts",
     "./kits": "./src/isomorphic/kits.ts",
     "./lottery": "./src/isomorphic/lottery.ts",
     "./printing": "./src/isomorphic/printing.ts",

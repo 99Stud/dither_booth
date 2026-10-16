@@ -17,6 +17,12 @@ import {
   kitCopyOverridesSchema,
   readKitCopyOverrides,
 } from "#isomorphic/kit-copy";
+import {
+  kitFontOverridesSchema,
+  readKitFontOverrides,
+  type KitFontOverrides,
+  type KitFonts,
+} from "#isomorphic/kit-fonts";
 
 /**
  * Kits compiled into this release. An event stores its kit as free text
@@ -41,6 +47,8 @@ export type KitManifest = {
   label: string;
   /** The kit's own text, which an event's edits override key by key. */
   copy: KitCopy;
+  /** The kit's font for each role, which an event can swap. */
+  fonts: KitFonts;
   /** The kit's shader and its own look; an event moves its controls. */
   background: BackgroundPreset;
   /** The CRT over the camera square. */
@@ -70,6 +78,11 @@ export const cameraScreenOverridesSchema = cameraScreenSchema
 export const KIT_MANIFESTS = {
   tartines: {
     label: "Tartines",
+    fonts: {
+      display: "pp-neue-bit",
+      body: "ibm-plex-sans",
+      mono: "geist-mono",
+    },
     background: BACKGROUND_PRESETS.fluid,
     camera: { crtLines: true, wash: true, tint: "background", strength: 50 },
     copy: {
@@ -108,6 +121,7 @@ export const KIT_MANIFESTS = {
 export const kitSettingsSchema = z
   .object({
     copy: kitCopyOverridesSchema.optional(),
+    fonts: kitFontOverridesSchema.optional(),
     background: backgroundSettingsSchema.optional(),
     camera: cameraScreenOverridesSchema.optional(),
   })
@@ -115,6 +129,7 @@ export const kitSettingsSchema = z
 
 export type KitSettings = {
   copy?: z.infer<typeof kitCopyOverridesSchema>;
+  fonts?: KitFontOverrides;
   background?: BackgroundSettings;
   camera?: Partial<CameraScreen>;
 };
@@ -128,6 +143,7 @@ export type ResolvedCameraScreen = Omit<CameraScreen, "tint"> & {
 export type ResolvedKit = {
   kitId: KitId;
   copy: KitCopy;
+  fonts: KitFonts;
   background: BackgroundPreset;
   camera: ResolvedCameraScreen;
 };
@@ -184,7 +200,7 @@ export function readKitSettings(stored: unknown): {
     return { settings: {}, rejectedKeys: [] };
   }
 
-  const { copy, background, camera, ...rest } = stored as Record<
+  const { copy, fonts, background, camera, ...rest } = stored as Record<
     string,
     unknown
   >;
@@ -196,6 +212,12 @@ export function readKitSettings(stored: unknown): {
     settings.copy = readCopy.overrides;
   }
   rejectedKeys.push(...readCopy.rejectedKeys.map((key) => `copy.${key}`));
+
+  const readFonts = readKitFontOverrides(fonts);
+  if (Object.keys(readFonts.overrides).length > 0) {
+    settings.fonts = readFonts.overrides;
+  }
+  rejectedKeys.push(...readFonts.rejectedKeys.map((key) => `fonts.${key}`));
 
   const readBackground = readBackgroundSettings(background);
   if (readBackground.settings) settings.background = readBackground.settings;
@@ -223,6 +245,7 @@ export function resolveKit(kitId: KitId, settings: KitSettings): ResolvedKit {
   return {
     kitId,
     copy: { ...manifest.copy, ...settings.copy },
+    fonts: { ...manifest.fonts, ...settings.fonts },
     background,
     camera: {
       ...camera,

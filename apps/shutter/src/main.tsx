@@ -21,6 +21,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
+import { applyKitFonts, waitForKitFonts } from "#kits/kitFonts";
 import { installKioskFullscreen } from "#lib/kiosk-fullscreen";
 import { router } from "#lib/router/index";
 import {
@@ -79,15 +80,18 @@ installReceiptViewerNavigationBridge({
     const search = buildReceiptViewerSearch(options);
     // Every ticket prints with the kit as it stands now: this page lives for
     // the whole event, and an admin save can land between two prints.
-    await queryClient.fetchQuery({
+    const kit = await queryClient.fetchQuery({
       ...trpc.booth.getKit.queryOptions(),
       staleTime: 0,
     });
+    applyKitFonts(kit.fonts);
     // Function form ignores previous params so lottery fields cannot leak/stick.
     await router.navigate({
       to: RECEIPT_VIEWER_PATH,
       search: () => search,
     });
+    // The engine screenshots as soon as this resolves.
+    await waitForKitFonts();
   },
 });
 

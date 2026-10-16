@@ -5,6 +5,8 @@ import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, type FC } from "react";
 
 import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants";
+import { applyKitFonts } from "#kits/kitFonts";
+import { useKit } from "#kits/useKit";
 import { useDarkroomTheme } from "#lib/darkroom/darkroom-theme";
 import { reportKioskError } from "#lib/logging/logging.utils";
 
@@ -32,6 +34,14 @@ export const Root: FC = () => {
       root.classList.remove("saas", "dark");
     };
   }, [isDarkroom, darkroomTheme.resolved]);
+
+  const kitFonts = useKit().fonts;
+
+  // The kiosk and the tickets wear the kit's fonts; the Darkroom wears the
+  // shared theme's.
+  useEffect(() => {
+    applyKitFonts(isDarkroom ? null : kitFonts);
+  }, [isDarkroom, kitFonts]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("kiosk-shell", isKioskShell);
