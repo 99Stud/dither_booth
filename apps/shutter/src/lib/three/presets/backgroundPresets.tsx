@@ -76,7 +76,8 @@ const KIOSK_POST_PROCESSING: PostProcessingSettings = {
     backgroundBrightness: 0.56,
     smoothness: 0.1,
   },
-  bloom: { strength: 0.43, radius: 0.32, threshold: 0.12 },
+  // main's look before presets: `bloom(inputNode, 0.53, 0.35, 0.12)`.
+  bloom: { strength: 0.53, radius: 0.35, threshold: 0.12 },
   film: { strength: 0.5 },
   scanlines: { thickness: 6.2, intensity: 0.42, speed: 1, focus: 4.1 },
 };

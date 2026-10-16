@@ -245,6 +245,11 @@ export class ThreeEnvironment {
         return new FluidBackground({ settings: preset.settings, size, splats });
       case "smoke":
         return new SmokeBackground({ settings: preset.settings, size, splats });
+      default: {
+        // A new background must be wired here before it compiles.
+        const unhandled: never = preset;
+        throw new Error(`Unknown background ${JSON.stringify(unhandled)}`);
+      }
     }
   }
 
