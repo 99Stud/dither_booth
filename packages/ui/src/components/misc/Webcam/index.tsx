@@ -43,6 +43,14 @@ export const Webcam: FC<WebcamProps> = ({
     ref,
     () => ({
       cameraState,
+      getVideoTrack: () => {
+        const stream = videoRef.current?.srcObject;
+        const track =
+          stream instanceof MediaStream
+            ? stream.getVideoTracks()[0]
+            : undefined;
+        return track?.readyState === "live" ? track : null;
+      },
       prewarmPhotoCapture,
       takePhoto,
     }),
