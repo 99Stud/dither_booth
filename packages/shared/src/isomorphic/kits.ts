@@ -29,7 +29,7 @@ import {
  * (`campaign.kit_id`), checked against this list in code, so adding a kit
  * never needs a database migration.
  */
-export const KIT_IDS = ["tartines"] as const;
+export const KIT_IDS = ["tartines", "halloween-2026"] as const;
 
 export const kitIdSchema = z.enum(KIT_IDS);
 
@@ -75,42 +75,55 @@ export const cameraScreenOverridesSchema = cameraScreenSchema
   .partial()
   .strict();
 
+const TARTINES_FONTS: KitFonts = {
+  display: "pp-neue-bit",
+  body: "ibm-plex-sans",
+  mono: "geist-mono",
+};
+
+const TARTINES_COPY: KitCopy = {
+  "landing.poweredBy": "powered by **99stud**™",
+  "landing.start": "Press to start",
+  "landing.lotteryTitle": "lottery",
+  "landing.remainingPrizes": "**{count}** remaining prizes",
+  "landing.totalAttempts": "total: {count} attempts",
+  "landing.legalNotice": "legal_notice",
+  "prompts.stayInFrame": "stay in the frame",
+  "prompts.strikePose": "strike a pose :)",
+  "prompts.feelingLucky": "feeling lucky?",
+  "prompts.thatsIt": "that's it",
+  "prompts.printing": "printing...",
+  "maintenance.title": "be right back",
+  "maintenance.body":
+    "the booth is taking a short break. come back in a few minutes.",
+  "photoTicket.venueName": "Épicerie de Ginette",
+  "photoTicket.venueAddress": "24 Cr Albert Thomas, 69008 Lyon",
+  "photoTicket.itemsTitle": "ITEMS",
+  "photoTicket.totalLabel": "TOTAL",
+  "photoTicket.socialPrompt": "Join us on Instagram!",
+  "photoTicket.socialHandle": "@99stud",
+  "photoTicket.thanks": "Thanks for partying with us!",
+  "lotteryTicket.win": "WINNER!",
+  "lotteryTicket.loss": "LOSER!",
+  "lotteryTicket.lossJoke": "Spam won't help, sorry mate!",
+};
+
 export const KIT_MANIFESTS = {
   tartines: {
     label: "Tartines",
-    fonts: {
-      display: "pp-neue-bit",
-      body: "ibm-plex-sans",
-      mono: "geist-mono",
-    },
+    fonts: TARTINES_FONTS,
     background: BACKGROUND_PRESETS.fluid,
     camera: { crtLines: true, wash: true, tint: "background", strength: 50 },
-    copy: {
-      "landing.poweredBy": "powered by **99stud**™",
-      "landing.start": "Press to start",
-      "landing.lotteryTitle": "lottery",
-      "landing.remainingPrizes": "**{count}** remaining prizes",
-      "landing.totalAttempts": "total: {count} attempts",
-      "landing.legalNotice": "legal_notice",
-      "prompts.stayInFrame": "stay in the frame",
-      "prompts.strikePose": "strike a pose :)",
-      "prompts.feelingLucky": "feeling lucky?",
-      "prompts.thatsIt": "that's it",
-      "prompts.printing": "printing...",
-      "maintenance.title": "be right back",
-      "maintenance.body":
-        "the booth is taking a short break. come back in a few minutes.",
-      "photoTicket.venueName": "Épicerie de Ginette",
-      "photoTicket.venueAddress": "24 Cr Albert Thomas, 69008 Lyon",
-      "photoTicket.itemsTitle": "ITEMS",
-      "photoTicket.totalLabel": "TOTAL",
-      "photoTicket.socialPrompt": "Join us on Instagram!",
-      "photoTicket.socialHandle": "@99stud",
-      "photoTicket.thanks": "Thanks for partying with us!",
-      "lotteryTicket.win": "WINNER!",
-      "lotteryTicket.loss": "LOSER!",
-      "lotteryTicket.lossJoke": "Spam won't help, sorry mate!",
-    },
+    copy: TARTINES_COPY,
+  },
+  /** Tartines' tickets, fonts and text, on #18's charcoal smoke (Merlin's values). */
+  "halloween-2026": {
+    label: "Halloween 2026",
+    fonts: TARTINES_FONTS,
+    background: BACKGROUND_PRESETS.smoke,
+    // Charcoal is grey: no blue CRT over the camera (user, 2026-10-16).
+    camera: { crtLines: false, wash: false, tint: "background", strength: 50 },
+    copy: TARTINES_COPY,
   },
 } as const satisfies Record<KitId, KitManifest>;
 

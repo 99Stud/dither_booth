@@ -7,11 +7,13 @@ import { LotteryReceiptTemplate } from "#components/receipt-templates/LotteryRec
 
 import type { Kit, TicketComponent } from "./kit.types";
 
+import { HALLOWEEN_2026_KIT } from "./halloween-2026/index";
 import { TARTINES_KIT } from "./tartines/index";
 
 /** Every kit this release ships; a manifest without code fails to compile. */
 const KITS = {
   tartines: TARTINES_KIT,
+  "halloween-2026": HALLOWEEN_2026_KIT,
 } satisfies Record<KitId, Kit>;
 
 export function getKitTicket(

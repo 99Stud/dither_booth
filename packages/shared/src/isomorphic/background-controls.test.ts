@@ -194,3 +194,79 @@ describe("resolveKit background and camera", () => {
     expect(kit.camera).toMatchObject({ wash: false, tint: "#ff0000" });
   });
 });
+
+describe("halloween-2026", () => {
+  // Merlin's values from #18, confirmed by the user on 2026-10-16.
+  test("renders #18's charcoal smoke with Merlin's values, camera CRT off", () => {
+    const kit = resolveKit("halloween-2026", {});
+    expect(kit.background).toEqual({
+      effect: "smoke",
+      settings: {
+        simulation: {
+          simRes: 128,
+          dyeRes: 512,
+          iterations: 2,
+          idleFrames: 240,
+          densityDissipation: 0.98,
+          velocityDissipation: 0.913,
+          pressureDissipation: 0.99,
+          curlStrength: 8.5,
+          splatRadius: 0.3,
+        },
+        smoke: {
+          fieldScale: 0.35,
+          scale: 1.66,
+          speed: 0.08,
+          drift: [0.17, 0.6],
+          warp: 1.94,
+          turbulence: 0.85,
+          lacunarity: 1.42,
+          gain: 0.38,
+          rise: 0.25,
+          fluidStrength: 0.0063,
+          threshold: 0.33,
+          softness: 0.15,
+          smudge: 0.33,
+          haze: 0.34,
+          grit: 0.85,
+          grain: 0.31,
+          grainSize: 1.5,
+          grainFps: 8,
+          edgeWidth: 6.2,
+          edgeStrength: 17.5,
+          fresnelPower: 0.65,
+          edgeGrain: 1.53,
+          dotSize: 3.5,
+          dotDensity: 0.32,
+          dust: 0.017,
+          paperColor: "#a8a59f",
+          inkColor: "#333333",
+          paperTooth: 0.125,
+        },
+      },
+      postProcessing: {
+        ascii: {
+          cellSize: 4,
+          invert: 1,
+          color: 1,
+          charBrightness: 1.99,
+          backgroundBrightness: 0.56,
+          smoothness: 0.1,
+        },
+        bloom: { strength: 0.5, radius: 0.35, threshold: 0.12 },
+        film: { strength: 0.32 },
+        scanlines: { thickness: 9.2, intensity: 0.42, speed: 1, focus: 4.1 },
+      },
+      passes: {
+        ascii: true,
+        bloom: true,
+        crt: false,
+        film: true,
+        scanlines: true,
+      },
+    });
+    expect(kit.camera).toMatchObject({ crtLines: false, wash: false });
+    expect(kit.copy).toEqual(KIT_MANIFESTS.tartines.copy);
+    expect(kit.fonts).toEqual(KIT_MANIFESTS.tartines.fonts);
+  });
+});
