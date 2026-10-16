@@ -184,7 +184,7 @@ export const HealthCard = () => {
     }
 
     if (reloadResult.delivered === 0) {
-      notify.warning("The booth iPad is offline.");
+      notify.warning("The booth screen is offline.");
       return;
     }
 

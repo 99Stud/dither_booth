@@ -168,7 +168,7 @@ The engine can push commands to the kiosk pages, for example to reload a Shutter
   - `when-idle` reloads once the page is back on the landing screen, so a guest's visit is never cut off, and after 90 s anyway, since a stuck flow never gets back there.
   - `now` reloads straight away.
   - The Darkroom has no guest visit to wait for: it reloads straight away in both modes.
-- **`ops.showKioskScreen({ screen })`** (admin origin only) sends `{ type: "navigate", screen }` and returns `{ delivered }`. Admin's Control Center calls it from the Booth iPad card (Photo booth · Darkroom).
+- **`ops.showKioskScreen({ screen })`** (admin origin only) sends `{ type: "navigate", screen }` and returns `{ delivered }`. Admin's Control Center calls it from the Booth screen card (Photo booth · Darkroom).
   - `darkroom` opens the Darkroom's PIN screen once the Experience is back on the landing screen (90 s at most, like `when-idle`). The PIN is still needed: the command carries no session.
   - `shutter` locks the Darkroom (`booth.lockDarkroom`) and goes back to the landing screen straight away, so a kiosk left unattended is never left unlocked.
 - The channel lives in memory (`src/domains/kiosk/internal/kiosk.channel.ts`), one per engine process. A command reaches the pages connected when it is sent and is **never replayed**: a page that was offline misses it (and `delivered` says so) rather than reloading in a loop later.
