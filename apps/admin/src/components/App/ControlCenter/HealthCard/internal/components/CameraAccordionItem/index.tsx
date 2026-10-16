@@ -38,7 +38,7 @@ const describeCamera = (page: KioskPage) => {
 };
 
 /**
- * The booth iPad's camera, as each kiosk page last reported it. Only a page
+ * The booth camera, as each booth screen page last reported it. Only a page
  * connected to the engine can report: a closed or frozen tab shows as no
  * kiosk connected, never as a stale "ready".
  */
