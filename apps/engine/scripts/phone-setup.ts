@@ -74,7 +74,7 @@ const page = `<!doctype html>
     and turn on full trust for <em>mkcert development CA</em>.</li>
 </ol>
 <p>Then open the apps:</p>
-<a class="button" href="${shutterOrigin}">Shutter (the booth)</a>
+<a class="button" href="${shutterOrigin}">Shutter</a>
 <a class="button" href="${adminOrigin}">Admin</a>
 <a class="button secondary" href="${darkroomUrl}">Darkroom</a>
 <p><small>Tip: in Safari, Share → Add to Home Screen opens the admin full screen, like an app.
