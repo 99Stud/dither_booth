@@ -100,6 +100,9 @@ export async function initializePuppeteerReceiptViewer(): Promise<PuppeteerRecei
       handleSIGHUP: false,
       handleSIGINT: false,
       handleSIGTERM: false,
+      // Talks to Chrome over a pipe instead of a WebSocket, so Chrome exits
+      // when the engine dies, even on a crash or a `bun --watch` restart.
+      pipe: true,
     });
     state.launch = {
       ok: true,
