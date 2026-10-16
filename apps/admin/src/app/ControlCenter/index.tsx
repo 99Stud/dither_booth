@@ -21,10 +21,7 @@ export const ControlCenter = () => {
     <>
       <AppSidebarPageHeader title="Control center" />
       <AppPageBody>
-        <AppPageHeading
-          title={`${getGreeting()} 👋`}
-          description="Here's how the booth is doing."
-        />
+        <AppPageHeading title={`${getGreeting()} 👋`} />
         <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
           <HealthCard />
         </div>

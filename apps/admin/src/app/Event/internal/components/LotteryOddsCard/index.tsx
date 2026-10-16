@@ -68,11 +68,9 @@ export const LotteryOddsCard: FC<{
           </IconBubble>
           What guests can expect
         </CardTitle>
-        <CardDescription>
-          {enabled
-            ? "For each photo taken."
-            : "Once the lottery is live. Right now nobody wins."}
-        </CardDescription>
+        {!enabled && (
+          <CardDescription>The lottery is off: nobody wins.</CardDescription>
+        )}
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-5")}>
         {!hasPrizes ? (

@@ -6,7 +6,6 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -73,10 +72,6 @@ export const DarkroomCard = () => {
           </IconBubble>
           <h2>Darkroom</h2>
         </CardTitle>
-        <CardDescription>
-          Print tuning on the booth iPad, behind a PIN. Staff can also open it
-          by tapping the booth's top-left logo 4 times.
-        </CardDescription>
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-5")}>
         <KioskScreenToggle isPinSet={pinStatus?.isSet ?? false} />

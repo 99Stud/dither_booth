@@ -69,9 +69,8 @@ export const KioskReloadSection: FC<KioskReloadSectionProps> = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Reload the kiosk page?</AlertDialogTitle>
               <AlertDialogDescription>
-                Reload when idle waits for the current visit to end (90 s at
-                most). Reload now reloads straight away, even in the middle of a
-                visit.
+                When idle waits for the current visit to end (90 s at most). Now
+                interrupts it.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
