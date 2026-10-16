@@ -78,6 +78,23 @@ const applySquareConstraints = async (
   });
 };
 
+/** Why `getUserMedia` refused, in words staff can act on. */
+const describeCameraAccessError = (error: unknown) => {
+  const name = error instanceof DOMException ? error.name : undefined;
+
+  switch (name) {
+    case "NotAllowedError":
+      return "Camera permission denied.";
+    case "NotFoundError":
+    case "OverconstrainedError":
+      return "No camera found.";
+    case "NotReadableError":
+      return "The camera is in use by another app.";
+    default:
+      return "Camera access failed.";
+  }
+};
+
 const createCameraState = (
   status: CameraStatus,
   error: string | null = null,
@@ -227,6 +244,22 @@ export const useUserMedia = (params: UseUserMediaParams) => {
         const track = next.getVideoTracks()[0];
 
         if (track) {
+          // The camera can go away after it started: unplugged, or taken by
+          // the system (a call, another app), which mutes it until it's back.
+          track.addEventListener("ended", () => {
+            if (cancelled) return;
+            clearPhotoCapture();
+            updateCameraState("error", "The camera stopped.");
+          });
+          track.addEventListener("mute", () => {
+            if (cancelled) return;
+            updateCameraState("error", "The camera is paused by the system.");
+          });
+          track.addEventListener("unmute", () => {
+            if (cancelled || !photoCaptureCoordinatorRef.current) return;
+            updateCameraState("ready");
+          });
+
           const maxSquareSide = getMaxSquareSide(track);
 
           await applySquareConstraints(track, maxSquareSide).catch((e) => {
@@ -281,7 +314,7 @@ export const useUserMedia = (params: UseUserMediaParams) => {
       .catch((e) => {
         if (cancelled) return;
         clearPhotoCapture();
-        updateCameraState("error", "Camera access failed.", e);
+        updateCameraState("error", describeCameraAccessError(e), e);
       });
 
     return () => {
