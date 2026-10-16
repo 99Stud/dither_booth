@@ -16,7 +16,11 @@ const RELOAD: KioskCommand = {
   commandId: "command-1",
 };
 
-const page = (pageId: string) => ({ pageId, deviceId: `device-${pageId}` });
+const page = (pageId: string) => ({
+  pageId,
+  deviceId: `device-${pageId}`,
+  screen: "shutter" as const,
+});
 
 describe("createKioskChannel", () => {
   test("a broadcast reaches every connected page and reports how many", async () => {
@@ -134,7 +138,28 @@ describe("kiosk channel through the router", () => {
     expect(kioskChannel.listPages()).toEqual([]);
   });
 
-  test("the kiosk origin cannot send a reload", async () => {
+  test("the admin's navigate reaches the subscribed kiosk page", async () => {
+    const kioskChannel = createKioskChannel();
+    const kiosk = createCaller(kioskChannel, "https://192.168.1.10:3000");
+    const admin = createCaller(kioskChannel, ADMIN_ORIGIN);
+    const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
+    const iterator = commands[Symbol.asyncIterator]();
+    const received = iterator.next();
+    await Bun.sleep(0);
+
+    expect(await admin.ops.showKioskScreen({ screen: "darkroom" })).toEqual({
+      delivered: 1,
+    });
+    expect((await received).value).toMatchObject({
+      type: "navigate",
+      screen: "darkroom",
+    });
+    expect(kioskChannel.listPages()[0]?.screen).toBe("shutter");
+
+    await iterator.return?.();
+  });
+
+  test("the kiosk origin cannot send a reload or a navigate", async () => {
     const kiosk = createCaller(
       createKioskChannel(),
       "https://192.168.1.10:3000",
@@ -143,5 +168,8 @@ describe("kiosk channel through the router", () => {
     await expect(kiosk.ops.reloadKiosk({ mode: "now" })).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+    await expect(
+      kiosk.ops.showKioskScreen({ screen: "darkroom" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

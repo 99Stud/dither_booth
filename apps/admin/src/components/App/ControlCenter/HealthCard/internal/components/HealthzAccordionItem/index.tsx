@@ -154,11 +154,10 @@ export const HealthzAccordionItem: FC<HealthzAccordionItemProps> = ({
               <AlertDialogContent size="sm">
                 <AlertDialogHeader>
                   <AlertDialogTitle>
-                    Do you really want to restart a running service?
+                    Restart {HEALTHZ_SERVICE_LABELS[service]}?
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Restarting a running service will cause the service to stop
-                    and start again, affecting the experience.
+                    The booth is down while it restarts.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

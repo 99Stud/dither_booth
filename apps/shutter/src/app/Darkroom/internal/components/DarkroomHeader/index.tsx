@@ -3,14 +3,13 @@ import type { FC, ReactNode } from "react";
 import { ThemeToggle } from "@dither-booth/ui/components/misc/ThemeToggle";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import { Separator } from "@dither-booth/ui/components/ui/separator";
-import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import clsx from "clsx";
 import { Aperture, ArrowLeft, Lock } from "lucide-react";
 
 import { useDarkroomTheme } from "#lib/darkroom/darkroom-theme";
-import { clearDarkroomSession } from "#lib/darkroom/darkroom-token";
-import { useTRPC } from "#lib/trpc/trpc.client";
+
+import { useLockDarkroom } from "../../hooks/useLockDarkroom";
 
 /**
  * The Darkroom's app bar: who/where on the left, the print tuning tabs in
@@ -18,18 +17,9 @@ import { useTRPC } from "#lib/trpc/trpc.client";
  * touch layer sizes every control to 44 pt.
  */
 export const DarkroomHeader: FC<{ tabs: ReactNode }> = ({ tabs }) => {
-  const trpc = useTRPC();
   const navigate = useNavigate();
   const { preference, setPreference } = useDarkroomTheme();
-  const { mutateAsync: lockDarkroom, isPending } = useMutation(
-    trpc.booth.lockDarkroom.mutationOptions(),
-  );
-
-  const lock = async () => {
-    // The token is dropped locally even if the engine can't be reached.
-    await lockDarkroom().catch(() => undefined);
-    clearDarkroomSession();
-  };
+  const { lock, isPending } = useLockDarkroom();
 
   return (
     <header

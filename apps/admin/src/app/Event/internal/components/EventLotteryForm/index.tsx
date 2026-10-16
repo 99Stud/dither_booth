@@ -48,10 +48,10 @@ const COOLDOWN_SLIDER_MAX_MINUTES = 60;
 const firstValue = (value: number | readonly number[]) =>
   Array.isArray(value) ? (value[0] ?? 0) : (value as number);
 
-/** One setting: a plain-language label and hint, the control on the right. */
+/** One setting: a plain-language label and optional hint, the control on the right. */
 const SettingRow: FC<{
   label: string;
-  hint: ReactNode;
+  hint?: ReactNode;
   htmlFor?: string;
   control?: ReactNode;
   children?: ReactNode;
@@ -62,7 +62,9 @@ const SettingRow: FC<{
         <label className={clsx("text-sm font-medium")} htmlFor={htmlFor}>
           {label}
         </label>
-        <p className={clsx("text-sm text-muted-foreground")}>{hint}</p>
+        {hint && (
+          <p className={clsx("text-sm text-muted-foreground")}>{hint}</p>
+        )}
       </div>
       {control}
     </div>
@@ -149,11 +151,6 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
                   htmlFor="lottery-enabled"
                   label={
                     field.state.value ? "Lottery is live" : "Lottery is off"
-                  }
-                  hint={
-                    field.state.value
-                      ? "Each photo is a chance to win."
-                      : "Guests only get their photo."
                   }
                   control={
                     <Switch
@@ -267,8 +264,7 @@ export const EventLotteryForm: FC<EventLotteryFormProps> = (props) => {
                   label="No-win weight"
                 />
                 <p className={clsx("mt-1.5 text-xs text-muted-foreground")}>
-                  The weight of “no prize” next to the prize weights. The slider
-                  above sets it for you.
+                  The slider above sets it for you.
                 </p>
               </CollapsibleContent>
             </Collapsible>

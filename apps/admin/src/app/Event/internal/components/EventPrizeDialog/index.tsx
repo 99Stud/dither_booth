@@ -16,7 +16,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -229,7 +228,6 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
             </IconBubble>
             {mode === "create" ? "Add a prize" : "Edit prize"}
           </DialogTitle>
-          <DialogDescription>Winners see it on their ticket.</DialogDescription>
         </DialogHeader>
         <form
           className={clsx("flex flex-col gap-5")}
@@ -260,7 +258,7 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
             {(field) => (
               <FieldBlock
                 label="Rarity"
-                hint="Sets its default chance, the slot machine's reveal and the ticket's badge."
+                hint="Sets the default chance, the reveal and the ticket badge."
               >
                 <ToggleGroup
                   aria-label="Rarity"
@@ -496,10 +494,7 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
                 step="any"
               />
               <p className={clsx("mt-1.5 text-xs text-muted-foreground")}>
-                Its weight next to the other prizes and the no-win weight. The
-                chance above sets it for you; each rarity has a default (Common{" "}
-                {RARITY_DEFAULT_WEIGHTS.common}, Legendary{" "}
-                {RARITY_DEFAULT_WEIGHTS.legendary}).
+                The chance above sets it for you.
               </p>
             </CollapsibleContent>
           </Collapsible>

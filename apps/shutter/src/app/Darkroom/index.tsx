@@ -8,6 +8,7 @@ import { DarkroomHeader } from "./internal/components/DarkroomHeader";
 import { DarkroomHealthStrip } from "./internal/components/DarkroomHealthStrip";
 import { DarkroomUnlock } from "./internal/components/DarkroomUnlock";
 import { SampleTicketsCard } from "./internal/components/SampleTicketsCard";
+import { useDarkroomKioskCommands } from "./internal/hooks/useDarkroomKioskCommands";
 import { useDarkroomSessionGuard } from "./internal/hooks/useDarkroomSessionGuard";
 import { PrintTuning } from "./internal/PrintTuning";
 
@@ -37,10 +38,12 @@ const DarkroomWorkspace = () => {
 
 /**
  * Print tuning on the booth iPad, behind the Darkroom PIN. Opened with a
- * 4 quick taps on the landing screen's top-left logo, or at /darkroom.
+ * 4 quick taps on the landing screen's top-left logo, from admin's Control Center,
+ * or at /darkroom. Admin can send it back to the Shutter from there too.
  */
 export const Darkroom = () => {
   const session = useDarkroomSession();
+  useDarkroomKioskCommands();
 
   return session ? <DarkroomWorkspace /> : <DarkroomUnlock />;
 };

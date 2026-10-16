@@ -28,10 +28,8 @@ export const EventReplaceDialog: FC<EventReplaceDialogProps> = (props) => {
         <AlertDialogHeader>
           <AlertDialogTitle>Replace event?</AlertDialogTitle>
           <AlertDialogDescription>
-            This archives{" "}
-            <span className={clsx("font-medium")}>{eventName}</span>, then lets
-            you create a new event. Its lottery, prizes and draws are kept on
-            record but no longer used on this booth.
+            <span className={clsx("font-medium")}>{eventName}</span> is
+            archived. Its prizes and draws are kept.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

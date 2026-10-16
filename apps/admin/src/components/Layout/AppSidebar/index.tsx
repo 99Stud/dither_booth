@@ -23,7 +23,6 @@ import {
   APP_SETTINGS_LINK,
   APP_SIDEBAR_MENU_LINKS,
 } from "./internal/AppSidebar.constants";
-import { DarkroomSidebarLink } from "./internal/components/DarkroomSidebarLink";
 
 interface AppSidebarProps extends Omit<
   ComponentProps<typeof Sidebar>,
@@ -97,14 +96,6 @@ export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>On the booth</SidebarGroupLabel>
-          <SidebarMenu className={clsx("gap-1")}>
-            <SidebarMenuItem>
-              <DarkroomSidebarLink />
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

@@ -10,7 +10,6 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -149,9 +148,6 @@ export const EventTicketItemsCard: FC<{
           </IconBubble>
           Ticket items
         </CardTitle>
-        <CardDescription>
-          Printed on every photo receipt, in this order.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <form

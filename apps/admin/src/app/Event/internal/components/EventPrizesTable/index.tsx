@@ -28,7 +28,6 @@ import {
 } from "@dither-booth/ui/components/ui/dropdown-menu";
 import {
   Empty,
-  EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
@@ -197,9 +196,6 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
                   <Gift />
                 </EmptyMedia>
                 <EmptyTitle>No prizes yet</EmptyTitle>
-                <EmptyDescription>
-                  Add a first prize: guests can win it with each photo.
-                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
