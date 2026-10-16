@@ -25,6 +25,7 @@ import type {
   PostProcessingEffectNode,
   PostProcessingOptions,
   PostProcessingPassConfig,
+  PostProcessingSettings,
 } from "./postProcessing.types";
 
 import { createAsciiEffect } from "./effects/asciiEffect";
@@ -59,13 +60,14 @@ function createPassConfig(
 
 function createEffects(
   config: PostProcessingPassConfig,
+  settings: PostProcessingSettings,
 ): PostProcessingEffect[] {
   return [
-    createAsciiEffect(config.ascii.enabled),
-    createBloomEffect(config.bloom.enabled),
+    createAsciiEffect(config.ascii.enabled, settings.ascii),
+    createBloomEffect(config.bloom.enabled, settings.bloom),
     createCrtEffect(config.crt.enabled),
-    createFilmEffect(config.film.enabled),
-    createScanlinesEffect(config.scanlines.enabled),
+    createFilmEffect(config.film.enabled, settings.film),
+    createScanlinesEffect(config.scanlines.enabled, settings.scanlines),
   ];
 }
 
@@ -78,9 +80,18 @@ export class PostProcessingPipeline {
   private readonly _effects: PostProcessingEffect[];
   private _renderer: WebGPURenderer | null = null;
 
-  constructor(options: PostProcessingOptions = {}) {
+  constructor(
+    settings: PostProcessingSettings,
+    options: PostProcessingOptions = {},
+  ) {
     this.passes = createPassConfig(options);
-    this._effects = createEffects(this.passes);
+    this._effects = createEffects(this.passes, settings);
+  }
+
+  applySettings(settings: PostProcessingSettings): void {
+    for (const effect of this._effects) {
+      effect.applySettings?.(settings);
+    }
   }
 
   private setupMRT(scene: Scene, camera: Camera): TextureNode {
@@ -133,13 +144,15 @@ export class PostProcessingPipeline {
     this.postProcessing.outputNode = acesFilmicToneMapping(color, float(1.0));
   }
 
-  attachDebug(folder: ParametersGroup): void {
+  attachDebug(folder: ParametersGroup): ParametersGroup {
     const postFolder = folder.addFolder("Post Processing");
 
     for (const effect of this._effects) {
       if (!effect.enabled) continue;
       effect.attachDebug?.(postFolder);
     }
+
+    return postFolder;
   }
 
   render(): void {

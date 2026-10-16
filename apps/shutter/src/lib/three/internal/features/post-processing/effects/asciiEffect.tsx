@@ -32,8 +32,10 @@ import {
 } from "three/tsl";
 
 import type {
+  AsciiSettings,
   PostProcessingEffect,
   PostProcessingEffectNode,
+  PostProcessingSettings,
 } from "../postProcessing.types";
 
 import fntData from "./assets/eslava.fnt" with { type: "json" };
@@ -85,14 +87,14 @@ for (let i = 0; i < GLYPH_COUNT; i++) {
   glyphLutData[row1 + 3] = isSpace ? 0 : glyph.height / lineHeight;
 }
 
-function createAsciiUniforms() {
+function createAsciiUniforms(settings: AsciiSettings) {
   return {
-    uCellSize: uniform(20),
-    uInvert: uniform(1),
-    uColor: uniform(1.0),
-    uCharBrightness: uniform(1.98),
-    uBackgroundBrightness: uniform(0.56),
-    uSmoothness: uniform(0.1),
+    uCellSize: uniform(settings.cellSize),
+    uInvert: uniform(settings.invert),
+    uColor: uniform(settings.color),
+    uCharBrightness: uniform(settings.charBrightness),
+    uBackgroundBrightness: uniform(settings.backgroundBrightness),
+    uSmoothness: uniform(settings.smoothness),
   };
 }
 
@@ -110,8 +112,8 @@ function createGlyphLutTexture(): DataTexture {
   return texture;
 }
 
-function createAsciiResources() {
-  const uniforms = createAsciiUniforms();
+function createAsciiResources(settings: AsciiSettings) {
+  const uniforms = createAsciiUniforms(settings);
   const glyphLutTexture = createGlyphLutTexture();
   const uGlyphLUT: TextureNode = uniformTexture(glyphLutTexture);
   const uAtlas: TextureNode = uniformTexture();
@@ -272,11 +274,14 @@ function asciiNode(
   })();
 }
 
-export function createAsciiEffect(enabled: boolean): PostProcessingEffect {
+export function createAsciiEffect(
+  enabled: boolean,
+  settings: AsciiSettings,
+): PostProcessingEffect {
   let resources: AsciiResources | null = null;
 
   function getResources(): AsciiResources {
-    resources ??= createAsciiResources();
+    resources ??= createAsciiResources(settings);
     return resources;
   }
 
@@ -285,6 +290,15 @@ export function createAsciiEffect(enabled: boolean): PostProcessingEffect {
     enabled,
     prepare: () => getResources().prepare(),
     build: (inputNode) => asciiNode(inputNode, getResources()),
+    applySettings(next: PostProcessingSettings) {
+      const { uniforms } = getResources();
+      uniforms.uCellSize.value = next.ascii.cellSize;
+      uniforms.uInvert.value = next.ascii.invert;
+      uniforms.uColor.value = next.ascii.color;
+      uniforms.uCharBrightness.value = next.ascii.charBrightness;
+      uniforms.uBackgroundBrightness.value = next.ascii.backgroundBrightness;
+      uniforms.uSmoothness.value = next.ascii.smoothness;
+    },
     attachDebug(folder: ParametersGroup) {
       const {
         uCellSize,

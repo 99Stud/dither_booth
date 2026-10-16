@@ -16,6 +16,8 @@ import type { ViewportSize } from "#lib/three/internal/runtime/runtime.types";
 
 import { disposeMaterial } from "#lib/three/internal/runtime/disposeMaterial";
 
+import type { TurbulenceSettings } from "./fluid-background.types";
+
 import {
   buildTurbulencesNode,
   createTurbulenceState,
@@ -35,14 +37,14 @@ export class FluidTurbulencePlane extends Mesh<
   private readonly _turbulenceState: ReturnType<typeof createTurbulenceState>;
   private _renderer: WebGPURenderer | null = null;
 
-  constructor(size: ViewportSize) {
+  constructor(size: ViewportSize, settings: TurbulenceSettings) {
     const geometry = new PlaneGeometry(2, 2);
     const material = new MeshBasicNodeMaterial();
     material.lights = false;
 
     const fluidTex = uniformTexture();
     const turbulenceTex = uniformTexture();
-    const turbulenceState = createTurbulenceState();
+    const turbulenceState = createTurbulenceState(settings);
 
     const turbulenceSample = turbulenceTex.sample(uv()).rgb;
 
