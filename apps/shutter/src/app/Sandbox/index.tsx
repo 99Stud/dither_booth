@@ -5,12 +5,7 @@ import type { InteractiveBackgroundOptions } from "#components/misc/InteractiveB
 import { InteractiveBackground } from "#components/misc/InteractiveBackground/index";
 
 const interactiveBackgroundOptions = {
-  fluidBackground: {
-    simRes: 128,
-    dyeRes: 512,
-    iterations: 2,
-    idleFrames: 240,
-  },
+  background: "fluid",
 } satisfies InteractiveBackgroundOptions;
 
 export const Sandbox: FC = () => {
