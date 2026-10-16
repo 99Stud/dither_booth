@@ -1,7 +1,9 @@
+import type { WebcamHandle } from "@dither-booth/ui/components/misc/Webcam";
+
 import { logKioskEvent } from "@dither-booth/logging";
 import { DARKROOM_PATH } from "@dither-booth/shared/darkroom";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { type RefObject, useEffect, useState } from "react";
 
 import { SHUTTER_KIOSK_LOG_SOURCE } from "#lib/constants";
 import { useKioskCommandStream } from "#lib/kiosk/useKioskCommandStream";
@@ -16,17 +18,22 @@ import {
   type PendingKioskCommand,
   toPendingKioskCommand,
 } from "../Experience.kiosk";
+import { useCameraPreview } from "./useCameraPreview";
 
 /**
  * Listens on the kiosk channel and runs the operator's commands (reload,
  * open the Darkroom) once the guest's visit allows it. Returns whether the
  * maintenance screen shows.
  */
-export const useKioskCommands = (phase: ExperiencePhase) => {
+export const useKioskCommands = (
+  phase: ExperiencePhase,
+  webcamRef: RefObject<WebcamHandle | null>,
+) => {
   const navigate = useNavigate();
   const [pending, setPending] = useState<PendingKioskCommand>();
   const [maintenance, setMaintenance] = useState<KioskMaintenance>();
   const [isMaintenance, setIsMaintenance] = useState(false);
+  const handleCameraCommand = useCameraPreview(webcamRef);
 
   useKioskCommandStream("shutter", isMaintenance, (command) => {
     if (command.type === "maintenance") {
@@ -37,6 +44,11 @@ export const useKioskCommands = (phase: ExperiencePhase) => {
           ? current
           : { enabled: command.enabled, requestedAt: Date.now() },
       );
+      return;
+    }
+
+    if (command.type === "camera") {
+      handleCameraCommand(command);
       return;
     }
 
