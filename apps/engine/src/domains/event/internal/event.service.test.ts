@@ -1,4 +1,4 @@
-import { DEFAULT_KIT_ID } from "@dither-booth/shared/kits";
+import { DEFAULT_KIT_ID, KIT_MANIFESTS } from "@dither-booth/shared/kits";
 import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { describe, expect, spyOn, test } from "bun:test";
@@ -14,17 +14,19 @@ import {
 import { createTestDb } from "#db/internal/db.test-utils";
 import { executeLotteryDraw } from "#domains/lottery/lottery.service";
 
-import { updateEventInputSchema } from "./event.constants";
+import { updateKitSettingsInputSchema } from "./event.constants";
 import {
   createEventForDb,
   createPrizeForDb,
   deletePrizeForDb,
   getCurrentEventForDb,
+  getKitForDb,
   getReceiptEventSettingsForDb,
   listDrawsForDb,
   replaceEventForDb,
   restockPrizeForDb,
   updateEventForDb,
+  updateKitSettingsForDb,
   updateLotterySettingsForDb,
   updatePrizeForDb,
   updateTicketItemsForDb,
@@ -798,23 +800,98 @@ describe("event.service — kiosk concurrency and history", () => {
     const { db, sqlite } = await setupLiveEvent();
 
     try {
-      const updated = await updateEventForDb(db, {
-        name: "Renamed",
+      const updated = await updateEventForDb(db, { name: "Renamed" });
+
+      expect(updated).toEqual((await getCurrentEventForDb(db))!);
+      expect(updated.campaign.name).toBe("Renamed");
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("updateKitSettings saves the kit and its edits together", async () => {
+    const { db, sqlite } = await setupLiveEvent();
+
+    try {
+      const updated = await updateKitSettingsForDb(db, {
         kitId: "tartines",
+        settings: { copy: { "landing.start": "Tap to scare" } },
       });
 
       expect(updated).toEqual((await getCurrentEventForDb(db))!);
-      expect(updated.campaign).toMatchObject({
-        name: "Renamed",
-        kitId: "tartines",
+      expect(updated.campaign.kitSettings).toEqual({
+        copy: { "landing.start": "Tap to scare" },
       });
-      // Kits are free text in the database; the API only accepts shipped ones.
-      expect(
-        updateEventInputSchema.safeParse({
-          name: "Renamed",
-          kitId: "halloween-2099",
-        }).success,
-      ).toBe(false);
+
+      const kit = await getKitForDb(db);
+      expect(kit.kitId).toBe("tartines");
+      expect(kit.copy["landing.start"]).toBe("Tap to scare");
+      expect(kit.copy["prompts.printing"]).toBe(
+        KIT_MANIFESTS.tartines.copy["prompts.printing"],
+      );
+
+      // Kits are free text in the database; the API only accepts shipped
+      // ones, and only copy keys and lengths it knows.
+      for (const input of [
+        { kitId: "halloween-2099", settings: {} },
+        { kitId: "tartines", settings: { copy: { "landing.nope": "x" } } },
+        {
+          kitId: "tartines",
+          settings: { copy: { "landing.start": "x".repeat(200) } },
+        },
+      ]) {
+        expect(updateKitSettingsInputSchema.safeParse(input).success).toBe(
+          false,
+        );
+      }
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("a stored kit edit this release can't use falls back and is logged", async () => {
+    const { db, sqlite } = await setupLiveEvent();
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      // Written by a newer release, with a key and a limit this one lacks.
+      db.update(campaignTable)
+        .set({
+          kitSettings: {
+            copy: {
+              "landing.start": "Go",
+              "landing.fromTheFuture": "x",
+              "prompts.printing": "x".repeat(500),
+            },
+          },
+        })
+        .run();
+
+      const kit = await getKitForDb(db);
+      expect(kit.copy["landing.start"]).toBe("Go");
+      expect(kit.copy["prompts.printing"]).toBe(
+        KIT_MANIFESTS.tartines.copy["prompts.printing"],
+      );
+      expect((await getCurrentEventForDb(db))?.campaign.kitSettings).toEqual({
+        copy: { "landing.start": "Go" },
+      });
+      expect(JSON.stringify(warn.mock.calls)).toContain(
+        "event-kit-settings-ignored",
+      );
+    } finally {
+      warn.mockRestore();
+      sqlite.close();
+    }
+  });
+
+  test("with no event, the kiosk gets the default kit", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      expect(await getKitForDb(db)).toEqual({
+        kitId: DEFAULT_KIT_ID,
+        copy: KIT_MANIFESTS[DEFAULT_KIT_ID].copy,
+      });
     } finally {
       sqlite.close();
     }
@@ -901,11 +978,12 @@ describe("event.service — kiosk concurrency and history", () => {
     const { db, sqlite } = createTestDb();
 
     try {
-      await expect(
-        updateEventForDb(db, { name: "x", kitId: DEFAULT_KIT_ID }),
-      ).rejects.toMatchObject({
+      await expect(updateEventForDb(db, { name: "x" })).rejects.toMatchObject({
         code: "NOT_FOUND",
       });
+      await expect(
+        updateKitSettingsForDb(db, { kitId: DEFAULT_KIT_ID, settings: {} }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
       await expect(createPrizeForDb(db, PRIZE_INPUT)).rejects.toMatchObject({
         code: "NOT_FOUND",
       });

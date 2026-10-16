@@ -127,6 +127,13 @@
       "when": 1792145035802,
       "tag": "0017_kiosk_maintenance",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1792163096113,
+      "tag": "0018_kit_settings",
+      "breakpoints": true
     }
   ]
 }

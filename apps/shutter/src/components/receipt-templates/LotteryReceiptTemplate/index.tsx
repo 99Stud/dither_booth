@@ -9,9 +9,10 @@ import { Angry, Smile } from "pixelarticons/react";
 import { Eye } from "pixelarticons/react/Eye.js";
 
 import { getRarityReveal } from "#app/Experience/internal/lottery-reveal.utils";
+import { KitText } from "#kits/KitText/index";
+import { useKitCopy } from "#kits/useKit";
 import { receiptViewerRoute } from "#lib/router/index";
 
-const LOSS_JOKE = "Spam won't help, sorry mate!";
 const TICKET_PREFIX_LABEL = BOOTH_TICKET_NUMBER_PREFIX.slice(0, -1);
 
 const formatWonAtParts = (
@@ -40,6 +41,7 @@ const OutcomeBand: FC<{
   outcome: "win" | "loss";
 }> = (props) => {
   const { outcome } = props;
+  const copy = useKitCopy();
   const win = outcome === "win";
 
   const Icon = win ? Smile : Angry;
@@ -47,7 +49,9 @@ const OutcomeBand: FC<{
   return (
     <div className="-mx-5 flex items-center justify-between bg-black px-5 py-4 text-white">
       <span className="font-mono text-6xl leading-none font-black tracking-[0.18em] italic">
-        {win ? "WINNER!" : "LOSER!"}
+        <KitText
+          text={win ? copy["lotteryTicket.win"] : copy["lotteryTicket.loss"]}
+        />
       </span>
       <Icon className="size-16 shrink-0" aria-hidden />
     </div>
@@ -70,7 +74,8 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
   const rarityReveal = prizeRarity ? getRarityReveal(prizeRarity) : null;
   const RarityIcon = rarityReveal?.Icon ?? null;
   const wonAtParts = wonAt ? formatWonAtParts(wonAt) : null;
-  const boxedText = win ? title : LOSS_JOKE;
+  const copy = useKitCopy();
+  const boxedText = win ? title : copy["lotteryTicket.lossJoke"];
   const instruction = win ? winInstruction : null;
   const NoticeIcon = win ? RarityIcon : Eye;
 
@@ -104,7 +109,8 @@ export const LotteryReceiptTemplate: FC<{ className?: string }> = (props) => {
                 <NoticeIcon className="size-10 shrink-0" aria-hidden />
               ) : null}
               <p className="min-w-0 text-center wrap-break-word whitespace-pre-wrap">
-                {boxedText}
+                {/* Prize titles are plain text; only kit copy reads `**`. */}
+                {win ? boxedText : <KitText text={boxedText} />}
               </p>
               {NoticeIcon ? (
                 <NoticeIcon className="size-10 shrink-0" aria-hidden />

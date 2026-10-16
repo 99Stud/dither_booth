@@ -6,6 +6,9 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 import { Gift } from "pixelarticons/react/Gift.js";
 
+import { KitText } from "#kits/KitText/index";
+import { useKitCopy } from "#kits/useKit";
+
 import { SHUTTER_TRANSITION } from "../../Experience.motion";
 import { formatLastWinAt, getRarityReveal } from "../../lottery-reveal.utils";
 
@@ -20,6 +23,7 @@ export const IntroChrome = ({
   const rarityBreakdown = lotteryStatus?.rarityBreakdown ?? [];
   const lastWinLabel = formatLastWinAt(lotteryStatus?.lastWinAt ?? null);
   const totalDraws = lotteryStatus?.totalDraws ?? 0;
+  const copy = useKitCopy();
 
   return (
     <motion.div
@@ -38,9 +42,11 @@ export const IntroChrome = ({
         <DitherBoothLogo
           className={clsx("h-20", "fill-white/90", "drop-shadow-glow")}
         />
-        <p className={clsx("text-4xl")}>
-          powered by <span className={clsx("font-bold")}>99stud</span>™
-        </p>
+        {copy["landing.poweredBy"] ? (
+          <p className={clsx("text-4xl")}>
+            <KitText text={copy["landing.poweredBy"]} />
+          </p>
+        ) : null}
       </div>
       <div
         className={clsx(
@@ -72,12 +78,14 @@ export const IntroChrome = ({
               "mb-1 animate-flashing drop-shadow-glow",
             )}
           />
-          lottery
+          <KitText text={copy["landing.lotteryTitle"]} />
         </p>
         <div className={clsx("leading-none")}>
           <p className={clsx("mb-1", "font-bold")}>
-            <span className={clsx("font-bold")}>{remainingPrizes}</span>{" "}
-            remaining prizes
+            <KitText
+              text={copy["landing.remainingPrizes"]}
+              values={{ count: remainingPrizes }}
+            />
           </p>
           {rarityBreakdown.length > 0 && (
             <ul className={clsx("mb-2")}>
@@ -102,18 +110,27 @@ export const IntroChrome = ({
             </ul>
           )}
           <p>{lastWinLabel}</p>
-          <p>total: {totalDraws} attempts</p>
+          {copy["landing.totalAttempts"] ? (
+            <p>
+              <KitText
+                text={copy["landing.totalAttempts"]}
+                values={{ count: totalDraws }}
+              />
+            </p>
+          ) : null}
         </div>
       </div>
-      <p
-        className={clsx(
-          "absolute right-14 bottom-10",
-          "font-bit text-3xl text-white/90",
-          "text-shadow-glow",
-        )}
-      >
-        legal_notice
-      </p>
+      {copy["landing.legalNotice"] ? (
+        <p
+          className={clsx(
+            "absolute right-14 bottom-10",
+            "font-bit text-3xl text-white/90",
+            "text-shadow-glow",
+          )}
+        >
+          <KitText text={copy["landing.legalNotice"]} />
+        </p>
+      ) : null}
     </motion.div>
   );
 };

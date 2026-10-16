@@ -5,7 +5,7 @@ import { DARKROOM_TOKEN_HEADER } from "@dither-booth/shared/darkroom";
 
 import { getDarkroomToken } from "#lib/darkroom/darkroom-token";
 
-export const { TRPCProvider, queryClient, trpcClient, useTRPC } =
+export const { TRPCProvider, queryClient, trpc, trpcClient, useTRPC } =
   createDitherBoothTRPCReact<EngineRouter>({
     // The Darkroom's print-tuning calls carry its session token.
     getHeaders: (): Record<string, string> => {

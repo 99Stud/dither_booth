@@ -1,6 +1,6 @@
 import { browserAutomation } from "#domains/browser-automation/index";
 import { darkroom } from "#domains/darkroom/index";
-import { event } from "#domains/event/index";
+import { event, eventBooth } from "#domains/event/index";
 import { healthz } from "#domains/healthz/index";
 import { imageManipulation } from "#domains/image-manipulation/index";
 import { kiosk } from "#domains/kiosk/index";
@@ -14,6 +14,7 @@ import { router } from "./trpc";
 // `./trpc`, which carries its access check.
 export const engineRouter = router({
   booth: router({
+    getKit: eventBooth.getKit,
     getLotteryStatus: lottery.getLotteryStatus,
     prepareReceipt: receipt.prepareReceipt,
     printPreparedReceipt: receipt.printPreparedReceipt,

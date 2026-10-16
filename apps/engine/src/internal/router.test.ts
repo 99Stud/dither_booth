@@ -14,6 +14,7 @@ const DARKROOM_TOKEN = "darkroom-token";
 
 const GROUPS = {
   booth: [
+    "getKit",
     "getLotteryStatus",
     "lockDarkroom",
     "onKioskCommand",
@@ -39,6 +40,7 @@ const GROUPS = {
     "restockPrize",
     "setDarkroomPin",
     "updateEvent",
+    "updateKitSettings",
     "updateLotterySettings",
     "updatePrintConfiguration",
     "updatePrize",

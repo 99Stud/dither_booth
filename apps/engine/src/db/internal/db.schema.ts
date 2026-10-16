@@ -100,6 +100,15 @@ export const campaignTable = sqliteTable(
      * needs no migration. Null means the release's default kit.
      */
     kitId: text("kit_id"),
+    /**
+     * What the event changes on its kit (`KitSettings`): only the changed
+     * keys. Read leniently (`resolveKit`), so a value this release can't use
+     * falls back to the kit's default instead of failing the visit.
+     */
+    kitSettings: text("kit_settings", { mode: "json" })
+      .$type<unknown>()
+      .notNull()
+      .default({}),
     status: text("status", { enum: CAMPAIGN_STATUSES })
       .notNull()
       .default("active"),

@@ -38,7 +38,7 @@ export const Experience = () => {
     lotteryStatus,
     phase,
     photoUrl,
-    promptText,
+    prompt,
     webcamRef,
   } = useExperienceFlow();
   const [splitTilePx, setSplitTilePx] = useState(0);
@@ -69,7 +69,7 @@ export const Experience = () => {
           onCameraAnimationComplete={handleCameraAnimationComplete}
           onPromptAnimationComplete={handlePromptAnimationComplete}
           onSplitTile={setSplitTilePx}
-          promptText={promptText}
+          prompt={prompt}
           splitTilePx={splitTilePx}
           webcamRef={webcamRef}
         >
