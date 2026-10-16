@@ -110,6 +110,10 @@ export const NumberField = <
               {isInvalid && <FieldError errors={field.state.meta.errors} />}
             </FieldContent>
             <Input
+              // A number pad on phones; callers pass "numeric" for whole
+              // numbers.
+              inputMode="decimal"
+              enterKeyHint="done"
               {...inputProps}
               type="number"
               id={field.name}

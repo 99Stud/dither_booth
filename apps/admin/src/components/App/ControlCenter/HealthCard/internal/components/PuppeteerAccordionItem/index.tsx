@@ -15,6 +15,7 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
 import { format } from "date-fns";
+import { FileImage } from "lucide-react";
 
 import type { HealthzResponse } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.types";
 
@@ -208,7 +209,8 @@ export const PuppeteerAccordionItem: FC<PuppeteerAccordionItemProps> = ({
   return (
     <HealthAccordionShell
       value="puppeteer"
-      label="Puppeteer"
+      label="Receipt renderer"
+      icon={<FileImage />}
       statusDotSize="sm"
       statusVariant={getHealthStatusVariant({
         isHealthzError,

@@ -1,6 +1,14 @@
 import type { WebcamHandle } from "@dither-booth/ui/components/misc/Webcam";
 import type { ReactNode } from "react";
 
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
+import {
+  Card,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@dither-booth/ui/components/ui/card";
 import {
   Tabs,
   TabsList,
@@ -11,6 +19,7 @@ import { takeSquarePhotoAndFlipHorizontally } from "@dither-booth/ui/lib/image-m
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
+import { Contrast, ReceiptText, SlidersHorizontal } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 
 import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
@@ -180,17 +189,23 @@ export const PrintTuning = ({
       onValueChange={handleActiveTabChange}
     >
       {renderHeader(
-        <TabsList>
-          <TabsTrigger value="dithering">Dithering</TabsTrigger>
-          <TabsTrigger value="receipt">Receipt</TabsTrigger>
+        <TabsList className={clsx("h-10! w-full md:w-auto")}>
+          <TabsTrigger value="dithering" className={clsx("px-4")}>
+            <Contrast />
+            Dithering
+          </TabsTrigger>
+          <TabsTrigger value="receipt" className={clsx("px-4")}>
+            <ReceiptText />
+            Receipt
+          </TabsTrigger>
         </TabsList>,
       )}
       <div
         className={clsx(
-          // Fills the iPad screen under the Darkroom header and health strip.
-          "h-[calc(100dvh-7rem)] min-h-[32rem]",
-          "px-2 pb-2",
-          "flex gap-2",
+          // Landscape iPad: preview and settings side by side; portrait and
+          // smaller: stacked, the page scrolls.
+          "grid gap-4 p-4 lg:p-6",
+          "lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]",
         )}
       >
         <PrintConfigurationPreviewPanel
@@ -203,8 +218,25 @@ export const PrintTuning = ({
           onCameraStateChange={reportUserMediaCameraStateChange}
           onConstraintFallbackError={reportUserMediaConstraintFallbackError}
         />
-        <div className={clsx("flex-1", "flex flex-col justify-between gap-2")}>
+        <Card
+          className={clsx(
+            "gap-0 py-0",
+            // Landscape: the card fills the height and scrolls inside, so
+            // Reset and Test print stay on screen.
+            "lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8.5rem)] lg:self-start",
+          )}
+        >
+          <CardHeader className={clsx("border-b py-4")}>
+            <CardTitle className={clsx("flex items-center gap-2.5")}>
+              <IconBubble tone="brand">
+                <SlidersHorizontal />
+              </IconBubble>
+              Print settings
+            </CardTitle>
+            <CardDescription>Saved as you change them.</CardDescription>
+          </CardHeader>
           <form
+            className={clsx("min-h-0 flex-1 overflow-y-auto px-4 py-4")}
             onSubmit={(e) => {
               e.preventDefault();
               void form.handleSubmit();
@@ -217,16 +249,18 @@ export const PrintTuning = ({
               isSwitchFieldDisabled={isSwitchFieldDisabled}
             />
           </form>
-          <PrintConfigurationActions
-            isResetDisabled={isPersistingPrintConfiguration}
-            isPrintReceiptDisabled={
-              isPersistingPrintConfiguration || isPrintingReceipt
-            }
-            isPrintingReceipt={isPrintingReceipt}
-            onResetConfiguration={resetPrintConfiguration}
-            onPrintReceipt={printReceipt}
-          />
-        </div>
+          <CardFooter className={clsx("border-t bg-muted/40 py-3")}>
+            <PrintConfigurationActions
+              isResetDisabled={isPersistingPrintConfiguration}
+              isPrintReceiptDisabled={
+                isPersistingPrintConfiguration || isPrintingReceipt
+              }
+              isPrintingReceipt={isPrintingReceipt}
+              onResetConfiguration={resetPrintConfiguration}
+              onPrintReceipt={printReceipt}
+            />
+          </CardFooter>
+        </Card>
       </div>
     </Tabs>
   );

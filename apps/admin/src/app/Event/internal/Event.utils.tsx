@@ -1,3 +1,5 @@
+import type { Rarity } from "@dither-booth/shared/lottery";
+
 import { reportKioskError } from "#lib/logging/logging.utils";
 
 import type { CurrentEvent } from "./Event.types";
@@ -21,7 +23,7 @@ export const getRemainingPrizes = (event: CurrentEvent) => {
 };
 
 export const getRarityBreakdown = (event: CurrentEvent) => {
-  const remainingByRarity = new Map<string, number>();
+  const remainingByRarity = new Map<Rarity, number>();
 
   for (const prize of event.prizes) {
     remainingByRarity.set(

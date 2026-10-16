@@ -1,6 +1,7 @@
 import type { FC } from "react";
 
 import { format } from "date-fns";
+import { Printer as PrinterIcon } from "lucide-react";
 
 import type { HealthzResponse } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.types";
 
@@ -91,6 +92,7 @@ export const PrinterAccordionItem: FC<PrinterAccordionItemProps> = ({
     <HealthAccordionShell
       value="printer"
       label="Printer"
+      icon={<PrinterIcon />}
       statusDotSize="sm"
       statusVariant={getHealthStatusVariant({
         isHealthzError,

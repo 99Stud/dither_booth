@@ -1,6 +1,7 @@
 import type { KioskReloadMode } from "@dither-booth/shared/kiosk";
 
 import { sleep } from "@dither-booth/shared/async";
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Accordion } from "@dither-booth/ui/components/ui/accordion";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
@@ -12,9 +13,8 @@ import {
 } from "@dither-booth/ui/components/ui/card";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { RefreshCcw } from "lucide-react";
+import { Activity, RefreshCcw } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import type {
   Pm2RestartProgressEvent,
@@ -23,6 +23,7 @@ import type {
 
 import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
 import { StatusDot } from "#components/Misc/StatusDot/index";
+import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
@@ -82,6 +83,8 @@ export const HealthCard = () => {
       },
       refetchIntervalInBackground: true,
       refetchOnReconnect: true,
+      // Alone: it waits on the Shutter, which may be the thing that's down.
+      trpc: { context: { skipBatch: true } },
     }),
   );
   const {
@@ -119,7 +122,7 @@ export const HealthCard = () => {
       return;
     }
 
-    toast.success("Health checks refreshed.");
+    notify.success("Health checks refreshed.");
   };
 
   const restartService = async (service: Pm2RestartService) => {
@@ -151,7 +154,7 @@ export const HealthCard = () => {
       return;
     }
 
-    toast.success(`${serviceLabel} restart completed.`);
+    notify.success(`${serviceLabel} restart completed.`);
     await sleep(RESTART_HEALTHZ_REFETCH_DELAY_MS);
 
     await refetchHealthz({
@@ -181,11 +184,11 @@ export const HealthCard = () => {
     }
 
     if (reloadResult.delivered === 0) {
-      toast.warning("No kiosk page is connected.");
+      notify.warning("No kiosk page is connected.");
       return;
     }
 
-    toast.success(
+    notify.success(
       `Reload sent to ${reloadResult.delivered} kiosk page${reloadResult.delivered > 1 ? "s" : ""}${mode === "when-idle" ? ", once the current visit ends" : ""}.`,
     );
 
@@ -216,9 +219,9 @@ export const HealthCard = () => {
     }
 
     if (restartResult.ok) {
-      toast.success("Puppeteer re-initialized.");
+      notify.success("Puppeteer re-initialized.");
     } else {
-      toast.error("Puppeteer re-initialized but is unhealthy.");
+      notify.error("Puppeteer re-initialized but is unhealthy.");
     }
 
     await sleep(RESTART_HEALTHZ_REFETCH_DELAY_MS);
@@ -239,6 +242,9 @@ export const HealthCard = () => {
     <Card>
       <CardHeader>
         <CardTitle className={clsx("relative", "flex items-center gap-2")}>
+          <IconBubble tone="emerald">
+            <Activity />
+          </IconBubble>
           <h2>Health checks</h2>
           <StatusDot
             size="md"
@@ -259,6 +265,7 @@ export const HealthCard = () => {
             aria-label="Refresh health checks"
             className={clsx("absolute top-0 right-0")}
             size="icon-sm"
+            variant="ghost"
             onClick={refetchHealthzAndNotify}
             disabled={isHealthzFetching}
           >
@@ -327,14 +334,6 @@ export const HealthCard = () => {
             healthz={healthz}
           />
         </Accordion>
-        <p className={clsx("mt-3 text-right")}>
-          <span className="font-medium">Process manager:</span>&nbsp;
-          {isHealthzPending
-            ? "checking..."
-            : isHealthzSuccess
-              ? healthz.runtime.processManager
-              : "undefined"}
-        </p>
       </CardContent>
     </Card>
   );

@@ -39,7 +39,7 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
     open,
     isPending,
     title = "Create event",
-    description = "Sets up the campaign and its lottery. You can add prizes next.",
+    description,
     submitLabel = "Create event",
     onOpenChange,
     onSubmit,
@@ -71,7 +71,7 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
       <DialogContent className={clsx("sm:max-w-md")}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <form
           className={clsx("flex flex-col gap-3")}
@@ -81,7 +81,13 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
             void form.handleSubmit();
           }}
         >
-          <TextField form={form} name="name" label="Event name" />
+          <TextField
+            form={form}
+            name="name"
+            label="Event name"
+            autoCapitalize="words"
+            enterKeyHint="next"
+          />
           <SelectField
             form={form}
             name="kitId"
@@ -94,6 +100,8 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
             form={form}
             name="winCooldownMinutes"
             label="Win cooldown (minutes)"
+            inputMode="numeric"
+            pattern="[0-9]*"
           />
           <SwitchField form={form} name="enabled" label="Enable lottery now" />
           <SwitchField

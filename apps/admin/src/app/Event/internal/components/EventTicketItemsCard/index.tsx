@@ -1,12 +1,11 @@
 import type { TextFieldName } from "@dither-booth/ui/fields/TextField";
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 
-import { formatPrice } from "@dither-booth/shared/formatting";
 import {
-  PHOTO_TICKET_TOTAL_CENTS,
   TICKET_ITEM_NAME_MAX_LENGTH,
   TICKET_ITEM_NAMES_MAX_COUNT,
 } from "@dither-booth/shared/ticket";
+import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
@@ -16,9 +15,32 @@ import {
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
 import { TextField } from "@dither-booth/ui/fields/TextField";
+import { haptic } from "@dither-booth/ui/haptics";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from "@dnd-kit/modifiers";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
-import { useEffect } from "react";
+import { GripVertical, Plus, ReceiptText, Save, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import type { CurrentEvent, TicketItemsFormValues } from "../../Event.types";
 
@@ -32,6 +54,57 @@ const ticketItemFieldName = (
 ): TextFieldName<TicketItemsFormValues> =>
   `names[${index}]` as TextFieldName<TicketItemsFormValues>;
 
+/**
+ * Item names can repeat or be empty, so each row gets its own id for
+ * dnd-kit, kept in step with the form's array on every add, remove and move.
+ */
+const createRowIds = (count: number): string[] =>
+  Array.from({ length: count }, () => crypto.randomUUID());
+
+/** One ticket item row, dragged by its grip (mouse, touch or keyboard). */
+const SortableTicketItem: FC<{
+  id: string;
+  index: number;
+  children: ReactNode;
+}> = ({ id, index, children }) => {
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={clsx(
+        "flex items-center gap-1 rounded-lg bg-card",
+        isDragging && "relative z-10 shadow-lg ring-1 ring-ring/40",
+      )}
+    >
+      <Button
+        ref={setActivatorNodeRef}
+        aria-label={`Reorder item ${index + 1}`}
+        type="button"
+        size="icon"
+        variant="ghost"
+        className={clsx(
+          "cursor-grab touch-none text-muted-foreground active:cursor-grabbing",
+        )}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical />
+      </Button>
+      {children}
+    </div>
+  );
+};
+
 export const EventTicketItemsCard: FC<{
   event: CurrentEvent;
   isSaving: boolean;
@@ -39,6 +112,16 @@ export const EventTicketItemsCard: FC<{
 }> = (props) => {
   const { event, isSaving, onSave } = props;
   const namesKey = event.campaign.ticketItemNames.join("\u0000");
+  const [rowIds, setRowIds] = useState(() =>
+    createRowIds(event.campaign.ticketItemNames.length),
+  );
+  const sensors = useSensors(
+    // A small distance before dragging, so taps on the grip don't jitter.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const form = useForm({
     defaultValues: getTicketItemsFormValues(event),
@@ -53,16 +136,21 @@ export const EventTicketItemsCard: FC<{
 
   useEffect(() => {
     form.reset(getTicketItemsFormValues(event));
+    setRowIds(createRowIds(event.campaign.ticketItemNames.length));
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- sync when saved names change
   }, [event.campaign.id, namesKey]);
 
   return (
-    <Card className={clsx("md:col-span-2")}>
+    <Card>
       <CardHeader>
-        <CardTitle>Ticket items</CardTitle>
+        <CardTitle className={clsx("flex items-center gap-2.5")}>
+          <IconBubble tone="amber">
+            <ReceiptText />
+          </IconBubble>
+          Ticket items
+        </CardTitle>
         <CardDescription>
-          Each line prints as 1x. Prices are a random split of{" "}
-          {formatPrice(PHOTO_TICKET_TOTAL_CENTS)}.
+          Printed on every photo receipt, in this order.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -75,47 +163,100 @@ export const EventTicketItemsCard: FC<{
           }}
         >
           <form.Field name="names" mode="array">
-            {(field) => (
-              <div className={clsx("flex flex-col gap-3")}>
-                {field.state.value.map((_, index) => (
-                  <div
-                    key={ticketItemFieldName(index)}
-                    className={clsx("flex items-end gap-2")}
+            {(field) => {
+              const moveRow = ({ active, over }: DragEndEvent) => {
+                if (!over || active.id === over.id) return;
+                // The row lands in its new place.
+                haptic("light");
+
+                const from = rowIds.indexOf(String(active.id));
+                const to = rowIds.indexOf(String(over.id));
+                if (from === -1 || to === -1) return;
+
+                field.moveValue(from, to);
+                setRowIds((ids) => arrayMove(ids, from, to));
+              };
+
+              return (
+                <div className={clsx("flex flex-col gap-3")}>
+                  <DndContext
+                    collisionDetection={closestCenter}
+                    modifiers={[
+                      restrictToVerticalAxis,
+                      restrictToParentElement,
+                    ]}
+                    sensors={sensors}
+                    // A firm tap as the row lifts, as iOS lists do.
+                    onDragStart={() => haptic("medium")}
+                    onDragEnd={moveRow}
                   >
-                    <TextField
-                      className={clsx("min-w-0 flex-1")}
-                      form={form}
-                      name={ticketItemFieldName(index)}
-                      label={`Item ${index + 1}`}
-                      maxLength={TICKET_ITEM_NAME_MAX_LENGTH}
-                    />
+                    <SortableContext
+                      items={rowIds}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className={clsx("flex flex-col gap-3")}>
+                        {field.state.value.map((_, index) => (
+                          <SortableTicketItem
+                            key={rowIds[index] ?? index}
+                            id={rowIds[index] ?? String(index)}
+                            index={index}
+                          >
+                            <TextField
+                              className={clsx("min-w-0 flex-1")}
+                              form={form}
+                              name={ticketItemFieldName(index)}
+                              label={`Item ${index + 1}`}
+                              hideLabel
+                              placeholder={`Item ${index + 1}`}
+                              maxLength={TICKET_ITEM_NAME_MAX_LENGTH}
+                              enterKeyHint="done"
+                            />
+                            <Button
+                              aria-label={`Remove item ${index + 1}`}
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className={clsx(
+                                "text-muted-foreground hover:text-destructive",
+                              )}
+                              disabled={field.state.value.length <= 1}
+                              onClick={() => {
+                                field.removeValue(index);
+                                setRowIds((ids) =>
+                                  ids.filter((_, i) => i !== index),
+                                );
+                              }}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </SortableTicketItem>
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                  <div className={clsx("flex flex-wrap justify-between gap-2")}>
                     <Button
                       type="button"
-                      variant="outline"
-                      disabled={field.state.value.length <= 1}
-                      onClick={() => field.removeValue(index)}
+                      variant="ghost"
+                      disabled={
+                        field.state.value.length >= TICKET_ITEM_NAMES_MAX_COUNT
+                      }
+                      onClick={() => {
+                        field.pushValue("");
+                        setRowIds((ids) => [...ids, crypto.randomUUID()]);
+                      }}
                     >
-                      Remove
+                      <Plus data-icon="inline-start" />
+                      Add item
+                    </Button>
+                    <Button type="submit" disabled={isSaving}>
+                      <Save data-icon="inline-start" />
+                      Save items
                     </Button>
                   </div>
-                ))}
-                <div className={clsx("flex gap-2")}>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={
-                      field.state.value.length >= TICKET_ITEM_NAMES_MAX_COUNT
-                    }
-                    onClick={() => field.pushValue("")}
-                  >
-                    Add item
-                  </Button>
-                  <Button type="submit" disabled={isSaving}>
-                    Save items
-                  </Button>
                 </div>
-              </div>
-            )}
+              );
+            }}
           </form.Field>
         </form>
       </CardContent>

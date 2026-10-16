@@ -45,7 +45,15 @@ export const PrintConfigurationPreviewPanel: FC<
   webcamRef,
 }) => {
   return (
-    <div className={clsx("relative", "aspect-square h-full")}>
+    <div
+      className={clsx(
+        "relative mx-auto aspect-square w-full overflow-hidden",
+        "rounded-xl bg-muted ring-1 ring-foreground/10",
+        // Portrait: about half the screen, so the settings stay in reach.
+        // Landscape: the square fits the height under the header.
+        "max-w-[55dvh] lg:max-w-[calc(100dvh-9rem)]",
+      )}
+    >
       <div className={clsx("relative", "h-full overflow-y-auto")}>
         {hasTriggeredInitialPreview && (
           <PreviewDisplay
@@ -62,17 +70,23 @@ export const PrintConfigurationPreviewPanel: FC<
         />
       </div>
       <Button
+        size="lg"
+        variant="secondary"
         disabled={isRefreshDisabled}
         onClick={() => {
           void onRefreshPreview();
         }}
-        className={clsx("absolute z-20", "top-4", "left-4")}
+        className={clsx(
+          "absolute top-3 left-3 z-20",
+          "bg-background/80 shadow-sm backdrop-blur",
+        )}
       >
         {!previewSrc ? (
-          <CameraIcon className="size-4" />
+          <CameraIcon data-icon="inline-start" />
         ) : (
-          <RefreshCwIcon className="size-4" />
+          <RefreshCwIcon data-icon="inline-start" />
         )}
+        {!previewSrc ? "Take photo" : "New photo"}
       </Button>
     </div>
   );
