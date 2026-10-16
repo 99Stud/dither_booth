@@ -24,7 +24,7 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 
 /**
  * Sets the PIN staff type to open the Darkroom (print tuning) on the booth
- * iPad. Until one is set, the Darkroom stays locked.
+ * screen. Until one is set, the Darkroom stays locked.
  */
 export const DarkroomPinCard = () => {
   const trpc = useTRPC();

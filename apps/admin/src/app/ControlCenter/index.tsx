@@ -1,6 +1,6 @@
 import clsx from "clsx";
 
-import { BoothIpadCard } from "#components/App/ControlCenter/BoothIpadCard/index";
+import { BoothScreenCard } from "#components/App/ControlCenter/BoothScreenCard/index";
 import { HealthCard } from "#components/App/ControlCenter/HealthCard/index";
 import {
   AppPageBody,
@@ -24,7 +24,7 @@ export const ControlCenter = () => {
       <AppPageBody>
         <AppPageHeading title={`${getGreeting()} 👋`} />
         <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
-          <BoothIpadCard />
+          <BoothScreenCard />
           <HealthCard />
         </div>
       </AppPageBody>

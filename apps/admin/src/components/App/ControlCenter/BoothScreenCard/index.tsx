@@ -14,7 +14,7 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
-import { Camera, SlidersHorizontal, Tablet } from "lucide-react";
+import { Camera, Monitor, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
@@ -27,10 +27,10 @@ import {
   BOOTH_MODE_POLL_MS,
   BOOTH_MODE_SWITCH_TIMEOUT_MS,
   BOOTH_MODE_SWITCHING_POLL_MS,
-} from "./internal/BoothIpadCard.constants";
+} from "./internal/BoothScreenCard.constants";
 
 /**
- * The booth iPad's modes, as staff name them. The engine calls them kiosk
+ * The booth screen's modes, as staff name them. The engine calls them kiosk
  * screens (`shutter`, `darkroom`).
  */
 const MODE_OPTIONS = [
@@ -52,12 +52,12 @@ const isKioskScreen = (value: unknown): value is KioskScreen =>
   MODE_OPTIONS.some((option) => option.value === value);
 
 /**
- * What the booth iPad is doing, and the switch to change it: one tile per
- * mode, the lit one being the iPad's mode right now. The Darkroom opens once
+ * What the booth screen is doing, and the switch to change it: one tile per
+ * mode, the lit one being the screen's mode right now. The Darkroom opens once
  * the current guest is done, on its PIN screen; going back to the photo booth
  * locks it.
  */
-export const BoothIpadCard = () => {
+export const BoothScreenCard = () => {
   const trpc = useTRPC();
   const [requested, setRequested] = useState<KioskScreen>();
   const healthzQuery = useQuery(
@@ -84,7 +84,7 @@ export const BoothIpadCard = () => {
     : undefined;
   const isPinMissing = pinStatus?.isSet === false;
 
-  // The switch is done once the iPad reports it, or given up on.
+  // The switch is done once the screen reports it, or given up on.
   useEffect(() => {
     if (!requested) return;
     if (current === requested) {
@@ -103,21 +103,21 @@ export const BoothIpadCard = () => {
       reportKioskError(error, {
         event: "control-center-booth-mode-failed",
         source: CONTROL_CENTER_LOG_SOURCE,
-        userMessage: "Couldn't reach the booth iPad.",
+        userMessage: "Couldn't reach the booth screen.",
       });
     });
 
     if (!result) return;
 
     if (result.delivered === 0) {
-      notify.warning("The booth iPad is offline.");
+      notify.warning("The booth screen is offline.");
       return;
     }
 
     setRequested(screen);
     notify.success(
       screen === "darkroom"
-        ? "Opening the Darkroom on the booth iPad."
+        ? "Opening the Darkroom on the booth screen."
         : "Back to the photo booth. Darkroom locked.",
     );
   };
@@ -130,7 +130,7 @@ export const BoothIpadCard = () => {
     : healthzQuery.isError
       ? "Can't reach the booth."
       : current === undefined
-        ? "The booth iPad is offline."
+        ? "The booth screen is offline."
         : isSwitching
           ? requested === "darkroom"
             ? "Opening the Darkroom when the current guest is done…"
@@ -142,14 +142,14 @@ export const BoothIpadCard = () => {
       <CardHeader>
         <CardTitle className={clsx("flex items-center gap-2.5")}>
           <IconBubble tone="emerald">
-            <Tablet />
+            <Monitor />
           </IconBubble>
-          <h2>Booth iPad</h2>
+          <h2>Booth screen</h2>
         </CardTitle>
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-3")}>
         <ToggleGroup
-          aria-label="Booth iPad mode"
+          aria-label="Booth screen mode"
           className={clsx("grid w-full grid-cols-2")}
           spacing={2}
           variant="outline"
