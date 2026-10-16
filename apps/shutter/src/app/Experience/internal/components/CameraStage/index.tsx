@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
 
 import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
+import { useKioskCameraReporter } from "#lib/kiosk/kiosk-camera";
 
 import { FROZEN_PHOTO_SCALE } from "../../Experience.constants";
 import { isCameraStreamPrompt } from "../../Experience.copy";
@@ -91,6 +92,9 @@ export const CameraStage = ({
   splitTilePx,
   webcamRef,
 }: CameraStageProps) => {
+  const onCameraStateChange = useKioskCameraReporter(
+    reportUserMediaCameraStateChange,
+  );
   const inStreamPrompt = isCameraStreamPrompt(promptText);
   const showInStreamPrompt = isPromptVisible && inStreamPrompt;
   const showStagePrompt = isPromptVisible && !inStreamPrompt;
@@ -171,7 +175,7 @@ export const CameraStage = ({
             <Webcam
               ref={webcamRef}
               className="h-full min-h-0 w-full max-w-none flex-1"
-              onCameraStateChange={reportUserMediaCameraStateChange}
+              onCameraStateChange={onCameraStateChange}
               onConstraintFallbackError={reportUserMediaConstraintFallbackError}
             />
           </CameraCrt>

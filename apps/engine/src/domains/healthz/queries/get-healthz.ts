@@ -1,4 +1,4 @@
-import type { KioskScreen } from "@dither-booth/shared/kiosk";
+import type { KioskCamera, KioskScreen } from "@dither-booth/shared/kiosk";
 
 import { getShutterOrigin, getWebTlsCaPath } from "@dither-booth/ports";
 import {
@@ -36,7 +36,10 @@ type GetHealthzResponse = {
         pageId: string;
         deviceId: string;
         screen: KioskScreen;
+        /** The page's camera as it last reported it; null while it runs none. */
+        camera: KioskCamera | null;
         connectedAt: string;
+        reportedAt: string | null;
       }>;
     };
   };
@@ -99,7 +102,9 @@ export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
           pageId: page.pageId,
           deviceId: page.deviceId,
           screen: page.screen,
+          camera: page.camera,
           connectedAt: page.connectedAt.toISOString(),
+          reportedAt: page.reportedAt?.toISOString() ?? null,
         })),
       },
     },

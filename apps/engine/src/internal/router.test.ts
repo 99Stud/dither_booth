@@ -19,6 +19,7 @@ const GROUPS = {
     "onKioskCommand",
     "prepareReceipt",
     "printPreparedReceipt",
+    "reportKioskStatus",
     "unlockDarkroom",
   ],
   config: [

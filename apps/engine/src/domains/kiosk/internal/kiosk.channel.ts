@@ -1,8 +1,17 @@
-import type { KioskCommand, KioskPage } from "@dither-booth/shared/kiosk";
+import type {
+  KioskCommand,
+  KioskPage,
+  KioskPageStatus,
+} from "@dither-booth/shared/kiosk";
 
 import { EventEmitter, on } from "node:events";
 
-export type KioskPageConnection = KioskPage & { connectedAt: Date };
+export type KioskPageConnection = KioskPage &
+  KioskPageStatus & {
+    connectedAt: Date;
+    /** When the page last reported its status, if it has. */
+    reportedAt: Date | null;
+  };
 
 /**
  * In-memory push channel from the engine to the kiosk pages. Each page holds
@@ -20,6 +29,11 @@ export type KioskChannel = {
   ) => AsyncGenerator<KioskCommand, void, undefined>;
   /** Sends a command to every connected page and returns how many got it. */
   broadcast: (command: KioskCommand) => number;
+  /**
+   * Records what a connected page reports about itself. Returns false when
+   * no connected page has that id (not subscribed yet, or gone).
+   */
+  reportStatus: (pageId: string, status: KioskPageStatus) => boolean;
   listPages: () => KioskPageConnection[];
 };
 
@@ -60,7 +74,12 @@ export function createKioskChannel(): KioskChannel {
       // counts the page always reaches it. A generator body would only start
       // on the first `next()`.
       const commands = on(emitter, COMMAND_EVENT, signal ? { signal } : {});
-      pages.set(connection, { ...page, connectedAt: new Date() });
+      pages.set(connection, {
+        ...page,
+        camera: null,
+        connectedAt: new Date(),
+        reportedAt: null,
+      });
       signal?.addEventListener("abort", () => pages.delete(connection), {
         once: true,
       });
@@ -71,6 +90,14 @@ export function createKioskChannel(): KioskChannel {
       const reached = pages.size;
       emitter.emit(COMMAND_EVENT, command);
       return reached;
+    },
+    reportStatus(pageId, status) {
+      for (const [connection, page] of pages) {
+        if (page.pageId !== pageId) continue;
+        pages.set(connection, { ...page, ...status, reportedAt: new Date() });
+        return true;
+      }
+      return false;
     },
     listPages() {
       return [...pages.values()];
