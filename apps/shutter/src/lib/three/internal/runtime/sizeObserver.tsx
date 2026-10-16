@@ -35,18 +35,21 @@ export class SizeObserver {
     };
   }
 
+  /**
+   * Re-measures on any of these, at most once a frame. The window events
+   * back up the observer: WebKit doesn't always report a fixed container
+   * growing when an iOS home-screen app settles its viewport.
+   */
   observe(): void {
-    if (this._resizeObserver) {
-      this._resizeObserver.observe(this._container);
-      return;
-    }
-
+    this._resizeObserver?.observe(this._container);
     window.addEventListener("resize", this._handleWindowResize);
+    window.addEventListener("orientationchange", this._handleWindowResize);
   }
 
   dispose(): void {
     this._resizeObserver?.disconnect();
     window.removeEventListener("resize", this._handleWindowResize);
+    window.removeEventListener("orientationchange", this._handleWindowResize);
     if (this._resizeFrame) {
       cancelAnimationFrame(this._resizeFrame);
       this._resizeFrame = 0;

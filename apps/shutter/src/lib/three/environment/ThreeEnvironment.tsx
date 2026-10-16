@@ -127,7 +127,8 @@ export class ThreeEnvironment {
     camera.updateProjectionMatrix();
 
     renderer.setPixelRatio(size.pixelRatio);
-    renderer.setSize(size.width, size.height);
+    // The buffer only: CSS keeps the canvas at the container's size.
+    renderer.setSize(size.width, size.height, false);
 
     this._fluidBackground.resize(size);
     this._postProcessing.resize();
