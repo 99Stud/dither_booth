@@ -3,7 +3,7 @@ import type { Scene, WebGPURenderer } from "three/webgpu";
 
 import type { ViewportSize } from "#lib/three/internal/runtime/runtime.types";
 
-import type { BackgroundEffect } from "../background.types";
+import type { BackgroundEffect, BackgroundPreset } from "../background.types";
 import type { FluidBackgroundSettings, Splat } from "./fluid-background.types";
 
 import { FluidSimulation } from "./FluidSimulation";
@@ -41,6 +41,12 @@ export class FluidBackground implements BackgroundEffect {
   attachDebug(folder: ParametersGroup): void {
     this._simulation.attachDebug(folder);
     this._plane.attachDebug(folder);
+  }
+
+  applySettings(preset: BackgroundPreset): void {
+    if (preset.effect !== "fluid") return;
+    this._simulation.applySettings(preset.settings.simulation);
+    this._plane.applySettings(preset.settings.turbulence);
   }
 
   update(delta: number): void {

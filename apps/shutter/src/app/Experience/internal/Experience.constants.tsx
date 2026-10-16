@@ -1,13 +1,3 @@
-import type { InteractiveBackgroundOptions } from "#components/misc/InteractiveBackground/index";
-
-/**
- * `satisfies` rather than a bare object so a mistyped key fails to compile —
- * the options prop takes a variable, which skips excess property checking.
- */
-export const KIOSK_INTERACTIVE_BACKGROUND_OPTIONS = {
-  background: "fluid",
-} satisfies InteractiveBackgroundOptions;
-
 export const COUNTDOWN_START = 3;
 
 export const COUNTDOWN_INTERVAL_MS = 1000;

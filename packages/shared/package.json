@@ -23,6 +23,8 @@
     "./healthz": "./src/isomorphic/healthz.ts",
     "./id": "./src/isomorphic/id.ts",
     "./kiosk": "./src/isomorphic/kiosk.ts",
+    "./background-controls": "./src/isomorphic/background-controls.ts",
+    "./backgrounds": "./src/isomorphic/backgrounds.ts",
     "./kit-copy": "./src/isomorphic/kit-copy.ts",
     "./kits": "./src/isomorphic/kits.ts",
     "./lottery": "./src/isomorphic/lottery.ts",

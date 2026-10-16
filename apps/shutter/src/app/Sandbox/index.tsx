@@ -1,13 +1,9 @@
 import type { FC } from "react";
 
-import type { InteractiveBackgroundOptions } from "#components/misc/InteractiveBackground/index";
+import { BACKGROUND_PRESETS } from "@dither-booth/shared/backgrounds";
 
 import { InteractiveBackground } from "#components/misc/InteractiveBackground/index";
 
-const interactiveBackgroundOptions = {
-  background: "fluid",
-} satisfies InteractiveBackgroundOptions;
-
 export const Sandbox: FC = () => {
-  return <InteractiveBackground options={interactiveBackgroundOptions} />;
+  return <InteractiveBackground preset={BACKGROUND_PRESETS.fluid} />;
 };

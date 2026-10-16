@@ -80,6 +80,10 @@ export class FluidTurbulencePlane extends Mesh<
     this._renderer = renderer;
   }
 
+  applySettings(settings: TurbulenceSettings): void {
+    this._turbulenceState.applySettings(settings);
+  }
+
   attachDebug(folder: ParametersGroup): void {
     const {
       cScale,

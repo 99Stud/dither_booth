@@ -121,8 +121,34 @@ export function createTurbulenceState(settings: TurbulenceSettings) {
 
   rebuildColorRampLUT();
 
+  function applySettings(next: TurbulenceSettings): void {
+    state.cScale.value = next.scale;
+    state.cIntensity.value = next.intensity;
+    state.uRcpIntensity.value = 1.0 / next.intensity;
+    state.uSinSpeed.value = next.sinSpeed;
+    state.uOverallSpeed.value = next.overallSpeed;
+    state.uDirection.value.set(...next.direction);
+    state.uFluidStrength.value = next.fluidStrength;
+    const colors = [
+      state.uColor0,
+      state.uColor1,
+      state.uColor2,
+      state.uColor3,
+      state.uColor4,
+      state.uColor5,
+    ];
+    colors.forEach((uColor, index) => uColor.value.set(next.palette[index]!));
+    [state.uStop1, state.uStop2, state.uStop3, state.uStop4].forEach(
+      (uStop, index) => {
+        uStop.value = next.stops[index]!;
+      },
+    );
+    rebuildColorRampLUT();
+  }
+
   return {
     ...state,
+    applySettings,
     rebuildColorRampLUT,
     dispose: () => rampTexture.dispose(),
   };

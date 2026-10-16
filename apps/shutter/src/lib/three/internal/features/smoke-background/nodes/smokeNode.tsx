@@ -65,6 +65,37 @@ export function createSmokeState(settings: SmokeSettings) {
 
 export type SmokeState = ReturnType<typeof createSmokeState>;
 
+/** Writes the tunable values; `fieldScale` stays as built. */
+export function applySmokeSettings(state: SmokeState, next: SmokeSettings) {
+  state.uScale.value = next.scale;
+  state.uSpeed.value = next.speed;
+  state.uDrift.value.set(...next.drift);
+  state.uWarp.value = next.warp;
+  state.uTurbulence.value = next.turbulence;
+  state.uLacunarity.value = next.lacunarity;
+  state.uGain.value = next.gain;
+  state.uRise.value = next.rise;
+  state.uFluidStrength.value = next.fluidStrength;
+  state.uThreshold.value = next.threshold;
+  state.uSoftness.value = next.softness;
+  state.uSmudge.value = next.smudge;
+  state.uHaze.value = next.haze;
+  state.uGrit.value = next.grit;
+  state.uGrain.value = next.grain;
+  state.uGrainSize.value = next.grainSize;
+  state.uGrainFps.value = next.grainFps;
+  state.uEdgeWidth.value = next.edgeWidth;
+  state.uEdgeStrength.value = next.edgeStrength;
+  state.uFresnelPower.value = next.fresnelPower;
+  state.uEdgeGrain.value = next.edgeGrain;
+  state.uDotSize.value = next.dotSize;
+  state.uDotDensity.value = next.dotDensity;
+  state.uDust.value = next.dust;
+  state.uPaperColor.value.set(next.paperColor);
+  state.uInkColor.value.set(next.inkColor);
+  state.uPaperTooth.value = next.paperTooth;
+}
+
 /**
  * Low-res pass: domain-warped fbm masses carved by turbulence noise.
  * R stores density, G a slow smudge value used to mottle the charcoal tone.

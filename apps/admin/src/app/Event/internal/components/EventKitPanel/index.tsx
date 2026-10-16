@@ -1,7 +1,19 @@
 import type { KitCopyOverrides } from "@dither-booth/shared/kit-copy";
-import type { KitId, KitSettings } from "@dither-booth/shared/kits";
+import type {
+  CameraScreen,
+  KitId,
+  KitSettings,
+} from "@dither-booth/shared/kits";
 import type { FC } from "react";
 
+import {
+  applyBackgroundControls,
+  BACKGROUND_CONTROLS,
+  defaultControlValue,
+  type BackgroundControl,
+  type BackgroundControlValues,
+  type BackgroundSettings,
+} from "@dither-booth/shared/background-controls";
 import {
   COPY_FIELDS,
   COPY_GROUPS,
@@ -9,7 +21,11 @@ import {
   type CopyGroup,
   type CopyKey,
 } from "@dither-booth/shared/kit-copy";
-import { KIT_MANIFESTS } from "@dither-booth/shared/kits";
+import {
+  getBackgroundBase,
+  getBackgroundHighlight,
+  KIT_MANIFESTS,
+} from "@dither-booth/shared/kits";
 import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import {
   AlertDialog,
@@ -59,28 +75,79 @@ import { useState } from "react";
 import type { CurrentEvent } from "../../Event.types";
 
 import { KIT_FIELD_OPTIONS } from "../../Event.constants";
+import { KitBackgroundSection } from "./internal/KitBackgroundSection";
+import { KitCameraSection } from "./internal/KitCameraSection";
 import { KitCopyField } from "./internal/KitCopyField";
 
 /** What the tab edits, in the shape it is saved in. */
-type KitDraft = { kitId: KitId; copy: KitCopyOverrides };
+type KitDraft = {
+  kitId: KitId;
+  copy: KitCopyOverrides;
+  background?: BackgroundSettings;
+  camera?: Partial<CameraScreen>;
+};
 
 const toDraft = (event: CurrentEvent): KitDraft => ({
   kitId: event.campaign.kitId,
   copy: event.campaign.kitSettings.copy ?? {},
+  background: event.campaign.kitSettings.background,
+  camera: event.campaign.kitSettings.camera,
 });
 
+/** Only the shader controls that moved away from the look they start from. */
+const changedBackground = (draft: KitDraft): BackgroundSettings | undefined => {
+  const kitBackgroundId = KIT_MANIFESTS[draft.kitId].background.effect;
+  const id = draft.background?.id ?? kitBackgroundId;
+  const base = getBackgroundBase(draft.kitId, id);
+  const controls: Record<string, BackgroundControl> =
+    BACKGROUND_CONTROLS[id].controls;
+  const values: BackgroundControlValues = {};
+  for (const [key, value] of Object.entries(draft.background?.values ?? {})) {
+    const control = controls[key];
+    if (
+      control &&
+      JSON.stringify(value) !==
+        JSON.stringify(defaultControlValue(control, base))
+    ) {
+      values[key] = value;
+    }
+  }
+  const hasValues = Object.keys(values).length > 0;
+  if (id === kitBackgroundId && !hasValues) return undefined;
+  return {
+    id,
+    ...(hasValues && draft.background?.look
+      ? { look: draft.background.look }
+      : {}),
+    ...(hasValues ? { values } : {}),
+  };
+};
+
 /**
- * Only the text that differs from the kit is saved, so the kit's own wording
- * keeps reaching every line the event didn't change.
+ * Only what differs from the kit is saved, so the kit's own wording and look
+ * keep reaching everything the event didn't change.
  */
 const toSettings = (draft: KitDraft): KitSettings => {
-  const defaults = KIT_MANIFESTS[draft.kitId].copy;
+  const manifest = KIT_MANIFESTS[draft.kitId];
   const copy: KitCopyOverrides = {};
   for (const key of COPY_KEYS) {
     const value = draft.copy[key]?.trim();
-    if (value !== undefined && value !== defaults[key]) copy[key] = value;
+    if (value !== undefined && value !== manifest.copy[key]) copy[key] = value;
   }
-  return Object.keys(copy).length > 0 ? { copy } : {};
+  const camera: Partial<CameraScreen> = {};
+  for (const [key, value] of Object.entries(draft.camera ?? {})) {
+    const cameraKey = key as keyof CameraScreen;
+    if (value !== manifest.camera[cameraKey]) {
+      Object.assign(camera, { [cameraKey]: value });
+    }
+  }
+  const background = changedBackground(draft);
+
+  return {
+    ...(Object.keys(copy).length > 0 ? { copy } : {}),
+    ...(background ? { background } : {}),
+    ...(Object.keys(camera).length > 0 ? { camera } : {}),
+  };
 };
 
 const sameSettings = (a: KitDraft, b: KitDraft) =>
@@ -126,6 +193,13 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
   const isDirty = !sameSettings(draft, saved);
   const missingKeys = COPY_KEYS.filter((key) => isMissingText(draft, key));
   const changedCount = Object.keys(toSettings(draft).copy ?? {}).length;
+  const shaderPreview = applyBackgroundControls(
+    getBackgroundBase(
+      draft.kitId,
+      draft.background?.id ?? KIT_MANIFESTS[draft.kitId].background.effect,
+    ),
+    draft.background?.values ?? {},
+  );
 
   const setCopy = (key: CopyKey, value: string | undefined) => {
     setDraft((current) => {
@@ -152,9 +226,9 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
             Kit
           </CardTitle>
           <CardDescription>
-            The kit sets how the booth screen and the tickets look. The text
-            below starts from the kit&apos;s own wording; wrap words in ** to
-            make them bold.
+            The kit sets how the booth screen and the tickets look. The shader,
+            the camera screen and the text below start from the kit&apos;s own;
+            in the text, wrap words in ** to make them bold.
           </CardDescription>
         </CardHeader>
         <CardContent className={clsx("flex flex-col gap-4")}>
@@ -169,9 +243,11 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
               value={draft.kitId}
               onValueChange={(value) => {
                 if (value) {
+                  // Shader and camera tuning start from a kit's look, so a
+                  // new kit starts them over; the text edits carry across.
                   setDraft((current) => ({
-                    ...current,
                     kitId: value as KitId,
+                    copy: current.copy,
                   }));
                 }
               }}
@@ -211,6 +287,22 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
           </div>
         </CardContent>
       </Card>
+
+      <div className={clsx("grid items-start gap-4 md:gap-6 xl:grid-cols-2")}>
+        <KitBackgroundSection
+          kitId={draft.kitId}
+          value={draft.background}
+          onChange={(background) =>
+            setDraft((current) => ({ ...current, background }))
+          }
+        />
+        <KitCameraSection
+          kitId={draft.kitId}
+          value={draft.camera}
+          backgroundHighlight={getBackgroundHighlight(shaderPreview)}
+          onChange={(camera) => setDraft((current) => ({ ...current, camera }))}
+        />
+      </div>
 
       <div className={clsx("grid items-start gap-4 md:gap-6 xl:grid-cols-2")}>
         {COPY_KEYS_BY_GROUP.map(({ group, keys }) => {

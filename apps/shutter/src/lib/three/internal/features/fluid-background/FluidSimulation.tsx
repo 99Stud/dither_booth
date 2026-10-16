@@ -346,6 +346,16 @@ export class FluidSimulation {
     this._renderer = renderer;
   }
 
+  /** The tunable values; resolutions and solver passes stay as built. */
+  applySettings(settings: FluidSimulationSettings): void {
+    const u = this._uniforms;
+    u.uDensityDissipation.value = settings.densityDissipation;
+    u.uVelocityDissipation.value = settings.velocityDissipation;
+    u.uPressureDissipation.value = settings.pressureDissipation;
+    u.uCurlStrength.value = settings.curlStrength;
+    u.uSplatRadius.value = settings.splatRadius;
+  }
+
   attachDebug(folder: ParametersGroup): void {
     const {
       uDensityDissipation,

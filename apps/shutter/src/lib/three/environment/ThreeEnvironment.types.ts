@@ -1,8 +1,6 @@
 import type { BackgroundPreset } from "../internal/features/background.types";
-import type { PostProcessingOptions } from "../internal/features/post-processing/postProcessing.types";
-import type { BackgroundPresetKey } from "../presets/backgroundPresets";
 
-export type { BackgroundPreset, BackgroundPresetKey };
+export type { BackgroundPreset };
 
 export interface ThreeEnvironmentSize {
   width: number;
@@ -13,6 +11,6 @@ export interface ThreeEnvironmentSize {
 export interface ThreeEnvironmentOptions {
   container: HTMLElement;
   pixelRatio?: number;
-  postProcessing?: PostProcessingOptions;
-  background?: BackgroundPresetKey | BackgroundPreset;
+  /** The look to start with; `apply` changes it later. */
+  background?: BackgroundPreset;
 }

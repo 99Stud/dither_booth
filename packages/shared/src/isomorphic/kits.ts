@@ -3,6 +3,17 @@ import z from "zod";
 import type { KitCopy } from "#isomorphic/kit-copy";
 
 import {
+  applyBackgroundControls,
+  backgroundSettingsSchema,
+  readBackgroundSettings,
+  type BackgroundSettings,
+} from "#isomorphic/background-controls";
+import {
+  BACKGROUND_PRESETS,
+  type BackgroundId,
+  type BackgroundPreset,
+} from "#isomorphic/backgrounds";
+import {
   kitCopyOverridesSchema,
   readKitCopyOverrides,
 } from "#isomorphic/kit-copy";
@@ -30,11 +41,37 @@ export type KitManifest = {
   label: string;
   /** The kit's own text, which an event's edits override key by key. */
   copy: KitCopy;
+  /** The kit's shader and its own look; an event moves its controls. */
+  background: BackgroundPreset;
+  /** The CRT over the camera square. */
+  camera: CameraScreen;
 };
+
+const hexColorSchema = z.string().regex(/^#[0-9a-f]{6}$/iu);
+
+/**
+ * The CRT over the camera square: lines and sweep, and a colour wash.
+ * `strength` 50 is the kit's opacities.
+ */
+export const cameraScreenSchema = z.object({
+  crtLines: z.boolean(),
+  wash: z.boolean(),
+  /** "background" follows the shader's highlight colour. */
+  tint: z.union([z.literal("background"), hexColorSchema]),
+  strength: z.number().min(0).max(100),
+});
+
+export type CameraScreen = z.infer<typeof cameraScreenSchema>;
+
+export const cameraScreenOverridesSchema = cameraScreenSchema
+  .partial()
+  .strict();
 
 export const KIT_MANIFESTS = {
   tartines: {
     label: "Tartines",
+    background: BACKGROUND_PRESETS.fluid,
+    camera: { crtLines: true, wash: true, tint: "background", strength: 50 },
     copy: {
       "landing.poweredBy": "powered by **99stud**™",
       "landing.start": "Press to start",
@@ -69,16 +106,52 @@ export const KIT_MANIFESTS = {
  * kept, so a kit's new defaults reach every event that didn't touch them.
  */
 export const kitSettingsSchema = z
-  .object({ copy: kitCopyOverridesSchema.optional() })
+  .object({
+    copy: kitCopyOverridesSchema.optional(),
+    background: backgroundSettingsSchema.optional(),
+    camera: cameraScreenOverridesSchema.optional(),
+  })
   .strict();
 
-export type KitSettings = z.infer<typeof kitSettingsSchema>;
+export type KitSettings = {
+  copy?: z.infer<typeof kitCopyOverridesSchema>;
+  background?: BackgroundSettings;
+  camera?: Partial<CameraScreen>;
+};
+
+/** The camera CRT as it renders, its tint resolved to a colour. */
+export type ResolvedCameraScreen = Omit<CameraScreen, "tint"> & {
+  tint: string;
+};
 
 /** What the kiosk and the tickets render: the kit with the event's edits. */
 export type ResolvedKit = {
   kitId: KitId;
   copy: KitCopy;
+  background: BackgroundPreset;
+  camera: ResolvedCameraScreen;
 };
+
+/**
+ * The shader an event's kit renders before its controls move: the kit's own
+ * preset for the kit's shader, or that shader's built-in look for another.
+ */
+export function getBackgroundBase(
+  kitId: KitId,
+  backgroundId: BackgroundId,
+): BackgroundPreset {
+  const kitBackground = KIT_MANIFESTS[kitId].background;
+  return kitBackground.effect === backgroundId
+    ? kitBackground
+    : BACKGROUND_PRESETS[backgroundId];
+}
+
+/** The colour "match background" takes: the shader's brightest tone. */
+export function getBackgroundHighlight(preset: BackgroundPreset): string {
+  return preset.effect === "fluid"
+    ? preset.settings.turbulence.palette[3]
+    : preset.settings.smoke.paperColor;
+}
 
 /**
  * The kit to render for a stored id. `known` is false when the id names a
@@ -111,23 +184,52 @@ export function readKitSettings(stored: unknown): {
     return { settings: {}, rejectedKeys: [] };
   }
 
-  const { copy, ...rest } = stored as Record<string, unknown>;
-  const read = readKitCopyOverrides(copy);
+  const { copy, background, camera, ...rest } = stored as Record<
+    string,
+    unknown
+  >;
+  const settings: KitSettings = {};
+  const rejectedKeys = Object.keys(rest);
 
-  return {
-    settings:
-      Object.keys(read.overrides).length > 0 ? { copy: read.overrides } : {},
-    rejectedKeys: [
-      ...Object.keys(rest),
-      ...read.rejectedKeys.map((key) => `copy.${key}`),
-    ],
-  };
+  const readCopy = readKitCopyOverrides(copy);
+  if (Object.keys(readCopy.overrides).length > 0) {
+    settings.copy = readCopy.overrides;
+  }
+  rejectedKeys.push(...readCopy.rejectedKeys.map((key) => `copy.${key}`));
+
+  const readBackground = readBackgroundSettings(background);
+  if (readBackground.settings) settings.background = readBackground.settings;
+  rejectedKeys.push(...readBackground.rejectedKeys);
+
+  if (camera !== undefined) {
+    const readCamera = cameraScreenOverridesSchema.safeParse(camera);
+    if (readCamera.success) settings.camera = readCamera.data;
+    else rejectedKeys.push("camera");
+  }
+
+  return { settings, rejectedKeys };
 }
 
 /** The kit with an event's settings applied. */
 export function resolveKit(kitId: KitId, settings: KitSettings): ResolvedKit {
+  const manifest = KIT_MANIFESTS[kitId];
+  const backgroundId = settings.background?.id ?? manifest.background.effect;
+  const background = applyBackgroundControls(
+    getBackgroundBase(kitId, backgroundId),
+    settings.background?.values ?? {},
+  );
+  const camera = { ...manifest.camera, ...settings.camera };
+
   return {
     kitId,
-    copy: { ...KIT_MANIFESTS[kitId].copy, ...settings.copy },
+    copy: { ...manifest.copy, ...settings.copy },
+    background,
+    camera: {
+      ...camera,
+      tint:
+        camera.tint === "background"
+          ? getBackgroundHighlight(background)
+          : camera.tint,
+    },
   };
 }

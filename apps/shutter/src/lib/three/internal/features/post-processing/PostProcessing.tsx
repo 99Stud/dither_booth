@@ -23,8 +23,7 @@ import { RenderPipeline } from "three/webgpu";
 import type {
   PostProcessingEffect,
   PostProcessingEffectNode,
-  PostProcessingOptions,
-  PostProcessingPassConfig,
+  PostPasses,
   PostProcessingSettings,
 } from "./postProcessing.types";
 
@@ -34,45 +33,22 @@ import { createCrtEffect } from "./effects/crtEffect";
 import { createFilmEffect } from "./effects/filmEffect";
 import { createScanlinesEffect } from "./effects/scanlinesEffect";
 
-const PASS_DEFAULTS = {
-  ascii: { enabled: true },
-  bloom: { enabled: true },
-  crt: { enabled: false },
-  film: { enabled: true },
-  scanlines: { enabled: true },
-};
-
-function createPassConfig(
-  options?: PostProcessingOptions,
-): PostProcessingPassConfig {
-  const passes = options?.passes ?? {};
-
-  return {
-    ascii: { enabled: passes.ascii?.enabled ?? PASS_DEFAULTS.ascii.enabled },
-    bloom: { enabled: passes.bloom?.enabled ?? PASS_DEFAULTS.bloom.enabled },
-    crt: { enabled: passes.crt?.enabled ?? PASS_DEFAULTS.crt.enabled },
-    film: { enabled: passes.film?.enabled ?? PASS_DEFAULTS.film.enabled },
-    scanlines: {
-      enabled: passes.scanlines?.enabled ?? PASS_DEFAULTS.scanlines.enabled,
-    },
-  };
-}
-
 function createEffects(
-  config: PostProcessingPassConfig,
+  passes: PostPasses,
   settings: PostProcessingSettings,
 ): PostProcessingEffect[] {
   return [
-    createAsciiEffect(config.ascii.enabled, settings.ascii),
-    createBloomEffect(config.bloom.enabled, settings.bloom),
-    createCrtEffect(config.crt.enabled),
-    createFilmEffect(config.film.enabled, settings.film),
-    createScanlinesEffect(config.scanlines.enabled, settings.scanlines),
+    createAsciiEffect(passes.ascii, settings.ascii),
+    createBloomEffect(passes.bloom, settings.bloom),
+    createCrtEffect(passes.crt),
+    createFilmEffect(passes.film, settings.film),
+    createScanlinesEffect(passes.scanlines, settings.scanlines),
   ];
 }
 
 export class PostProcessingPipeline {
-  readonly passes: PostProcessingPassConfig;
+  /** Which passes run. They are built into the node graph, so a change needs a new pipeline. */
+  readonly passes: PostPasses;
 
   postProcessing: RenderPipeline | undefined;
   scenePass: PassNode | undefined;
@@ -80,11 +56,8 @@ export class PostProcessingPipeline {
   private readonly _effects: PostProcessingEffect[];
   private _renderer: WebGPURenderer | null = null;
 
-  constructor(
-    settings: PostProcessingSettings,
-    options: PostProcessingOptions = {},
-  ) {
-    this.passes = createPassConfig(options);
+  constructor(settings: PostProcessingSettings, passes: PostPasses) {
+    this.passes = { ...passes };
     this._effects = createEffects(this.passes, settings);
   }
 
@@ -97,7 +70,7 @@ export class PostProcessingPipeline {
   private setupMRT(scene: Scene, camera: Camera): TextureNode {
     this.scenePass = pass(scene, camera);
 
-    const needsEmissive = this.passes.bloom.enabled;
+    const needsEmissive = this.passes.bloom;
     const mrtConfig: Record<string, Node> = needsEmissive
       ? { output, emissive }
       : { output };

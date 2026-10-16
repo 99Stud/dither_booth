@@ -3,7 +3,7 @@ import type { Scene, WebGPURenderer } from "three/webgpu";
 
 import type { ViewportSize } from "#lib/three/internal/runtime/runtime.types";
 
-import type { BackgroundEffect } from "../background.types";
+import type { BackgroundEffect, BackgroundPreset } from "../background.types";
 import type { Splat } from "../fluid-background/fluid-background.types";
 import type { SmokeBackgroundSettings } from "./smoke-background.types";
 
@@ -42,6 +42,12 @@ export class SmokeBackground implements BackgroundEffect {
   attachDebug(folder: ParametersGroup): void {
     this._simulation.attachDebug(folder);
     this._plane.attachDebug(folder);
+  }
+
+  applySettings(preset: BackgroundPreset): void {
+    if (preset.effect !== "smoke") return;
+    this._simulation.applySettings(preset.settings.simulation);
+    this._plane.applySettings(preset.settings.smoke);
   }
 
   update(delta: number): void {

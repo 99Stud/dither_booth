@@ -20,6 +20,7 @@ import type { SmokeState } from "./nodes/smokeNode";
 import type { SmokeSettings } from "./smoke-background.types";
 
 import {
+  applySmokeSettings,
   buildSmokeCharcoalNode,
   buildSmokeFieldNode,
   createSmokeState,
@@ -72,6 +73,10 @@ export class SmokeCharcoalPlane extends Mesh<
 
   init(renderer: WebGPURenderer): void {
     this._renderer = renderer;
+  }
+
+  applySettings(settings: SmokeSettings): void {
+    applySmokeSettings(this._smokeState, settings);
   }
 
   attachDebug(folder: ParametersGroup): void {

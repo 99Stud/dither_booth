@@ -1,4 +1,8 @@
-import { DEFAULT_KIT_ID, KIT_MANIFESTS } from "@dither-booth/shared/kits";
+import {
+  DEFAULT_KIT_ID,
+  KIT_MANIFESTS,
+  resolveKit,
+} from "@dither-booth/shared/kits";
 import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { describe, expect, spyOn, test } from "bun:test";
@@ -888,10 +892,7 @@ describe("event.service — kiosk concurrency and history", () => {
     const { db, sqlite } = createTestDb();
 
     try {
-      expect(await getKitForDb(db)).toEqual({
-        kitId: DEFAULT_KIT_ID,
-        copy: KIT_MANIFESTS[DEFAULT_KIT_ID].copy,
-      });
+      expect(await getKitForDb(db)).toEqual(resolveKit(DEFAULT_KIT_ID, {}));
     } finally {
       sqlite.close();
     }

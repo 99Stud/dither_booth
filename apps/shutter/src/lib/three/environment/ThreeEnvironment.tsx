@@ -1,12 +1,18 @@
 import type { Inspector } from "three/addons/inspector/Inspector.js";
 import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
 
+import {
+  BACKGROUND_IDS,
+  BACKGROUND_PRESETS,
+  POST_PASS_KEYS,
+  type PostPasses,
+} from "@dither-booth/shared/backgrounds";
+
 import type {
   BackgroundEffect,
   BackgroundPreset,
 } from "../internal/features/background.types";
 import type { ThreeRuntime } from "../internal/runtime/runtime.types";
-import type { BackgroundPresetKey } from "../presets/backgroundPresets";
 import type { ThreeEnvironmentOptions } from "./ThreeEnvironment.types";
 
 import { createThreeInspector } from "../internal/debug/createThreeInspector";
@@ -18,34 +24,26 @@ import { createRenderer } from "../internal/runtime/createRenderer";
 import { createScene } from "../internal/runtime/createScene";
 import { FrameLoop } from "../internal/runtime/frameLoop";
 import { SizeObserver } from "../internal/runtime/sizeObserver";
-import {
-  BACKGROUND_PRESET_KEYS,
-  BACKGROUND_PRESETS,
-  DEFAULT_BACKGROUND_PRESET,
-} from "../presets/backgroundPresets";
 
 function getDefaultPixelRatio(): number {
   if (typeof window === "undefined") return 1;
   return Math.min(window.devicePixelRatio || 1, 2);
 }
 
-function resolveBackgroundPreset(
-  background: BackgroundPresetKey | BackgroundPreset,
-): BackgroundPreset {
-  return typeof background === "string"
-    ? BACKGROUND_PRESETS[background]
-    : background;
-}
+const samePasses = (a: PostPasses, b: PostPasses) =>
+  POST_PASS_KEYS.every((key) => a[key] === b[key]);
 
 export class ThreeEnvironment {
   private readonly _container: HTMLElement;
   private readonly _runtime: ThreeRuntime;
   private readonly _pointer: PointerInput;
   private _background: BackgroundEffect;
-  private _presetName: BackgroundPresetKey | "custom";
+  private _preset: BackgroundPreset;
+  /** The latest `apply` before `init` finished; applied once it has. */
+  private _pendingPreset: BackgroundPreset | null = null;
   private _backgroundFolder: ParametersGroup | null = null;
   private _backgroundDebug: ParametersGroup | null = null;
-  private readonly _postProcessing: PostProcessingPipeline;
+  private _postProcessing: PostProcessingPipeline;
   private _settingsFolder: ParametersGroup | null = null;
   private _postDebug: ParametersGroup | null = null;
   private readonly _sizeObserver: SizeObserver;
@@ -77,15 +75,14 @@ export class ThreeEnvironment {
     this._container.appendChild(renderer.domElement);
 
     this._pointer = new PointerInput(renderer.domElement);
-    const background = options.background ?? DEFAULT_BACKGROUND_PRESET;
-    const preset = resolveBackgroundPreset(background);
-    this._presetName = typeof background === "string" ? background : "custom";
+    const preset = options.background ?? BACKGROUND_PRESETS.fluid;
+    this._preset = preset;
     this._background = this._createBackground(preset);
     this._background.attach(scene);
 
     this._postProcessing = new PostProcessingPipeline(
       preset.postProcessing,
-      options.postProcessing,
+      preset.passes,
     );
     this._frameLoop = new FrameLoop(renderer, (delta) => this._render(delta));
   }
@@ -131,21 +128,65 @@ export class ThreeEnvironment {
     this._attachDebug();
     this._initialized = true;
     this._syncFrameLoop();
+
+    const pending = this._pendingPreset;
+    this._pendingPreset = null;
+    if (pending) this.apply(pending);
   }
 
-  setBackground(background: BackgroundPresetKey | BackgroundPreset): void {
-    if (this._disposed || background === this._presetName) return;
+  /**
+   * Shows `preset`, changing as little as it can: new values go straight into
+   * the live uniforms, another shader replaces the current one, and changed
+   * post passes rebuild the post chain (they are part of its node graph).
+   */
+  apply(preset: BackgroundPreset): void {
+    if (this._disposed) return;
+    if (!this._initialized) {
+      this._pendingPreset = preset;
+      return;
+    }
 
+    const previous = this._preset;
+    this._preset = preset;
+
+    if (preset.effect === previous.effect) {
+      this._background.applySettings(preset);
+    } else {
+      this._replaceBackground(preset);
+    }
+
+    if (samePasses(previous.passes, preset.passes)) {
+      this._postProcessing.applySettings(preset.postProcessing);
+    } else {
+      void this._rebuildPostProcessing(preset);
+    }
+  }
+
+  private _replaceBackground(preset: BackgroundPreset): void {
     const { renderer, scene } = this._runtime;
-    const preset = resolveBackgroundPreset(background);
     this._background.dispose();
-    this._presetName = typeof background === "string" ? background : "custom";
     this._background = this._createBackground(preset);
     this._background.attach(scene);
-    this._postProcessing.applySettings(preset.postProcessing);
-    if (this._initialized) this._background.init(renderer);
+    this._background.init(renderer);
     this._attachBackgroundDebug();
-    this._attachPostDebug();
+  }
+
+  private async _rebuildPostProcessing(preset: BackgroundPreset) {
+    const { renderer, scene, camera } = this._runtime;
+    const next = new PostProcessingPipeline(
+      preset.postProcessing,
+      preset.passes,
+    );
+    this._postProcessing.dispose();
+    this._postProcessing = next;
+    // A newer rebuild or a dispose makes this one moot.
+    await next.setup(
+      renderer,
+      scene,
+      camera,
+      () => this._disposed || this._postProcessing !== next,
+    );
+    if (this._postProcessing === next) this._attachPostDebug();
   }
 
   start(): void {
@@ -200,10 +241,10 @@ export class ThreeEnvironment {
     this._settingsFolder = settings;
     const backgroundFolder = settings.addFolder("Background");
     backgroundFolder
-      .add({ preset: this._presetName }, "preset", BACKGROUND_PRESET_KEYS)
+      .add({ preset: this._preset.effect }, "preset", [...BACKGROUND_IDS])
       .name("Preset")
-      .onChange((name) => {
-        if (name !== "custom") this.setBackground(name);
+      .onChange((name: (typeof BACKGROUND_IDS)[number]) => {
+        this.apply(BACKGROUND_PRESETS[name]);
       });
     this._backgroundFolder = backgroundFolder;
     this._attachBackgroundDebug();
@@ -215,7 +256,7 @@ export class ThreeEnvironment {
     if (!folder) return;
 
     this._backgroundDebug?.paramList.domElement.remove();
-    this._backgroundDebug = folder.addFolder(this._presetName);
+    this._backgroundDebug = folder.addFolder(this._preset.effect);
     this._background.attachDebug(this._backgroundDebug);
   }
 
