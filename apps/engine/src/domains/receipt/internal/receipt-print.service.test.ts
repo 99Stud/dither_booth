@@ -151,6 +151,7 @@ function createCtx(db: DB) {
     darkroomAccess: createDarkroomAccessStub(),
     kioskChannel: createKioskChannel(),
     kioskMaintenance: createKioskMaintenance({ db }),
+    cameraPreview: {} as TRPCContext["cameraPreview"],
     mode: "production",
     printerUSBAdapter: USB_ADAPTER,
     processManager: "unknown",
