@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { KIOSK_RELOAD_IDLE_TIMEOUT_MS } from "./Experience.constants";
 import {
   getKioskCommandTiming,
+  isMaintenanceShown,
   toPendingKioskCommand,
 } from "./Experience.kiosk";
 
@@ -95,5 +96,66 @@ describe("toPendingKioskCommand", () => {
         REQUESTED_AT,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("isMaintenanceShown", () => {
+  const on = { enabled: true, requestedAt: REQUESTED_AT };
+
+  test("off is hidden, even if it was showing", () => {
+    expect(
+      isMaintenanceShown({
+        isShown: true,
+        maintenance: { enabled: false, requestedAt: REQUESTED_AT },
+        now: REQUESTED_AT,
+        phase: "idle",
+      }),
+    ).toBe(false);
+    expect(
+      isMaintenanceShown({
+        isShown: false,
+        maintenance: undefined,
+        now: REQUESTED_AT,
+        phase: "idle",
+      }),
+    ).toBe(false);
+  });
+
+  test("on shows straight away on the landing screen", () => {
+    expect(
+      isMaintenanceShown({
+        isShown: false,
+        maintenance: on,
+        now: REQUESTED_AT,
+        phase: "idle",
+      }),
+    ).toBe(true);
+  });
+
+  test("on waits for the guest, up to the timeout", () => {
+    const waiting = {
+      isShown: false,
+      maintenance: on,
+      phase: "printing",
+    } as const;
+
+    expect(isMaintenanceShown({ ...waiting, now: REQUESTED_AT })).toBe(false);
+    expect(
+      isMaintenanceShown({
+        ...waiting,
+        now: REQUESTED_AT + KIOSK_RELOAD_IDLE_TIMEOUT_MS,
+      }),
+    ).toBe(true);
+  });
+
+  test("once shown it stays, whatever the phase", () => {
+    expect(
+      isMaintenanceShown({
+        isShown: true,
+        maintenance: on,
+        now: REQUESTED_AT,
+        phase: "countdown",
+      }),
+    ).toBe(true);
   });
 });

@@ -47,6 +47,7 @@ const GROUPS = {
     "getHealthz",
     "reloadKiosk",
     "restartPuppeteerReceiptViewer",
+    "setKioskMaintenance",
     "showKioskScreen",
   ],
 } as const;
@@ -88,6 +89,10 @@ function createCaller(requestOrigin?: string, darkroomToken?: string) {
     darkroomToken,
     db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
     kioskChannel: new Proxy({}, { get: unreachable }) as KioskChannel,
+    kioskMaintenance: new Proxy(
+      {},
+      { get: unreachable },
+    ) as TRPCContext["kioskMaintenance"],
     mode: "production",
     processManager: "unknown",
     puppeteerLifecycle: {

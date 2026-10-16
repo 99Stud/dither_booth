@@ -36,6 +36,7 @@ export const engineRouter = router({
     ...healthz,
     ...browserAutomation,
     reloadKiosk: kiosk.reloadKiosk,
+    setKioskMaintenance: kiosk.setKioskMaintenance,
     showKioskScreen: kiosk.showKioskScreen,
   }),
 });

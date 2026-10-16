@@ -253,6 +253,22 @@ export const darkroomAccessTable = sqliteTable(
   (table) => [check("darkroom_access_singleton_check", sql`${table.id} = 1`)],
 );
 
+/**
+ * Whether the booth is in maintenance: the photo booth screen tells guests
+ * to come back later. One row once it was first switched; no row means off.
+ */
+export const kioskMaintenanceTable = sqliteTable(
+  "kiosk_maintenance",
+  {
+    id: integer("id").primaryKey().notNull().default(1),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [check("kiosk_maintenance_singleton_check", sql`${table.id} = 1`)],
+);
+
 export const dbSchema = {
   printConfigTable,
   campaignTable,
@@ -261,4 +277,5 @@ export const dbSchema = {
   drawTable,
   stockAdjustmentTable,
   darkroomAccessTable,
+  kioskMaintenanceTable,
 };
