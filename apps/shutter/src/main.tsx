@@ -22,6 +22,7 @@ import { createRoot } from "react-dom/client";
 
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
 import { applyKitFonts, waitForKitFonts } from "#kits/kitFonts";
+import { installKitPreview, isKitPreview } from "#kits/kitPreview";
 import { installKioskFullscreen } from "#lib/kiosk-fullscreen";
 import { router } from "#lib/router/index";
 import {
@@ -39,7 +40,8 @@ const isDevelopment =
 
 if (typeof document !== "undefined") {
   installWebAppManifestLink();
-  installKioskFullscreen();
+  // Admin's preview is a frame: it never asks for fullscreen.
+  if (!isKitPreview) installKioskFullscreen();
 }
 
 initializeBrowserLogging();
@@ -49,6 +51,8 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
+
+installKitPreview();
 
 installReceiptViewerNavigationBridge({
   isRouteStateCommitted: (options = {}) => {

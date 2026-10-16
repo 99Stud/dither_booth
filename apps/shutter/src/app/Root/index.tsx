@@ -6,6 +6,7 @@ import { useEffect, useRef, type FC } from "react";
 
 import { ROOT_LOG_SOURCE } from "#app/Root/internal/Root.constants";
 import { applyKitFonts } from "#kits/kitFonts";
+import { isKitPreview } from "#kits/kitPreview";
 import { useKit } from "#kits/useKit";
 import { useDarkroomTheme } from "#lib/darkroom/darkroom-theme";
 import { reportKioskError } from "#lib/logging/logging.utils";
@@ -72,8 +73,9 @@ export const Root: FC = () => {
 
   return (
     <main
-      // Only the kiosk goes fullscreen on tap, not the Darkroom's keypad.
-      onClick={isKioskShell ? enterFullscreen : undefined}
+      // Only the kiosk goes fullscreen on tap: not the Darkroom's keypad,
+      // nor admin's preview.
+      onClick={isKioskShell && !isKitPreview ? enterFullscreen : undefined}
       ref={mainRef}
       data-dither-route-status="ready"
       className={

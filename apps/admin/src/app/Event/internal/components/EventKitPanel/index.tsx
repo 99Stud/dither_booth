@@ -80,6 +80,7 @@ import { KitBackgroundSection } from "./internal/KitBackgroundSection";
 import { KitCameraSection } from "./internal/KitCameraSection";
 import { KitCopyField } from "./internal/KitCopyField";
 import { KitFontsSection } from "./internal/KitFontsSection";
+import { KitPreviewPane } from "./internal/KitPreviewPane";
 
 /** What the tab edits, in the shape it is saved in. */
 type KitDraft = {
@@ -226,79 +227,95 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
   };
 
   return (
-    <div className={clsx("flex flex-col gap-4 pb-32 md:gap-6 md:pb-24")}>
-      <Card>
-        <CardHeader>
-          <CardTitle className={clsx("flex items-center gap-2.5")}>
-            <IconBubble tone="violet">
-              <Palette />
-            </IconBubble>
-            Kit
-          </CardTitle>
-          <CardDescription>
-            The kit sets how the booth screen and the tickets look. The fonts,
-            the shader, the camera screen and the text below start from the
-            kit&apos;s own; in the text, wrap words in ** to make them bold.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className={clsx("flex flex-col gap-4")}>
-          <Field orientation="vertical">
-            <FieldLabel htmlFor="kit-id">Kit</FieldLabel>
-            {/* Base UI's Select is a button and listbox popup, not a native
-                <select>; the design lint matches the component name. */}
-            {/* ds-allow-native-select */}
-            <Select
-              id="kit-id"
-              items={KIT_FIELD_OPTIONS}
-              value={draft.kitId}
-              onValueChange={(value) => {
-                if (value) {
-                  // Fonts, shader and camera start from a kit's look, so a
-                  // new kit starts them over; the text edits carry across.
-                  setDraft((current) => ({
-                    kitId: value as KitId,
-                    copy: current.copy,
-                  }));
-                }
-              }}
-            >
-              <SelectTrigger id="kit-id" className={clsx("w-full sm:w-72")}>
-                <SelectValue placeholder="Choose a kit" />
-              </SelectTrigger>
-              <SelectContent>
-                {KIT_FIELD_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <div
-            className={clsx(
-              "flex flex-wrap items-center justify-between gap-3",
-              "text-sm text-muted-foreground",
-            )}
-          >
-            <p>
-              {changedCount === 0
-                ? "All text is the kit's own."
-                : `${changedCount} ${changedCount === 1 ? "line differs" : "lines differ"} from the kit.`}
-            </p>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={changedCount === 0}
-              onClick={() => setIsResetOpen(true)}
-            >
-              <RotateCcw data-icon="inline-start" />
-              Reset text to the kit
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div
+      className={clsx(
+        "grid items-start gap-4 pb-32 md:gap-6 md:pb-24",
+        "xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]",
+      )}
+    >
+      {/* The preview leads: on top on narrow screens, beside the editor
+          (and kept in view) on wide ones. */}
+      <div className={clsx("xl:sticky xl:top-20 xl:order-last")}>
+        <KitPreviewPane kitId={draft.kitId} settings={toSettings(draft)} />
+      </div>
 
-      <div className={clsx("grid items-start gap-4 md:gap-6 xl:grid-cols-2")}>
+      <div className={clsx("flex min-w-0 flex-col gap-4 md:gap-6")}>
+        <Card>
+          <CardHeader>
+            <CardTitle className={clsx("flex items-center gap-2.5")}>
+              <IconBubble tone="violet">
+                <Palette />
+              </IconBubble>
+              Kit
+            </CardTitle>
+            <CardDescription>
+              The kit sets how the booth screen and the tickets look. The fonts,
+              the shader, the camera screen and the text below start from the
+              kit&apos;s own; in the text, wrap words in ** to make them bold.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={clsx("flex flex-col gap-4")}>
+            <Field orientation="vertical">
+              <FieldLabel htmlFor="kit-id">Kit</FieldLabel>
+              {/* Base UI's Select is a button and listbox popup, not a native
+                <select>; the design lint matches the component name. */}
+              {/* ds-allow-native-select */}
+              <Select
+                id="kit-id"
+                items={KIT_FIELD_OPTIONS}
+                value={draft.kitId}
+                onValueChange={(value) => {
+                  if (value) {
+                    // Fonts, shader and camera start from a kit's look, so a
+                    // new kit starts them over; the text edits carry across.
+                    setDraft((current) => ({
+                      kitId: value as KitId,
+                      copy: current.copy,
+                    }));
+                  }
+                }}
+              >
+                <SelectTrigger id="kit-id" className={clsx("w-full sm:w-72")}>
+                  <SelectValue placeholder="Choose a kit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {KIT_FIELD_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <div
+              className={clsx(
+                "flex flex-wrap items-center justify-between gap-3",
+                "text-sm text-muted-foreground",
+              )}
+            >
+              <p>
+                {changedCount === 0
+                  ? "All text is the kit's own."
+                  : `${changedCount} ${changedCount === 1 ? "line differs" : "lines differ"} from the kit.`}
+              </p>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={changedCount === 0}
+                onClick={() => setIsResetOpen(true)}
+              >
+                <RotateCcw data-icon="inline-start" />
+                Reset text to the kit
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <KitFontsSection
+          kitId={draft.kitId}
+          value={draft.fonts}
+          onChange={(fonts) => setDraft((current) => ({ ...current, fonts }))}
+        />
         <KitBackgroundSection
           kitId={draft.kitId}
           value={draft.background}
@@ -306,24 +323,13 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
             setDraft((current) => ({ ...current, background }))
           }
         />
-        <div className={clsx("flex flex-col gap-4 md:gap-6")}>
-          <KitFontsSection
-            kitId={draft.kitId}
-            value={draft.fonts}
-            onChange={(fonts) => setDraft((current) => ({ ...current, fonts }))}
-          />
-          <KitCameraSection
-            kitId={draft.kitId}
-            value={draft.camera}
-            backgroundHighlight={getBackgroundHighlight(shaderPreview)}
-            onChange={(camera) =>
-              setDraft((current) => ({ ...current, camera }))
-            }
-          />
-        </div>
-      </div>
+        <KitCameraSection
+          kitId={draft.kitId}
+          value={draft.camera}
+          backgroundHighlight={getBackgroundHighlight(shaderPreview)}
+          onChange={(camera) => setDraft((current) => ({ ...current, camera }))}
+        />
 
-      <div className={clsx("grid items-start gap-4 md:gap-6 xl:grid-cols-2")}>
         {COPY_KEYS_BY_GROUP.map(({ group, keys }) => {
           const GroupIcon = GROUP_ICONS[group];
           return (

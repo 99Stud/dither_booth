@@ -22,7 +22,10 @@ export const ReceiptViewer: FC = () => {
     );
   }
 
-  const Ticket = template ? getKitTicket(kit, template) : undefined;
+  // The engine names the kit; admin's preview sends it with the draft.
+  const Ticket = template
+    ? getKitTicket(kit ?? kitData.kitId, template)
+    : undefined;
 
   return (
     <div
