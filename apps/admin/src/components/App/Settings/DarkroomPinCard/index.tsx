@@ -17,9 +17,9 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { KeyRound, LockKeyhole } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
-import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
+import { SETTINGS_LOG_SOURCE } from "#app/Settings/internal/Settings.constants";
+import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
@@ -45,8 +45,8 @@ export const DarkroomPinCard = () => {
 
     const saved = await setDarkroomPin({ pin }).catch((error: unknown) => {
       reportKioskError(error, {
-        event: "control-center-darkroom-pin-failed",
-        source: CONTROL_CENTER_LOG_SOURCE,
+        event: "settings-darkroom-pin-failed",
+        source: SETTINGS_LOG_SOURCE,
         userMessage: "Failed to save the Darkroom PIN.",
       });
     });
@@ -55,7 +55,7 @@ export const DarkroomPinCard = () => {
 
     setPin("");
     await pinStatusQuery.refetch();
-    toast.success(
+    notify.success(
       "Darkroom PIN saved. Open Darkroom sessions were signed out.",
     );
   };
@@ -82,7 +82,9 @@ export const DarkroomPinCard = () => {
           <Input
             aria-label="New Darkroom PIN"
             autoComplete="off"
+            enterKeyHint="done"
             inputMode="numeric"
+            pattern="[0-9]*"
             maxLength={8}
             placeholder="4 to 8 digits"
             type="password"

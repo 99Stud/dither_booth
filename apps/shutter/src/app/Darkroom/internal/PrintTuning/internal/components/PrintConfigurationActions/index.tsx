@@ -2,6 +2,7 @@ import type { FC } from "react";
 
 import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
+import { haptic } from "@dither-booth/ui/haptics";
 import clsx from "clsx";
 import { Printer, RotateCcw } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const PrintConfigurationActions: FC<PrintConfigurationActionsProps> = ({
         variant="ghost"
         disabled={isResetDisabled}
         onClick={() => {
+          haptic("warning");
           void onResetConfiguration();
         }}
       >
@@ -37,6 +39,8 @@ export const PrintConfigurationActions: FC<PrintConfigurationActionsProps> = ({
         size="lg"
         disabled={isPrintReceiptDisabled}
         onClick={() => {
+          // A firm tap: something physical is about to happen.
+          haptic("medium");
           void onPrintReceipt();
         }}
       >

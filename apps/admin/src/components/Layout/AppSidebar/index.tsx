@@ -1,10 +1,6 @@
 import type { ComponentProps, FC } from "react";
 
 import {
-  isThemePreference,
-  ThemeToggle,
-} from "@dither-booth/ui/components/misc/ThemeToggle";
-import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -20,11 +16,13 @@ import {
 import { Link, useLocation } from "@tanstack/react-router";
 import clsx from "clsx";
 import { Aperture } from "lucide-react";
-import { useTheme } from "next-themes";
 
 import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
-import { APP_SIDEBAR_MENU_LINKS } from "./internal/AppSidebar.constants";
+import {
+  APP_SETTINGS_LINK,
+  APP_SIDEBAR_MENU_LINKS,
+} from "./internal/AppSidebar.constants";
 import { DarkroomSidebarLink } from "./internal/components/DarkroomSidebarLink";
 
 interface AppSidebarProps extends Omit<
@@ -40,7 +38,6 @@ interface AppSidebarProps extends Omit<
  */
 export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
   const { isMobile, setOpenMobile } = useSidebar();
-  const { theme, setTheme } = useTheme();
   const pathname = useLocation({
     select: (location) => location.pathname,
   });
@@ -112,18 +109,21 @@ export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div
-          className={clsx(
-            "flex items-center justify-between gap-2 px-2 py-1",
-            "group-data-[collapsible=icon]:hidden",
-          )}
-        >
-          <span className="text-xs text-muted-foreground">Theme</span>
-          <ThemeToggle
-            value={isThemePreference(theme) ? theme : "system"}
-            onValueChange={setTheme}
-          />
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className={clsx("h-9")}
+              isActive={pathname === APP_SETTINGS_LINK.path}
+              tooltip={APP_SETTINGS_LINK.label}
+              render={
+                <Link to={APP_SETTINGS_LINK.path} onClick={closeOnMobile} />
+              }
+            >
+              {APP_SETTINGS_LINK.icon}
+              <span>{APP_SETTINGS_LINK.label}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

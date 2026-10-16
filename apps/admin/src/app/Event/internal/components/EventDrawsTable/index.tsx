@@ -28,8 +28,8 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { History, ListRestart, Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
+import { notify } from "#lib/feedback/notify";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 import { reportEventError } from "../../Event.utils";
@@ -92,7 +92,7 @@ export const EventDrawsTable: FC = () => {
 
             const parsed = parseBoothTicketRef(trimmed);
             if (!parsed) {
-              toast.error("Enter six digits or STUD_DITHERBOOTH_XXXXXX.");
+              notify.error("Enter six digits or STUD_DITHERBOOTH_XXXXXX.");
               return;
             }
 
@@ -102,6 +102,11 @@ export const EventDrawsTable: FC = () => {
           <label className={clsx("flex min-w-48 flex-1 flex-col gap-1")}>
             <span className={clsx("text-sm font-medium")}>Ticket number</span>
             <Input
+              type="search"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              enterKeyHint="search"
+              spellCheck={false}
               value={draft}
               placeholder="STUD_DITHERBOOTH_000000"
               onChange={(changeEvent) => setDraft(changeEvent.target.value)}

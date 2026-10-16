@@ -16,8 +16,6 @@ import { TabsList, TabsTrigger } from "@dither-booth/ui/components/ui/tabs";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 
-import { AppThemeMenu } from "#components/Layout/AppThemeMenu/index";
-
 /** Marks the page's large title, which the phone's top bar watches. */
 const PAGE_TITLE_ATTRIBUTE = "data-page-title";
 
@@ -53,8 +51,8 @@ interface AppSidebarPageHeaderProps {
 /**
  * The slim top bar of every page. On tablets and desktops, as on Vercel's
  * and Linear's dashboards: sidebar toggle and a breadcrumb. On phones, an
- * iOS navigation bar: transparent over the large title, then the title
- * small and centred once it scrolls away, with the theme menu at the right.
+ * iOS navigation bar that takes no room: it floats over the page and only
+ * shows the title, small and centred, once the large title scrolls away.
  */
 export const AppSidebarPageHeader: FC<AppSidebarPageHeaderProps> = ({
   title,
@@ -66,8 +64,10 @@ export const AppSidebarPageHeader: FC<AppSidebarPageHeaderProps> = ({
     <header
       data-scrolled={isTitleScrolledAway}
       className={clsx(
-        "sticky top-0 z-20",
+        "top-0 z-20 md:sticky",
         "flex h-[3.25rem] shrink-0 items-center gap-2 px-4 md:h-12",
+        "max-md:pointer-events-none max-md:fixed max-md:inset-x-0",
+        "max-md:h-[calc(3.25rem+env(safe-area-inset-top))]",
         "md:border-b md:bg-background/85 md:backdrop-blur-xl md:backdrop-saturate-150",
         "pt-[env(safe-area-inset-top)] md:rounded-t-xl md:pt-0",
         // Phones: no bar, only a scroll edge that fades the content out
@@ -79,23 +79,16 @@ export const AppSidebarPageHeader: FC<AppSidebarPageHeaderProps> = ({
         "max-md:data-[scrolled=true]:before:opacity-100",
       )}
     >
-      <div
+      <span
+        aria-hidden={!isTitleScrolledAway}
         className={clsx(
-          "grid w-full grid-cols-[2.75rem_1fr_2.75rem] items-center md:hidden",
+          "w-full truncate px-8 text-center text-[1.0625rem] font-semibold md:hidden",
+          "transition-opacity",
+          isTitleScrolledAway ? "opacity-100" : "opacity-0",
         )}
       >
-        <span />
-        <span
-          aria-hidden={!isTitleScrolledAway}
-          className={clsx(
-            "truncate text-center text-[1.0625rem] font-semibold transition-opacity",
-            isTitleScrolledAway ? "opacity-100" : "opacity-0",
-          )}
-        >
-          {title}
-        </span>
-        <AppThemeMenu />
-      </div>
+        {title}
+      </span>
       <SidebarTrigger className="-ml-1 max-md:hidden" />
       <Separator
         orientation="vertical"
@@ -128,6 +121,8 @@ export const AppPageBody: FC<PropsWithChildren<{ className?: string }>> = ({
       "mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6 lg:p-8",
       // Clear of the phone's tab bar and home indicator.
       "pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-6 lg:pb-8",
+      // The phone's top bar floats: start just under the status bar.
+      "max-md:pt-[calc(1.25rem+env(safe-area-inset-top))]",
       className,
     )}
   >

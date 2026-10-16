@@ -87,7 +87,14 @@ export const EventRestockDialog: FC<EventRestockDialogProps> = (props) => {
             void form.handleSubmit();
           }}
         >
-          <NumberField form={form} name="delta" label="Change" />
+          <NumberField
+            form={form}
+            name="delta"
+            label="Change"
+            // No inputmode: iOS then shows the numbers-and-punctuation
+            // keyboard, which has the minus sign a removal needs.
+            inputMode={undefined}
+          />
           <form.Subscribe selector={(state) => state.values.delta}>
             {(delta) => (
               <p className={clsx("text-sm text-muted-foreground")}>

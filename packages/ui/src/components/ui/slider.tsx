@@ -1,5 +1,6 @@
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 
+import { haptic } from "#lib/haptics";
 import { cn } from "#lib/utils";
 
 function Slider({
@@ -8,6 +9,7 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  onValueChange,
   ...props
 }: SliderPrimitive.Root.Props) {
   const _values = Array.isArray(value)
@@ -25,6 +27,11 @@ function Slider({
       min={min}
       max={max}
       thumbAlignment="edge"
+      // A detent tick for each step, as iOS sliders and pickers do.
+      onValueChange={(nextValue, details) => {
+        haptic("selection");
+        onValueChange?.(nextValue, details);
+      }}
       {...props}
     >
       <SliderPrimitive.Control className="relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col">

@@ -41,6 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@dither-booth/ui/components/ui/table";
+import { haptic } from "@dither-booth/ui/haptics";
 import clsx from "clsx";
 import {
   Gift,
@@ -159,6 +160,11 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
   } = props;
 
   const [prizeToDelete, setPrizeToDelete] = useState<EventPrize | null>(null);
+  // A destructive step ahead: warn by touch as the confirmation opens.
+  const askToDelete = (prize: EventPrize) => {
+    haptic("warning");
+    setPrizeToDelete(prize);
+  };
   const chanceById = new Map(
     computeOdds({
       noWinWeight: event.lottery.noWinWeight,
@@ -242,7 +248,7 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
                         prize={prize}
                         onEdit={onEditClick}
                         onRestock={onRestockClick}
-                        onDelete={setPrizeToDelete}
+                        onDelete={askToDelete}
                       />
                     </div>
                   </li>
@@ -292,7 +298,7 @@ export const EventPrizesTable: FC<EventPrizesTableProps> = (props) => {
                             prize={prize}
                             onEdit={onEditClick}
                             onRestock={onRestockClick}
-                            onDelete={setPrizeToDelete}
+                            onDelete={askToDelete}
                           />
                         </TableCell>
                       </TableRow>

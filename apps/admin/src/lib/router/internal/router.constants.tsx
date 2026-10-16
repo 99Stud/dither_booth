@@ -1,9 +1,10 @@
 import { ControlCenter } from "#app/ControlCenter/index";
 import { Event } from "#app/Event/index";
+import { Settings } from "#app/Settings/index";
 
 import type { RouteConfig } from "./router.types";
 
-export const ROUTE_KEYS = ["control-center", "event"] as const;
+export const ROUTE_KEYS = ["control-center", "event", "settings"] as const;
 
 export const ROUTES_CONFIG: RouteConfig = new Map([
   [
@@ -18,6 +19,13 @@ export const ROUTES_CONFIG: RouteConfig = new Map([
     {
       path: "/event",
       component: Event,
+    },
+  ],
+  [
+    "settings",
+    {
+      path: "/settings",
+      component: Settings,
     },
   ],
 ]);

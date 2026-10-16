@@ -4,7 +4,10 @@ import { Link, useLocation } from "@tanstack/react-router";
 import clsx from "clsx";
 import { SlidersHorizontal } from "lucide-react";
 
-import { APP_SIDEBAR_MENU_LINKS } from "#components/Layout/AppSidebar/internal/AppSidebar.constants";
+import {
+  APP_SETTINGS_LINK,
+  APP_SIDEBAR_MENU_LINKS,
+} from "#components/Layout/AppSidebar/internal/AppSidebar.constants";
 import { useDarkroomHref } from "#lib/darkroom/useDarkroomHref";
 
 const TAB_CLASS_NAME = clsx(
@@ -39,6 +42,8 @@ export const AppTabBar: FC = () => {
       aria-label="Sections"
       className={clsx(
         "pointer-events-none fixed inset-x-0 bottom-0 z-30 md:hidden",
+        // iOS hides the tab bar while the keyboard is up.
+        "in-data-keyboard-open:hidden",
         "px-4 pt-10 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
         // The scroll edge effect: content fades out under the bar.
         "bg-linear-to-t from-background from-30% to-transparent",
@@ -46,7 +51,7 @@ export const AppTabBar: FC = () => {
     >
       <ul
         className={clsx(
-          "pointer-events-auto mx-auto grid max-w-sm grid-cols-3 glass",
+          "pointer-events-auto mx-auto grid max-w-md grid-cols-4 glass",
           "rounded-full p-1",
         )}
       >
@@ -71,6 +76,20 @@ export const AppTabBar: FC = () => {
           >
             <TabLabel icon={<SlidersHorizontal />} label="Darkroom" />
           </a>
+        </li>
+        <li>
+          <Link
+            to={APP_SETTINGS_LINK.path}
+            aria-current={
+              pathname === APP_SETTINGS_LINK.path ? "page" : undefined
+            }
+            className={TAB_CLASS_NAME}
+          >
+            <TabLabel
+              icon={APP_SETTINGS_LINK.icon}
+              label={APP_SETTINGS_LINK.shortLabel}
+            />
+          </Link>
         </li>
       </ul>
     </nav>

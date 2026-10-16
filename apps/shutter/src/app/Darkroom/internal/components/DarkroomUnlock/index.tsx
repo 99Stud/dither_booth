@@ -2,6 +2,7 @@ import type { FC, ReactNode } from "react";
 
 import { logKioskEvent } from "@dither-booth/logging";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
+import { haptic } from "@dither-booth/ui/haptics";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import clsx from "clsx";
@@ -29,7 +30,11 @@ const KeypadKey: FC<{
     type="button"
     aria-label={label}
     disabled={disabled}
-    onClick={onPress}
+    onClick={() => {
+      // Each key clicks under the finger, like the iPad's passcode pad.
+      haptic("light");
+      onPress();
+    }}
     className={clsx(
       "size-20 rounded-full",
       "flex items-center justify-center",
@@ -72,8 +77,10 @@ export const DarkroomUnlock: FC = () => {
 
     try {
       setDarkroomSession(await unlockDarkroom({ pin }));
+      haptic("success");
       logKioskEvent("info", DARKROOM_LOG_SOURCE, "darkroom-unlocked");
     } catch (error) {
+      haptic("error");
       setErrorMessage(
         getUnlockErrorMessage(
           getTRPCErrorCode(error),

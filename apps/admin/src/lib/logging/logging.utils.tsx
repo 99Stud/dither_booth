@@ -3,7 +3,8 @@ import {
   logKioskEvent,
   type ReportKioskErrorOptions,
 } from "@dither-booth/logging";
-import { toast } from "sonner";
+
+import { notify } from "#lib/feedback/notify";
 
 export const reportKioskError = (
   error: unknown,
@@ -11,7 +12,7 @@ export const reportKioskError = (
 ) => {
   const { details, event, source, userMessage } = options;
 
-  toast.error(userMessage);
+  notify.error(userMessage);
   logKioskEvent("error", source, event, {
     ...(details ? { details } : {}),
     error: getKioskErrorDiagnostics(error, userMessage),

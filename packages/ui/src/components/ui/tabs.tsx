@@ -1,17 +1,23 @@
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 import { cva, type VariantProps } from "class-variance-authority";
 
+import { haptic } from "#lib/haptics";
 import { cn } from "#lib/utils";
 
 function Tabs({
   className,
   orientation = "horizontal",
+  onValueChange,
   ...props
 }: TabsPrimitive.Root.Props) {
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
       data-orientation={orientation}
+      onValueChange={(nextValue, details) => {
+        haptic("selection");
+        onValueChange?.(nextValue, details);
+      }}
       className={cn(
         "group/tabs flex gap-2 data-horizontal:flex-col",
         className,

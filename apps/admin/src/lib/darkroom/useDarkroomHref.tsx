@@ -10,7 +10,12 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 export const useDarkroomHref = (): string | undefined => {
   const trpc = useTRPC();
   const { data: healthz } = useQuery(
-    trpc.ops.getHealthz.queryOptions(undefined, { staleTime: Infinity }),
+    trpc.ops.getHealthz.queryOptions(undefined, {
+      staleTime: Infinity,
+      // Health waits on the Shutter: alone, so a booth whose Shutter is
+      // down never stalls the page's own queries batched with it.
+      trpc: { context: { skipBatch: true } },
+    }),
   );
   return healthz
     ? new URL(DARKROOM_PATH, healthz.shutter.origin).toString()

@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
 import { TextField } from "@dither-booth/ui/fields/TextField";
+import { haptic } from "@dither-booth/ui/haptics";
 import {
   closestCenter,
   DndContext,
@@ -165,6 +166,8 @@ export const EventTicketItemsCard: FC<{
             {(field) => {
               const moveRow = ({ active, over }: DragEndEvent) => {
                 if (!over || active.id === over.id) return;
+                // The row lands in its new place.
+                haptic("light");
 
                 const from = rowIds.indexOf(String(active.id));
                 const to = rowIds.indexOf(String(over.id));
@@ -183,6 +186,8 @@ export const EventTicketItemsCard: FC<{
                       restrictToParentElement,
                     ]}
                     sensors={sensors}
+                    // A firm tap as the row lifts, as iOS lists do.
+                    onDragStart={() => haptic("medium")}
                     onDragEnd={moveRow}
                   >
                     <SortableContext
@@ -204,6 +209,7 @@ export const EventTicketItemsCard: FC<{
                               hideLabel
                               placeholder={`Item ${index + 1}`}
                               maxLength={TICKET_ITEM_NAME_MAX_LENGTH}
+                              enterKeyHint="done"
                             />
                             <Button
                               aria-label={`Remove item ${index + 1}`}

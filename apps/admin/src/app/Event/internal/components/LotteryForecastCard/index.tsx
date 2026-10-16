@@ -80,6 +80,8 @@ export const LotteryForecastCard: FC<{
             id="guests-per-hour"
             className={clsx("h-8 w-20 text-center tabular-nums")}
             inputMode="numeric"
+            pattern="[0-9]*"
+            enterKeyHint="done"
             min={1}
             type="number"
             value={guestsPerHour}

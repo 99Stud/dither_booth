@@ -147,7 +147,13 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
                 void form.handleSubmit();
               }}
             >
-              <TextField form={form} name="name" label="Event name" />
+              <TextField
+                form={form}
+                name="name"
+                label="Event name"
+                autoCapitalize="words"
+                enterKeyHint="done"
+              />
               <SelectField
                 form={form}
                 name="kitId"

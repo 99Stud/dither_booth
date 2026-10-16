@@ -1,6 +1,5 @@
 import clsx from "clsx";
 
-import { DarkroomPinCard } from "#components/App/ControlCenter/DarkroomPinCard/index";
 import { HealthCard } from "#components/App/ControlCenter/HealthCard/index";
 import {
   AppPageBody,
@@ -28,7 +27,6 @@ export const ControlCenter = () => {
         />
         <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
           <HealthCard />
-          <DarkroomPinCard />
         </div>
       </AppPageBody>
     </>

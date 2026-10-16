@@ -146,7 +146,7 @@ Some `config.*` and `ops.*` procedures also accept a Darkroom token; see [Darkro
 
 Print tuning happens on the booth iPad, in the Shutter's `/darkroom` route, behind a PIN.
 
-- **The PIN** (4–8 digits) is set in admin's Control Center (`config.setDarkroomPin`, admin origin only). Only its argon2id hash is stored, in the singleton `darkroom_access` table. Until a PIN is set, the Darkroom stays locked.
+- **The PIN** (4–8 digits) is set in admin's Settings (`config.setDarkroomPin`, admin origin only). Only its argon2id hash is stored, in the singleton `darkroom_access` table. Until a PIN is set, the Darkroom stays locked.
 - **`booth.unlockDarkroom({ pin })`** returns `{ token, expiresAt }`. Tokens live in memory (`src/domains/darkroom/internal/darkroom.access.ts`):
   - a token expires 30 min after it was last used;
   - a new PIN or an engine restart revokes every token;
@@ -258,6 +258,20 @@ bun run cert:caroot
 ```
 
 Use this to locate `rootCA.pem` when another device needs to trust the locally generated certificate.
+
+### 3. Test on a phone
+
+```bash
+bun run phone
+```
+
+With `bun run dev` running, this prints a QR code for a setup page on the LAN (`http://<LAN_IP>:3199`, `PHONE_SETUP_PORT` to change it). Scan it with the phone's camera on the same Wi-Fi. The page:
+
+- serves the mkcert root CA (the public certificate, never its key) to install as a profile;
+- shows the two trust steps in iOS Settings;
+- links to the admin and the Darkroom.
+
+Do this once per phone. If the page doesn't load, allow incoming connections for `bun` in the macOS firewall.
 
 ## Regenerate Or Clean Up
 

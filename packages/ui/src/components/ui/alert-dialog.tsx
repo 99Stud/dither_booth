@@ -61,9 +61,9 @@ function AlertDialogContent({
         data-size={size}
         className={cn(
           "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          // On phones: an iOS 26 sheet, floating above the home indicator with
-          // corners concentric to the screen's.
-          "max-sm:top-auto max-sm:right-2 max-sm:bottom-[max(0.5rem,env(safe-area-inset-bottom))] max-sm:left-2 max-sm:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] max-sm:w-auto max-sm:max-w-none! max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-y-auto max-sm:rounded-[2rem] max-sm:p-5 max-sm:shadow-2xl max-sm:ring-0 max-sm:duration-300 max-sm:ease-out max-sm:data-open:zoom-in-100 max-sm:data-open:slide-in-from-bottom max-sm:data-closed:zoom-out-100 max-sm:data-closed:slide-out-to-bottom",
+          // On phones: an iOS 26 sheet, floating above the home indicator (and
+          // the keyboard, see `watchVirtualKeyboard`) with concentric corners.
+          "max-sm:top-auto max-sm:right-2 max-sm:bottom-[max(0.5rem,env(safe-area-inset-bottom),calc(var(--keyboard-inset,0px)+0.5rem))] max-sm:left-2 max-sm:max-h-[calc(100dvh-env(safe-area-inset-top)-max(env(safe-area-inset-bottom),var(--keyboard-inset,0px))-2rem)] max-sm:w-auto max-sm:max-w-none! max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-y-auto max-sm:rounded-[2rem] max-sm:p-5 max-sm:shadow-2xl max-sm:ring-0 max-sm:duration-300 max-sm:ease-out max-sm:data-open:zoom-in-100 max-sm:data-open:slide-in-from-bottom max-sm:data-closed:zoom-out-100 max-sm:data-closed:slide-out-to-bottom",
           className,
         )}
         {...props}

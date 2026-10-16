@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@dither-booth/ui/components/ui/select";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
+import { haptic } from "@dither-booth/ui/haptics";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Frown, Ticket, Trophy } from "lucide-react";
@@ -123,6 +124,7 @@ export const SampleTicketsCard: FC = () => {
             variant="outline"
             disabled={isPrinting}
             onClick={() => {
+              haptic("medium");
               void onPrint({ outcome: "loss" });
             }}
           >
@@ -139,6 +141,7 @@ export const SampleTicketsCard: FC = () => {
             disabled={isPrinting || !selectedPrizeId}
             onClick={() => {
               if (!selectedPrizeId) return;
+              haptic("medium");
               void onPrint({ outcome: "win", prizeId: selectedPrizeId });
             }}
           >

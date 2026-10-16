@@ -4,6 +4,7 @@ import { type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 import { toggleVariants } from "#components/ui/toggle";
+import { haptic } from "#lib/haptics";
 import { cn } from "#lib/utils";
 
 const ToggleGroupContext = React.createContext<
@@ -25,6 +26,7 @@ function ToggleGroup({
   spacing = 2,
   orientation = "horizontal",
   children,
+  onValueChange,
   ...props
 }: ToggleGroupPrimitive.Props &
   VariantProps<typeof toggleVariants> & {
@@ -39,6 +41,10 @@ function ToggleGroup({
       data-spacing={spacing}
       data-orientation={orientation}
       style={{ "--gap": spacing } as React.CSSProperties}
+      onValueChange={(nextValue, details) => {
+        haptic("selection");
+        onValueChange?.(nextValue, details);
+      }}
       className={cn(
         "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
         className,

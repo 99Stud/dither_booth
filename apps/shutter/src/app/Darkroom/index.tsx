@@ -1,4 +1,6 @@
+import { watchVirtualKeyboard } from "@dither-booth/ui/virtual-keyboard";
 import clsx from "clsx";
+import { useEffect } from "react";
 
 import { useDarkroomSession } from "#lib/darkroom/darkroom-token";
 
@@ -11,6 +13,8 @@ import { PrintTuning } from "./internal/PrintTuning";
 
 const DarkroomWorkspace = () => {
   useDarkroomSessionGuard();
+  // Print tuning has number fields: keep them clear of the iPad keyboard.
+  useEffect(() => watchVirtualKeyboard(), []);
 
   return (
     <div className={clsx("min-h-dvh bg-background text-foreground")}>

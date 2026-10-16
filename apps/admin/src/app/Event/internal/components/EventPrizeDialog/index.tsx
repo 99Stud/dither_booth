@@ -28,6 +28,7 @@ import {
 } from "@dither-booth/ui/components/ui/toggle-group";
 import { NumberField } from "@dither-booth/ui/fields/NumberField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
+import { haptic } from "@dither-booth/ui/haptics";
 import { useForm, useStore } from "@tanstack/react-form";
 import clsx from "clsx";
 import {
@@ -242,12 +243,16 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
             form={form}
             name="title"
             label="Prize"
+            autoCapitalize="sentences"
+            enterKeyHint="next"
             placeholder="A free drink"
           />
           <TextField
             form={form}
             name="winInstruction"
             label="How to claim it"
+            autoCapitalize="sentences"
+            enterKeyHint="done"
             placeholder="Show this ticket at the bar"
           />
 
@@ -303,6 +308,7 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
               name="quantity"
               label="How many you have"
               inputMode="numeric"
+              pattern="[0-9]*"
               min={0}
             />
           ) : prize ? (
@@ -384,9 +390,10 @@ export const EventPrizeDialog: FC<EventPrizeDialogProps> = (props) => {
                       type="button"
                       variant="outline"
                       size="xs"
-                      onClick={() =>
-                        form.setFieldValue("weight", rarityDefaultWeight)
-                      }
+                      onClick={() => {
+                        haptic("light");
+                        form.setFieldValue("weight", rarityDefaultWeight);
+                      }}
                     >
                       <RotateCcw data-icon="inline-start" />
                       {capitalize(values.rarity)} default (

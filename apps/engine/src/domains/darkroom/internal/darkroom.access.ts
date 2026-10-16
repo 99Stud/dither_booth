@@ -80,7 +80,7 @@ export function createDarkroomAccess({
           code: "UNAUTHORIZED",
           message: pinHash
             ? "Wrong PIN."
-            : "No Darkroom PIN is set. Set one in admin's Control Center.",
+            : "No Darkroom PIN is set. Set one in admin's Settings.",
         });
       }
 

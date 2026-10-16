@@ -16,6 +16,10 @@
   html.saas {
     -webkit-text-size-adjust: 100%;
     touch-action: manipulation;
+    /* A focused field scrolls clear of the top bar, the tab bar and the
+       keyboard (its height comes from `watchVirtualKeyboard`). */
+    scroll-padding-top: 4.5rem;
+    scroll-padding-bottom: calc(var(--keyboard-inset, 0px) + 6rem);
   }
 
   /* Buttons: 44 pt, 40 for small ones, square icon buttons. */
