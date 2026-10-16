@@ -168,7 +168,7 @@ The engine can push commands to the kiosk pages, for example to reload a Shutter
   - `when-idle` reloads once the page is back on the landing screen, so a guest's visit is never cut off, and after 90 s anyway, since a stuck flow never gets back there.
   - `now` reloads straight away.
   - The Darkroom has no guest visit to wait for: it reloads straight away in both modes.
-- **`ops.showKioskScreen({ screen })`** (admin origin only) sends `{ type: "navigate", screen }` and returns `{ delivered }`. Admin's Settings calls it from the Darkroom card.
+- **`ops.showKioskScreen({ screen })`** (admin origin only) sends `{ type: "navigate", screen }` and returns `{ delivered }`. Admin's Control Center calls it from the Booth iPad card (Photo booth · Darkroom).
   - `darkroom` opens the Darkroom's PIN screen once the Experience is back on the landing screen (90 s at most, like `when-idle`). The PIN is still needed: the command carries no session.
   - `shutter` locks the Darkroom (`booth.lockDarkroom`) and goes back to the landing screen straight away, so a kiosk left unattended is never left unlocked.
 - **`booth.reportKioskStatus({ pageId, camera })`** is the other direction: a page reports its camera (`useUserMedia`'s state, or `null` while it runs none, e.g. on the Darkroom's PIN screen) on every change and every reconnection. The engine keeps it on the page's entry until its stream ends, and returns `{ registered: false }` for a page it doesn't list (the page retries). `ops.getHealthz` returns it with each page, and admin's Control Center shows it as the **Camera** health item; a failed camera counts as unhealthy.
