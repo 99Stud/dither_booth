@@ -1,7 +1,7 @@
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { Tabs, TabsContent } from "@dither-booth/ui/components/ui/tabs";
 import clsx from "clsx";
-import { Dices, Gift, History, LayoutDashboard } from "lucide-react";
+import { Dices, Gift, History, LayoutDashboard, Palette } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -17,6 +17,7 @@ import type { EventPrize, EventTab } from "./internal/Event.types";
 import { EventCreateDialog } from "./internal/components/EventCreateDialog";
 import { EventDrawsTable } from "./internal/components/EventDrawsTable";
 import { EventEmptyState } from "./internal/components/EventEmptyState";
+import { EventKitPanel } from "./internal/components/EventKitPanel";
 import { EventLotteryForm } from "./internal/components/EventLotteryForm";
 import { EventOverviewPanel } from "./internal/components/EventOverviewPanel";
 import { EventPrizeDialog } from "./internal/components/EventPrizeDialog";
@@ -31,6 +32,7 @@ export const Event = () => {
     createEventMutation,
     updateEventMutation,
     updateTicketItemsMutation,
+    updateKitSettingsMutation,
     replaceEventMutation,
     updateLotterySettingsMutation,
     createPrizeMutation,
@@ -71,6 +73,10 @@ export const Event = () => {
                   <LayoutDashboard />
                   Overview
                 </AppPageTab>
+                <AppPageTab value="kit">
+                  <Palette />
+                  Kit
+                </AppPageTab>
                 <AppPageTab value="lottery">
                   <Dices />
                   Lottery
@@ -109,6 +115,18 @@ export const Event = () => {
                   await updateTicketItemsMutation.mutateAsync({ names });
                 }}
                 onReplaceClick={() => setIsReplaceConfirmOpen(true)}
+              />
+            </TabsContent>
+            <TabsContent value="kit" className={clsx("mt-0")}>
+              <EventKitPanel
+                // A save (or a new event) restarts the draft from what is
+                // stored; edits on other tabs leave it alone.
+                key={`${event.campaign.id}:${event.campaign.kitId}:${JSON.stringify(event.campaign.kitSettings)}`}
+                event={event}
+                isSaving={updateKitSettingsMutation.isPending}
+                onSave={async (input) => {
+                  await updateKitSettingsMutation.mutateAsync(input);
+                }}
               />
             </TabsContent>
             <TabsContent value="lottery" className={clsx("mt-0")}>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { InteractiveBackground } from "#components/misc/InteractiveBackground/index";
+import { useKit } from "#kits/useKit";
 
 import { CameraStage } from "./internal/components/CameraStage/index";
 import { CaptureFlash } from "./internal/components/CaptureFlash/index";
@@ -11,7 +12,6 @@ import { MaintenanceScreen } from "./internal/components/MaintenanceScreen/index
 import { PostPrintStage } from "./internal/components/PostPrintStage/index";
 import { SlotMachineStage } from "./internal/components/SlotMachineStage/index";
 import { StartExperienceButton } from "./internal/components/StartExperienceButton/index";
-import { KIOSK_INTERACTIVE_BACKGROUND_OPTIONS } from "./internal/Experience.constants";
 import { experienceStageClassName } from "./internal/Experience.styles";
 import { useExperienceFlow } from "./internal/hooks/useExperienceFlow";
 
@@ -38,14 +38,15 @@ export const Experience = () => {
     lotteryStatus,
     phase,
     photoUrl,
-    promptText,
+    prompt,
     webcamRef,
   } = useExperienceFlow();
   const [splitTilePx, setSplitTilePx] = useState(0);
+  const kit = useKit();
 
   return (
     <>
-      <InteractiveBackground options={KIOSK_INTERACTIVE_BACKGROUND_OPTIONS} />
+      <InteractiveBackground preset={kit.background} />
       <CaptureFlash captureId={captureFlashId} />
       <DarkroomHotspot isEnabled={phase === "idle"} />
       <IntroChrome
@@ -69,7 +70,7 @@ export const Experience = () => {
           onCameraAnimationComplete={handleCameraAnimationComplete}
           onPromptAnimationComplete={handlePromptAnimationComplete}
           onSplitTile={setSplitTilePx}
-          promptText={promptText}
+          prompt={prompt}
           splitTilePx={splitTilePx}
           webcamRef={webcamRef}
         >

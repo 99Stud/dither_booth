@@ -14,6 +14,8 @@ const DARKROOM_TOKEN = "darkroom-token";
 
 const GROUPS = {
   booth: [
+    "getFontAsset",
+    "getKit",
     "getLotteryStatus",
     "lockDarkroom",
     "onKioskCommand",
@@ -26,23 +28,29 @@ const GROUPS = {
   config: [
     "createEvent",
     "createPrize",
+    "deleteFontAsset",
     "deletePrize",
     "dither",
     "generateReceipt",
     "getCurrentEvent",
     "getDarkroomPinStatus",
     "getPrintConfiguration",
+    "installLibraryFont",
+    "listFontAssets",
     "listDraws",
     "printReceipt",
     "printSampleLotteryTicket",
     "replaceEvent",
     "restockPrize",
+    "searchFontLibrary",
     "setDarkroomPin",
     "updateEvent",
+    "updateKitSettings",
     "updateLotterySettings",
     "updatePrintConfiguration",
     "updatePrize",
     "updateTicketItems",
+    "uploadFont",
   ],
   ops: [
     "getHealthz",

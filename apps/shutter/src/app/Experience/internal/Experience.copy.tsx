@@ -1,20 +1,29 @@
+import type { CopyKey } from "@dither-booth/shared/kit-copy";
+
 import type { ExperiencePhase } from "./Experience.machine";
 
-const DEFAULT_PROMPT_TEXT = "stay in the frame";
+export type { PromptKey };
 
-const STRIKE_A_POSE_PROMPT_TEXT = "strike a pose :)";
+/** The visit's captions, each one a kit text the event can edit. */
+type PromptKey = Extract<CopyKey, `prompts.${string}`>;
 
-const CAMERA_STREAM_PROMPT_TEXTS = new Set([
-  DEFAULT_PROMPT_TEXT,
-  STRIKE_A_POSE_PROMPT_TEXT,
+const DEFAULT_PROMPT = "prompts.stayInFrame" satisfies PromptKey;
+const STRIKE_A_POSE_PROMPT = "prompts.strikePose" satisfies PromptKey;
+const LUCKY_PROMPT = "prompts.feelingLucky" satisfies PromptKey;
+const INSTRUCTIONS_PROMPT = "prompts.thatsIt" satisfies PromptKey;
+const PRINTING_PROMPT = "prompts.printing" satisfies PromptKey;
+
+const CAMERA_STREAM_PROMPTS = new Set<PromptKey>([
+  DEFAULT_PROMPT,
+  STRIKE_A_POSE_PROMPT,
 ]);
 
-/** Captions that sit inside the live square. Later lines stay above the stage. */
-export const isCameraStreamPrompt = (text: string) =>
-  CAMERA_STREAM_PROMPT_TEXTS.has(text);
-const LUCKY_PROMPT_TEXT = "feeling lucky?";
-const INSTRUCTIONS_PROMPT_TEXT = "that's it";
-const PRINTING_PROMPT_TEXT = "printing...";
+/**
+ * Captions that sit inside the live square. Later lines stay above the stage.
+ * Decided by which caption it is, never its text, which the event can edit.
+ */
+export const isCameraStreamPrompt = (prompt: PromptKey) =>
+  CAMERA_STREAM_PROMPTS.has(prompt);
 
 /**
  * Exhaustive so the caption is a pure derivation of the phase — no latching in
@@ -35,21 +44,21 @@ const PRINTING_PROMPT_TEXT = "printing...";
  * (PROMPT_TRANSITION, 300ms) — the panel is fully transparent by then. That
  * ordering is asserted in Experience.phases.test.tsx.
  */
-export const PROMPT_TEXT_BY_PHASE: Record<ExperiencePhase, string> = {
-  idle: DEFAULT_PROMPT_TEXT,
-  introExiting: DEFAULT_PROMPT_TEXT,
-  promptEntering: DEFAULT_PROMPT_TEXT,
-  countdown: DEFAULT_PROMPT_TEXT,
-  smile: STRIKE_A_POSE_PROMPT_TEXT,
-  capturing: STRIKE_A_POSE_PROMPT_TEXT,
-  preparing: LUCKY_PROMPT_TEXT,
-  spinning: LUCKY_PROMPT_TEXT,
-  slotResult: LUCKY_PROMPT_TEXT,
-  instructions: INSTRUCTIONS_PROMPT_TEXT,
-  printing: PRINTING_PROMPT_TEXT,
-  cameraExiting: PRINTING_PROMPT_TEXT,
-  resetting: PRINTING_PROMPT_TEXT,
-  receiptReady: DEFAULT_PROMPT_TEXT,
-  resettingButtonRepositioning: DEFAULT_PROMPT_TEXT,
-  resettingButtonRevealing: DEFAULT_PROMPT_TEXT,
+export const PROMPT_BY_PHASE: Record<ExperiencePhase, PromptKey> = {
+  idle: DEFAULT_PROMPT,
+  introExiting: DEFAULT_PROMPT,
+  promptEntering: DEFAULT_PROMPT,
+  countdown: DEFAULT_PROMPT,
+  smile: STRIKE_A_POSE_PROMPT,
+  capturing: STRIKE_A_POSE_PROMPT,
+  preparing: LUCKY_PROMPT,
+  spinning: LUCKY_PROMPT,
+  slotResult: LUCKY_PROMPT,
+  instructions: INSTRUCTIONS_PROMPT,
+  printing: PRINTING_PROMPT,
+  cameraExiting: PRINTING_PROMPT,
+  resetting: PRINTING_PROMPT,
+  receiptReady: DEFAULT_PROMPT,
+  resettingButtonRepositioning: DEFAULT_PROMPT,
+  resettingButtonRevealing: DEFAULT_PROMPT,
 };

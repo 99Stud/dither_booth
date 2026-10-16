@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
-import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
@@ -32,7 +31,6 @@ import { rarityColor } from "#components/Misc/RarityBadge/index";
 import type { CurrentEvent, UpdateEventFormValues } from "../../Event.types";
 
 import {
-  KIT_FIELD_OPTIONS,
   UPDATE_EVENT_FORM_SCHEMA,
   getUpdateEventFormValues,
 } from "../../Event.constants";
@@ -74,7 +72,7 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
   useEffect(() => {
     form.reset(getUpdateEventFormValues(event));
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- sync on server identity only
-  }, [event.campaign.name, event.campaign.kitId, event.campaign.id]);
+  }, [event.campaign.name, event.campaign.id]);
 
   return (
     <div className={clsx("flex flex-col gap-4 md:gap-6")}>
@@ -153,13 +151,6 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
                 label="Event name"
                 autoCapitalize="words"
                 enterKeyHint="done"
-              />
-              <SelectField
-                form={form}
-                name="kitId"
-                label="Ticket kit"
-                placeholder="Select a ticket kit"
-                options={KIT_FIELD_OPTIONS}
               />
               <div className={clsx("flex flex-wrap justify-end gap-2")}>
                 <Button

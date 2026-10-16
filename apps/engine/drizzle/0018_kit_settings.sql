@@ -1,0 +1,1 @@
+ALTER TABLE `campaign` ADD `kit_settings` text DEFAULT '{}' NOT NULL;

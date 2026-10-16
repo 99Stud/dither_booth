@@ -6,6 +6,9 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 
+import { KitText } from "#kits/KitText/index";
+import { useKitCopy } from "#kits/useKit";
+
 import { SHUTTER_TRANSITION } from "../../Experience.motion";
 
 /** The logo's pixel size, in its own SVG units. */
@@ -27,6 +30,7 @@ export const MaintenanceScreen: FC<{ isVisible: boolean }> = ({
   isVisible,
 }) => {
   const root = useRef<HTMLDivElement>(null);
+  const copy = useKitCopy();
 
   useEffect(() => {
     if (!isVisible) return;
@@ -75,7 +79,7 @@ export const MaintenanceScreen: FC<{ isVisible: boolean }> = ({
       />
       <div role="status" className={clsx("flex flex-col gap-4")}>
         <p className={clsx("text-8xl leading-none font-bold")}>
-          be right back
+          <KitText text={copy["maintenance.title"]} />
           <span
             aria-hidden
             className={clsx(
@@ -84,9 +88,11 @@ export const MaintenanceScreen: FC<{ isVisible: boolean }> = ({
             )}
           />
         </p>
-        <p className={clsx("text-3xl text-white/80")}>
-          the booth is taking a short break. come back in a few minutes.
-        </p>
+        {copy["maintenance.body"] ? (
+          <p className={clsx("text-3xl text-white/80")}>
+            <KitText text={copy["maintenance.body"]} />
+          </p>
+        ) : null}
       </div>
     </motion.div>
   );

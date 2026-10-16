@@ -10,11 +10,13 @@ import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
 
+import { KitText } from "#kits/KitText/index";
+import { useKitCopy } from "#kits/useKit";
 import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { useKioskCameraReporter } from "#lib/kiosk/kiosk-camera";
 
 import { FROZEN_PHOTO_SCALE } from "../../Experience.constants";
-import { isCameraStreamPrompt } from "../../Experience.copy";
+import { type PromptKey, isCameraStreamPrompt } from "../../Experience.copy";
 import {
   COUNTDOWN_TRANSITION,
   PROMPT_TEXT_TRANSITION,
@@ -54,7 +56,7 @@ const PromptLine: FC<{ text: string }> = (props) => {
         transition={PROMPT_TEXT_TRANSITION}
         className={promptLineClassName}
       >
-        {text}
+        <KitText text={text} />
       </motion.p>
     </AnimatePresence>
   );
@@ -74,7 +76,7 @@ interface CameraStageProps {
   onCameraAnimationComplete: () => void;
   onSplitTile: (tilePx: number) => void;
   onPromptAnimationComplete: () => void;
-  promptText: string;
+  prompt: PromptKey;
   splitTilePx: number;
   webcamRef: RefObject<WebcamHandle | null>;
 }
@@ -88,14 +90,15 @@ export const CameraStage = ({
   onCameraAnimationComplete,
   onPromptAnimationComplete,
   onSplitTile,
-  promptText,
+  prompt,
   splitTilePx,
   webcamRef,
 }: CameraStageProps) => {
   const onCameraStateChange = useKioskCameraReporter(
     reportUserMediaCameraStateChange,
   );
-  const inStreamPrompt = isCameraStreamPrompt(promptText);
+  const promptText = useKitCopy()[prompt];
+  const inStreamPrompt = isCameraStreamPrompt(prompt);
   const showInStreamPrompt = isPromptVisible && inStreamPrompt;
   const showStagePrompt = isPromptVisible && !inStreamPrompt;
   const cameraBoxRef = useRef<HTMLDivElement>(null);
