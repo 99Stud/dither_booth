@@ -41,7 +41,11 @@ export const useKioskCommandStream = (
 
   const { status } = useSubscription(
     trpc.booth.onKioskCommand.subscriptionOptions(page, {
-      onData: onCommand,
+      // A live view signal is for one page only.
+      onData: (command) => {
+        if (command.type === "camera" && command.pageId !== page.pageId) return;
+        onCommand(command);
+      },
     }),
   );
   const isConnected = status === "pending";

@@ -59,7 +59,7 @@ export const useExperienceFlow = () => {
   const captureFlashId = useCaptureFlash(activePrintAttemptId);
 
   useExperienceShellClass();
-  const isMaintenance = useKioskCommands(phase);
+  const isMaintenance = useKioskCommands(phase, webcamRef);
   useWebcamPrewarm({ phase, webcamRef });
   usePrintAttempt({
     activePrintAttemptId,
