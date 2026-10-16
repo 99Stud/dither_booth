@@ -160,6 +160,9 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
         <CardContent className={clsx("flex flex-col gap-4")}>
           <Field orientation="vertical">
             <FieldLabel htmlFor="kit-id">Kit</FieldLabel>
+            {/* Base UI's Select is a button and listbox popup, not a native
+                <select>; the design lint matches the component name. */}
+            {/* ds-allow-native-select */}
             <Select
               id="kit-id"
               items={KIT_FIELD_OPTIONS}
