@@ -136,7 +136,7 @@ The tRPC router (`src/internal/router.ts`) is split by caller. Each group's proc
 | ---------- | ----------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `booth.*`  | `boothProcedure`  | Any origin (kiosk) | `getLotteryStatus`, `prepareReceipt`, `printPreparedReceipt`, `onKioskCommand`, `unlockDarkroom`, `lockDarkroom`                                                                                                     |
 | `config.*` | `configProcedure` | Admin origin only  | Event, prize and lottery CRUD, `listDraws`, `getPrintConfiguration` / `updatePrintConfiguration`, `dither`, `generateReceipt`, `printReceipt`, `printSampleLotteryTicket`, `getDarkroomPinStatus` / `setDarkroomPin` |
-| `ops.*`    | `opsProcedure`    | Admin origin only  | `getHealthz`, `restartPuppeteerReceiptViewer`, `reloadKiosk`                                                                                                                                                         |
+| `ops.*`    | `opsProcedure`    | Admin origin only  | `getHealthz`, `restartPuppeteerReceiptViewer`, `reloadKiosk`, `showKioskScreen`                                                                                                                                      |
 
 A new procedure goes in the group of whoever calls it, and is built on that group's base procedure.
 
@@ -163,10 +163,14 @@ Print tuning happens on the booth iPad, in the Shutter's `/darkroom` route, behi
 
 The engine can push commands to the kiosk pages, for example to reload a Shutter page whose shader broke, without touching the iPad.
 
-- **`booth.onKioskCommand({ pageId, deviceId })`** is a tRPC subscription streamed over server-sent events through the Shutter's `/engine/trpc` proxy. Only the Experience route (`/`) subscribes, so the `/receipt-viewer` page that Puppeteer prints from is never reloaded.
+- **`booth.onKioskCommand({ pageId, deviceId, screen })`** is a tRPC subscription streamed over server-sent events through the Shutter's `/engine/trpc` proxy. Only the Experience route (`/`, `screen: "shutter"`) and the Darkroom route (`/darkroom`, `screen: "darkroom"`) subscribe, so the `/receipt-viewer` page that Puppeteer prints from is never reloaded. A page moving between the two ends one subscription and starts the other, so `shutter.kiosk.pages` always says which screen each page shows.
 - **`ops.reloadKiosk({ mode })`** (admin origin only) sends `{ type: "reload", mode }` to every connected page and returns `{ delivered }`, the number of pages that got it. Admin's Control Center calls it from the Shutter health item, which also lists the connected pages (`ops.getHealthz` → `shutter.kiosk.pages`).
   - `when-idle` reloads once the page is back on the landing screen, so a guest's visit is never cut off, and after 90 s anyway, since a stuck flow never gets back there.
   - `now` reloads straight away.
+  - The Darkroom has no guest visit to wait for: it reloads straight away in both modes.
+- **`ops.showKioskScreen({ screen })`** (admin origin only) sends `{ type: "navigate", screen }` and returns `{ delivered }`. Admin's Settings calls it from the Darkroom card.
+  - `darkroom` opens the Darkroom's PIN screen once the Experience is back on the landing screen (90 s at most, like `when-idle`). The PIN is still needed: the command carries no session.
+  - `shutter` locks the Darkroom (`booth.lockDarkroom`) and goes back to the landing screen straight away, so a kiosk left unattended is never left unlocked.
 - The channel lives in memory (`src/domains/kiosk/internal/kiosk.channel.ts`), one per engine process. A command reaches the pages connected when it is sent and is **never replayed**: a page that was offline misses it (and `delivered` says so) rather than reloading in a loop later.
 - SSE pings every 5 s keep the stream open through Bun.serve's 10 s idle timeout, and the client reconnects after 15 s of silence. The proxy forwards the browser's abort signal, so a closed page also ends its engine stream.
 - A tab whose JavaScript is fully frozen can't react; it still needs a manual reload on the iPad.

@@ -1,14 +1,14 @@
 import clsx from "clsx";
 
 import { AppearanceCard } from "#components/App/Settings/AppearanceCard/index";
-import { DarkroomPinCard } from "#components/App/Settings/DarkroomPinCard/index";
+import { DarkroomCard } from "#components/App/Settings/DarkroomCard/index";
 import {
   AppPageBody,
   AppPageHeading,
   AppSidebarPageHeader,
 } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 
-/** The admin's settings: this device's look, and the booth's access. */
+/** The admin's settings: this device's look, and the booth's Darkroom. */
 export const Settings = () => {
   return (
     <>
@@ -17,7 +17,7 @@ export const Settings = () => {
         <AppPageHeading title="Settings" />
         <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
           <AppearanceCard />
-          <DarkroomPinCard />
+          <DarkroomCard />
         </div>
       </AppPageBody>
     </>

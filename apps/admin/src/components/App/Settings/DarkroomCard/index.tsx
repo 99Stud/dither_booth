@@ -11,11 +11,12 @@ import {
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
 import { Input } from "@dither-booth/ui/components/ui/input";
+import { Label } from "@dither-booth/ui/components/ui/label";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { KeyRound, LockKeyhole } from "lucide-react";
+import { LockKeyhole, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 
 import { SETTINGS_LOG_SOURCE } from "#app/Settings/internal/Settings.constants";
@@ -23,11 +24,14 @@ import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
+import { KioskScreenToggle } from "./internal/components/KioskScreenToggle";
+
 /**
- * Sets the PIN staff type to open the Darkroom (print tuning) on the booth
- * iPad. Until one is set, the Darkroom stays locked.
+ * The Darkroom (print tuning on the booth iPad), from one place: which
+ * screen the kiosk shows, to open the Darkroom on it and send it back, and
+ * the PIN staff type there. Until a PIN is set, the Darkroom stays locked.
  */
-export const DarkroomPinCard = () => {
+export const DarkroomCard = () => {
   const trpc = useTRPC();
   const [pin, setPin] = useState("");
   const pinStatusQuery = useQuery(
@@ -65,42 +69,52 @@ export const DarkroomPinCard = () => {
       <CardHeader>
         <CardTitle className={clsx("flex items-center gap-2.5")}>
           <IconBubble tone="violet">
-            <KeyRound />
+            <SlidersHorizontal />
           </IconBubble>
-          <h2>Darkroom PIN</h2>
+          <h2>Darkroom</h2>
         </CardTitle>
         <CardDescription>
-          {pinStatus === undefined
-            ? "Checking…"
-            : pinStatus.isSet && pinStatus.updatedAt
-              ? `Changed ${format(new Date(pinStatus.updatedAt), "MMM d, HH:mm")}. Tap the booth's top-left logo 4 times to open the Darkroom.`
-              : "No PIN yet: the Darkroom stays locked."}
+          Print tuning on the booth iPad, behind a PIN. Staff can also open it
+          by tapping the booth's top-left logo 4 times.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form className={clsx("flex gap-2")} onSubmit={submit}>
-          <Input
-            aria-label="New Darkroom PIN"
-            autoComplete="off"
-            enterKeyHint="done"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={8}
-            placeholder="4 to 8 digits"
-            type="password"
-            value={pin}
-            onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))}
-          />
-          <Button type="submit" disabled={!isPinValid || isPending}>
-            {isPending ? (
-              <Spinner className="size-4" />
-            ) : (
-              <>
-                <LockKeyhole data-icon="inline-start" />
-                {pinStatus?.isSet ? "Change PIN" : "Set PIN"}
-              </>
-            )}
-          </Button>
+      <CardContent className={clsx("flex flex-col gap-5")}>
+        <KioskScreenToggle isPinSet={pinStatus?.isSet ?? false} />
+        <form className={clsx("flex flex-col gap-2")} onSubmit={submit}>
+          <Label htmlFor="darkroom-pin">PIN</Label>
+          <div className={clsx("flex gap-2")}>
+            <Input
+              id="darkroom-pin"
+              autoComplete="off"
+              enterKeyHint="done"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={8}
+              placeholder="4 to 8 digits"
+              type="password"
+              value={pin}
+              onChange={(event) =>
+                setPin(event.target.value.replace(/\D/g, ""))
+              }
+            />
+            <Button type="submit" disabled={!isPinValid || isPending}>
+              {isPending ? (
+                <Spinner className="size-4" />
+              ) : (
+                <>
+                  <LockKeyhole data-icon="inline-start" />
+                  {pinStatus?.isSet ? "Change PIN" : "Set PIN"}
+                </>
+              )}
+            </Button>
+          </div>
+          <p className={clsx("text-sm text-muted-foreground")}>
+            {pinStatus === undefined
+              ? "Checking…"
+              : pinStatus.isSet && pinStatus.updatedAt
+                ? `Changed ${format(new Date(pinStatus.updatedAt), "MMM d, HH:mm")}.`
+                : "No PIN yet: the Darkroom stays locked."}
+          </p>
         </form>
       </CardContent>
     </Card>

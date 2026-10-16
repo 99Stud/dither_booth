@@ -13,7 +13,17 @@ describe("KIOSK_COMMAND_SCHEMA", () => {
     expect(KIOSK_COMMAND_SCHEMA.parse(command)).toEqual(command);
   });
 
-  test("rejects an unknown command or reload mode", () => {
+  test("parses a navigate command", () => {
+    const command = {
+      type: "navigate",
+      screen: "darkroom",
+      commandId: "c1",
+    } as const;
+
+    expect(KIOSK_COMMAND_SCHEMA.parse(command)).toEqual(command);
+  });
+
+  test("rejects an unknown command, reload mode or screen", () => {
     expect(
       KIOSK_COMMAND_SCHEMA.safeParse({ type: "shutdown", commandId: "c1" })
         .success,
@@ -22,6 +32,13 @@ describe("KIOSK_COMMAND_SCHEMA", () => {
       KIOSK_COMMAND_SCHEMA.safeParse({
         type: "reload",
         mode: "later",
+        commandId: "c1",
+      }).success,
+    ).toBe(false);
+    expect(
+      KIOSK_COMMAND_SCHEMA.safeParse({
+        type: "navigate",
+        screen: "sandbox",
         commandId: "c1",
       }).success,
     ).toBe(false);
