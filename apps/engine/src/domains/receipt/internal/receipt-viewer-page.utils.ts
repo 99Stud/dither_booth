@@ -1,7 +1,5 @@
-import type {
-  PhotoReceiptTemplate,
-  ReceiptViewerSearch,
-} from "@dither-booth/shared/routes";
+import type { KitId } from "@dither-booth/shared/kits";
+import type { ReceiptViewerSearch } from "@dither-booth/shared/routes";
 import type { ElementHandle, Page } from "puppeteer";
 
 import { withTimeout } from "@dither-booth/shared/async";
@@ -11,6 +9,7 @@ import {
   isReceiptViewerRouteStateCommittedViaBridgeInPage,
   navigateReceiptViewerViaBridgeInPage,
 } from "@dither-booth/shared/browser/receipt-viewer";
+import { PHOTO_RECEIPT_TEMPLATE } from "@dither-booth/shared/routes";
 import { TRPCError } from "@trpc/server";
 
 type AttemptResult<T> =
@@ -248,21 +247,22 @@ async function screenshotReceiptElement(
 
 export async function captureReceiptScreenshot({
   image,
+  kitId,
   page,
-  template,
   ticketItems,
   ticketRef,
 }: {
   image: ReceiptImageData;
+  kitId: KitId;
   page: ReceiptScreenshotPage;
-  template: PhotoReceiptTemplate;
   ticketItems: string[];
   ticketRef?: string;
 }): Promise<Uint8Array> {
   return await withReceiptViewerSearch({
     page,
     search: {
-      template,
+      template: PHOTO_RECEIPT_TEMPLATE,
+      kit: kitId,
       ticketItems,
       ...(ticketRef ? { ticketRef } : {}),
     },

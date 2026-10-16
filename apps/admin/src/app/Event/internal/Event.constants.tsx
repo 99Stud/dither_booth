@@ -1,9 +1,9 @@
 import type { SelectFieldOption } from "@dither-booth/ui/fields/SelectField";
 
-import { capitalize } from "@dither-booth/shared/formatting";
 import {
   DEFAULT_KIT_ID,
   KIT_IDS,
+  KIT_MANIFESTS,
   kitIdSchema,
 } from "@dither-booth/shared/kits";
 import {
@@ -105,7 +105,7 @@ export const DEFAULT_PRIZE_FORM_VALUES: PrizeFormValues = {
 export const KIT_FIELD_OPTIONS: Array<
   SelectFieldOption<UpdateEventFormValues["kitId"]>
 > = KIT_IDS.map((kitId) => ({
-  label: capitalize(kitId),
+  label: KIT_MANIFESTS[kitId].label,
   value: kitId,
 }));
 

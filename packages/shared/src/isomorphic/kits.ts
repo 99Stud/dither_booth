@@ -15,6 +15,19 @@ export type KitId = z.infer<typeof kitIdSchema>;
 export const DEFAULT_KIT_ID = "tartines" satisfies KitId;
 
 /**
+ * What every app may know about a kit without loading its code. The kit's
+ * tickets and screens live in Shutter (`apps/shutter/src/kits/<id>`).
+ */
+export type KitManifest = {
+  /** Shown wherever staff pick a kit. */
+  label: string;
+};
+
+export const KIT_MANIFESTS = {
+  tartines: { label: "Tartines" },
+} as const satisfies Record<KitId, KitManifest>;
+
+/**
  * The kit to render for a stored id. `known` is false when the id names a
  * kit this release doesn't ship, such as one set by a newer release, and the
  * default kit is used instead.

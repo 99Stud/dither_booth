@@ -52,13 +52,11 @@ const randomPriceSplit = (total: number, count: number): number[] => {
   return extras.map((extra) => minPrice + extra);
 };
 
-interface TartinesReceiptTemplateProps {
+interface TartinesPhotoTicketProps {
   className?: string;
 }
 
-export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
-  props,
-) => {
+export const TartinesPhotoTicket: FC<TartinesPhotoTicketProps> = (props) => {
   const { className } = props;
   const { ticketItems, ticketRef } = receiptViewerRoute.useSearch();
   const ticketNumber = ticketRef ? formatBoothTicketNumber(ticketRef) : null;
