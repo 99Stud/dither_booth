@@ -18,7 +18,6 @@ import { Camera, Monitor, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
-import { APP_SETTINGS_LINK } from "#components/Layout/AppSidebar/internal/AppSidebar.constants";
 import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.client";
@@ -190,7 +189,8 @@ export const BoothScreenCard = () => {
               <>
                 To open the Darkroom,{" "}
                 <Link
-                  to={APP_SETTINGS_LINK.path}
+                  // The path itself: the route config imports this page.
+                  to="/settings"
                   className={clsx(
                     "text-primary underline-offset-4 hover:underline",
                   )}
