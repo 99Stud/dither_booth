@@ -8,6 +8,7 @@ import {
   asServiceUser,
   capture,
   chownToServiceUser,
+  detectArch,
   isRoot,
   run,
   serviceBun,
@@ -50,8 +51,15 @@ export async function runRepoCommand(context: BoothContext): Promise<void> {
   step("Building all apps (bun run build)");
   await run(serviceBun(["run", "build"]), { cwd: repoRoot });
 
-  step("Reinstalling Puppeteer Chrome");
-  await run(serviceBun(["run", "reinstall-puppeteer"]), { cwd: repoRoot });
+  // On arm64 Puppeteer uses the apt Chromium (see puppeteer.config.cjs).
+  // `reinstall-puppeteer` would also rewrite package.json and bun.lock, and
+  // the next `git pull --ff-only` would refuse to run over them.
+  if (detectArch() === "arm64") {
+    info("Using the system Chromium for Puppeteer (arm64)");
+  } else {
+    step("Reinstalling Puppeteer Chrome");
+    await run(serviceBun(["run", "reinstall-puppeteer"]), { cwd: repoRoot });
+  }
 
   info(`Repository ready at ${repoRoot}`);
   ok("Repository synced and built");
