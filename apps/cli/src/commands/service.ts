@@ -4,6 +4,9 @@ import type { BoothContext } from "#internal/context";
 
 import { requireRoot } from "#internal/args";
 import {
+  SERVICE_BUN,
+  SERVICE_BUN_DIR,
+  SERVICE_HOME,
   SERVICE_NAME,
   SERVICE_PATH,
   SERVICE_USER,
@@ -14,8 +17,8 @@ import { run } from "#internal/system";
 import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
 function buildUnit(repoRoot: string): string {
-  const home = `/home/${SERVICE_USER}`;
-  const bun = `${home}/.bun/bin/bun`;
+  const home = SERVICE_HOME;
+  const bun = SERVICE_BUN;
   const onSsd =
     repoRoot === SSD_MOUNT_POINT || repoRoot.startsWith(`${SSD_MOUNT_POINT}/`);
   const requiresMount = onSsd ? `RequiresMountsFor=${SSD_MOUNT_POINT}\n` : "";
@@ -36,7 +39,7 @@ WorkingDirectory=${repoRoot}
 Environment=HOME=${home}
 Environment=PM2_HOME=${home}/.pm2
 Environment=NODE_ENV=production
-Environment=PATH=${home}/.bun/bin:${repoRoot}/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=${SERVICE_BUN_DIR}:${repoRoot}/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
 PIDFile=${home}/.pm2/pm2.pid
 ExecStart=${bun} run pm2:start
 ExecReload=${bun} run pm2:reload

@@ -1,3 +1,10 @@
+import {
+  SERVICE_BUN,
+  SERVICE_BUN_DIR,
+  SERVICE_HOME,
+  SERVICE_USER,
+} from "#internal/config";
+
 export type RunOptions = {
   cwd?: string;
   env?: Record<string, string | undefined>;
@@ -116,16 +123,52 @@ export async function capture(
   return { exitCode, stdout, stderr };
 }
 
-export async function commandExists(name: string): Promise<boolean> {
-  const result = await capture(["bash", "-lc", `command -v ${name}`], {
-    allowFailure: true,
-  });
-
-  return result.exitCode === 0 && result.stdout.trim().length > 0;
-}
-
 export function isRoot(): boolean {
   return typeof process.getuid === "function" && process.getuid() === 0;
+}
+
+// `sudo booth install` runs as root, but the service runs as SERVICE_USER
+// from its home: Bun, the repo, PM2 and the mkcert CA must belong to that
+// user, or the service can't read or write them. Steps that create those
+// files go through here. Bun's dir leads PATH so scripts that spawn `bun`
+// find the same binary.
+export function asServiceUser(command: string[]): string[] {
+  if (!isRoot()) {
+    return [
+      "env",
+      `PATH=${SERVICE_BUN_DIR}:${process.env.PATH ?? "/usr/bin:/bin"}`,
+      ...command,
+    ];
+  }
+
+  return [
+    "runuser",
+    "-u",
+    SERVICE_USER,
+    "--",
+    "env",
+    `HOME=${SERVICE_HOME}`,
+    `PATH=${SERVICE_BUN_DIR}:/usr/local/bin:/usr/bin:/bin`,
+    ...command,
+  ];
+}
+
+export function serviceBun(args: string[]): string[] {
+  return asServiceUser([SERVICE_BUN, ...args]);
+}
+
+export async function serviceBunExists(): Promise<boolean> {
+  return Bun.file(SERVICE_BUN).exists();
+}
+
+// Gives SERVICE_USER a path root created, e.g. the repo under /opt or the
+// data dir on the SSD. No-op when not root: the files are already the user's.
+export async function chownToServiceUser(path: string): Promise<void> {
+  if (!isRoot()) {
+    return;
+  }
+
+  await run(["chown", "-R", `${SERVICE_USER}:${SERVICE_USER}`, path]);
 }
 
 export function isLinux(): boolean {

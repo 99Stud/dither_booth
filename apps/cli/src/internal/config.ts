@@ -10,13 +10,19 @@ export const REPO_GIT_URL =
   process.env.BOOTH_REPO_URL ?? "https://github.com/99Stud/dither_booth.git";
 
 export const SSD_MOUNT_POINT = "/mnt/ssd";
-export const SSD_DATA_DIR = `${SSD_MOUNT_POINT}/dither-booth/data`;
+export const SSD_BOOTH_DIR = `${SSD_MOUNT_POINT}/dither-booth`;
+export const SSD_DATA_DIR = `${SSD_BOOTH_DIR}/data`;
 export const ENGINE_APP_RELATIVE = "apps/engine";
 export const ENGINE_DATA_RELATIVE = `${ENGINE_APP_RELATIVE}/data`;
 
 export const SERVICE_NAME = "ditherbooth.service";
 export const SERVICE_PATH = `/etc/systemd/system/${SERVICE_NAME}`;
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";
+export const SERVICE_HOME = `/home/${SERVICE_USER}`;
+// Where the official installer puts Bun for the service user. The systemd unit
+// runs this binary, so every step resolves Bun here instead of from PATH.
+export const SERVICE_BUN_DIR = `${SERVICE_HOME}/.bun/bin`;
+export const SERVICE_BUN = `${SERVICE_BUN_DIR}/bun`;
 
 export const PM2_PROCESS_NAMES = [
   "dither-booth-engine",
