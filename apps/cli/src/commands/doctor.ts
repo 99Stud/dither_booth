@@ -12,6 +12,7 @@ import { printCommandBanner } from "#internal/banner";
 import {
   ENGINE_DATA_RELATIVE,
   PM2_PROCESS_NAMES,
+  SERVICE_BUN,
   SERVICE_NAME,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
@@ -19,8 +20,8 @@ import {
 import { buildBoothContext } from "#internal/context";
 import {
   capture,
-  commandExists,
   detectLanIp,
+  serviceBunExists,
   SilentExit,
 } from "#internal/system";
 import { fail, heading, ok, plain, runBoothTask, warn } from "#internal/ui";
@@ -82,11 +83,13 @@ async function checkDataSymlink(
 }
 
 async function checkBun(results: CheckResult[]): Promise<void> {
-  if (await commandExists("bun")) {
-    const version = await capture(["bun", "--version"], { allowFailure: true });
+  if (await serviceBunExists()) {
+    const version = await capture([SERVICE_BUN, "--version"], {
+      allowFailure: true,
+    });
     record(results, "pass", `Bun installed (v${version.stdout.trim()})`);
   } else {
-    record(results, "fail", "Bun not found on PATH");
+    record(results, "fail", `Bun not found at ${SERVICE_BUN}`);
   }
 }
 

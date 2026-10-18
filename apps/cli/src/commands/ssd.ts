@@ -6,11 +6,12 @@ import { requireRoot } from "#internal/args";
 import {
   ENGINE_APP_RELATIVE,
   ENGINE_DATA_RELATIVE,
+  SSD_BOOTH_DIR,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
-import { capture, run, SilentExit } from "#internal/system";
+import { capture, chownToServiceUser, run, SilentExit } from "#internal/system";
 import {
   confirm,
   fail,
@@ -172,6 +173,8 @@ export async function runSsdCommand(context: BoothContext): Promise<void> {
 
   step(`Ensuring data directory ${SSD_DATA_DIR}`);
   await run(["mkdir", "-p", SSD_DATA_DIR]);
+  // The engine writes the database here as the service user.
+  await chownToServiceUser(SSD_BOOTH_DIR);
 
   const dataPath = `${repoRoot}/${ENGINE_DATA_RELATIVE}`;
 

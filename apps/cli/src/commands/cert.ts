@@ -4,7 +4,14 @@ import type { BoothContext } from "#internal/context";
 
 import { SERVICE_USER } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
-import { capture, detectLanIp, run, SilentExit } from "#internal/system";
+import {
+  asServiceUser,
+  capture,
+  detectLanIp,
+  run,
+  serviceBun,
+  SilentExit,
+} from "#internal/system";
 import {
   command,
   fail,
@@ -32,7 +39,13 @@ export async function runCertCommand(context: BoothContext): Promise<void> {
 
   step(`Generating certificate for ${ip}`);
   await run(
-    ["bun", "run", "--filter", "@dither-booth/engine", "cert:generate", ip],
+    serviceBun([
+      "run",
+      "--filter",
+      "@dither-booth/engine",
+      "cert:generate",
+      ip,
+    ]),
     { cwd: repoRoot },
   );
 
@@ -44,7 +57,10 @@ export async function runCertCommand(context: BoothContext): Promise<void> {
 export async function runCertCopyCommand(context: BoothContext): Promise<void> {
   heading("Copy root CA to your machine");
 
-  const caroot = await capture(["mkcert", "-CAROOT"], { allowFailure: true });
+  // The CA lives in the service user's home, where `cert generate` made it.
+  const caroot = await capture(asServiceUser(["mkcert", "-CAROOT"]), {
+    allowFailure: true,
+  });
 
   if (caroot.exitCode !== 0) {
     fail("mkcert is not available. Install it, then re-run `booth cert copy`.");
