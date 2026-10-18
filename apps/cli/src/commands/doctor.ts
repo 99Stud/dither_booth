@@ -12,6 +12,7 @@ import { printCommandBanner } from "#internal/banner";
 import {
   ENGINE_DATA_RELATIVE,
   PM2_PROCESS_NAMES,
+  SERVICE_BUN,
   SERVICE_NAME,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
@@ -19,8 +20,9 @@ import {
 import { buildBoothContext } from "#internal/context";
 import {
   capture,
-  commandExists,
   detectLanIp,
+  serviceBun,
+  serviceBunExists,
   SilentExit,
 } from "#internal/system";
 import { fail, heading, ok, plain, runBoothTask, warn } from "#internal/ui";
@@ -82,11 +84,13 @@ async function checkDataSymlink(
 }
 
 async function checkBun(results: CheckResult[]): Promise<void> {
-  if (await commandExists("bun")) {
-    const version = await capture(["bun", "--version"], { allowFailure: true });
+  if (await serviceBunExists()) {
+    const version = await capture([SERVICE_BUN, "--version"], {
+      allowFailure: true,
+    });
     record(results, "pass", `Bun installed (v${version.stdout.trim()})`);
   } else {
-    record(results, "fail", "Bun not found on PATH");
+    record(results, "fail", `Bun not found at ${SERVICE_BUN}`);
   }
 }
 
@@ -127,13 +131,30 @@ async function checkServiceEnabled(results: CheckResult[]): Promise<void> {
   }
 }
 
-async function checkPm2Processes(results: CheckResult[]): Promise<void> {
-  const list = await capture(["bash", "-lc", "pm2 jlist"], {
+async function checkPm2Processes(
+  results: CheckResult[],
+  repoRoot: string,
+): Promise<void> {
+  // `pm2 jlist` starts a daemon when none is running, so only ask the one
+  // the service owns.
+  const active = await capture(["systemctl", "is-active", SERVICE_NAME], {
     allowFailure: true,
   });
 
+  if (active.stdout.trim() !== "active") {
+    record(results, "fail", `PM2 not running (${SERVICE_NAME} inactive)`);
+    return;
+  }
+
+  // PM2 is a repo dependency, and its daemon lives in the service user's
+  // ~/.pm2, so ask it as that user, the way the systemd unit does.
+  const list = await capture(
+    serviceBun(["./node_modules/pm2/bin/pm2", "jlist"]),
+    { cwd: repoRoot, allowFailure: true },
+  );
+
   if (list.exitCode !== 0) {
-    record(results, "fail", "PM2 not running or not installed");
+    record(results, "fail", "Could not read the PM2 process list");
     return;
   }
 
@@ -218,7 +239,7 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkBun(results);
   await checkCertIp(results, repoRoot);
   await checkServiceEnabled(results);
-  await checkPm2Processes(results);
+  await checkPm2Processes(results, repoRoot);
 
   const lanIp = (await detectLanIp()) ?? "127.0.0.1";
   await checkHealthz(

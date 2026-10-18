@@ -12,7 +12,7 @@ import { runSsdCommand } from "#commands/ssd";
 import { requireRoot } from "#internal/args";
 import { printCommandBanner } from "#internal/banner";
 import { buildBoothContext } from "#internal/context";
-import { run } from "#internal/system";
+import { detectArch, run } from "#internal/system";
 import { heading, ok, runBoothTask, step, warn } from "#internal/ui";
 
 const APT_PACKAGES = [
@@ -32,6 +32,9 @@ const APT_PACKAGES = [
   "libgbm1",
   "libpango-1.0-0",
   "libasound2",
+  // Chrome for Testing has no arm64 build; puppeteer.config.cjs points
+  // Puppeteer at this Chromium there.
+  ...(detectArch() === "arm64" ? ["chromium"] : []),
 ];
 
 async function aptInstall(): Promise<void> {
