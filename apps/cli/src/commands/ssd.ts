@@ -87,12 +87,29 @@ function pickSsdPartition(
   return undefined;
 }
 
-async function fstabHasEntry(uuid: string): Promise<boolean> {
-  const fstab = await Bun.file("/etc/fstab")
-    .text()
-    .catch(() => "");
+// booth <= 0.6.0 appended the entry with a literal "\n" and no newline, which
+// mount rejects ("parse error"), so the SSD never mounted. Those lines are
+// dropped and rewritten; any other entry for the mount point is kept as is.
+export function withSsdFstabEntry(fstab: string, uuid: string): string {
+  const lines = fstab
+    .replace(/\n+$/, "")
+    .split("\n")
+    .filter(
+      (line) =>
+        !(line.includes(` ${SSD_MOUNT_POINT} `) && line.endsWith("\\n")),
+    );
 
-  return fstab.includes(`UUID=${uuid}`) || fstab.includes(SSD_MOUNT_POINT);
+  const hasEntry = lines.some(
+    (line) =>
+      !line.trimStart().startsWith("#") &&
+      (line.includes(`UUID=${uuid}`) || line.includes(` ${SSD_MOUNT_POINT} `)),
+  );
+
+  if (!hasEntry) {
+    lines.push(`UUID=${uuid} ${SSD_MOUNT_POINT} ext4 defaults,nofail 0 2`);
+  }
+
+  return `${lines.join("\n")}\n`;
 }
 
 async function isRealDirectory(path: string): Promise<boolean> {
@@ -156,20 +173,33 @@ export async function runSsdCommand(context: BoothContext): Promise<void> {
   step(`Creating mount point ${SSD_MOUNT_POINT}`);
   await run(["mkdir", "-p", SSD_MOUNT_POINT]);
 
-  if (await fstabHasEntry(partition.uuid)) {
+  const fstab = await Bun.file("/etc/fstab").text();
+  const nextFstab = withSsdFstabEntry(fstab, partition.uuid);
+
+  if (nextFstab === fstab) {
     info("fstab already references this SSD; leaving it unchanged.");
   } else {
-    step("Adding fstab entry");
-    const line = `UUID=${partition.uuid} ${SSD_MOUNT_POINT} ext4 defaults,nofail 0 2\n`;
-    await run([
-      "bash",
-      "-lc",
-      `printf '%s' ${JSON.stringify(line)} >> /etc/fstab`,
-    ]);
+    step("Writing fstab entry");
+    await Bun.write("/etc/fstab", nextFstab);
   }
 
   step("Mounting all fstab entries (mount -a)");
+  await run(["systemctl", "daemon-reload"]);
   await run(["mount", "-a"]);
+
+  // `mount -a` skips lines it can't parse and still exits 0. Moving the data
+  // now would put the database on the SD card under the mount point, hidden
+  // as soon as the SSD does mount.
+  const mounted = await capture(["mountpoint", "-q", SSD_MOUNT_POINT], {
+    allowFailure: true,
+  });
+
+  if (mounted.exitCode !== 0) {
+    fail(
+      `${devicePath} did not mount at ${SSD_MOUNT_POINT}. Check /etc/fstab and \`mount -a\`, then retry.`,
+    );
+    throw new SilentExit(1);
+  }
 
   step(`Ensuring data directory ${SSD_DATA_DIR}`);
   await run(["mkdir", "-p", SSD_DATA_DIR]);
