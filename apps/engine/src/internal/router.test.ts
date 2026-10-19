@@ -49,9 +49,11 @@ const GROUPS = {
     "reloadKiosk",
     "restartPuppeteerReceiptViewer",
     "sendCameraSignal",
+    "setAutomaticMaintenance",
     "setKioskMaintenance",
     "showKioskScreen",
     "watchCamera",
+    "watchPrinter",
   ],
 } as const;
 
@@ -101,6 +103,7 @@ function createCaller(requestOrigin?: string, darkroomToken?: string) {
       { get: unreachable },
     ) as TRPCContext["kioskMaintenance"],
     mode: "production",
+    printer: new Proxy({}, { get: unreachable }) as TRPCContext["printer"],
     processManager: "unknown",
     puppeteerLifecycle: {
       close: unreachable,

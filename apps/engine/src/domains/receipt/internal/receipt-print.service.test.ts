@@ -1,4 +1,3 @@
-import type USB from "@node-escpos/usb-adapter";
 import type { Page } from "puppeteer";
 
 import { DEFAULT_KIT_ID } from "@dither-booth/shared/kits";
@@ -34,11 +33,13 @@ import {
   insertPrizeWithStock,
   stockOf,
 } from "#domains/lottery/internal/lottery.test-utils";
+import { createStubPrinter } from "#domains/printer/internal/printer.test-utils";
+import { PrinterUnavailableError } from "#domains/printer/printer.service";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
 // The printer and the Puppeteer renders are the only I/O in the flow; every
 // DB write below is real.
-const printRasterReceipt = mock(async (_adapter: USB, _cmd: Buffer) => {});
+const printRaster = mock(async (_raster: Buffer) => {});
 const buildReceiptRasterCommand = mock(
   async ({ ticketRef }: { ticketRef: string }) =>
     Buffer.from(`photo:${ticketRef}`),
@@ -48,9 +49,6 @@ const buildLotteryTicketRasterCommand = mock(
     Buffer.from(`lottery:${ticketRef}`),
 );
 
-mock.module("#domains/printer/printer.service", () => ({
-  printRasterReceipt,
-}));
 mock.module("./receipt-raster.utils", () => ({
   buildLotteryTicketRasterCommand,
   buildReceiptRasterCommand,
@@ -63,7 +61,6 @@ const { preparedReceiptStore } = await import("./prepared-receipt.store");
 const { engineRouter } = await import("#internal/router");
 
 const PHOTO = new Blob([new Uint8Array([1, 2, 3])]);
-const USB_ADAPTER = {} as USB;
 
 const savedDryRun = process.env.RECEIPT_PRINT_DRY_RUN;
 const savedForce = [
@@ -89,8 +86,8 @@ afterAll(() => {
 const openDbs: Array<{ close: () => void }> = [];
 
 beforeEach(() => {
-  printRasterReceipt.mockReset();
-  printRasterReceipt.mockImplementation(async () => {});
+  printRaster.mockReset();
+  printRaster.mockImplementation(async () => {});
   buildReceiptRasterCommand.mockClear();
   buildLotteryTicketRasterCommand.mockReset();
   buildLotteryTicketRasterCommand.mockImplementation(async ({ ticketRef }) =>
@@ -140,7 +137,11 @@ function setupDb({
   return db;
 }
 
-function createCtx(db: DB) {
+function createCtx(
+  db: DB,
+  printer = createStubPrinter({ print: (raster) => printRaster(raster) }),
+) {
+  const kioskChannel = createKioskChannel();
   const state = createInitialPuppeteerState();
   const page = {} as Page;
 
@@ -149,11 +150,11 @@ function createCtx(db: DB) {
     allowedHostnames: [],
     db,
     darkroomAccess: createDarkroomAccessStub(),
-    kioskChannel: createKioskChannel(),
-    kioskMaintenance: createKioskMaintenance({ db }),
+    kioskChannel,
+    kioskMaintenance: createKioskMaintenance({ db, kioskChannel }),
     cameraPreview: {} as TRPCContext["cameraPreview"],
     mode: "production",
-    printerUSBAdapter: USB_ADAPTER,
+    printer,
     processManager: "unknown",
     puppeteerLifecycle: {
       close: async () => {},
@@ -167,7 +168,7 @@ function createCtx(db: DB) {
 }
 
 const printedBuffers = () =>
-  printRasterReceipt.mock.calls.map(([, cmd]) => cmd.toString());
+  printRaster.mock.calls.map(([cmd]) => cmd.toString());
 
 describe("prepareReceiptJob", () => {
   test("a win commits the draw and renders both rasters", async () => {
@@ -289,7 +290,7 @@ describe("printPreparedReceiptJob", () => {
     await printPreparedReceiptJob({
       dryRun: false,
       job: prepared,
-      printerUSBAdapter: USB_ADAPTER,
+      print: printRaster,
     });
 
     expect(printedBuffers()).toEqual(["photo", "lottery"]);
@@ -298,7 +299,7 @@ describe("printPreparedReceiptJob", () => {
 
   test("a lottery-ticket failure leaves the job resumable from the ticket", async () => {
     const prepared = job();
-    printRasterReceipt
+    printRaster
       .mockImplementationOnce(async () => {})
       .mockImplementationOnce(async () => {
         throw new Error("paper out");
@@ -308,7 +309,7 @@ describe("printPreparedReceiptJob", () => {
       printPreparedReceiptJob({
         dryRun: false,
         job: prepared,
-        printerUSBAdapter: USB_ADAPTER,
+        print: printRaster,
       }),
     ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
     expect(prepared.photoPrinted).toBe(true);
@@ -316,7 +317,7 @@ describe("printPreparedReceiptJob", () => {
     await printPreparedReceiptJob({
       dryRun: false,
       job: prepared,
-      printerUSBAdapter: USB_ADAPTER,
+      print: printRaster,
     });
 
     expect(printedBuffers()).toEqual(["photo", "lottery", "lottery"]);
@@ -324,7 +325,7 @@ describe("printPreparedReceiptJob", () => {
 
   test("a photo failure prints nothing else", async () => {
     const prepared = job();
-    printRasterReceipt.mockImplementationOnce(async () => {
+    printRaster.mockImplementationOnce(async () => {
       throw new Error("usb gone");
     });
 
@@ -332,7 +333,7 @@ describe("printPreparedReceiptJob", () => {
       printPreparedReceiptJob({
         dryRun: false,
         job: prepared,
-        printerUSBAdapter: USB_ADAPTER,
+        print: printRaster,
       }),
     ).rejects.toMatchObject({ message: "Failed to print receipt." });
     expect(prepared.photoPrinted).toBe(false);
@@ -372,7 +373,7 @@ describe("prepareReceipt → printPreparedReceipt", () => {
     );
     expect(prepared.draw.outcome).toBe("win");
 
-    printRasterReceipt
+    printRaster
       .mockImplementationOnce(async () => {})
       .mockImplementationOnce(async () => {
         throw new Error("paper out");
@@ -395,6 +396,70 @@ describe("prepareReceipt → printPreparedReceipt", () => {
       caller.booth.printPreparedReceipt({ ticketRef: prepared.ticketRef }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(preparedReceiptStore.size).toBe(0);
+  });
+
+  test("a printer that can't print refuses the visit before any draw", async () => {
+    const db = setupDb({ outcome: "win" });
+    const printer = createStubPrinter({
+      status: { canPrint: false, conditions: ["paper-out"] },
+    });
+    const caller = engineRouter.createCaller(createCtx(db, printer));
+
+    await expect(
+      caller.booth.prepareReceipt(PHOTO.stream() as unknown as Blob),
+    ).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      message: "Printer not ready: out of paper.",
+    });
+    expect(db.select().from(drawTable).all()).toEqual([]);
+    expect(stockOf(db, "p1")?.remainingQuantity).toBe(3);
+  });
+
+  test("a printer fault mid-print says not ready and keeps the job to retry", async () => {
+    const caller = engineRouter.createCaller(
+      createCtx(setupDb({ outcome: "win" })),
+    );
+    const prepared = await caller.booth.prepareReceipt(
+      PHOTO.stream() as unknown as Blob,
+    );
+    printRaster.mockImplementationOnce(async () => {
+      throw new PrinterUnavailableError(["cover-open"]);
+    });
+
+    await expect(
+      caller.booth.printPreparedReceipt({ ticketRef: prepared.ticketRef }),
+    ).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      message: "Printer not ready: cover open.",
+    });
+    await caller.booth.printPreparedReceipt({ ticketRef: prepared.ticketRef });
+
+    // The photo that faulted is sent again, then the ticket.
+    expect(printedBuffers()).toEqual([
+      `photo:${prepared.ticketRef}`,
+      `photo:${prepared.ticketRef}`,
+      `lottery:${prepared.ticketRef}`,
+    ]);
+  });
+
+  test("with automatic maintenance off, a doubtful sensor doesn't stop the booth", async () => {
+    const printer = createStubPrinter({
+      print: (raster, options) => {
+        expect(options).toEqual({ enforceStatus: false });
+        return printRaster(raster);
+      },
+      status: { canPrint: false, conditions: ["cover-open"] },
+    });
+    const ctx = createCtx(setupDb({ outcome: "win" }), printer);
+    ctx.kioskMaintenance.setAutomatic(false);
+    const caller = engineRouter.createCaller(ctx);
+
+    const prepared = await caller.booth.prepareReceipt(
+      PHOTO.stream() as unknown as Blob,
+    );
+    await caller.booth.printPreparedReceipt({ ticketRef: prepared.ticketRef });
+
+    expect(printedBuffers()).toHaveLength(2);
   });
 
   test("printPreparedReceipt rejects a malformed ticket ref", async () => {
