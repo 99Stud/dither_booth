@@ -42,4 +42,32 @@ describe("getMaintenanceStatus", () => {
       }),
     ).toBe("The booth screen will show maintenance when it's back online.");
   });
+
+  it("explains maintenance the printer turned on", () => {
+    expect(
+      getMaintenanceStatus({
+        enabled: true,
+        isShown: true,
+        manual: false,
+        printerTrouble: "the printer is out of paper",
+        screen: "shutter",
+      }),
+    ).toBe(
+      "In maintenance because the printer is out of paper. It ends on its own once the printer is ready.",
+    );
+  });
+
+  it("adds the printer to maintenance staff turned on", () => {
+    expect(
+      getMaintenanceStatus({
+        enabled: true,
+        isShown: true,
+        manual: true,
+        printerTrouble: "the printer cover is open",
+        screen: "shutter",
+      }),
+    ).toBe(
+      "Guests see the maintenance screen. Also, the printer cover is open.",
+    );
+  });
 });

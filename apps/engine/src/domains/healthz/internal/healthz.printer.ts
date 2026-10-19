@@ -1,64 +1,58 @@
-import { getErrorMessage } from "@dither-booth/shared/errors";
-import USB, { type TDevice } from "@node-escpos/usb-adapter";
+import type { PrinterStatus } from "#domains/printer/printer.service";
 
 import {
   createHealthyDependencyHealthz,
   createUnhealthyDependencyHealthz,
 } from "./healthz.utils";
 
-export function checkPrinterHealthz(printerUSBAdapter: USB | undefined) {
-  let detectedPrinters: TDevice[];
+const NOT_READY_MESSAGE = {
+  "cover-open": "Printer cover is open.",
+  disconnected: "Printer is not connected.",
+  error: "Printer reported an error.",
+  "paper-out": "Printer is out of paper.",
+  unknown: "Printer status is not known yet.",
+} as const;
 
-  try {
-    detectedPrinters = USB.findPrinter();
-  } catch (error) {
-    const details = {
-      adapterDeviceAttached: printerUSBAdapter?.device !== undefined,
-    };
-    const message = "Failed to scan USB printer devices.";
-
-    return createUnhealthyDependencyHealthz({
-      cause: getErrorMessage(error),
-      context: details,
-      details,
-      message,
-    });
-  }
-
-  const adapterDevice = printerUSBAdapter?.device ?? null;
-  const currentDevicePresent =
-    adapterDevice !== null && detectedPrinters.includes(adapterDevice);
+/**
+ * The printer as the printer watch last saw it: healthy while it can print,
+ * with paper low as a warning. In dry run nothing is watched.
+ */
+export function checkPrinterHealthz(
+  status: PrinterStatus,
+  { dryRun }: { dryRun: boolean },
+) {
   const details = {
-    adapterDeviceAttached: adapterDevice !== null,
-    currentDevicePresent,
-    detectedPrinterCount: detectedPrinters.length,
+    canPrint: status.canPrint,
+    changedAt: status.changedAt,
+    checkedAt: status.checkedAt,
+    conditions: status.conditions,
+    lastError: status.lastError,
+    raw: status.raw,
+    /** False in dry run: receipts are previewed and the printer isn't opened. */
+    watched: !dryRun,
+    warning: status.conditions.includes("paper-near-end")
+      ? "Paper is running low."
+      : null,
   };
 
-  if (!printerUSBAdapter) {
+  if (dryRun) {
     return createUnhealthyDependencyHealthz({
       context: details,
       details,
-      message: "Printer device is not initialized.",
+      message: "Printer watch off (RECEIPT_PRINT_DRY_RUN).",
     });
   }
 
-  if (!adapterDevice) {
-    return createUnhealthyDependencyHealthz({
-      context: details,
-      details,
-      message: "Printer device is detached.",
-    });
-  }
+  if (status.canPrint) return createHealthyDependencyHealthz({ details });
 
-  if (!currentDevicePresent) {
-    return createUnhealthyDependencyHealthz({
-      context: details,
-      details,
-      message: "Printer device is not detected on the USB bus.",
-    });
-  }
+  const first = status.conditions.find(
+    (condition) => condition !== "paper-near-end",
+  );
 
-  return createHealthyDependencyHealthz({
+  return createUnhealthyDependencyHealthz({
+    cause: status.lastError ?? undefined,
+    context: details,
     details,
+    message: first ? NOT_READY_MESSAGE[first] : "Printer can't print.",
   });
 }

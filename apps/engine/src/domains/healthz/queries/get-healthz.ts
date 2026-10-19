@@ -25,6 +25,7 @@ import { fetchShutterHealthz } from "#domains/healthz/internal/healthz.utils";
 import { serializeKioskMaintenance } from "#domains/kiosk/kiosk.service";
 import { darkroomProcedure } from "#internal/trpc";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
+import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 
 type GetHealthzResponse = {
   shutter: {
@@ -34,8 +35,11 @@ type GetHealthzResponse = {
     kiosk: {
       /** Live views of the booth camera open right now. */
       cameraViewers: number;
-      /** The saved maintenance switch; pages show it once a visit ends. */
-      maintenance: { enabled: boolean; updatedAt: string | null };
+      /**
+       * Whether the booth is in maintenance and why; pages show it once a
+       * visit ends.
+       */
+      maintenance: ReturnType<typeof serializeKioskMaintenance>;
       /** Kiosk pages subscribed to the kiosk channel right now. */
       pages: Array<{
         pageId: string;
@@ -96,7 +100,11 @@ export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
         page: ctx.page,
         state: ctx.puppeteerState,
       }),
-      Promise.resolve().then(() => checkPrinterHealthz(ctx.printerUSBAdapter)),
+      Promise.resolve().then(() =>
+        checkPrinterHealthz(ctx.printer.getStatus(), {
+          dryRun: isReceiptPrintDryRun(),
+        }),
+      ),
     ],
   );
 

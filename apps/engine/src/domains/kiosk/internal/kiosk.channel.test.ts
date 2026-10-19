@@ -6,6 +6,7 @@ import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createTestDb } from "#db/internal/db.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
+import { createStubPrinter } from "#domains/printer/internal/printer.test-utils";
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
@@ -177,7 +178,10 @@ describe("kiosk channel through the router", () => {
   function createCaller(
     kioskChannel: KioskChannel,
     requestOrigin: string,
-    kioskMaintenance = createKioskMaintenance({ db: createTestDb().db }),
+    kioskMaintenance = createKioskMaintenance({
+      db: createTestDb().db,
+      kioskChannel,
+    }),
   ) {
     const unreachable = () => {
       throw new Error("The kiosk channel needs none of this.");
@@ -191,6 +195,7 @@ describe("kiosk channel through the router", () => {
       kioskMaintenance,
       cameraPreview: cameraPreviewFor(kioskChannel),
       mode: "production",
+      printer: createStubPrinter(),
       processManager: "unknown",
       puppeteerLifecycle: {
         close: unreachable,
@@ -279,10 +284,14 @@ describe("kiosk channel through the router", () => {
   });
 
   test("a page opens with the saved maintenance state", async () => {
-    const kioskMaintenance = createKioskMaintenance({ db: createTestDb().db });
-    kioskMaintenance.set(true);
+    const kioskChannel = createKioskChannel();
+    const kioskMaintenance = createKioskMaintenance({
+      db: createTestDb().db,
+      kioskChannel,
+    });
+    kioskMaintenance.setManual(true);
     const kiosk = createCaller(
-      createKioskChannel(),
+      kioskChannel,
       "https://192.168.1.10:3000",
       kioskMaintenance,
     );
@@ -299,7 +308,10 @@ describe("kiosk channel through the router", () => {
 
   test("the admin's maintenance switch is saved and reaches the page", async () => {
     const kioskChannel = createKioskChannel();
-    const kioskMaintenance = createKioskMaintenance({ db: createTestDb().db });
+    const kioskMaintenance = createKioskMaintenance({
+      db: createTestDb().db,
+      kioskChannel,
+    });
     const kiosk = createCaller(
       kioskChannel,
       "https://192.168.1.10:3000",
@@ -325,12 +337,12 @@ describe("kiosk channel through the router", () => {
   });
 
   test("maintenance is saved even with no page connected", async () => {
-    const kioskMaintenance = createKioskMaintenance({ db: createTestDb().db });
-    const admin = createCaller(
-      createKioskChannel(),
-      ADMIN_ORIGIN,
-      kioskMaintenance,
-    );
+    const kioskChannel = createKioskChannel();
+    const kioskMaintenance = createKioskMaintenance({
+      db: createTestDb().db,
+      kioskChannel,
+    });
+    const admin = createCaller(kioskChannel, ADMIN_ORIGIN, kioskMaintenance);
 
     expect(
       await admin.ops.setKioskMaintenance({ enabled: true }),

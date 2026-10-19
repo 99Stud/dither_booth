@@ -4,6 +4,7 @@ import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
 import { createKioskChannel } from "#domains/kiosk/kiosk.service";
+import { createStubPrinter } from "#domains/printer/internal/printer.test-utils";
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
@@ -31,7 +32,7 @@ function createTestCaller(
     cameraPreview: {} as TRPCContext["cameraPreview"],
     mode: "production",
     page: undefined,
-    printerUSBAdapter: undefined,
+    printer: createStubPrinter(),
     processManager: "unknown",
     puppeteerLifecycle: {
       close: async () => {},

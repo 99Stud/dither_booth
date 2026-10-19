@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { BoothCameraCard } from "#components/App/ControlCenter/BoothCameraCard/index";
 import { BoothScreenCard } from "#components/App/ControlCenter/BoothScreenCard/index";
 import { HealthCard } from "#components/App/ControlCenter/HealthCard/index";
+import { PrinterCard } from "#components/App/ControlCenter/PrinterCard/index";
 import {
   AppPageBody,
   AppPageHeading,
@@ -27,6 +28,7 @@ export const ControlCenter = () => {
         <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
           <div className={clsx("flex flex-col gap-4")}>
             <BoothScreenCard />
+            <PrinterCard />
             <BoothCameraCard />
           </div>
           <HealthCard />
