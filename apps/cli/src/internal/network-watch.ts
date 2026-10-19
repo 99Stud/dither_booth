@@ -80,3 +80,30 @@ export function decideNetworkAction(
     state: { hotspotIdleSince: null, offlineSince },
   };
 }
+
+/** Between two avahi restarts: a real name clash on the network shouldn't loop. */
+export const MDNS_RESTART_BACKOFF_MS = 5 * 60_000;
+
+/** avahi's `GetHostName` reply over D-Bus, as `busctl` prints it: `s "name"`. */
+export function parseBusctlString(output: string): string | null {
+  return /^s "(.*)"$/.exec(output.trim())?.[1] ?? null;
+}
+
+/**
+ * avahi renames the booth (`ditherbooth-2`) when it thinks the name is taken,
+ * often by its own announcement after a network switch. The certificate and
+ * the setup ticket only know `<hostname>.local`, so take the name back.
+ */
+export function shouldReclaimMdnsName(input: {
+  /** null when avahi isn't running. */
+  avahiName: string | null;
+  hostname: string;
+  now: number;
+  lastRestartAt: number | null;
+}): boolean {
+  if (!input.avahiName || input.avahiName === input.hostname) return false;
+  return (
+    input.lastRestartAt === null ||
+    input.now - input.lastRestartAt >= MDNS_RESTART_BACKOFF_MS
+  );
+}

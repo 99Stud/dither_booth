@@ -3,8 +3,11 @@ import { describe, expect, test } from "bun:test";
 import {
   HOTSPOT_IDLE_RETRY_MS,
   INITIAL_WATCH_STATE,
+  MDNS_RESTART_BACKOFF_MS,
   OFFLINE_GRACE_MS,
   decideNetworkAction,
+  parseBusctlString,
+  shouldReclaimMdnsName,
   type WatchInput,
   type WatchState,
 } from "./network-watch";
@@ -85,5 +88,47 @@ describe("network watch", () => {
         },
       ]),
     ).toEqual(["start-hotspot", "none"]);
+  });
+});
+
+describe("mDNS name", () => {
+  const renamed = {
+    avahiName: "ditherbooth-2",
+    hostname: "ditherbooth",
+    lastRestartAt: null,
+    now: 0,
+  };
+
+  test("reads the name out of busctl's reply", () => {
+    expect(parseBusctlString('s "ditherbooth-2"\n')).toBe("ditherbooth-2");
+    expect(parseBusctlString("")).toBeNull();
+  });
+
+  test("takes the name back when avahi renamed the booth", () => {
+    expect(shouldReclaimMdnsName(renamed)).toBe(true);
+  });
+
+  test("leaves avahi alone when the name is right or avahi isn't running", () => {
+    expect(
+      shouldReclaimMdnsName({ ...renamed, avahiName: "ditherbooth" }),
+    ).toBe(false);
+    expect(shouldReclaimMdnsName({ ...renamed, avahiName: null })).toBe(false);
+  });
+
+  test("waits between restarts when another device really has the name", () => {
+    expect(
+      shouldReclaimMdnsName({
+        ...renamed,
+        lastRestartAt: 0,
+        now: MDNS_RESTART_BACKOFF_MS - 1,
+      }),
+    ).toBe(false);
+    expect(
+      shouldReclaimMdnsName({
+        ...renamed,
+        lastRestartAt: 0,
+        now: MDNS_RESTART_BACKOFF_MS,
+      }),
+    ).toBe(true);
   });
 });

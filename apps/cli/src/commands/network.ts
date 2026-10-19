@@ -14,13 +14,15 @@ import {
 import { defineCommand } from "citty";
 import { randomInt } from "node:crypto";
 import { mkdir, rm } from "node:fs/promises";
-import { uptime } from "node:os";
+import { hostname, uptime } from "node:os";
 
 import { requireRoot } from "#internal/args";
 import { BOOTH_BIN, SERVICE_USER } from "#internal/config";
 import {
   INITIAL_WATCH_STATE,
   decideNetworkAction,
+  parseBusctlString,
+  shouldReclaimMdnsName,
   type WatchState,
 } from "#internal/network-watch";
 import { capture, chownToServiceUser, run } from "#internal/system";
@@ -215,11 +217,29 @@ async function consumeEarlyBootMarker(): Promise<boolean> {
   return forced;
 }
 
+async function readAvahiHostName(): Promise<string | null> {
+  const result = await capture(
+    [
+      "busctl",
+      "--system",
+      "call",
+      "org.freedesktop.Avahi",
+      "/",
+      "org.freedesktop.Avahi.Server",
+      "GetHostName",
+    ],
+    { allowFailure: true },
+  );
+  return parseBusctlString(result.stdout);
+}
+
 export async function runNetworkWatch(): Promise<void> {
   await mkdir(NETWORK_STATE_DIR, { recursive: true });
 
   let forced = await consumeEarlyBootMarker();
   let state: WatchState = INITIAL_WATCH_STATE;
+  let mdnsRestartAt: number | null = null;
+  const machineName = hostname().split(".")[0] ?? hostname();
 
   if (forced)
     console.log("[network] double power-cycle: forcing the booth Wi-Fi");
@@ -251,6 +271,25 @@ export async function runNetworkWatch(): Promise<void> {
     } else if (result.action === "retry-saved-networks") {
       console.log("[network] booth Wi-Fi idle: trying saved networks");
       await nmcli(["connection", "down", HOTSPOT_CONNECTION_NAME]);
+    }
+
+    const avahiName = await readAvahiHostName();
+
+    if (
+      shouldReclaimMdnsName({
+        avahiName,
+        hostname: machineName,
+        lastRestartAt: mdnsRestartAt,
+        now: Date.now(),
+      })
+    ) {
+      console.log(
+        `[network] avahi renamed the booth ${avahiName}.local: taking ${machineName}.local back`,
+      );
+      mdnsRestartAt = Date.now();
+      await run(["systemctl", "restart", "avahi-daemon"], {
+        allowFailure: true,
+      });
     }
 
     await Bun.sleep(TICK_MS);
