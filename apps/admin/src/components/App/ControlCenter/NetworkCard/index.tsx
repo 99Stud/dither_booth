@@ -183,8 +183,8 @@ export const NetworkCard = () => {
                 </p>
                 {localSetupUrl && (
                   <p className={clsx("text-sm text-muted-foreground")}>
-                    Page doesn't open? Try{" "}
-                    <span className={clsx("font-mono break-all")}>
+                    Page doesn't open? Try
+                    <span className={clsx("block truncate font-mono")}>
                       {localSetupUrl}
                     </span>
                   </p>
