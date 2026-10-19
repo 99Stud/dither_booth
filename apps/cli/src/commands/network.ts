@@ -17,7 +17,11 @@ import { mkdir, rm } from "node:fs/promises";
 import { hostname, uptime } from "node:os";
 
 import { requireRoot } from "#internal/args";
-import { BOOTH_BIN, SERVICE_USER } from "#internal/config";
+import {
+  BOOTH_BIN,
+  NETWORK_SERVICE_NAME,
+  SERVICE_USER,
+} from "#internal/config";
 import {
   INITIAL_WATCH_STATE,
   decideNetworkAction,
@@ -28,7 +32,6 @@ import {
 import { capture, chownToServiceUser, run } from "#internal/system";
 import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
-const NETWORK_SERVICE_NAME = "ditherbooth-network.service";
 const NETWORK_SERVICE_PATH = `/etc/systemd/system/${NETWORK_SERVICE_NAME}`;
 const POLKIT_RULE_PATH = "/etc/polkit-1/rules.d/50-ditherbooth-network.rules";
 const TICK_MS = 10_000;
@@ -179,7 +182,7 @@ async function countStations(device: string | undefined): Promise<number> {
     .length;
 }
 
-async function startHotspot(): Promise<void> {
+async function startHotspot(reason: string): Promise<void> {
   // AP mode takes the only radio: remember what's around for the Darkroom.
   const scan = await nmcli([
     "-t",
@@ -196,7 +199,7 @@ async function startHotspot(): Promise<void> {
     JSON.stringify(parseNmcliWifiList(scan.stdout)),
   );
   await chownToServiceUser(WIFI_SCAN_CACHE_PATH);
-  console.log("[network] no network: starting the booth Wi-Fi");
+  console.log(`[network] ${reason}: starting the booth Wi-Fi`);
   await nmcli(["connection", "up", HOTSPOT_CONNECTION_NAME]);
 }
 
@@ -217,7 +220,8 @@ async function consumeEarlyBootMarker(): Promise<boolean> {
   return forced;
 }
 
-async function readAvahiHostName(): Promise<string | null> {
+/** The name avahi answers `.local` lookups for; null without avahi. */
+export async function readAvahiHostName(): Promise<string | null> {
   const result = await capture(
     [
       "busctl",
@@ -253,10 +257,11 @@ export async function runNetworkWatch(): Promise<void> {
     // Staff joined a network from the Darkroom: the forced hotspot is over.
     if (forced && online && !hotspotActive) forced = false;
 
+    const staffChose = await Bun.file(PREFER_HOTSPOT_PATH).exists();
     const result = decideNetworkAction(
       {
         connecting: isConnecting(devices),
-        holdHotspot: forced || (await Bun.file(PREFER_HOTSPOT_PATH).exists()),
+        holdHotspot: forced || staffChose,
         hotspotActive,
         now: Date.now(),
         online,
@@ -267,7 +272,13 @@ export async function runNetworkWatch(): Promise<void> {
     state = result.state;
 
     if (result.action === "start-hotspot") {
-      await startHotspot();
+      await startHotspot(
+        forced
+          ? "double power-cycle"
+          : staffChose
+            ? "staff chose the booth Wi-Fi"
+            : "no network for 45 s",
+      );
     } else if (result.action === "retry-saved-networks") {
       console.log("[network] booth Wi-Fi idle: trying saved networks");
       await nmcli(["connection", "down", HOTSPOT_CONNECTION_NAME]);

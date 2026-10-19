@@ -17,6 +17,7 @@ export const ENGINE_DATA_RELATIVE = `${ENGINE_APP_RELATIVE}/data`;
 
 export const SERVICE_NAME = "ditherbooth.service";
 export const SERVICE_PATH = `/etc/systemd/system/${SERVICE_NAME}`;
+export const NETWORK_SERVICE_NAME = "ditherbooth-network.service";
 /** Where install.sh puts the CLI; the service unit calls it at boot. */
 export const BOOTH_BIN = "/usr/local/bin/booth";
 /** Restarts the booth when the network gives it a new address. */

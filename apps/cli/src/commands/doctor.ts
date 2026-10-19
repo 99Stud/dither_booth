@@ -1,16 +1,19 @@
-import { getWebPublicIp } from "@dither-booth/ports";
+import { getPort, getWebPublicIp } from "@dither-booth/ports";
 import {
   adminHealthzPayloadSchema,
   engineHealthzPayloadSchema,
   shutterHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
 import { defineCommand } from "citty";
+import { hostname } from "node:os";
 
 import type { BoothContext } from "#internal/context";
 
+import { readAvahiHostName } from "#commands/network";
 import { printCommandBanner } from "#internal/banner";
 import {
   ENGINE_DATA_RELATIVE,
+  NETWORK_SERVICE_NAME,
   PM2_PROCESS_NAMES,
   SERVICE_BUN,
   SERVICE_NAME,
@@ -213,6 +216,64 @@ async function checkHealthz(
   }
 }
 
+async function checkNetworkWatch(results: CheckResult[]): Promise<void> {
+  const active = await capture(
+    ["systemctl", "is-active", NETWORK_SERVICE_NAME],
+    { allowFailure: true },
+  );
+
+  if (active.stdout.trim() === "active") {
+    record(results, "pass", `${NETWORK_SERVICE_NAME} running`);
+  } else {
+    record(
+      results,
+      "warn",
+      `${NETWORK_SERVICE_NAME} not running`,
+      "No booth Wi-Fi fallback. Run `sudo booth network setup`.",
+    );
+  }
+}
+
+async function checkSetupPage(
+  results: CheckResult[],
+  lanIp: string,
+): Promise<void> {
+  const url = `http://${lanIp}:${getPort("SETUP_PORT")}/healthz`;
+  const response = await capture(["curl", "-fsS", url], {
+    allowFailure: true,
+  });
+
+  if (response.exitCode === 0) {
+    record(results, "pass", "setup page ok");
+  } else {
+    record(results, "fail", `setup page unreachable (${url})`);
+  }
+}
+
+/** The certificate and the setup ticket only know `<hostname>.local`. */
+async function checkMdnsName(results: CheckResult[]): Promise<void> {
+  const machineName = hostname().split(".")[0] ?? hostname();
+  const avahiName = await readAvahiHostName();
+
+  if (!avahiName) {
+    record(
+      results,
+      "warn",
+      "avahi not answering",
+      `${machineName}.local won't resolve; the IP links still work.`,
+    );
+  } else if (avahiName !== machineName) {
+    record(
+      results,
+      "warn",
+      `Reachable as ${avahiName}.local, not ${machineName}.local`,
+      "Another device may have the name. `sudo systemctl restart avahi-daemon` retries.",
+    );
+  } else {
+    record(results, "pass", `Reachable as ${machineName}.local`);
+  }
+}
+
 function printResults(results: CheckResult[]): void {
   for (const result of results) {
     const detail = result.detail ? ` — ${result.detail}` : "";
@@ -260,6 +321,9 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
     `https://${lanIp}:3002/healthz`,
     adminHealthzPayloadSchema,
   );
+  await checkSetupPage(results, lanIp);
+  await checkNetworkWatch(results);
+  await checkMdnsName(results);
 
   plain("");
   printResults(results);
