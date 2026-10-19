@@ -196,6 +196,7 @@ describe("kiosk channel through the router", () => {
       cameraPreview: cameraPreviewFor(kioskChannel),
       mode: "production",
       network: {} as TRPCContext["network"],
+      setupServerAccess: { verify: () => false },
       printer: createStubPrinter(),
       processManager: "unknown",
       puppeteerLifecycle: {

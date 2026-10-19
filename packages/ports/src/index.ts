@@ -14,6 +14,7 @@ import {
   DEFAULT_WEB_TLS_MANIFEST_FILE_NAME,
   PORT_SCHEMA,
   SHUTTER_BIND_HOST,
+  SETUP_SERVER_TOKEN_PATH,
   WEB_TLS_CERT_PATH,
   WEB_TLS_KEY_PATH,
   WEB_TLS_MANIFEST_SCHEMA,
@@ -193,6 +194,10 @@ export async function getLocalOrigins(
   return hostnames
     .filter((hostname) => hostname.endsWith(".local"))
     .map((hostname) => formatOrigin(protocol, hostname, port));
+}
+
+export function getSetupServerTokenPath({ repoRoot }: RepoPathOptions) {
+  return resolveRepoPath(SETUP_SERVER_TOKEN_PATH, repoRoot);
 }
 
 export function getWebTlsCertPath({ repoRoot }: RepoPathOptions) {

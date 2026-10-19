@@ -269,6 +269,8 @@ export async function setBoothWifi(
 ): Promise<void> {
   if (input.enabled) {
     await writeFile(PREFER_HOTSPOT_PATH, "");
+    // Already on it: bringing it up again would drop every device on it.
+    if ((await readConnection(deps))?.mode === "hotspot") return;
     deps.later(
       () => deps.nmcli(["connection", "up", "id", HOTSPOT_CONNECTION_NAME]),
       NETWORK_SWITCH_DELAY_MS,
@@ -281,6 +283,30 @@ export async function setBoothWifi(
     () => deps.nmcli(["connection", "down", "id", HOTSPOT_CONNECTION_NAME]),
     NETWORK_SWITCH_DELAY_MS,
   );
+}
+
+/**
+ * What a device on the booth Wi-Fi gets from its captive page: the Wi-Fi
+ * picker only while the booth opened its Wi-Fi because no known network was
+ * around. When staff chose to run the event on it, the page stays away.
+ */
+export type CaptiveStatus = {
+  state: "pick-network" | "booth-wifi-chosen" | "not-on-booth-wifi";
+  nearby: WifiNetwork[];
+};
+
+export async function getCaptiveStatus(
+  deps: NetworkDeps,
+): Promise<CaptiveStatus> {
+  const status = await getNetworkStatus(deps);
+
+  if (!status.available || status.mode !== "hotspot") {
+    return { nearby: [], state: "not-on-booth-wifi" };
+  }
+  if (status.boothWifiChosen) {
+    return { nearby: [], state: "booth-wifi-chosen" };
+  }
+  return { nearby: status.nearby, state: "pick-network" };
 }
 
 /** The booth Wi-Fi's name and password, for the ticket that lets staff join it. */

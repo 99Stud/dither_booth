@@ -1,3 +1,4 @@
+import { getPort } from "@dither-booth/ports";
 import {
   BOOT_MARKER_PATH,
   HOTSPOT_CONNECTION_NAME,
@@ -18,6 +19,11 @@ import { hostname, uptime } from "node:os";
 
 import { requireRoot } from "#internal/args";
 import {
+  CAPTIVE_DNSMASQ_PATH,
+  buildCaptiveDnsmasqConf,
+  buildCaptiveNftRules,
+} from "#internal/captive";
+import {
   BOOTH_BIN,
   NETWORK_SERVICE_NAME,
   SERVICE_USER,
@@ -35,6 +41,7 @@ import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 const NETWORK_SERVICE_PATH = `/etc/systemd/system/${NETWORK_SERVICE_NAME}`;
 const POLKIT_RULE_PATH = "/etc/polkit-1/rules.d/50-ditherbooth-network.rules";
 const TICK_MS = 10_000;
+const CAPTIVE_NFT_PATH = `${NETWORK_STATE_DIR}/captive.nft`;
 /** A boot that lasts less than this counts towards the double power-cycle. */
 const EARLY_BOOT_S = 120;
 // No 0/O, 1/l/I: staff may have to type it off the ticket.
@@ -161,6 +168,10 @@ export async function runNetworkSetupCommand(): Promise<void> {
   step(`Writing ${POLKIT_RULE_PATH}`);
   await Bun.write(POLKIT_RULE_PATH, buildPolkitRule());
 
+  // Read when the booth Wi-Fi next comes up.
+  step(`Writing ${CAPTIVE_DNSMASQ_PATH}`);
+  await Bun.write(CAPTIVE_DNSMASQ_PATH, buildCaptiveDnsmasqConf());
+
   step(`Writing ${NETWORK_SERVICE_PATH}`);
   await Bun.write(NETWORK_SERVICE_PATH, buildNetworkUnit());
   await run(["systemctl", "daemon-reload"]);
@@ -237,8 +248,26 @@ export async function readAvahiHostName(): Promise<string | null> {
   return parseBusctlString(result.stdout);
 }
 
+/** The booth Wi-Fi's captive checks reach the setup server (see `#internal/captive`). */
+async function applyCaptiveRedirect(): Promise<void> {
+  await Bun.write(
+    CAPTIVE_NFT_PATH,
+    buildCaptiveNftRules(getPort("SETUP_PORT")),
+  );
+  const result = await capture(["nft", "-f", CAPTIVE_NFT_PATH], {
+    allowFailure: true,
+  });
+
+  if (result.exitCode !== 0) {
+    console.log(
+      `[network] captive page redirect not applied: ${result.stderr.trim()}`,
+    );
+  }
+}
+
 export async function runNetworkWatch(): Promise<void> {
   await mkdir(NETWORK_STATE_DIR, { recursive: true });
+  await applyCaptiveRedirect();
 
   let forced = await consumeEarlyBootMarker();
   let state: WatchState = INITIAL_WATCH_STATE;

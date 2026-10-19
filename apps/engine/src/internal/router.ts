@@ -6,7 +6,7 @@ import { healthz } from "#domains/healthz/index";
 import { imageManipulation } from "#domains/image-manipulation/index";
 import { kiosk } from "#domains/kiosk/index";
 import { lottery } from "#domains/lottery/index";
-import { network } from "#domains/network/index";
+import { captive, network } from "#domains/network/index";
 import { printConfiguration } from "#domains/print-configuration/index";
 import { printer } from "#domains/printer/index";
 import { receipt } from "#domains/receipt/index";
@@ -38,6 +38,9 @@ export const engineRouter = router({
     getDeviceSetup: deviceSetup.getDeviceSetup,
     printSetupTicket: deviceSetup.printSetupTicket,
     ...network,
+  }),
+  captive: router({
+    ...captive,
   }),
   ops: router({
     ...healthz,

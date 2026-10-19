@@ -16,6 +16,8 @@ export const SHUTTER_BIND_HOST = "::";
 export const ADMIN_BIND_HOST = "::";
 export const WEB_TLS_CERT_PATH = ".local/tls/booth-cert.pem";
 export const WEB_TLS_KEY_PATH = ".local/tls/booth-key.pem";
+/** Written by the engine at start, read by the setup server: owner-only. */
+export const SETUP_SERVER_TOKEN_PATH = ".local/runtime/setup-server-token";
 export const DEFAULT_WEB_TLS_MANIFEST_FILE_NAME = "booth-manifest.json";
 
 export const CERT_GENERATE_COMMAND =

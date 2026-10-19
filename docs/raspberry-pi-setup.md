@@ -153,11 +153,13 @@ The booth joins every saved network on its own. Add the venue's Wi-Fi the day be
 When no saved network is around for 45 seconds, the booth opens **its own Wi-Fi** (`DitherBooth-XXXX`) and prints a **Wi-Fi ticket**:
 
 1. Scan the first QR to join the booth Wi-Fi. The name and password are printed under it.
-2. Scan the second QR to open the setup page, then open the admin's **Settings → Wi-Fi** (or **Darkroom → Wi-Fi** on the iPad), pick the venue network and tap **Join now**. The booth switches over and prints a setup ticket headed **On <venue network>** with its new address. Rejoin that network on the device and scan it.
+2. The phone, iPad or laptop shows the booth's **Wi-Fi picker** on its own, the way hotel Wi-Fi shows its login page. Pick the venue network, type its password and tap **Join**. No certificate is needed for this. The booth switches over and prints a setup ticket headed **On <venue network>** with its new address. Join that network on the device and scan the ticket.
+
+If the picker doesn't appear, scan the ticket's second QR and use the admin's **Settings → Wi-Fi** or **Darkroom → Wi-Fi** instead.
 
 If the booth can't join (a wrong password, or the network is out of range), it goes straight back to its own Wi-Fi and prints a Wi-Fi ticket that starts with why, such as **Couldn't join Venue-Guest: Wrong password.** Join the booth Wi-Fi again and retry.
 
-If the venue Wi-Fi keeps devices apart (the page never loads), or there is no Wi-Fi at all, tap **Run on booth Wi-Fi** in the Darkroom and run the event on the booth's own network. Photos still print, and cloud sync waits for a network (an Ethernet cable gives it one).
+If the venue Wi-Fi keeps devices apart (the page never loads), or there is no Wi-Fi at all, tap **Run the event on the booth Wi-Fi** in the picker (or **Run on booth Wi-Fi** in the Darkroom). Devices on the booth Wi-Fi stop seeing the picker, and the event runs on the booth's own network. Photos still print, and cloud sync waits for a network (an Ethernet cable gives it one).
 
 If the booth is stuck on a network the iPad can't reach, **power it off and on twice within two minutes**: the second boot forces the booth Wi-Fi and prints the Wi-Fi ticket. Venue Wi-Fi with a captive login page doesn't work; use the booth Wi-Fi there.
 

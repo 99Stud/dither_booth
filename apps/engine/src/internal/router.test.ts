@@ -12,7 +12,10 @@ const ADMIN_ORIGIN = "https://admin.local";
 const KIOSK_ORIGIN = "https://192.168.1.10:3000";
 const DARKROOM_TOKEN = "darkroom-token";
 
+const SETUP_SERVER_TOKEN = "setup-server-token";
+
 const GROUPS = {
+  captive: ["getCaptiveStatus", "joinFromCaptive", "runOnBoothWifi"],
   booth: [
     "getLotteryStatus",
     "lockDarkroom",
@@ -92,7 +95,11 @@ function groupPaths(group: keyof typeof GROUPS) {
   return procedurePaths.filter((path) => path.startsWith(`${group}.`));
 }
 
-function createCaller(requestOrigin?: string, darkroomToken?: string) {
+function createCaller(
+  requestOrigin?: string,
+  darkroomToken?: string,
+  setupServerToken?: string,
+) {
   const state = createInitialPuppeteerState();
   const unreachable = () => {
     throw new Error("A guarded procedure ran past its origin check.");
@@ -132,6 +139,10 @@ function createCaller(requestOrigin?: string, darkroomToken?: string) {
     },
     puppeteerState: state,
     requestOrigin,
+    setupServerAccess: {
+      verify: (token) => token === SETUP_SERVER_TOKEN,
+    },
+    setupServerToken,
   } satisfies TRPCContext;
 
   return engineRouter.createCaller(context);
@@ -229,6 +240,37 @@ describe("engineRouter", () => {
         expect(procedurePaths).toContain(path);
       }
     });
+  });
+
+  describe("captive.*", () => {
+    for (const path of groupPaths("captive")) {
+      test(`${path} refuses the admin and the Darkroom`, async () => {
+        for (const caller of [
+          createCaller(ADMIN_ORIGIN),
+          createCaller(KIOSK_ORIGIN, DARKROOM_TOKEN),
+          createCaller(KIOSK_ORIGIN, undefined, "guessed"),
+        ]) {
+          await expect(
+            getProcedure(caller, path)(undefined),
+          ).rejects.toMatchObject({ code: "FORBIDDEN" });
+        }
+      });
+
+      test(`${path} opens to the setup server's token`, async () => {
+        const call = getProcedure(
+          createCaller(undefined, undefined, SETUP_SERVER_TOKEN),
+          path,
+        );
+        const error = await call(undefined).then(
+          () => undefined,
+          (cause: unknown) => cause,
+        );
+
+        expect((error as { code?: string } | undefined)?.code).not.toBe(
+          "FORBIDDEN",
+        );
+      });
+    }
   });
 
   test("booth.* is reachable from the kiosk origin", async () => {

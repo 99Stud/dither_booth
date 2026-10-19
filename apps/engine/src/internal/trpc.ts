@@ -58,3 +58,18 @@ export const darkroomProcedure = publicProcedure.use(({ ctx, next }) => {
 
   return next();
 });
+
+/**
+ * The booth Wi-Fi's captive page. Only the setup server holds the token, and
+ * it serves the page to devices on the booth Wi-Fi only.
+ */
+export const captiveProcedure = publicProcedure.use(({ ctx, next }) => {
+  if (!ctx.setupServerAccess.verify(ctx.setupServerToken)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only the setup server can call this.",
+    });
+  }
+
+  return next();
+});

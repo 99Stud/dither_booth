@@ -1,6 +1,7 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import {
   getAdminOrigin,
+  getSetupServerTokenPath,
   getPort,
   getWebTlsHostnames,
 } from "@dither-booth/ports";
@@ -9,6 +10,7 @@ import {
   ENGINE_HEALTHZ_SERVICE,
   createHealthzPayload,
 } from "@dither-booth/shared/healthz";
+import { SETUP_SERVER_TOKEN_HEADER } from "@dither-booth/shared/server/network";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
 import {
   createHTTPHandler,
@@ -36,6 +38,7 @@ import {
   createKioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
 import {
+  createSetupServerAccess,
   defaultLater,
   runNmcli,
   type NetworkDeps,
@@ -137,6 +140,9 @@ export async function runEngineServer(options: {
     maxDurationMs: CAMERA_PREVIEW_MAX_DURATION_MS,
   });
   const darkroomAccess = createDarkroomAccess({ db });
+  const setupServerAccess = await createSetupServerAccess(
+    getSetupServerTokenPath({ repoRoot: ENGINE_REPO_ROOT }),
+  );
   const logDeviceSetup = (
     level: "info" | "warn" | "error",
     event: string,
@@ -170,6 +176,7 @@ export async function runEngineServer(options: {
   const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
     const { page, state: puppeteerState } = puppeteerLifecycle.getCurrent();
     const darkroomToken = req.headers[DARKROOM_TOKEN_HEADER];
+    const setupServerToken = req.headers[SETUP_SERVER_TOKEN_HEADER];
 
     return {
       adminOrigin,
@@ -189,6 +196,9 @@ export async function runEngineServer(options: {
       puppeteerLifecycle,
       puppeteerState,
       requestOrigin: req.headers.origin,
+      setupServerAccess,
+      setupServerToken:
+        typeof setupServerToken === "string" ? setupServerToken : undefined,
     };
   };
 

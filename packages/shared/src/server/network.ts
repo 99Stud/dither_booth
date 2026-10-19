@@ -15,6 +15,37 @@ export const WIFI_SCAN_CACHE_PATH = `${NETWORK_STATE_DIR}/wifi-scan.json`;
 /** Left by a boot that didn't last two minutes: the next one forces the hotspot. */
 export const BOOT_MARKER_PATH = `${NETWORK_STATE_DIR}/early-boot`;
 
+/**
+ * Hosts phones and laptops fetch over plain HTTP to tell whether a Wi-Fi
+ * needs a login page. On the booth Wi-Fi they resolve to the booth, which
+ * answers with the Wi-Fi picker while it has no network to join.
+ */
+export const CAPTIVE_CHECK_HOSTS = [
+  // iOS, iPadOS, macOS
+  "captive.apple.com",
+  "www.apple.com",
+  "www.appleiphonecell.com",
+  "www.itools.info",
+  "www.ibook.info",
+  "www.airport.us",
+  "www.thinkdifferent.us",
+  // Android
+  "connectivitycheck.gstatic.com",
+  "connectivitycheck.android.com",
+  "clients3.google.com",
+  // Windows
+  "www.msftconnecttest.com",
+  "www.msftncsi.com",
+  // Firefox
+  "detectportal.firefox.com",
+] as const;
+
+/** Where the setup server sends the booth Wi-Fi's captive page requests. */
+export const CAPTIVE_HTTP_PORT = 80;
+
+/** Opens the engine's `captive.*` procedures; only the setup server has it. */
+export const SETUP_SERVER_TOKEN_HEADER = "x-setup-server-token";
+
 export type NmcliDevice = {
   device: string;
   type: string;

@@ -6,6 +6,7 @@ import {
   getEngineInternalOrigin,
   getLocalOrigins,
   getPort,
+  getSetupServerTokenPath,
   getShutterOrigin,
   getWebTlsCaPath,
   getWebTlsCertPath,
@@ -20,6 +21,7 @@ import {
 } from "@dither-booth/shared/trpc-proxy";
 
 import { SHUTTER_SERVER_LOG_SOURCE } from "#lib/constants";
+import { createCaptiveBackend } from "#lib/device-setup/captive.backend";
 import { runDeviceSetupServer } from "#lib/device-setup/device-setup.server";
 import { SHUTTER_APP_ROOT, SHUTTER_REPO_ROOT } from "#lib/server-constants";
 const engineOrigin = getEngineInternalOrigin();
@@ -41,6 +43,10 @@ export async function runShutterServer(options: {
     adminOrigin: await getAdminOrigin(repoPathOptions),
     bindHost: SHUTTER_BIND_HOST,
     caPath: await getWebTlsCaPath(repoPathOptions),
+    captive: createCaptiveBackend({
+      engineOrigin,
+      tokenPath: getSetupServerTokenPath(repoPathOptions),
+    }),
     darkroomPath: DARKROOM_PATH,
     port: getPort("SETUP_PORT"),
     // `.local` first: it survives the booth getting a new IP at the next venue.
