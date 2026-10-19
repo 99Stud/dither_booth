@@ -41,7 +41,7 @@ Under **Edit settings** before writing:
 
 - **Hostname:** for example `booth`. The certificate covers `<hostname>.local`, so pick it now; changing it later means regenerating the certificate.
 - **Username:** `pi`. The CLI's systemd service runs as `pi` by default. If you choose another name, run every `booth` command with `BOOTH_SERVICE_USER=<name>`.
-- **Wi-Fi:** the booth network and the country, unless you use Ethernet.
+- **Wi-Fi:** the country, plus your office network if you like. Venue networks are added later from the Darkroom or admin (step 7), so you never reflash for a new venue.
 - **Locale:** your time zone and keyboard layout.
 - **Services:** enable SSH.
 
@@ -83,7 +83,7 @@ sudo reboot
 
 If it is still missing, recheck the ribbon cable orientation and its latches. Keep the link at its default Gen 2 speed: `dtparam=pciex1_gen=3` is faster but not officially supported, and the booth only needs the drive for a small SQLite database.
 
-Give the Pi a fixed address on the booth network, either as a DHCP reservation on the router or in NetworkManager (`sudo nmtui`). The TLS certificate is issued for the LAN IP, so an address that changes breaks the iPad until you regenerate it.
+The Pi doesn't need a fixed address. When it starts on a network with a new IP, `ditherbooth.service` re-issues the TLS certificate for that address before the apps start. The CA stays the same, so iPads that already trust the booth keep working.
 
 ## 4. Prepare the NVMe drive
 
@@ -125,7 +125,7 @@ curl -fsSL https://github.com/99Stud/dither_booth/releases/latest/download/insta
 sudo booth install
 ```
 
-This installs the system packages, Bun and the repo in `/opt/dither-booth`, mounts the NVMe and moves the database onto it, generates the TLS certificate for the Pi's LAN IP, and enables `ditherbooth.service`. When it finishes, run the health checks:
+This installs the system packages, Bun and the repo in `/opt/dither-booth`, mounts the NVMe and moves the database onto it, generates the TLS certificate for the Pi's LAN IP, enables `ditherbooth.service`, sets up the booth's own Wi-Fi fallback (`ditherbooth-network.service`), and ends with the QR that connects the iPad. When it finishes, run the health checks:
 
 ```bash
 booth doctor
@@ -133,17 +133,29 @@ booth doctor
 
 Every critical check should pass: SSD mount, data symlink, Bun, certificate IP, service, PM2 processes and the three `healthz` endpoints. The [CLI README](../apps/cli/README.md) documents each command if you need to rerun one step.
 
-## 7. Trust the certificate on the iPad
+## 7. Connect the iPad
 
-The apps are served over HTTPS with a local mkcert certificate, and Safari blocks the camera until the iPad trusts it. On the Pi, from the repo:
+The apps are served over HTTPS with a local mkcert certificate, and Safari blocks the camera until the iPad trusts the booth's CA. That happens once per iPad. After that, only the booth's address changes from venue to venue, and the booth prints it.
 
-```bash
-cd /opt/dither-booth && bun run phone
-```
+**At power-on, the receipt printer prints a setup ticket**, once per boot and again when the booth lands on another network. Scan its QR with the iPad camera:
 
-It prints a QR code. Scan it with the iPad on the same network, then follow the page: download the certificate, install it in **Settings → General → VPN & Device Management**, and turn on full trust in **Settings → General → About → Certificate Trust Settings**. The page then links to the Shutter, the admin and the Darkroom. Stop the script with `Ctrl+C` when you are done.
+- **New iPad:** the page walks you through it. Download the certificate, install it in **Settings → General → VPN & Device Management**, turn on full trust in **Settings → General → About → Certificate Trust Settings**, then tap **Check again**. It has to be Safari: the page says so if it's opened in another browser.
+- **iPad that already trusts the booth:** the page shows **Open the Shutter** straight away, plus the Darkroom and the admin. It prefers `https://<hostname>.local:3000` when that resolves, so a Home Screen icon made from it survives the next venue's new IP.
 
-To trust the certificate on a laptop instead, `booth cert copy` prints the `scp` command that copies the root CA to it.
+For kiosk use, add the Shutter to the Home Screen and turn on Guided Access. The same QR is in admin's Control Center (**Connect a device**, with **Print setup ticket**) and in the terminal with `booth qr`. To trust the booth on a laptop instead, `booth cert copy` prints the `scp` command that copies the root CA.
+
+### Wi-Fi at a venue
+
+The booth joins every saved network on its own. Add the venue's Wi-Fi the day before, from admin's Control Center or the Darkroom (**Wi-Fi → Save for later**), and the booth joins it on site without anyone touching it.
+
+When no saved network is around for 45 seconds, the booth opens **its own Wi-Fi** (`DitherBooth-XXXX`) and prints a **Wi-Fi ticket**:
+
+1. Scan the first QR to join the booth Wi-Fi. The name and password are printed under it.
+2. Scan the second QR to open the setup page, then **Darkroom → Wi-Fi**, pick the venue network and tap **Join now**. The booth switches over and prints a setup ticket with its new address. Rejoin that network on the iPad.
+
+If the venue Wi-Fi keeps devices apart (the page never loads), or there is no Wi-Fi at all, tap **Run on booth Wi-Fi** in the Darkroom and run the event on the booth's own network. Photos still print, and cloud sync waits for a network (an Ethernet cable gives it one).
+
+If the booth is stuck on a network the iPad can't reach, **power it off and on twice within two minutes**: the second boot forces the booth Wi-Fi and prints the Wi-Fi ticket. Venue Wi-Fi with a captive login page doesn't work; use the booth Wi-Fi there.
 
 ## 8. Check the whole chain
 
@@ -169,7 +181,7 @@ Some reviews find this paper thick and the print faint on some printers. If dith
 | `Error opening terminal: xterm-ghostty`         | The Pi has no terminfo for Ghostty. Prefix the command with `TERM=xterm-256color` (`sudo TERM=xterm-256color nano …`), or install the entry: `infocmp -x xterm-ghostty > xterm-ghostty.ti` on the Mac, copy it over, then `tic -x xterm-ghostty.ti` (and `sudo tic -x` for root) on the Pi. |
 | Printer missing from `lsusb`                    | Printer powered on, cable, another USB port.                                                                                                                                                                                                                                                |
 | Printing fails with `LIBUSB_ERROR_ACCESS`       | The service user cannot open the USB device. Add a udev rule such as `SUBSYSTEM=="usb", ATTR{idVendor}=="04b8", MODE="0660", GROUP="plugdev"`, add the user to `plugdev`, then reboot.                                                                                                      |
-| Safari shows a certificate warning or no camera | Certificate trust steps on the iPad (step 7). If the Pi's IP changed, run `booth cert` and trust the new certificate.                                                                                                                                                                       |
+| Safari shows a certificate warning or no camera | Certificate trust steps on the iPad (step 7). A new IP needs no new trust: the booth re-issues its certificate at start-up. Run `booth cert --if-changed` and `booth doctor` if it didn't.                                                                                                  |
 | Puppeteer fails in the admin Health card        | Rerun `sudo booth install` so the Chromium libraries get installed, then check `booth doctor`.                                                                                                                                                                                              |
 | The Pi throttles or the fan is loud             | Run `vcgencmd get_throttled` (`0x0` means fine). Check the cooler's contact and that the X1001 does not block the blower's intake.                                                                                                                                                          |
 

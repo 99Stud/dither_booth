@@ -14,7 +14,11 @@ import { ENGINE_REPO_ROOT } from "#lib/constants";
 const certPath = getWebTlsCertPath({ repoRoot: ENGINE_REPO_ROOT });
 const keyPath = getWebTlsKeyPath({ repoRoot: ENGINE_REPO_ROOT });
 const manifestPath = getWebTlsManifestPath({ repoRoot: ENGINE_REPO_ROOT });
-const requestedPublicIp = process.argv[2]?.trim();
+const cliArgs = process.argv.slice(2);
+const requestedPublicIp = cliArgs.find((arg) => !arg.startsWith("-"))?.trim();
+// Re-issuing the leaf on a new network: the CA is already trusted where it
+// needs to be, and `mkcert -install` would ask for sudo the service doesn't have.
+const skipInstall = cliArgs.includes("--skip-install");
 const CERT_GENERATE_COMMAND =
   "bun run --filter @dither-booth/engine cert:generate <LAN_IP>";
 const CERT_CAROOT_COMMAND = "bun run --filter @dither-booth/engine cert:caroot";
@@ -111,8 +115,12 @@ if (!caRoot) {
 
 const caPath = join(caRoot, "rootCA.pem");
 
-console.log("Installing mkcert local CA if needed...");
-runMkcert(["-install"]);
+if (skipInstall && (await Bun.file(caPath).exists())) {
+  console.log("Reusing the existing mkcert local CA.");
+} else {
+  console.log("Installing mkcert local CA if needed...");
+  runMkcert(["-install"]);
+}
 
 if (!(await Bun.file(caPath).exists())) {
   throw new Error(

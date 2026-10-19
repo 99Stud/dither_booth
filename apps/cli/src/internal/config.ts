@@ -17,6 +17,11 @@ export const ENGINE_DATA_RELATIVE = `${ENGINE_APP_RELATIVE}/data`;
 
 export const SERVICE_NAME = "ditherbooth.service";
 export const SERVICE_PATH = `/etc/systemd/system/${SERVICE_NAME}`;
+/** Where install.sh puts the CLI; the service unit calls it at boot. */
+export const BOOTH_BIN = "/usr/local/bin/booth";
+/** Restarts the booth when the network gives it a new address. */
+export const NETWORK_DISPATCHER_PATH =
+  "/etc/NetworkManager/dispatcher.d/90-ditherbooth";
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";
 export const SERVICE_HOME = `/home/${SERVICE_USER}`;
 // Where the official installer puts Bun for the service user. The systemd unit

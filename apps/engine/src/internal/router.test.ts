@@ -28,15 +28,21 @@ const GROUPS = {
     "createPrize",
     "deletePrize",
     "dither",
+    "forgetWifiNetwork",
     "generateReceipt",
     "getCurrentEvent",
     "getDarkroomPinStatus",
+    "getDeviceSetup",
+    "getNetworkStatus",
     "getPrintConfiguration",
     "listDraws",
     "printReceipt",
     "printSampleLotteryTicket",
+    "printSetupTicket",
     "replaceEvent",
     "restockPrize",
+    "saveWifiNetwork",
+    "setBoothWifi",
     "setDarkroomPin",
     "updateEvent",
     "updateLotterySettings",
@@ -58,17 +64,24 @@ const GROUPS = {
 } as const;
 
 /**
- * What a Darkroom token opens: print tuning, sample tickets and read-only
- * status. Everything else in `config.*` and `ops.*` — setting the PIN
+ * What a Darkroom token opens: print tuning, sample tickets, read-only
+ * status, and the booth's Wi-Fi and setup ticket (staff at the booth pick
+ * the venue's network from the iPad). Everything else in `config.*` and `ops.*` — setting the PIN
  * included — stays admin-only.
  */
 const DARKROOM_PATHS = [
   "config.dither",
+  "config.forgetWifiNetwork",
   "config.generateReceipt",
   "config.getCurrentEvent",
+  "config.getDeviceSetup",
+  "config.getNetworkStatus",
   "config.getPrintConfiguration",
   "config.printReceipt",
   "config.printSampleLotteryTicket",
+  "config.printSetupTicket",
+  "config.saveWifiNetwork",
+  "config.setBoothWifi",
   "config.updatePrintConfiguration",
   "ops.getHealthz",
 ];
@@ -103,6 +116,7 @@ function createCaller(requestOrigin?: string, darkroomToken?: string) {
       { get: unreachable },
     ) as TRPCContext["kioskMaintenance"],
     mode: "production",
+    network: { later: unreachable, nmcli: unreachable },
     printer: new Proxy({}, { get: unreachable }) as TRPCContext["printer"],
     processManager: "unknown",
     puppeteerLifecycle: {
@@ -185,8 +199,10 @@ describe("engineRouter", () => {
 
         if (opens) {
           // Past the guard, the call fails on its (throwing) dependencies or
-          // its input, never on access.
-          expect(error).not.toMatchObject({ code: "FORBIDDEN" });
+          // its input, or reads the booth's address, never fails on access.
+          expect((error as { code?: string } | undefined)?.code).not.toBe(
+            "FORBIDDEN",
+          );
         } else {
           expect(error).toMatchObject({ code: "FORBIDDEN" });
         }

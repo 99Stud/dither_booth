@@ -15,10 +15,20 @@ import {
   type CreateHTTPContextOptions,
 } from "@trpc/server/adapters/standalone";
 import http from "node:http";
+import { resolve } from "node:path";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createDarkroomAccess } from "#domains/darkroom/darkroom.service";
+import {
+  BOOT_ID_PATH,
+  DEVICE_SETUP_LOG_SOURCE,
+  SETUP_TICKET_KEY_PATH,
+  buildBoothWifiTicket,
+  buildSetupTicket,
+  createSetupTicketAutoPrint,
+  getDeviceSetupLinks,
+} from "#domains/device-setup/device-setup.service";
 import {
   CAMERA_PREVIEW_ICE_SERVERS,
   CAMERA_PREVIEW_MAX_DURATION_MS,
@@ -27,6 +37,13 @@ import {
   createKioskChannel,
   createKioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
+import {
+  defaultLater,
+  getBoothWifiCredentials,
+  readNetworkMode,
+  runNmcli,
+  type NetworkDeps,
+} from "#domains/network/network.service";
 import {
   createBoothPrinter,
   createPrinterMaintenancePolicy,
@@ -124,6 +141,27 @@ export async function runEngineServer(options: {
     maxDurationMs: CAMERA_PREVIEW_MAX_DURATION_MS,
   });
   const darkroomAccess = createDarkroomAccess({ db });
+  const network: NetworkDeps = { later: defaultLater, nmcli: runNmcli };
+  const setupTicketAutoPrint = createSetupTicketAutoPrint({
+    bootIdPath: BOOT_ID_PATH,
+    getTicket: async () => {
+      const links = await getDeviceSetupLinks({ repoRoot: ENGINE_REPO_ROOT });
+      // On its own Wi-Fi, staff first need to join it.
+      const boothWifi =
+        (await readNetworkMode(network)) === "hotspot"
+          ? await getBoothWifiCredentials(network)
+          : undefined;
+
+      return boothWifi
+        ? { body: buildBoothWifiTicket(boothWifi, links), key: "booth-wifi" }
+        : { body: buildSetupTicket(links), key: links.ip };
+    },
+    keyPath: resolve(ENGINE_REPO_ROOT, SETUP_TICKET_KEY_PATH),
+    log: (level, event, details) => {
+      logKioskEvent(level, DEVICE_SETUP_LOG_SOURCE, event, { details });
+    },
+    printer,
+  });
 
   const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
     const { page, state: puppeteerState } = puppeteerLifecycle.getCurrent();
@@ -142,6 +180,7 @@ export async function runEngineServer(options: {
       kioskMaintenance,
       cameraPreview,
       mode: options.mode,
+      network,
       processManager,
       puppeteerLifecycle,
       puppeteerState,
@@ -233,6 +272,10 @@ export async function runEngineServer(options: {
   await puppeteerLifecycle.initialize();
   printer.start();
   if (!receiptPrintDryRun) printerMaintenance.start();
+  // A booth plugged in at a venue prints the way in; a laptop doesn't.
+  if (options.mode === "production" && !receiptPrintDryRun) {
+    setupTicketAutoPrint.start();
+  }
 
   let closePromise: Promise<void> | undefined;
 
@@ -270,6 +313,7 @@ export async function runEngineServer(options: {
       await closeResource("http-server", () => closeHttpServer(server));
       await closeResource("browser", () => puppeteerLifecycle.close());
       await closeResource("printer", async () => {
+        setupTicketAutoPrint.stop();
         printerMaintenance.stop();
         await printer.stop();
       });

@@ -7,6 +7,7 @@ import {
   getAdminOrigin,
   getEngineInternalOrigin,
   getPort,
+  getSetupOrigin,
   getShutterInternalOrigin,
   getShutterOrigin,
   getWebPublicIp,
@@ -17,7 +18,12 @@ import {
   getWebTlsManifestPath,
 } from "../index";
 
-const ENV_NAMES = ["ADMIN_PORT", "ENGINE_PORT", "SHUTTER_PORT"] as const;
+const ENV_NAMES = [
+  "ADMIN_PORT",
+  "ENGINE_PORT",
+  "SETUP_PORT",
+  "SHUTTER_PORT",
+] as const;
 
 const originalEnv = Object.fromEntries(
   ENV_NAMES.map((name) => [name, process.env[name]]),
@@ -164,6 +170,21 @@ describe("@dither-booth/ports", () => {
 
     expect(await getAdminOrigin(repoPathOptions)).toBe(
       "https://192.168.1.43:3444",
+    );
+  });
+
+  it("serves the setup page over plain HTTP on the manifest IP", async () => {
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
+
+    await writeManifest(manifestPath, "192.168.1.43", {
+      caPath,
+      certPath,
+      keyPath,
+    });
+
+    expect(await getSetupOrigin(repoPathOptions)).toBe(
+      "http://192.168.1.43:3003",
     );
   });
 

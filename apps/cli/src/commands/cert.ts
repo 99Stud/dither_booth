@@ -1,3 +1,4 @@
+import { getWebPublicIp, getWebTlsCertPath } from "@dither-booth/ports";
 import { defineCommand } from "citty";
 
 import type { BoothContext } from "#internal/context";
@@ -23,7 +24,22 @@ import {
   step,
 } from "#internal/ui";
 
-export async function runCertCommand(context: BoothContext): Promise<void> {
+/**
+ * Whether the booth needs a new leaf certificate: only when it has none or
+ * its address changed. The CA stays, so devices that trust it keep working.
+ */
+export function needsNewCertificate(options: {
+  certificateIp: string | undefined;
+  hasCertificate: boolean;
+  lanIp: string;
+}): boolean {
+  return !options.hasCertificate || options.certificateIp !== options.lanIp;
+}
+
+export async function runCertCommand(
+  context: BoothContext,
+  { ifChanged = false }: { ifChanged?: boolean } = {},
+): Promise<void> {
   const { repoRoot } = context;
 
   heading("Generate TLS certificate");
@@ -31,10 +47,29 @@ export async function runCertCommand(context: BoothContext): Promise<void> {
   const ip = context.ip ?? (await detectLanIp());
 
   if (!ip) {
+    if (ifChanged) {
+      // No network yet: keep the current certificate rather than fail the boot.
+      info("No LAN IP yet; keeping the current certificate.");
+      return;
+    }
     fail(
       "Could not determine LAN IP. Pass it explicitly: `booth cert generate <LAN_IP>`.",
     );
     throw new SilentExit(1);
+  }
+
+  if (ifChanged) {
+    const certificateIp = await getWebPublicIp({ repoRoot }).catch(
+      () => undefined,
+    );
+    const hasCertificate = await Bun.file(
+      getWebTlsCertPath({ repoRoot }),
+    ).exists();
+
+    if (!needsNewCertificate({ certificateIp, hasCertificate, lanIp: ip })) {
+      ok(`Certificate already covers ${ip}`);
+      return;
+    }
   }
 
   step(`Generating certificate for ${ip}`);
@@ -45,6 +80,7 @@ export async function runCertCommand(context: BoothContext): Promise<void> {
       "@dither-booth/engine",
       "cert:generate",
       ip,
+      ...(ifChanged ? ["--skip-install"] : []),
     ]),
     { cwd: repoRoot },
   );
@@ -94,10 +130,18 @@ const certGenerateCommand = defineCommand({
       description: "LAN IP for the certificate (auto-detected when omitted)",
       required: false,
     },
+    ifChanged: {
+      type: "boolean",
+      description:
+        "Only re-issue when the LAN IP changed (keeps the CA; used at boot)",
+      default: false,
+    },
   },
   async run({ args }) {
     await runBoothTask(async () => {
-      await runCertCommand(buildBoothContext({ ip: args.ip }));
+      await runCertCommand(buildBoothContext({ ip: args.ip }), {
+        ifChanged: args.ifChanged,
+      });
     });
   },
 });

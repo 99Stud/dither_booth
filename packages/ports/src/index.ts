@@ -9,6 +9,7 @@ import {
   CERT_GENERATE_COMMAND,
   DEFAULT_ADMIN_PORT,
   DEFAULT_ENGINE_PORT,
+  DEFAULT_SETUP_PORT,
   DEFAULT_SHUTTER_PORT,
   DEFAULT_WEB_TLS_MANIFEST_FILE_NAME,
   PORT_SCHEMA,
@@ -81,7 +82,9 @@ async function readWebTlsManifest(options: RepoPathOptions) {
   };
 }
 
-export function getPort(name: "ENGINE_PORT" | "SHUTTER_PORT" | "ADMIN_PORT") {
+export function getPort(
+  name: "ENGINE_PORT" | "SHUTTER_PORT" | "ADMIN_PORT" | "SETUP_PORT",
+) {
   const value = process.env[name];
 
   if (!value) {
@@ -92,6 +95,8 @@ export function getPort(name: "ENGINE_PORT" | "SHUTTER_PORT" | "ADMIN_PORT") {
         return DEFAULT_ENGINE_PORT;
       case "SHUTTER_PORT":
         return DEFAULT_SHUTTER_PORT;
+      case "SETUP_PORT":
+        return DEFAULT_SETUP_PORT;
     }
   }
 
@@ -162,6 +167,15 @@ export async function getAdminOrigin(options: RepoPathOptions) {
     "https",
     await getWebPublicIp(options),
     getPort("ADMIN_PORT"),
+  );
+}
+
+/** Plain-HTTP origin of the setup page, where a device trusts the booth CA. */
+export async function getSetupOrigin(options: RepoPathOptions) {
+  return formatOrigin(
+    "http",
+    await getWebPublicIp(options),
+    getPort("SETUP_PORT"),
   );
 }
 

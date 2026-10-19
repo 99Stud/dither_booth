@@ -24,6 +24,8 @@ export const main = defineCommand({
     ssd: () => import("#commands/ssd").then((m) => m.default),
     db: () => import("#commands/db").then((m) => m.default),
     cert: () => import("#commands/cert").then((m) => m.default),
+    qr: () => import("#commands/qr").then((m) => m.default),
+    network: () => import("#commands/network").then((m) => m.default),
     service: () => import("#commands/service").then((m) => m.default),
     doctor: () => import("#commands/doctor").then((m) => m.default),
   },

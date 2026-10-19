@@ -4,6 +4,8 @@ import z from "zod";
 export const DEFAULT_ENGINE_PORT = 3001;
 export const DEFAULT_SHUTTER_PORT = 3000;
 export const DEFAULT_ADMIN_PORT = 3002;
+/** Plain-HTTP setup page: a device opens it before it trusts the booth CA. */
+export const DEFAULT_SETUP_PORT = 3003;
 export const ENGINE_BIND_HOST = "127.0.0.1";
 export const SHUTTER_BIND_HOST = "0.0.0.0";
 export const ADMIN_BIND_HOST = "0.0.0.0";
