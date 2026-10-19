@@ -26,7 +26,6 @@ import { Switch } from "@dither-booth/ui/components/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSubscription } from "@trpc/tanstack-react-query";
 import clsx from "clsx";
-import { format } from "date-fns";
 import { ChevronsUpDown, Printer } from "lucide-react";
 import { useState } from "react";
 
@@ -36,7 +35,7 @@ import { reportKioskError } from "#lib/logging/logging.utils";
 import {
   getPrinterAction,
   getPrinterBadge,
-  getPrinterHistoryLabel,
+  getPrinterActivity,
   getPrinterMaintenanceLine,
   getPrinterStatusLine,
   getPrinterTrouble,
@@ -74,7 +73,12 @@ export const PrinterCard = () => {
   const queryClient = useQueryClient();
   const [isConfirmingOff, setIsConfirmingOff] = useState(false);
   const subscription = useSubscription(
-    trpc.ops.watchPrinter.subscriptionOptions(),
+    trpc.ops.watchPrinter.subscriptionOptions(undefined, {
+      // Health checks and the Booth screen read the printer from healthz:
+      // refresh it with each change instead of waiting for their poll.
+      onData: () =>
+        void queryClient.invalidateQueries(trpc.ops.getHealthz.queryFilter()),
+    }),
   );
   // While the stream reconnects, its last status may be stale.
   const status =
@@ -101,6 +105,8 @@ export const PrinterCard = () => {
     ? { label: PRINTER_DRY_RUN_COPY.label, tone: "muted" as const }
     : getPrinterBadge(status);
   const action = status ? getPrinterAction(status) : null;
+  const activity =
+    status && !isDryRun ? getPrinterActivity(status.history) : [];
   const maintenanceLine =
     status && maintenance && !isDryRun
       ? getPrinterMaintenanceLine({
@@ -192,7 +198,7 @@ export const PrinterCard = () => {
           )}
         </div>
 
-        {status && status.history.length > 0 && (
+        {activity.length > 0 && (
           <Collapsible>
             <CollapsibleTrigger
               className={clsx(
@@ -203,30 +209,31 @@ export const PrinterCard = () => {
               <ChevronsUpDown className={clsx("size-3")} />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <ul className={clsx("mt-1.5 space-y-0.5 text-sm")}>
-                {status.history.map((entry) => (
+              <ol className={clsx("mt-2 flex flex-col gap-1.5 text-sm")}>
+                {activity.map((entry, index) => (
                   <li
-                    key={`${entry.at}-${entry.conditions.join(",")}`}
-                    className={clsx("flex gap-3")}
+                    key={entry.at}
+                    className={clsx(
+                      "grid grid-cols-[3rem_1fr_auto] items-baseline gap-3",
+                    )}
                   >
+                    <time
+                      dateTime={entry.at}
+                      className={clsx("text-muted-foreground tabular-nums")}
+                    >
+                      {entry.time}
+                    </time>
+                    <span className={clsx(index === 0 && "font-medium")}>
+                      {entry.label}
+                    </span>
                     <span
                       className={clsx("text-muted-foreground tabular-nums")}
                     >
-                      {format(new Date(entry.at), "HH:mm:ss")}
+                      {entry.duration}
                     </span>
-                    {getPrinterHistoryLabel(entry.conditions)}
                   </li>
                 ))}
-              </ul>
-              {status.raw && (
-                <p className={clsx("mt-1.5 text-sm")}>
-                  <span className={clsx("font-medium")}>last status:</span>
-                  &nbsp;
-                  <span className={clsx("font-mono")}>
-                    {status.raw.match(/../g)?.join(" ")}
-                  </span>
-                </p>
-              )}
+              </ol>
             </CollapsibleContent>
           </Collapsible>
         )}

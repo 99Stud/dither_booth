@@ -60,6 +60,13 @@ export const PrinterAccordionItem: FC<PrinterAccordionItemProps> = ({
           <HealthDetailRow label="can print">
             {details.canPrint ? "yes" : "no"}
           </HealthDetailRow>
+          {details.raw && (
+            <HealthDetailRow label="last status">
+              <span className={clsx("font-mono")}>
+                {details.raw.match(/../g)?.join(" ")}
+              </span>
+            </HealthDetailRow>
+          )}
           {details.lastError && (
             <HealthDetailRow label="last error">
               {details.lastError}

@@ -1,6 +1,7 @@
 import type { MaintenanceReason } from "@dither-booth/shared/kiosk";
 import type {
   PrinterCondition,
+  PrinterHistoryEntry,
   PrinterStatus,
 } from "@dither-booth/shared/printer";
 
@@ -92,6 +93,61 @@ export const getPrinterBadge = (
 
 export const getPrinterHistoryLabel = (conditions: PrinterCondition[]) =>
   primary(conditions).label;
+
+const ACTIVITY_LIMIT = 10;
+
+const formatDuration = (ms: number) => {
+  const seconds = Math.max(1, Math.round(ms / 1000));
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+};
+
+/** "Out of paper, cover open": every problem, the most urgent first. */
+const describeConditions = (conditions: PrinterCondition[]) => {
+  const [first, ...rest] = conditions.map((condition) => COPY[condition].label);
+  if (!first) return READY.label;
+  return [first, ...rest.map((label) => label.toLowerCase())].join(", ");
+};
+
+export type PrinterActivityEntry = {
+  at: string;
+  /** How long it lasted, or "now" for the current state. */
+  duration: string;
+  label: string;
+  time: string;
+};
+
+/**
+ * Recent activity as staff read it: the same state reported twice in a row
+ * shows once, and each line says how long the printer stayed that way.
+ */
+export const getPrinterActivity = (
+  history: PrinterHistoryEntry[],
+): PrinterActivityEntry[] => {
+  // Oldest first, to merge runs from their start.
+  const runs: Array<{ at: string; label: string }> = [];
+  for (const entry of history.toReversed()) {
+    const label = describeConditions(entry.conditions);
+    if (runs.at(-1)?.label !== label) runs.push({ at: entry.at, label });
+  }
+
+  return runs
+    .map((run, index) => {
+      const next = runs[index + 1];
+      return {
+        at: run.at,
+        duration: next
+          ? formatDuration(Date.parse(next.at) - Date.parse(run.at))
+          : "now",
+        label: run.label,
+        time: time(run.at),
+      };
+    })
+    .toReversed()
+    .slice(0, ACTIVITY_LIMIT);
+};
 
 /** What the printer is doing, and since when. */
 export const getPrinterStatusLine = (status: PrinterStatus): string => {

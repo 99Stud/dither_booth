@@ -8,6 +8,7 @@ import { describe, expect, it } from "bun:test";
 import {
   getPrinterAction,
   getPrinterBadge,
+  getPrinterActivity,
   getPrinterHistoryLabel,
   getPrinterMaintenanceLine,
   getPrinterStatusLine,
@@ -151,6 +152,64 @@ describe("getPrinterMaintenanceLine", () => {
         status: status(["unknown"]),
       }),
     ).toBeNull();
+  });
+});
+
+describe("getPrinterActivity", () => {
+  // Newest first, as the engine sends it.
+  const at = (time: string) => new Date(`2026-10-19T${time}`).toISOString();
+  const NOW = new Date("2026-10-19T12:09:00").getTime();
+
+  it("merges repeats, names combined states, and says how long each lasted", () => {
+    expect(
+      getPrinterActivity([
+        { at: at("12:07:35"), conditions: ["cover-open"] },
+        { at: at("12:03:04"), conditions: [] },
+        { at: at("12:02:58"), conditions: ["paper-out"] },
+        { at: at("12:02:58"), conditions: ["paper-out", "cover-open"] },
+        { at: at("12:02:55"), conditions: ["paper-out", "cover-open"] },
+        { at: at("12:02:24"), conditions: [] },
+      ]),
+    ).toEqual([
+      {
+        at: at("12:07:35"),
+        duration: "now",
+        label: "Cover open",
+        time: "12:07",
+      },
+      { at: at("12:03:04"), duration: "4 min", label: "Ready", time: "12:03" },
+      {
+        at: at("12:02:58"),
+        duration: "6 s",
+        label: "Out of paper",
+        time: "12:02",
+      },
+      {
+        at: at("12:02:55"),
+        duration: "3 s",
+        label: "Out of paper, cover open",
+        time: "12:02",
+      },
+      { at: at("12:02:24"), duration: "31 s", label: "Ready", time: "12:02" },
+    ]);
+  });
+
+  it("keeps the last 10 changes", () => {
+    const history = Array.from({ length: 20 }, (_, index) => ({
+      at: new Date(NOW - index * 60_000).toISOString(),
+      conditions: index % 2 ? (["cover-open"] as const) : [],
+    })).map((entry) => ({ ...entry, conditions: [...entry.conditions] }));
+
+    expect(getPrinterActivity(history)).toHaveLength(10);
+  });
+
+  it("counts hours past an hour", () => {
+    expect(
+      getPrinterActivity([
+        { at: at("12:00:00"), conditions: ["paper-near-end"] },
+        { at: at("10:35:00"), conditions: [] },
+      ])[1]?.duration,
+    ).toBe("1 h 25 min");
   });
 });
 
