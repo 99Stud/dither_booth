@@ -3,7 +3,8 @@ export {
   defaultLater,
   getBoothWifiCredentials,
   getNetworkStatus,
-  readNetworkMode,
+  readConnection,
+  type JoinFailure,
   type NetworkDeps,
   type NetworkStatus,
 } from "./internal/network.service";

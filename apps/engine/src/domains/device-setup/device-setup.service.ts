@@ -8,7 +8,4 @@ export {
   getDeviceSetupLinks,
   type DeviceSetupLinks,
 } from "./internal/device-setup.links";
-export {
-  buildBoothWifiTicket,
-  buildSetupTicket,
-} from "./internal/device-setup.ticket";
+export { getCurrentSetupTicket } from "./internal/device-setup.current-ticket";

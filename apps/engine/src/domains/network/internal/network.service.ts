@@ -33,10 +33,23 @@ export type NetworkStatus =
       saved: string[];
     };
 
+export type JoinFailure = {
+  ssid: string;
+  /** For staff, on the ticket: "Wrong password." */
+  reason: string;
+  /** The booth was on its own Wi-Fi and went back to it. */
+  backOnBoothWifi: boolean;
+};
+
 export type NetworkDeps = {
   nmcli: Nmcli;
   /** Runs `task` after `delayMs`, without waiting for it. */
   later: (task: () => Promise<unknown>, delayMs: number) => void;
+  /**
+   * A switch staff asked for failed. The device that asked has usually lost
+   * the booth by then, so this is how they hear about it: a ticket.
+   */
+  onJoinFailed: (failure: JoinFailure) => Promise<void>;
 };
 
 export const defaultLater: NetworkDeps["later"] = (task, delayMs) => {
@@ -58,7 +71,7 @@ async function nmcliOrThrow(deps: NetworkDeps, args: string[]) {
 /** `nmcli -g` escapes colons and backslashes in a value. */
 const unescapeValue = (value: string) => splitNmcliTerse(value).join(":");
 
-async function readSsid(deps: NetworkDeps, connection: string) {
+async function readSsid(deps: Pick<NetworkDeps, "nmcli">, connection: string) {
   const result = await deps.nmcli([
     "-t",
     "-g",
@@ -93,15 +106,40 @@ async function readNearby(deps: NetworkDeps, onHotspot: boolean) {
   return parseNmcliWifiList(result.stdout);
 }
 
-/** Just the mode, without scanning: cheap enough for every engine start. */
-export async function readNetworkMode(deps: Pick<NetworkDeps, "nmcli">) {
+/**
+ * What the booth is on, without scanning: cheap enough for every ticket.
+ * Undefined without NetworkManager.
+ */
+export async function readConnection(deps: Pick<NetworkDeps, "nmcli">) {
   const result = await deps
     .nmcli(["-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device"])
     .catch(() => undefined);
 
-  return result?.exitCode === 0
-    ? getNetworkMode(parseNmcliDevices(result.stdout))
-    : undefined;
+  if (result?.exitCode !== 0) return undefined;
+
+  const devices = parseNmcliDevices(result.stdout);
+  const wifi = devices.find(
+    (device) => device.type === "wifi" && device.state.startsWith("connected"),
+  );
+
+  return {
+    mode: getNetworkMode(devices),
+    ssid: wifi ? await readSsid(deps, wifi.connection) : null,
+  };
+}
+
+/** nmcli's error, in words staff can act on. */
+export function describeJoinFailure(stderr: string): string {
+  if (/secrets were required|802-1x supplicant|psk/i.test(stderr)) {
+    return "Wrong password.";
+  }
+  if (/no network with ssid|not found/i.test(stderr)) {
+    return "Not in range.";
+  }
+  if (/ip configuration could not be reserved|dhcp/i.test(stderr)) {
+    return "The network gave the booth no address.";
+  }
+  return "The network didn't accept the booth.";
 }
 
 export async function getNetworkStatus(
@@ -177,12 +215,38 @@ export async function saveWifiNetwork(
   ]);
 
   if (input.connectNow) {
+    const fromBoothWifi = (await readConnection(deps))?.mode === "hotspot";
+
     await rm(PREFER_HOTSPOT_PATH, { force: true });
     deps.later(
-      () => deps.nmcli(["connection", "up", "id", input.ssid]),
+      () => joinNetwork(deps, input.ssid, fromBoothWifi),
       NETWORK_SWITCH_DELAY_MS,
     );
   }
+}
+
+/**
+ * On success the booth gets a new address and prints a setup ticket for it.
+ * On failure it goes straight back to its own Wi-Fi, rather than after the
+ * watch's 45 s offline, and prints why.
+ */
+async function joinNetwork(
+  deps: NetworkDeps,
+  ssid: string,
+  fromBoothWifi: boolean,
+) {
+  const result = await deps.nmcli(["connection", "up", "id", ssid]);
+
+  if (result.exitCode === 0) return;
+
+  if (fromBoothWifi) {
+    await deps.nmcli(["connection", "up", "id", HOTSPOT_CONNECTION_NAME]);
+  }
+  await deps.onJoinFailed({
+    backOnBoothWifi: fromBoothWifi,
+    reason: describeJoinFailure(result.stderr),
+    ssid,
+  });
 }
 
 export async function forgetWifiNetwork(

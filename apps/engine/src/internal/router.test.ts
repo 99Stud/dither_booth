@@ -116,7 +116,11 @@ function createCaller(requestOrigin?: string, darkroomToken?: string) {
       { get: unreachable },
     ) as TRPCContext["kioskMaintenance"],
     mode: "production",
-    network: { later: unreachable, nmcli: unreachable },
+    network: {
+      later: unreachable,
+      nmcli: unreachable,
+      onJoinFailed: unreachable,
+    },
     printer: new Proxy({}, { get: unreachable }) as TRPCContext["printer"],
     processManager: "unknown",
     puppeteerLifecycle: {

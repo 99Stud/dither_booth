@@ -3,32 +3,44 @@ import { describe, expect, test } from "bun:test";
 import type { Nmcli } from "./network.nmcli";
 
 import {
+  describeJoinFailure,
   forgetWifiNetwork,
   getBoothWifiCredentials,
   getNetworkStatus,
   saveWifiNetwork,
+  type JoinFailure,
   type NetworkDeps,
 } from "./network.service";
 
 /** Answers nmcli calls by their joined arguments and records every call. */
-function fakeNmcli(answers: Record<string, string> = {}) {
+function fakeNmcli(
+  answers: Record<string, string> = {},
+  /** Calls that fail, by their joined arguments, with nmcli's error. */
+  failures: Record<string, string> = {},
+) {
   const calls: string[][] = [];
   const nmcli: Nmcli = async (args) => {
     calls.push(args);
     const key = args.join(" ");
+    const failure = failures[key];
+    if (failure) return { exitCode: 4, stderr: failure, stdout: "" };
     const stdout = Object.entries(answers).find(([prefix]) =>
       key.startsWith(prefix),
     )?.[1];
     return { exitCode: 0, stderr: "", stdout: stdout ?? "" };
   };
   const scheduled: Array<() => Promise<unknown>> = [];
+  const joinFailures: JoinFailure[] = [];
   const deps: NetworkDeps = {
     later: (task) => {
       scheduled.push(task);
     },
     nmcli,
+    onJoinFailed: async (failure) => {
+      joinFailures.push(failure);
+    },
   };
-  return { calls, deps, scheduled };
+  return { calls, deps, joinFailures, scheduled };
 }
 
 describe("network", () => {
@@ -63,6 +75,7 @@ describe("network", () => {
       nmcli: async () => {
         throw new Error("ENOENT");
       },
+      onJoinFailed: async () => {},
     };
 
     expect(await getNetworkStatus(deps)).toEqual({ available: false });
@@ -80,11 +93,46 @@ describe("network", () => {
     expect(calls.map((args) => args.slice(0, 2).join(" "))).toEqual([
       "connection delete",
       "connection add",
+      "-t -f",
     ]);
     expect(calls[1]).toContain("venue-pass");
     expect(scheduled).toHaveLength(1);
     await scheduled[0]?.();
     expect(calls.at(-1)).toEqual(["connection", "up", "id", "Venue"]);
+  });
+
+  test("a failed join from the booth Wi-Fi goes back to it and says why", async () => {
+    const { calls, deps, joinFailures, scheduled } = fakeNmcli(
+      {
+        "-t -f DEVICE,TYPE,STATE,CONNECTION device":
+          "wlan0:wifi:connected:booth-hotspot\n",
+      },
+      {
+        "connection up id Venue":
+          "Error: Connection activation failed: Secrets were required, but not provided.",
+      },
+    );
+
+    await saveWifiNetwork(deps, {
+      connectNow: true,
+      password: "wrong-pass",
+      ssid: "Venue",
+    });
+    await scheduled[0]?.();
+
+    expect(calls.at(-1)).toEqual(["connection", "up", "id", "booth-hotspot"]);
+    expect(joinFailures).toEqual([
+      { backOnBoothWifi: true, reason: "Wrong password.", ssid: "Venue" },
+    ]);
+  });
+
+  test("puts nmcli's errors in words staff can act on", () => {
+    expect(
+      describeJoinFailure("Error: No network with SSID 'Venue' found."),
+    ).toBe("Not in range.");
+    expect(describeJoinFailure("Error: something else")).toBe(
+      "The network didn't accept the booth.",
+    );
   });
 
   test("an open network is saved without a password", async () => {

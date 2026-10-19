@@ -24,10 +24,8 @@ import {
   BOOT_ID_PATH,
   DEVICE_SETUP_LOG_SOURCE,
   SETUP_TICKET_KEY_PATH,
-  buildBoothWifiTicket,
-  buildSetupTicket,
   createSetupTicketAutoPrint,
-  getDeviceSetupLinks,
+  getCurrentSetupTicket,
 } from "#domains/device-setup/device-setup.service";
 import {
   CAMERA_PREVIEW_ICE_SERVERS,
@@ -39,8 +37,6 @@ import {
 } from "#domains/kiosk/kiosk.service";
 import {
   defaultLater,
-  getBoothWifiCredentials,
-  readNetworkMode,
   runNmcli,
   type NetworkDeps,
 } from "#domains/network/network.service";
@@ -141,25 +137,33 @@ export async function runEngineServer(options: {
     maxDurationMs: CAMERA_PREVIEW_MAX_DURATION_MS,
   });
   const darkroomAccess = createDarkroomAccess({ db });
-  const network: NetworkDeps = { later: defaultLater, nmcli: runNmcli };
+  const logDeviceSetup = (
+    level: "info" | "warn" | "error",
+    event: string,
+    details?: Record<string, unknown>,
+  ) => {
+    logKioskEvent(level, DEVICE_SETUP_LOG_SOURCE, event, { details });
+  };
+  const network: NetworkDeps = {
+    later: defaultLater,
+    nmcli: runNmcli,
+    onJoinFailed: async (failure) => {
+      logDeviceSetup("warn", "wifi-join-failed", failure);
+      const ticket = await getCurrentSetupTicket(network, {
+        notice: `Couldn't join ${failure.ssid}: ${failure.reason}`,
+        repoRoot: ENGINE_REPO_ROOT,
+      });
+      await printer.print(ticket.body, { content: "escpos" }).catch(() => {
+        logDeviceSetup("warn", "wifi-join-failed-ticket-not-printed");
+      });
+    },
+  };
   const setupTicketAutoPrint = createSetupTicketAutoPrint({
     bootIdPath: BOOT_ID_PATH,
-    getTicket: async () => {
-      const links = await getDeviceSetupLinks({ repoRoot: ENGINE_REPO_ROOT });
-      // On its own Wi-Fi, staff first need to join it.
-      const boothWifi =
-        (await readNetworkMode(network)) === "hotspot"
-          ? await getBoothWifiCredentials(network)
-          : undefined;
-
-      return boothWifi
-        ? { body: buildBoothWifiTicket(boothWifi, links), key: "booth-wifi" }
-        : { body: buildSetupTicket(links), key: links.ip };
-    },
+    getTicket: () =>
+      getCurrentSetupTicket(network, { repoRoot: ENGINE_REPO_ROOT }),
     keyPath: resolve(ENGINE_REPO_ROOT, SETUP_TICKET_KEY_PATH),
-    log: (level, event, details) => {
-      logKioskEvent(level, DEVICE_SETUP_LOG_SOURCE, event, { details });
-    },
+    log: logDeviceSetup,
     printer,
   });
 

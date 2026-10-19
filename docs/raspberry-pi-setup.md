@@ -144,16 +144,18 @@ The apps are served over HTTPS with a local mkcert certificate, and Safari block
 
 If the first QR gives "Safari can't open the page… not connected to the internet", scan the second one, at `http://<hostname>.local:3003`. Some networks, an iPhone's Personal Hotspot among them, give the iPad no IPv4 address (Settings → Wi-Fi shows `192.0.0.2`), so it can't reach the booth's IP and only finds it by name, over IPv6.
 
-For kiosk use, add the Shutter to the Home Screen and turn on Guided Access. The same QR is in admin's Control Center (**Connect a device**, with **Print setup ticket**) and in the terminal with `booth qr`. To trust the booth on a laptop instead, `booth cert copy` prints the `scp` command that copies the root CA.
+For kiosk use, add the Shutter to the Home Screen and turn on Guided Access. The same QR is on admin's Control Center (**Network** card, with **Print setup ticket**) and in the terminal with `booth qr`. To trust the booth on a laptop instead, `booth cert copy` prints the `scp` command that copies the root CA.
 
 ### Wi-Fi at a venue
 
-The booth joins every saved network on its own. Add the venue's Wi-Fi the day before, from admin's Control Center or the Darkroom (**Wi-Fi → Save for later**), and the booth joins it on site without anyone touching it.
+The booth joins every saved network on its own. Add the venue's Wi-Fi the day before, from admin's **Settings → Wi-Fi** or the Darkroom (**Save for later**), and the booth joins it on site without anyone touching it.
 
 When no saved network is around for 45 seconds, the booth opens **its own Wi-Fi** (`DitherBooth-XXXX`) and prints a **Wi-Fi ticket**:
 
 1. Scan the first QR to join the booth Wi-Fi. The name and password are printed under it.
-2. Scan the second QR to open the setup page, then **Darkroom → Wi-Fi**, pick the venue network and tap **Join now**. The booth switches over and prints a setup ticket with its new address. Rejoin that network on the iPad.
+2. Scan the second QR to open the setup page, then open the admin's **Settings → Wi-Fi** (or **Darkroom → Wi-Fi** on the iPad), pick the venue network and tap **Join now**. The booth switches over and prints a setup ticket headed **On <venue network>** with its new address. Rejoin that network on the device and scan it.
+
+If the booth can't join (a wrong password, or the network is out of range), it goes straight back to its own Wi-Fi and prints a Wi-Fi ticket that starts with why, such as **Couldn't join Venue-Guest: Wrong password.** Join the booth Wi-Fi again and retry.
 
 If the venue Wi-Fi keeps devices apart (the page never loads), or there is no Wi-Fi at all, tap **Run on booth Wi-Fi** in the Darkroom and run the event on the booth's own network. Photos still print, and cloud sync waits for a network (an Ethernet cable gives it one).
 

@@ -48,14 +48,14 @@ export type WifiCardProps = {
   isPending: boolean;
 };
 
-const MODE_LABEL = {
+export const WIFI_MODE_LABEL = {
   ethernet: "Ethernet",
   hotspot: "Booth Wi-Fi",
   offline: "No network",
   wifi: "Wi-Fi",
 } as const;
 
-const signalLabel = (signal: number) =>
+export const wifiSignalLabel = (signal: number) =>
   signal >= 70 ? "Strong" : signal >= 40 ? "Good" : "Weak";
 
 /**
@@ -124,7 +124,7 @@ export const WifiCard: FC<WifiCardProps> = ({
             <Badge variant="secondary" className={clsx("max-w-[60%] truncate")}>
               {ready.mode === "wifi" && ready.ssid
                 ? ready.ssid
-                : MODE_LABEL[ready.mode]}
+                : WIFI_MODE_LABEL[ready.mode]}
             </Badge>
           )}
         </CardTitle>
@@ -191,7 +191,7 @@ export const WifiCard: FC<WifiCardProps> = ({
                         <span
                           className={clsx("shrink-0 text-muted-foreground")}
                         >
-                          {signalLabel(network.signal)}
+                          {wifiSignalLabel(network.signal)}
                         </span>
                       </button>
                     </li>

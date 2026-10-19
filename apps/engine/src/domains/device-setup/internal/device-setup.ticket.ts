@@ -10,20 +10,35 @@ const formatPrintedAt = (date: Date) =>
     timeStyle: "short",
   }).format(date);
 
+export type TicketOptions = {
+  /** Something staff asked for went wrong: printed first, in bold. */
+  notice?: string;
+  printedAt?: Date;
+};
+
+const noticeLines = (notice: string | undefined): TicketLine[] =>
+  notice ? [{ kind: "text", text: notice }, { kind: "gap" }] : [];
+
 /**
  * The ticket staff take from the booth to connect a device: one QR to the
  * setup page, which handles both a new device and one that already trusts
  * the booth. No admin link: the ticket can end up anywhere.
  *
  * A second QR opens the page at `.local`, for an iPad the IP doesn't reach.
+ * `network` says which Wi-Fi the iPad has to be on.
  */
 export function buildSetupTicket(
   links: DeviceSetupLinks,
-  printedAt = new Date(),
+  network: string | null,
+  { notice, printedAt = new Date() }: TicketOptions = {},
 ): Buffer {
   return buildTextTicket([
     { kind: "title", text: "DITHER BOOTH" },
-    { kind: "text", text: "Connect a device" },
+    ...noticeLines(notice),
+    { kind: "text", text: network ? `On ${network}` : "Connect a device" },
+    ...(network
+      ? [{ kind: "small", text: "Join it on the iPad, then scan:" } as const]
+      : []),
     { kind: "gap" },
     { kind: "qr", data: links.setupUrl },
     { kind: "small", text: "Scan with the iPad camera, then follow the page." },
@@ -64,14 +79,17 @@ export type BoothWifi = { ssid: string; password: string };
 export function buildBoothWifiTicket(
   wifi: BoothWifi,
   links: DeviceSetupLinks,
-  printedAt = new Date(),
+  { notice, printedAt = new Date() }: TicketOptions = {},
 ): Buffer {
   return buildTextTicket([
     { kind: "title", text: "DITHER BOOTH" },
+    ...noticeLines(notice),
     { kind: "text", text: "Booth Wi-Fi is on" },
     {
       kind: "small",
-      text: "No network it knows is around, so it made its own.",
+      text: notice
+        ? "Join it again to pick a network."
+        : "No network it knows is around, so it made its own.",
     },
     { kind: "gap" },
     { kind: "text", text: "1. Join the booth Wi-Fi" },
