@@ -4,6 +4,7 @@ import {
   SHUTTER_BIND_HOST,
   getAdminOrigin,
   getEngineInternalOrigin,
+  getLocalOrigins,
   getPort,
   getShutterOrigin,
   getWebTlsCaPath,
@@ -44,9 +45,10 @@ export async function runShutterServer(options: {
     port: getPort("SETUP_PORT"),
     // `.local` first: it survives the booth getting a new IP at the next venue.
     shutterOrigins: [
-      ...allowedHostnames
-        .filter((hostname) => hostname.endsWith(".local"))
-        .map((hostname) => `https://${hostname}:${shutterPort}`),
+      ...(await getLocalOrigins(repoPathOptions, {
+        port: shutterPort,
+        protocol: "https",
+      })),
       shutterOrigin,
     ],
   });

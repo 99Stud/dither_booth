@@ -179,6 +179,22 @@ export async function getSetupOrigin(options: RepoPathOptions) {
   );
 }
 
+/**
+ * The booth's `.local` origins for one app. They survive the booth getting a
+ * new IP, and they are the only way in for a device with no IPv4 route to the
+ * booth, such as an iPad on an iPhone's Personal Hotspot.
+ */
+export async function getLocalOrigins(
+  options: RepoPathOptions,
+  { protocol, port }: { protocol: "http" | "https"; port: number },
+) {
+  const hostnames = await getWebTlsHostnames(options);
+
+  return hostnames
+    .filter((hostname) => hostname.endsWith(".local"))
+    .map((hostname) => formatOrigin(protocol, hostname, port));
+}
+
 export function getWebTlsCertPath({ repoRoot }: RepoPathOptions) {
   return resolveRepoPath(WEB_TLS_CERT_PATH, repoRoot);
 }

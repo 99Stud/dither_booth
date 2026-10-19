@@ -11,6 +11,7 @@ describe("buildSetupTicket", () => {
     {
       darkroomUrl: "https://booth.local:3000/darkroom",
       ip: "192.168.1.42",
+      localSetupUrl: "http://booth.local:3003",
       setupUrl: "http://192.168.1.42:3003",
       shutterUrls: ["https://booth.local:3000", "https://192.168.1.42:3000"],
     },
@@ -21,6 +22,12 @@ describe("buildSetupTicket", () => {
     // GS ( k store: length = data + 3, then `1P0` and the data.
     expect(ticket).toContain("1P0http://192.168.1.42:3003");
     expect(ticket.split("http://192.168.1.42:3003")).toHaveLength(3);
+  });
+
+  test("adds a second QR at .local, after the IP one", () => {
+    expect(ticket.indexOf("1P0http://booth.local:3003")).toBeGreaterThan(
+      ticket.indexOf("1P0http://192.168.1.42:3003"),
+    );
   });
 
   test("lists the Shutter addresses, and never the admin", () => {
@@ -42,6 +49,7 @@ describe("booth Wi-Fi ticket", () => {
       {
         darkroomUrl: "https://10.42.0.1:3000/darkroom",
         ip: "10.42.0.1",
+        localSetupUrl: null,
         setupUrl: "http://10.42.0.1:3003",
         shutterUrls: ["https://10.42.0.1:3000"],
       },

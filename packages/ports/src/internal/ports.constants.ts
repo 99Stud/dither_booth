@@ -7,8 +7,13 @@ export const DEFAULT_ADMIN_PORT = 3002;
 /** Plain-HTTP setup page: a device opens it before it trusts the booth CA. */
 export const DEFAULT_SETUP_PORT = 3003;
 export const ENGINE_BIND_HOST = "127.0.0.1";
-export const SHUTTER_BIND_HOST = "0.0.0.0";
-export const ADMIN_BIND_HOST = "0.0.0.0";
+/**
+ * `::` takes IPv4 and IPv6. An iPad on an IPv6-mostly network, such as an
+ * iPhone's Personal Hotspot, has no IPv4 route to the booth and reaches it
+ * through `<hostname>.local` over IPv6 only.
+ */
+export const SHUTTER_BIND_HOST = "::";
+export const ADMIN_BIND_HOST = "::";
 export const WEB_TLS_CERT_PATH = ".local/tls/booth-cert.pem";
 export const WEB_TLS_KEY_PATH = ".local/tls/booth-key.pem";
 export const DEFAULT_WEB_TLS_MANIFEST_FILE_NAME = "booth-manifest.json";

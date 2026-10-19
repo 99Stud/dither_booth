@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   getAdminOrigin,
   getEngineInternalOrigin,
+  getLocalOrigins,
   getPort,
   getSetupOrigin,
   getShutterInternalOrigin,
@@ -203,6 +204,22 @@ describe("@dither-booth/ports", () => {
       "99framboises",
       "99framboises.local",
     ]);
+  });
+
+  it("builds an app's origins from the .local hostnames only", async () => {
+    const { caPath, certPath, keyPath, manifestPath, repoPathOptions } =
+      createTempTlsPaths();
+
+    await writeManifest(
+      manifestPath,
+      "192.168.1.42",
+      { caPath, certPath, keyPath },
+      ["99framboises", "99framboises.local"],
+    );
+
+    expect(
+      await getLocalOrigins(repoPathOptions, { port: 3003, protocol: "http" }),
+    ).toEqual(["http://99framboises.local:3003"]);
   });
 
   it("defaults missing hostnames to an empty list", async () => {

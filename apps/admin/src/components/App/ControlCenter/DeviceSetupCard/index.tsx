@@ -29,6 +29,7 @@ export const DeviceSetupCard = () => {
     trpc.config.printSetupTicket.mutationOptions(),
   );
   const setupUrl = setupQuery.data?.setupUrl;
+  const localSetupUrl = setupQuery.data?.localSetupUrl;
   // Black on white in both themes: phones read a dark-on-light code best.
   const qrSrc = useMemo(
     () =>
@@ -97,9 +98,19 @@ export const DeviceSetupCard = () => {
               No booth address yet. Run <code>booth cert</code> on the booth.
             </p>
           ) : (
-            <p className={clsx("truncate font-mono text-sm")}>
-              {setupUrl ?? "…"}
-            </p>
+            <div className={clsx("flex min-w-0 flex-col gap-1")}>
+              <p className={clsx("truncate font-mono text-sm")}>
+                {setupUrl ?? "…"}
+              </p>
+              {localSetupUrl && (
+                <p className={clsx("text-sm text-muted-foreground")}>
+                  Page doesn't open? Try{" "}
+                  <span className={clsx("font-mono break-all")}>
+                    {localSetupUrl}
+                  </span>
+                </p>
+              )}
+            </div>
           )}
           <div className={clsx("flex flex-wrap gap-2")}>
             <Button

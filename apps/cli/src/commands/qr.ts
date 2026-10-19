@@ -1,5 +1,7 @@
 import {
   getAdminOrigin,
+  getLocalOrigins,
+  getPort,
   getSetupOrigin,
   getShutterOrigin,
 } from "@dither-booth/ports";
@@ -23,6 +25,10 @@ export async function runQrCommand(context: BoothContext): Promise<void> {
     getSetupOrigin(repoPathOptions),
     getShutterOrigin(repoPathOptions),
     getAdminOrigin(repoPathOptions),
+    getLocalOrigins(repoPathOptions, {
+      port: getPort("SETUP_PORT"),
+      protocol: "http",
+    }),
   ]).catch(() => undefined);
 
   if (!links) {
@@ -30,12 +36,13 @@ export async function runQrCommand(context: BoothContext): Promise<void> {
     throw new SilentExit(1);
   }
 
-  const [setupUrl, shutterOrigin, adminOrigin] = links;
+  const [setupUrl, shutterOrigin, adminOrigin, [localSetupUrl]] = links;
 
   plain("Scan with the iPad camera (same Wi-Fi as the booth):");
   plain("");
   plain(renderUnicodeCompact(setupUrl, { border: 2 }));
   plain(`  ${setupUrl}`);
+  if (localSetupUrl) plain(`  Page doesn't open? Try ${localSetupUrl}`);
   plain("");
   plain(`  Shutter   ${shutterOrigin}`);
   plain(`  Darkroom  ${new URL(DARKROOM_PATH, shutterOrigin).toString()}`);

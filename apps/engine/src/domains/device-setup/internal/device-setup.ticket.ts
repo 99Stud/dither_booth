@@ -1,3 +1,5 @@
+import type { TicketLine } from "#domains/printer/printer.service";
+
 import { buildTextTicket } from "#domains/printer/printer.service";
 
 import type { DeviceSetupLinks } from "./device-setup.links";
@@ -12,6 +14,8 @@ const formatPrintedAt = (date: Date) =>
  * The ticket staff take from the booth to connect a device: one QR to the
  * setup page, which handles both a new device and one that already trusts
  * the booth. No admin link: the ticket can end up anywhere.
+ *
+ * A second QR opens the page at `.local`, for an iPad the IP doesn't reach.
  */
 export function buildSetupTicket(
   links: DeviceSetupLinks,
@@ -25,6 +29,14 @@ export function buildSetupTicket(
     { kind: "small", text: "Scan with the iPad camera, then follow the page." },
     { kind: "gap" },
     { kind: "text", text: links.setupUrl },
+    ...(links.localSetupUrl
+      ? ([
+          { kind: "gap" },
+          { kind: "small", text: "Page didn't open? Scan this one instead." },
+          { kind: "qr", data: links.localSetupUrl },
+          { kind: "small", text: links.localSetupUrl },
+        ] satisfies TicketLine[])
+      : []),
     { kind: "gap" },
     { kind: "small", text: "Shutter" },
     ...links.shutterUrls.map((url) => ({ kind: "small" as const, text: url })),
