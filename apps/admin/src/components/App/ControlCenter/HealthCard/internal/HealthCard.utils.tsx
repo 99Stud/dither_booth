@@ -136,11 +136,14 @@ export async function requestPm2ServiceRestart({
 }
 
 export const getHealthStatusVariant = ({
+  hasWarning = false,
   isHealthzError,
   isHealthzPending,
   isHealthzSuccess,
   isHealthy,
 }: {
+  /** Healthy, but worth a look (the printer's paper is low). */
+  hasWarning?: boolean;
   isHealthzError: boolean;
   isHealthzPending: boolean;
   isHealthzSuccess: boolean;
@@ -151,7 +154,7 @@ export const getHealthStatusVariant = ({
   }
 
   if (isHealthzSuccess && isHealthy) {
-    return "success";
+    return hasWarning ? "warning" : "success";
   }
 
   if (isHealthzError || isHealthy === false) {

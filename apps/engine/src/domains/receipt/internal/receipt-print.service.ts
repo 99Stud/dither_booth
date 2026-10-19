@@ -1,5 +1,4 @@
 import type { DrawResult } from "@dither-booth/shared/lottery";
-import type USB from "@node-escpos/usb-adapter";
 
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import { TRPCError } from "@trpc/server";
@@ -12,7 +11,7 @@ import {
   executeLotteryDraw,
   LOTTERY_LOG_SOURCE,
 } from "#domains/lottery/lottery.service";
-import { printRasterReceipt } from "#domains/printer/printer.service";
+import { PrinterUnavailableError } from "#domains/printer/printer.service";
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 
@@ -70,19 +69,52 @@ const logLotteryTicketFailure = (
   );
 };
 
+/** Sends one raster to the printer. */
+export type PrintRaster = (raster: Buffer) => Promise<void>;
+
+/** A printer that can't take the job: the booth shows it, the kiosk doesn't retry blindly. */
+const toPrinterNotReady = (error: PrinterUnavailableError) =>
+  new TRPCError({
+    code: "PRECONDITION_FAILED",
+    message: error.message,
+    cause: error,
+  });
+
+/**
+ * Checks the printer before anything is spent: the photo booth calls it
+ * before the lottery draw, so a booth out of paper never burns a prize.
+ * With automatic maintenance off (a sensor staff don't trust), only a
+ * printer that isn't connected is refused.
+ */
 export const assertPrinterAvailable = (
-  ctx: Pick<TRPCContext, "printerUSBAdapter">,
-): { dryRun: boolean; printerUSBAdapter: USB | undefined } => {
+  ctx: Pick<TRPCContext, "kioskMaintenance" | "printer">,
+): { dryRun: boolean; print: PrintRaster } => {
   const dryRun = isReceiptPrintDryRun();
+  const enforceStatus = ctx.kioskMaintenance.get().automatic;
+  const print: PrintRaster = (raster) =>
+    ctx.printer.print(raster, { enforceStatus });
 
-  if (!dryRun && !ctx.printerUSBAdapter) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "No printer device available.",
-    });
-  }
+  if (dryRun) return { dryRun, print };
 
-  return { dryRun, printerUSBAdapter: ctx.printerUSBAdapter };
+  const { canPrint, conditions } = ctx.printer.getStatus();
+  const refused = enforceStatus
+    ? !canPrint
+    : conditions.includes("disconnected");
+
+  if (refused) throw toPrinterNotReady(new PrinterUnavailableError(conditions));
+
+  return { dryRun, print };
+};
+
+const toPrintError = (error: unknown, message: string) => {
+  if (error instanceof TRPCError) return error;
+  if (error instanceof PrinterUnavailableError) return toPrinterNotReady(error);
+
+  return new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message,
+    cause: error,
+  });
 };
 
 type PhotoReceiptInput = ConstructorParameters<typeof Response>[0];
@@ -208,11 +240,11 @@ export const prepareReceiptJob = async ({
 export const printPreparedReceiptJob = async ({
   dryRun,
   job,
-  printerUSBAdapter,
+  print,
 }: {
   dryRun: boolean;
   job: PreparedReceiptJob;
-  printerUSBAdapter: USB | undefined;
+  print: PrintRaster;
 }): Promise<void> => {
   if (dryRun) {
     try {
@@ -232,30 +264,17 @@ export const printPreparedReceiptJob = async ({
     return;
   }
 
-  if (!printerUSBAdapter) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "No printer device available.",
-    });
-  }
-
   if (!job.photoPrinted) {
-    await printRasterReceipt(printerUSBAdapter, job.receiptRasterCmd).catch(
-      (error) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to print receipt.",
-          cause: error,
-        });
-      },
-    );
+    await print(job.receiptRasterCmd).catch((error) => {
+      throw toPrintError(error, "Failed to print receipt.");
+    });
     job.photoPrinted = true;
   }
 
   if (!job.lotteryRasterCmd) return;
 
   try {
-    await printRasterReceipt(printerUSBAdapter, job.lotteryRasterCmd);
+    await print(job.lotteryRasterCmd);
   } catch (error) {
     logLotteryTicketFailure(
       job,
@@ -263,15 +282,7 @@ export const printPreparedReceiptJob = async ({
       "Failed to print lottery ticket after photo receipt.",
     );
 
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to print lottery ticket.",
-      cause: error,
-    });
+    throw toPrintError(error, "Failed to print lottery ticket.");
   }
 };
 
@@ -284,10 +295,13 @@ export const printTestReceiptJob = async ({
   ctx,
   input,
 }: {
-  ctx: Pick<TRPCContext, "db" | "printerUSBAdapter" | "puppeteerLifecycle">;
+  ctx: Pick<
+    TRPCContext,
+    "db" | "kioskMaintenance" | "printer" | "puppeteerLifecycle"
+  >;
   input: PhotoReceiptInput;
 }): Promise<void> => {
-  const { dryRun, printerUSBAdapter } = assertPrinterAvailable(ctx);
+  const { dryRun, print } = assertPrinterAvailable(ctx);
   const { kitId, page, photoBuffer, printConfiguration, ticketItems } =
     await loadPhotoReceiptSources({ ctx, input });
 
@@ -309,7 +323,7 @@ export const printTestReceiptJob = async ({
       receiptRasterCmd,
       ticketRef: SAMPLE_LOTTERY_TICKET_REF,
     },
-    printerUSBAdapter,
+    print,
   });
 };
 
@@ -317,10 +331,10 @@ export const printSampleLotteryTicketJob = async ({
   ctx,
   draw,
 }: {
-  ctx: Pick<TRPCContext, "printerUSBAdapter" | "puppeteerLifecycle">;
+  ctx: Pick<TRPCContext, "kioskMaintenance" | "printer" | "puppeteerLifecycle">;
   draw: DrawResult;
 }): Promise<void> => {
-  const { dryRun, printerUSBAdapter } = assertPrinterAvailable(ctx);
+  const { dryRun, print } = assertPrinterAvailable(ctx);
   const { page } = await ctx.puppeteerLifecycle.whenReady();
 
   if (!page) {
@@ -353,24 +367,9 @@ export const printSampleLotteryTicketJob = async ({
     return;
   }
 
-  if (!printerUSBAdapter) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "No printer device available.",
-    });
-  }
-
   try {
-    await printRasterReceipt(printerUSBAdapter, lotteryRasterCmd);
+    await print(lotteryRasterCmd);
   } catch (error) {
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to print sample lottery ticket.",
-      cause: error,
-    });
+    throw toPrintError(error, "Failed to print sample lottery ticket.");
   }
 };

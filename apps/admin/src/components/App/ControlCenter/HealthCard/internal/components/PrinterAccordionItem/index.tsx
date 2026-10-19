@@ -1,18 +1,15 @@
 import type { FC } from "react";
 
+import clsx from "clsx";
 import { format } from "date-fns";
 import { Printer as PrinterIcon } from "lucide-react";
 
 import type { HealthzResponse } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.types";
 
 import { HealthAccordionShell } from "#components/App/ControlCenter/HealthCard/internal/components/HealthAccordionShell/index";
-import { HealthCheckDetailRow } from "#components/App/ControlCenter/HealthCard/internal/components/HealthCheckDetailRow/index";
 import { HealthDetailRow } from "#components/App/ControlCenter/HealthCard/internal/components/HealthDetailRow/index";
-import {
-  type HealthTooltipItem,
-  HealthTooltipList,
-} from "#components/App/ControlCenter/HealthCard/internal/components/HealthTooltipList/index";
 import { getHealthStatusVariant } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
+import { getPrinterHistoryLabel } from "#lib/printer/printer.copy";
 
 interface PrinterAccordionItemProps {
   isHealthzSuccess: boolean;
@@ -21,65 +18,10 @@ interface PrinterAccordionItemProps {
   healthz?: HealthzResponse;
 }
 
-type PrinterHealthz = HealthzResponse["printer"]["healthz"];
-
-const getPrinterDetailValue = <TKey extends string>(
-  details: object | undefined,
-  key: TKey,
-) => {
-  if (!details || !(key in details)) {
-    return undefined;
-  }
-
-  return (details as Record<TKey, unknown>)[key];
-};
-
-const formatBooleanPrinterDetail = (
-  details: object | undefined,
-  key: string,
-) => {
-  const value = getPrinterDetailValue(details, key);
-
-  return typeof value === "boolean" ? formatBoolean(value) : undefined;
-};
-
-const formatNumberPrinterDetail = (
-  details: object | undefined,
-  key: string,
-) => {
-  const value = getPrinterDetailValue(details, key);
-
-  return typeof value === "number" ? value : undefined;
-};
-
-const renderPrinterTooltip = (printer: PrinterHealthz) => {
-  if (printer.ok) {
-    return undefined;
-  }
-
-  const details = printer.details;
-  const items: HealthTooltipItem[] = [
-    {
-      label: "cause",
-      value: printer.error.cause,
-    },
-    {
-      label: "detected printers",
-      value: formatNumberPrinterDetail(details, "detectedPrinterCount"),
-    },
-    {
-      label: "current device present",
-      value: formatBooleanPrinterDetail(details, "currentDevicePresent"),
-    },
-    {
-      label: "adapter device attached",
-      value: formatBooleanPrinterDetail(details, "adapterDeviceAttached"),
-    },
-  ];
-
-  return <HealthTooltipList message={printer.error.message} items={items} />;
-};
-
+/**
+ * The printer as the engine's printer watch sees it. The Printer card has
+ * the live view and what to do; this is the at-a-glance health row.
+ */
 export const PrinterAccordionItem: FC<PrinterAccordionItemProps> = ({
   isHealthzPending,
   isHealthzSuccess,
@@ -87,6 +29,7 @@ export const PrinterAccordionItem: FC<PrinterAccordionItemProps> = ({
   healthz,
 }) => {
   const printer = healthz?.printer.healthz;
+  const details = printer?.details;
 
   return (
     <HealthAccordionShell
@@ -95,26 +38,35 @@ export const PrinterAccordionItem: FC<PrinterAccordionItemProps> = ({
       icon={<PrinterIcon />}
       statusDotSize="sm"
       statusVariant={getHealthStatusVariant({
+        hasWarning: Boolean(details?.warning),
         isHealthzError,
         isHealthzPending,
         isHealthzSuccess,
-        isHealthy: healthz?.printer.healthz.ok,
+        isHealthy: printer?.ok,
       })}
     >
-      {isHealthzSuccess && printer && (
+      {isHealthzSuccess && printer && details && (
         <>
-          <HealthCheckDetailRow
-            check={printer}
-            label="status"
-            tooltip={renderPrinterTooltip(printer)}
-          />
-          <HealthDetailRow label="checked at">
-            {format(new Date(printer.timestamp), "MM/dd/yyyy hh:mm:ss a")}
+          <HealthDetailRow label="status">
+            <span className={clsx(!printer.ok && "font-semibold text-red-500")}>
+              {printer.ok
+                ? getPrinterHistoryLabel(details.conditions).toLowerCase()
+                : printer.message}
+            </span>
           </HealthDetailRow>
+          <HealthDetailRow label="since">
+            {format(new Date(details.changedAt), "HH:mm:ss")}
+          </HealthDetailRow>
+          <HealthDetailRow label="can print">
+            {details.canPrint ? "yes" : "no"}
+          </HealthDetailRow>
+          {details.lastError && (
+            <HealthDetailRow label="last error">
+              {details.lastError}
+            </HealthDetailRow>
+          )}
         </>
       )}
     </HealthAccordionShell>
   );
 };
-
-const formatBoolean = (value: boolean) => (value ? "yes" : "no");
