@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
 import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
+import { getPrinterTrouble } from "#lib/printer/printer.copy";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 import {
@@ -151,17 +152,31 @@ export const BoothScreenCard = () => {
       });
 
     await queryClient.invalidateQueries(trpc.ops.getHealthz.queryFilter());
-    if (result)
-      notify.success(enabled ? "Maintenance on." : "Back in service.");
+    if (!result) return;
+    if (enabled) notify.success("Maintenance on.");
+    else if (result.reasons.includes("printer")) {
+      notify.success(
+        "Maintenance off. The booth stays in maintenance until the printer is ready.",
+      );
+    } else notify.success("Back in service.");
   };
 
-  // The switch shows the request while it is on its way, then what is saved.
-  const isMaintenanceOn = maintenanceMutation.isPending
+  // The switch is staff's own: it never moves when the printer closes the
+  // booth. It shows the request while it is on its way, then what is saved.
+  const isManualOn = maintenanceMutation.isPending
     ? maintenanceMutation.variables.enabled
-    : (kiosk?.maintenance.enabled ?? false);
+    : (kiosk?.maintenance.manual ?? false);
+  const printerConditions =
+    healthzQuery.data?.printer.healthz.details?.conditions;
   const maintenanceStatus = getMaintenanceStatus({
-    enabled: isMaintenanceOn,
+    enabled:
+      isManualOn || kiosk?.maintenance.reasons.includes("printer") === true,
     isShown: pages?.some((page) => page.maintenance) ?? false,
+    manual: isManualOn,
+    printerTrouble:
+      kiosk?.maintenance.reasons.includes("printer") && printerConditions
+        ? getPrinterTrouble({ conditions: printerConditions })
+        : undefined,
     screen: current,
   });
 
@@ -261,7 +276,7 @@ export const BoothScreenCard = () => {
           </div>
           <Switch
             id="booth-maintenance"
-            checked={isMaintenanceOn}
+            checked={isManualOn}
             disabled={!kiosk || maintenanceMutation.isPending}
             onCheckedChange={(checked) => void setMaintenance(checked)}
           />

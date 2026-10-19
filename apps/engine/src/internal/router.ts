@@ -7,6 +7,7 @@ import { imageManipulation } from "#domains/image-manipulation/index";
 import { kiosk } from "#domains/kiosk/index";
 import { lottery } from "#domains/lottery/index";
 import { printConfiguration } from "#domains/print-configuration/index";
+import { printer } from "#domains/printer/index";
 import { receipt } from "#domains/receipt/index";
 
 import { router } from "./trpc";
@@ -42,8 +43,10 @@ export const engineRouter = router({
     ...browserAutomation,
     reloadKiosk: kiosk.reloadKiosk,
     sendCameraSignal: kiosk.sendCameraSignal,
+    setAutomaticMaintenance: kiosk.setAutomaticMaintenance,
     setKioskMaintenance: kiosk.setKioskMaintenance,
     showKioskScreen: kiosk.showKioskScreen,
     watchCamera: kiosk.watchCamera,
+    watchPrinter: printer.watchPrinter,
   }),
 });

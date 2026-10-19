@@ -30,6 +30,7 @@
     "./kit-preview": "./src/isomorphic/kit-preview.ts",
     "./kits": "./src/isomorphic/kits.ts",
     "./lottery": "./src/isomorphic/lottery.ts",
+    "./printer": "./src/isomorphic/printer.ts",
     "./printing": "./src/isomorphic/printing.ts",
     "./routes": "./src/isomorphic/routes.ts",
     "./runtime": "./src/isomorphic/runtime.ts",

@@ -1,4 +1,3 @@
-import type USB from "@node-escpos/usb-adapter";
 import type { Page } from "puppeteer";
 
 import type { DB } from "#db/internal/db.types";
@@ -8,6 +7,7 @@ import type {
   KioskChannel,
   KioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
+import type { BoothPrinter } from "#domains/printer/printer.service";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 import type {
   PuppeteerReceiptViewerLifecycle,
@@ -26,13 +26,14 @@ export type TRPCContext = {
   kioskChannel: KioskChannel;
   /** Live views of the booth camera, one registry per engine process. */
   cameraPreview: CameraPreview;
-  /** Whether the booth is in maintenance, kept in SQLite. */
+  /** Whether the booth is in maintenance, and why. */
   kioskMaintenance: KioskMaintenance;
   mode: "development" | "production";
   requestOrigin?: string;
   processManager: RuntimeProcessManager;
   puppeteerLifecycle: PuppeteerReceiptViewerLifecycle;
   puppeteerState: PuppeteerStartupState;
-  printerUSBAdapter?: USB;
+  /** The receipt printer, watched for as long as the engine runs. */
+  printer: BoothPrinter;
   page?: Page;
 };

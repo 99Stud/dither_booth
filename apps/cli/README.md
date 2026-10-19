@@ -11,6 +11,8 @@ Stack: [Citty](https://github.com/unjs/citty) (commands), [Clack](https://www.np
 - 64-bit Raspberry Pi OS (Linux `arm64`) or Linux `x64` for dev/testing. 32-bit Pi OS is not supported (Bun has no 32-bit ARM target).
 - An SSD pre-formatted as `ext4` (the CLI never formats disks).
 
+The [Raspberry Pi setup guide](../../docs/raspberry-pi-setup.md) covers the hardware, flashing the OS and preparing the SSD before `booth install`.
+
 ## Install
 
 ```bash

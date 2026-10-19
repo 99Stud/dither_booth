@@ -98,6 +98,15 @@ export const kioskPageSchema = z.object({
   screen: kioskScreenSchema,
 });
 
+/**
+ * Why the booth is in maintenance: staff switched it on in admin, or the
+ * printer can't print (out of paper, cover open, unplugged).
+ */
+export const MAINTENANCE_REASONS = ["manual", "printer"] as const;
+
+export const maintenanceReasonSchema = z.enum(MAINTENANCE_REASONS);
+
+export type MaintenanceReason = z.infer<typeof maintenanceReasonSchema>;
 export type KioskReloadMode = z.infer<typeof kioskReloadModeSchema>;
 export type KioskScreen = z.infer<typeof kioskScreenSchema>;
 export type KioskCamera = z.infer<typeof kioskCameraSchema>;

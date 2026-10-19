@@ -2,25 +2,33 @@ import { defineCommand } from "citty";
 
 import type { BoothContext } from "#internal/context";
 
+import { SERVICE_BUN, SERVICE_USER } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
-import { capture, commandExists, run } from "#internal/system";
+import {
+  asServiceUser,
+  capture,
+  run,
+  serviceBunExists,
+} from "#internal/system";
 import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
 export async function runBunCommand(_context: BoothContext): Promise<void> {
   heading("Install Bun");
 
-  if (await commandExists("bun")) {
-    const version = await capture(["bun", "--version"], { allowFailure: true });
+  if (await serviceBunExists()) {
+    const version = await capture([SERVICE_BUN, "--version"], {
+      allowFailure: true,
+    });
     ok(`Bun already installed (v${version.stdout.trim()})`);
     return;
   }
 
-  step("Bun not found, installing via official script");
-  await run(["bash", "-lc", "curl -fsSL https://bun.sh/install | bash"]);
-
-  info(
-    "Bun installs to ~/.bun/bin. Ensure that directory is on PATH for new shells.",
+  step(`Bun not found, installing for ${SERVICE_USER} via official script`);
+  await run(
+    asServiceUser(["bash", "-c", "curl -fsSL https://bun.sh/install | bash"]),
   );
+
+  info(`Bun installed to ${SERVICE_BUN}.`);
   ok("Bun installed");
 }
 

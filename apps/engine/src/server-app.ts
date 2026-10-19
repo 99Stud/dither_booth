@@ -10,7 +10,6 @@ import {
   createHealthzPayload,
 } from "@dither-booth/shared/healthz";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
-import USB from "@node-escpos/usb-adapter";
 import {
   createHTTPHandler,
   type CreateHTTPContextOptions,
@@ -28,6 +27,11 @@ import {
   createKioskChannel,
   createKioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
+import {
+  createBoothPrinter,
+  createPrinterMaintenancePolicy,
+  createUsbPrinterTransport,
+} from "#domains/printer/printer.service";
 import { engineRouter } from "#internal/router";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
@@ -49,19 +53,6 @@ type EngineServerLifecycle = {
   server: http.Server;
 };
 
-type CloseableResource = {
-  close: () => Promise<void> | void;
-};
-
-function isCloseableResource(value: unknown): value is CloseableResource {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "close" in value &&
-    typeof value.close === "function"
-  );
-}
-
 async function closeHttpServer(server: http.Server) {
   await new Promise<void>((resolvePromise, reject) => {
     server.close((error) => {
@@ -73,12 +64,6 @@ async function closeHttpServer(server: http.Server) {
       resolvePromise();
     });
   });
-}
-
-async function closePrinterUSBAdapter(printerUSBAdapter: USB | undefined) {
-  if (isCloseableResource(printerUSBAdapter)) {
-    printerUSBAdapter.close();
-  }
 }
 
 export async function runEngineServer(options: {
@@ -93,7 +78,6 @@ export async function runEngineServer(options: {
   await ensureDefaultPrintConfiguration();
 
   const receiptPrintDryRun = isReceiptPrintDryRun();
-  let printerUSBAdapter: USB | undefined;
 
   if (receiptPrintDryRun) {
     logKioskEvent(
@@ -103,22 +87,17 @@ export async function runEngineServer(options: {
       {
         details: {
           message:
-            "RECEIPT_PRINT_DRY_RUN is enabled; skipping USB printer initialization.",
+            "RECEIPT_PRINT_DRY_RUN is enabled; the printer is not opened or watched.",
         },
       },
     );
-  } else {
-    try {
-      printerUSBAdapter = new USB();
-    } catch (error) {
-      logKioskEvent("error", ENGINE_PRINTER_LOG_SOURCE, "printer-init-failed", {
-        error: getKioskErrorDiagnostics(
-          error,
-          "Printer initialization failed.",
-        ),
-      });
-    }
   }
+
+  // Watched from the start, reconnecting on its own: a printer plugged in
+  // after boot is picked up without a restart.
+  const printer = createBoothPrinter({
+    transport: receiptPrintDryRun ? undefined : createUsbPrinterTransport(),
+  });
 
   const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle();
 
@@ -128,7 +107,16 @@ export async function runEngineServer(options: {
   });
   const processManager = getRuntimeProcessManager();
   const kioskChannel = createKioskChannel();
-  const kioskMaintenance = createKioskMaintenance({ db });
+  // Off in development, so a laptop without the printer keeps the kiosk open.
+  const kioskMaintenance = createKioskMaintenance({
+    automaticByDefault: options.mode === "production",
+    db,
+    kioskChannel,
+  });
+  const printerMaintenance = createPrinterMaintenancePolicy({
+    maintenance: kioskMaintenance,
+    printer,
+  });
   const cameraPreview = createCameraPreview({
     kioskChannel,
     iceServers: CAMERA_PREVIEW_ICE_SERVERS,
@@ -144,7 +132,7 @@ export async function runEngineServer(options: {
     return {
       adminOrigin,
       allowedHostnames,
-      printerUSBAdapter,
+      printer,
       page,
       db,
       darkroomAccess,
@@ -243,6 +231,8 @@ export async function runEngineServer(options: {
   }
 
   await puppeteerLifecycle.initialize();
+  printer.start();
+  if (!receiptPrintDryRun) printerMaintenance.start();
 
   let closePromise: Promise<void> | undefined;
 
@@ -279,9 +269,10 @@ export async function runEngineServer(options: {
 
       await closeResource("http-server", () => closeHttpServer(server));
       await closeResource("browser", () => puppeteerLifecycle.close());
-      await closeResource("printer", () =>
-        closePrinterUSBAdapter(printerUSBAdapter),
-      );
+      await closeResource("printer", async () => {
+        printerMaintenance.stop();
+        await printer.stop();
+      });
 
       if (errors.length > 0) {
         throw new AggregateError(errors, "engine server shutdown failed.");

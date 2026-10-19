@@ -10,6 +10,7 @@ The software stack is also split into three main applications: a shutter app run
 - [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
 - [Engine](apps/engine/README.md): backend service, database management, and local HTTPS helper commands.
 - [CLI](apps/cli/README.md): `booth` provisioning CLI for installing and managing the Raspberry Pi.
+- [Raspberry Pi setup](docs/raspberry-pi-setup.md): hardware guide, from the parts list and assembly to a booth that prints.
 
 ## Provisioning CLI
 
@@ -20,7 +21,7 @@ curl -fsSL https://github.com/99Stud/dither_booth/releases/latest/download/insta
 sudo booth install
 ```
 
-See the [CLI README](apps/cli/README.md) for all commands and options. The rest of this document describes the manual setup the CLI performs.
+Before running it, assemble and flash the Pi with the [Raspberry Pi setup guide](docs/raspberry-pi-setup.md). See the [CLI README](apps/cli/README.md) for all commands and options. The rest of this document describes the manual setup the CLI performs.
 
 ## Bun
 
