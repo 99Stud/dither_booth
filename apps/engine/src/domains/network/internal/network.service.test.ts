@@ -123,13 +123,24 @@ describe("network", () => {
 
     expect(calls.at(-1)).toEqual(["connection", "up", "id", "booth-hotspot"]);
     expect(joinFailures).toEqual([
-      { backOnBoothWifi: true, reason: "Wrong password.", ssid: "Venue" },
+      {
+        backOnBoothWifi: true,
+        nmcliError:
+          "Error: Connection activation failed: Secrets were required, but not provided.",
+        reason: "Wrong password.",
+        ssid: "Venue",
+      },
     ]);
   });
 
   test("puts nmcli's errors in words staff can act on", () => {
     expect(
       describeJoinFailure("Error: No network with SSID 'Venue' found."),
+    ).toBe("Not in range.");
+    expect(
+      describeJoinFailure(
+        "Error: Connection activation failed: The Wi-Fi network could not be found.",
+      ),
     ).toBe("Not in range.");
     expect(describeJoinFailure("Error: something else")).toBe(
       "The network didn't accept the booth.",

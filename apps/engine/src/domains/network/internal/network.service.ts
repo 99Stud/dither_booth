@@ -39,6 +39,8 @@ export type JoinFailure = {
   reason: string;
   /** The booth was on its own Wi-Fi and went back to it. */
   backOnBoothWifi: boolean;
+  /** nmcli's own words, for the log. */
+  nmcliError: string;
 };
 
 export type NetworkDeps = {
@@ -133,7 +135,9 @@ export function describeJoinFailure(stderr: string): string {
   if (/secrets were required|802-1x supplicant|psk/i.test(stderr)) {
     return "Wrong password.";
   }
-  if (/no network with ssid|not found/i.test(stderr)) {
+  // `nmcli connection up` on a saved network that isn't around says "The
+  // Wi-Fi network could not be found" (NetworkManager's ssid-not-found).
+  if (/no network with ssid|could not be found|not found/i.test(stderr)) {
     return "Not in range.";
   }
   if (/ip configuration could not be reserved|dhcp/i.test(stderr)) {
@@ -244,6 +248,7 @@ async function joinNetwork(
   }
   await deps.onJoinFailed({
     backOnBoothWifi: fromBoothWifi,
+    nmcliError: result.stderr.trim(),
     reason: describeJoinFailure(result.stderr),
     ssid,
   });
