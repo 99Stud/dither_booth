@@ -10,6 +10,7 @@ import {
   type WifiNetwork,
 } from "@dither-booth/shared/server/network";
 import { rm, writeFile } from "node:fs/promises";
+import { networkInterfaces } from "node:os";
 
 import type { Nmcli } from "./network.nmcli";
 
@@ -120,12 +121,21 @@ export async function readConnection(deps: Pick<NetworkDeps, "nmcli">) {
   if (result?.exitCode !== 0) return undefined;
 
   const devices = parseNmcliDevices(result.stdout);
-  const wifi = devices.find(
-    (device) => device.type === "wifi" && device.state.startsWith("connected"),
-  );
+  const mode = getNetworkMode(devices);
+  const up = (type: string) =>
+    devices.find(
+      (device) => device.type === type && device.state.startsWith("connected"),
+    );
+  const wifi = up("wifi");
+  const uplink = mode === "ethernet" ? up("ethernet") : wifi;
 
   return {
-    mode: getNetworkMode(devices),
+    /** The booth's IPv4 address on that network, as the kernel has it now. */
+    ip:
+      networkInterfaces()[uplink?.device ?? ""]?.find(
+        (address) => address.family === "IPv4" && !address.internal,
+      )?.address ?? null,
+    mode,
     ssid: wifi ? await readSsid(deps, wifi.connection) : null,
   };
 }

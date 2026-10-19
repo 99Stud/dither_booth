@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { EventEmitter } from "node:events";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,6 +25,10 @@ const statusOf = (canPrint: boolean): PrinterStatus => ({
 });
 
 let run = 0;
+const running: Array<{ stop: () => void }> = [];
+afterEach(() => {
+  for (const autoPrint of running.splice(0)) autoPrint.stop();
+});
 
 function setup({
   bootId = "boot-1",
@@ -39,16 +43,20 @@ function setup({
   const emitter = new EventEmitter();
   let status = statusOf(canPrint);
   const printed: Buffer[] = [];
-  let address = ip;
+  let address: string | undefined = ip;
   let currentBootId = bootId;
 
   const start = () => {
     writeFileSync(bootIdPath, `${currentBootId}\n`);
     const autoPrint = createSetupTicketAutoPrint({
       bootIdPath,
-      getTicket: async () => ({ body: Buffer.from(address), key: address }),
+      getTicket: async () =>
+        address === undefined
+          ? undefined
+          : { build: () => Buffer.from(address ?? ""), key: address },
       keyPath,
       log: () => {},
+      pollMs: 5,
       printer: {
         getStatus: () => status,
         print: async (body) => {
@@ -61,6 +69,7 @@ function setup({
       },
     });
     autoPrint.start();
+    running.push(autoPrint);
     return autoPrint;
   };
 
@@ -71,7 +80,7 @@ function setup({
       status = statusOf(next);
       emitter.emit("status", status);
     },
-    moveTo(next: string) {
+    moveTo(next: string | undefined) {
       address = next;
     },
     reboot(next: string) {
@@ -126,5 +135,28 @@ describe("setup ticket auto-print", () => {
     await Bun.sleep(20);
 
     expect(booth.printed).toHaveLength(0);
+  });
+
+  test("follows the network while it runs, without a restart", async () => {
+    const booth = setup();
+
+    booth.start();
+    await waitFor(() => booth.printed.length === 1);
+    booth.moveTo("booth-wifi");
+    await waitFor(() => booth.printed.length === 2);
+
+    expect(booth.printed[1]?.toString()).toBe("booth-wifi");
+  });
+
+  test("prints nothing between networks", async () => {
+    const booth = setup();
+
+    booth.moveTo(undefined);
+    booth.start();
+    await Bun.sleep(30);
+    expect(booth.printed).toHaveLength(0);
+
+    booth.moveTo("10.0.0.7");
+    await waitFor(() => booth.printed.length === 1);
   });
 });

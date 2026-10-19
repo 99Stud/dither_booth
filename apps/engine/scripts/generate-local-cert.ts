@@ -1,4 +1,5 @@
 import {
+  BOOTH_WIFI_IP,
   getShutterOrigin,
   getWebTlsCertPath,
   getWebTlsKeyPath,
@@ -54,8 +55,16 @@ if (isIP(requestedPublicIp) === 0) {
 
 const publicIp = requestedPublicIp;
 const hostnames = getMachineCertificateHostnames();
+// The booth Wi-Fi's address too: switching to it then needs no new certificate.
 const certificateNames = [
-  ...new Set([publicIp, "localhost", "127.0.0.1", "::1", ...hostnames]),
+  ...new Set([
+    publicIp,
+    BOOTH_WIFI_IP,
+    "localhost",
+    "127.0.0.1",
+    "::1",
+    ...hostnames,
+  ]),
 ];
 
 const directories = new Set([

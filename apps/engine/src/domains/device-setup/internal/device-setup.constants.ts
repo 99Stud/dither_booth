@@ -8,3 +8,5 @@ export const BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id";
 
 /** Gives up on a ticket that keeps failing, so a faulty printer doesn't loop. */
 export const SETUP_TICKET_MAX_ATTEMPTS = 3;
+/** How often the booth checks whether its network changed. */
+export const SETUP_TICKET_POLL_MS = 5_000;

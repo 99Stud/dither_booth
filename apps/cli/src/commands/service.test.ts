@@ -46,3 +46,11 @@ describe("network polkit rule", () => {
     );
   });
 });
+
+describe("network dispatcher on the booth Wi-Fi", () => {
+  test("restarts nothing: every certificate covers its address", () => {
+    expect(buildNetworkDispatcher("/opt/dither-booth")).toContain(
+      '[ "$current" = "10.42.0.1" ] && exit 0',
+    );
+  });
+});

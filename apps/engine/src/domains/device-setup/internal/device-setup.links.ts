@@ -1,10 +1,4 @@
-import {
-  getLocalOrigins,
-  getPort,
-  getSetupOrigin,
-  getShutterOrigin,
-  getWebPublicIp,
-} from "@dither-booth/ports";
+import { getLocalOrigins, getPort, getWebPublicIp } from "@dither-booth/ports";
 import { DARKROOM_PATH } from "@dither-booth/shared/darkroom";
 
 export type DeviceSetupLinks = {
@@ -22,30 +16,35 @@ export type DeviceSetupLinks = {
   darkroomUrl: string;
 };
 
+/**
+ * `ip` is where the booth is now, when it knows: on its own Wi-Fi that's not
+ * the venue address the certificate was last issued for.
+ */
 export async function getDeviceSetupLinks(options: {
   repoRoot: string;
+  ip?: string | null;
 }): Promise<DeviceSetupLinks> {
-  const [ip, setupUrl, shutterOrigin, localSetupUrls, localShutterUrls] =
-    await Promise.all([
-      getWebPublicIp(options),
-      getSetupOrigin(options),
-      getShutterOrigin(options),
-      getLocalOrigins(options, {
-        port: getPort("SETUP_PORT"),
-        protocol: "http",
-      }),
-      getLocalOrigins(options, {
-        port: getPort("SHUTTER_PORT"),
-        protocol: "https",
-      }),
-    ]);
-  const shutterUrls = [...localShutterUrls, shutterOrigin];
+  const [ip, localSetupUrls, localShutterUrls] = await Promise.all([
+    options.ip ?? getWebPublicIp(options),
+    getLocalOrigins(options, {
+      port: getPort("SETUP_PORT"),
+      protocol: "http",
+    }),
+    getLocalOrigins(options, {
+      port: getPort("SHUTTER_PORT"),
+      protocol: "https",
+    }),
+  ]);
+  const shutterUrls = [
+    ...localShutterUrls,
+    `https://${ip}:${getPort("SHUTTER_PORT")}`,
+  ];
 
   return {
     darkroomUrl: new URL(DARKROOM_PATH, shutterUrls[0]).toString(),
     ip,
     localSetupUrl: localSetupUrls[0] ?? null,
-    setupUrl,
+    setupUrl: `http://${ip}:${getPort("SETUP_PORT")}`,
     shutterUrls,
   };
 }

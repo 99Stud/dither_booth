@@ -4,12 +4,16 @@ import { dirname } from "node:path";
 
 import type { BoothPrinter } from "#domains/printer/printer.service";
 
-import { SETUP_TICKET_MAX_ATTEMPTS } from "./device-setup.constants";
+import {
+  SETUP_TICKET_MAX_ATTEMPTS,
+  SETUP_TICKET_POLL_MS,
+} from "./device-setup.constants";
 
 export type SetupTicket = {
   /** What the ticket is for, e.g. the booth's address: a new one prints again. */
   key: string;
-  body: Buffer;
+  /** Only built when it prints. */
+  build: () => Buffer;
 };
 
 type TicketPrinter = Pick<BoothPrinter, "getStatus" | "print" | "subscribe">;
@@ -51,20 +55,61 @@ const untilCanPrint = (printer: TicketPrinter, signal: AbortSignal) =>
     signal.addEventListener("abort", onAbort, { once: true });
   });
 
+/** Resolves after `ms`, or as soon as `signal` aborts. */
+const pause = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    const timeout = setTimeout(done, ms);
+    signal.addEventListener("abort", done, { once: true });
+    function done() {
+      clearTimeout(timeout);
+      signal.removeEventListener("abort", done);
+      resolve();
+    }
+  });
+
 /**
  * Prints the setup ticket once per power-on and again whenever the ticket's
- * key changes (the booth moved to another network), so staff plugging the
- * booth in at a venue get the way in without a laptop. Waits for a printer
- * that can print: inserting paper is enough to get the ticket.
+ * key changes, checking every `pollMs`: the booth moving to another network,
+ * or onto its own Wi-Fi, which restarts nothing. Staff plugging the booth in
+ * at a venue get the way in without a laptop. Waits for a printer that can
+ * print: inserting paper is enough to get the ticket.
  */
 export function createSetupTicketAutoPrint(options: {
   printer: TicketPrinter;
   bootIdPath: string;
   keyPath: string;
-  getTicket: () => Promise<SetupTicket>;
+  /** Undefined while there's nothing to print yet (no network). */
+  getTicket: () => Promise<SetupTicket | undefined>;
   log: Log;
+  pollMs?: number;
 }) {
   const controller = new AbortController();
+  const { signal } = controller;
+  const pollMs = options.pollMs ?? SETUP_TICKET_POLL_MS;
+
+  async function printIfNew(bootId: string, failures: Map<string, number>) {
+    const ticket = await options.getTicket();
+    if (!ticket) return;
+
+    const key = `${bootId}:${ticket.key}`;
+    const failed = failures.get(key) ?? 0;
+
+    if (failed >= SETUP_TICKET_MAX_ATTEMPTS) return;
+    if ((await readText(options.keyPath)) === key) return;
+
+    try {
+      await options.printer.print(ticket.build(), { content: "escpos" });
+      await mkdir(dirname(options.keyPath), { recursive: true });
+      await writeFile(options.keyPath, `${key}\n`);
+      options.log("info", "setup-ticket-printed", { key: ticket.key });
+    } catch (error) {
+      failures.set(key, failed + 1);
+      options.log("warn", "setup-ticket-print-failed", {
+        attempt: failed + 1,
+        error: getErrorMessage(error),
+      });
+    }
+  }
 
   async function run() {
     const bootId = await readText(options.bootIdPath);
@@ -72,26 +117,16 @@ export function createSetupTicketAutoPrint(options: {
     // No boot id (not Linux): no way to tell a power-on from a restart.
     if (!bootId) return;
 
-    for (let attempt = 1; attempt <= SETUP_TICKET_MAX_ATTEMPTS; attempt++) {
-      if (!(await untilCanPrint(options.printer, controller.signal))) return;
+    const failures = new Map<string, number>();
 
-      const ticket = await options.getTicket();
-      const key = `${bootId}:${ticket.key}`;
-
-      if ((await readText(options.keyPath)) === key) return;
-
-      try {
-        await options.printer.print(ticket.body, { content: "escpos" });
-        await mkdir(dirname(options.keyPath), { recursive: true });
-        await writeFile(options.keyPath, `${key}\n`);
-        options.log("info", "setup-ticket-printed", { key: ticket.key });
-        return;
-      } catch (error) {
-        options.log("warn", "setup-ticket-print-failed", {
-          attempt,
+    while (!signal.aborted) {
+      if (!(await untilCanPrint(options.printer, signal))) return;
+      await printIfNew(bootId, failures).catch((error: unknown) => {
+        options.log("warn", "setup-ticket-check-failed", {
           error: getErrorMessage(error),
         });
-      }
+      });
+      await pause(pollMs, signal);
     }
   }
 

@@ -176,6 +176,7 @@
     "packages/shared": {
       "name": "@dither-booth/shared",
       "dependencies": {
+        "@dither-booth/ports": "workspace:*",
         "@tanstack/react-query": "5.101.4",
         "@trpc/client": "11.18.0",
         "@trpc/server": "11.18.0",

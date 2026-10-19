@@ -1,6 +1,7 @@
 import { runBrowserServer } from "@dither-booth/browser-server";
 import { logKioskEvent } from "@dither-booth/logging";
 import {
+  BOOTH_WIFI_IP,
   SHUTTER_BIND_HOST,
   getAdminOrigin,
   getEngineInternalOrigin,
@@ -49,13 +50,15 @@ export async function runShutterServer(options: {
     }),
     darkroomPath: DARKROOM_PATH,
     port: getPort("SETUP_PORT"),
-    // `.local` first: it survives the booth getting a new IP at the next venue.
+    // `.local` first: it survives the booth getting a new IP at the next
+    // venue. The booth Wi-Fi's address last: it's only there on that Wi-Fi.
     shutterOrigins: [
       ...(await getLocalOrigins(repoPathOptions, {
         port: shutterPort,
         protocol: "https",
       })),
       shutterOrigin,
+      `https://${BOOTH_WIFI_IP}:${shutterPort}`,
     ],
   });
 

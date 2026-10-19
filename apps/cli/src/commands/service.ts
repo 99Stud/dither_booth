@@ -1,4 +1,4 @@
-import { getWebTlsManifestPath } from "@dither-booth/ports";
+import { BOOTH_WIFI_IP, getWebTlsManifestPath } from "@dither-booth/ports";
 import { defineCommand } from "citty";
 import { chmod } from "node:fs/promises";
 
@@ -82,6 +82,8 @@ esac
 [ "$1" = "lo" ] && exit 0
 
 current=$(hostname -I 2>/dev/null | awk '{print $1}')
+# The booth Wi-Fi's address is in every certificate: nothing to re-issue.
+[ "$current" = "${BOOTH_WIFI_IP}" ] && exit 0
 recorded=$(sed -n 's/.*"publicIp": *"\\([^"]*\\)".*/\\1/p' "${manifestPath}" 2>/dev/null)
 
 if [ -n "$current" ] && [ "$current" != "$recorded" ]; then

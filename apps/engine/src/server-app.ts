@@ -159,7 +159,8 @@ export async function runEngineServer(options: {
         notice: `Couldn't join ${failure.ssid}: ${failure.reason}`,
         repoRoot: ENGINE_REPO_ROOT,
       });
-      await printer.print(ticket.body, { content: "escpos" }).catch(() => {
+      if (!ticket) return;
+      await printer.print(ticket.build(), { content: "escpos" }).catch(() => {
         logDeviceSetup("warn", "wifi-join-failed-ticket-not-printed");
       });
     },

@@ -5,6 +5,7 @@ import type { RepoPathOptions } from "#internal/ports.types";
 
 import {
   ADMIN_BIND_HOST,
+  BOOTH_WIFI_IP,
   ENGINE_BIND_HOST,
   CERT_GENERATE_COMMAND,
   DEFAULT_ADMIN_PORT,
@@ -20,7 +21,7 @@ import {
   WEB_TLS_MANIFEST_SCHEMA,
 } from "#internal/ports.constants";
 
-export { ADMIN_BIND_HOST, ENGINE_BIND_HOST, SHUTTER_BIND_HOST };
+export { ADMIN_BIND_HOST, BOOTH_WIFI_IP, ENGINE_BIND_HOST, SHUTTER_BIND_HOST };
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
   return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);

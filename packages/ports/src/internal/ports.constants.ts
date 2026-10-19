@@ -8,6 +8,11 @@ export const DEFAULT_ADMIN_PORT = 3002;
 export const DEFAULT_SETUP_PORT = 3003;
 export const ENGINE_BIND_HOST = "127.0.0.1";
 /**
+ * The booth's address on its own Wi-Fi (NetworkManager's shared mode). Always
+ * in the certificate, so switching to the booth Wi-Fi restarts nothing.
+ */
+export const BOOTH_WIFI_IP = "10.42.0.1";
+/**
  * `::` takes IPv4 and IPv6. An iPad on an IPv6-mostly network, such as an
  * iPhone's Personal Hotspot, has no IPv4 route to the booth and reaches it
  * through `<hostname>.local` over IPv6 only.

@@ -1,4 +1,4 @@
-import { getPort, getWebPublicIp } from "@dither-booth/ports";
+import { BOOTH_WIFI_IP, getPort, getWebPublicIp } from "@dither-booth/ports";
 import {
   adminHealthzPayloadSchema,
   engineHealthzPayloadSchema,
@@ -106,6 +106,15 @@ async function checkCertIp(
 
   if (!manifestIp) {
     record(results, "fail", "TLS manifest missing; run `booth cert`");
+    return;
+  }
+
+  if (lanIp === BOOTH_WIFI_IP) {
+    record(
+      results,
+      "pass",
+      `On the booth Wi-Fi (${BOOTH_WIFI_IP}); certificate also covers ${manifestIp}`,
+    );
     return;
   }
 

@@ -15,7 +15,8 @@ export type DeviceSetupPageOptions = {
  * succeeds once it does) and shows either the trust steps or the way in.
  */
 export function renderDeviceSetupPage(options: DeviceSetupPageOptions) {
-  const ipShutterOrigin = options.shutterOrigins.at(-1) ?? "";
+  // Replaced by whichever origin answers before the page shows the links.
+  const ipShutterOrigin = options.shutterOrigins[0] ?? "";
 
   return renderBoothPage({
     title: "Set up Dither Booth",
@@ -51,7 +52,7 @@ export function renderDeviceSetupPage(options: DeviceSetupPageOptions) {
   <p class="lead"><span class="status">Trusts the booth.</span> Open the Shutter to start.</p>
   <a class="button" data-shutter href="${escapeHtml(ipShutterOrigin)}">Open the Shutter</a>
   <a class="button secondary" data-darkroom href="${escapeHtml(ipShutterOrigin + options.darkroomPath)}">Darkroom</a>
-  <a class="button secondary" href="${escapeHtml(options.adminOrigin)}">Admin</a>
+  <a class="button secondary" data-admin href="${escapeHtml(options.adminOrigin)}">Admin</a>
   <p><small>For the kiosk: in Safari, tap Share → Add to Home Screen, then turn on
   Guided Access in Settings → Accessibility. When this iPad leaves the booth for good,
   remove the profile in VPN &amp; Device Management.</small></p>
@@ -60,6 +61,7 @@ export function renderDeviceSetupPage(options: DeviceSetupPageOptions) {
 <script>
   const shutterOrigins = ${toInlineJson(options.shutterOrigins)};
   const darkroomPath = ${toInlineJson(options.darkroomPath)};
+  const adminPort = ${toInlineJson(new URL(options.adminOrigin).port)};
 
   const show = (state) => {
     for (const section of document.querySelectorAll("[data-state]")) {
@@ -92,6 +94,11 @@ export function renderDeviceSetupPage(options: DeviceSetupPageOptions) {
     if (!origin) return false;
     document.querySelector("[data-shutter]").href = origin;
     document.querySelector("[data-darkroom]").href = origin + darkroomPath;
+    // The admin on the same host that answered: on the booth Wi-Fi, that's
+    // its address there, not the venue's.
+    const admin = new URL(origin);
+    admin.port = adminPort;
+    document.querySelector("[data-admin]").href = admin.origin;
     show("ready");
     return true;
   };

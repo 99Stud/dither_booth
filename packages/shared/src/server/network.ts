@@ -1,10 +1,12 @@
+import { BOOTH_WIFI_IP } from "@dither-booth/ports";
+
 /**
  * The booth's own Wi-Fi, and the files the network watch (root) and the
  * engine (service user) share. NetworkManager owns the networks themselves.
  */
 export const HOTSPOT_CONNECTION_NAME = "booth-hotspot";
 /** NetworkManager's address for a shared (`ipv4.method shared`) connection. */
-export const HOTSPOT_IP = "10.42.0.1";
+export const HOTSPOT_IP = BOOTH_WIFI_IP;
 
 /** Owned by the service user, so the engine can write what the watch reads. */
 export const NETWORK_STATE_DIR = "/var/lib/ditherbooth";

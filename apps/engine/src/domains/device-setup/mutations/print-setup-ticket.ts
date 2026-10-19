@@ -16,8 +16,15 @@ export const printSetupTicket = darkroomProcedure.mutation(
       repoRoot: ENGINE_REPO_ROOT,
     });
 
+    if (!ticket) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "The booth is between networks. Try again in a moment.",
+      });
+    }
+
     try {
-      await ctx.printer.print(ticket.body, { content: "escpos" });
+      await ctx.printer.print(ticket.build(), { content: "escpos" });
     } catch (error) {
       if (error instanceof PrinterUnavailableError) {
         throw new TRPCError({

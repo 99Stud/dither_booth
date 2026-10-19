@@ -1,5 +1,10 @@
-import { getWebPublicIp, getWebTlsCertPath } from "@dither-booth/ports";
+import {
+  BOOTH_WIFI_IP,
+  getWebPublicIp,
+  getWebTlsCertPath,
+} from "@dither-booth/ports";
 import { defineCommand } from "citty";
+import { X509Certificate } from "node:crypto";
 
 import type { BoothContext } from "#internal/context";
 
@@ -25,15 +30,42 @@ import {
 } from "#internal/ui";
 
 /**
- * Whether the booth needs a new leaf certificate: only when it has none or
- * its address changed. The CA stays, so devices that trust it keep working.
+ * Whether the booth needs a new leaf certificate: only when it has none, its
+ * address on a venue network changed, or it predates the booth Wi-Fi's
+ * address. The CA stays, so devices that trust it keep working. On the booth
+ * Wi-Fi nothing changes: the certificate already covers it.
  */
 export function needsNewCertificate(options: {
   certificateIp: string | undefined;
   hasCertificate: boolean;
+  coversBoothWifi: boolean;
   lanIp: string;
 }): boolean {
-  return !options.hasCertificate || options.certificateIp !== options.lanIp;
+  if (
+    !options.hasCertificate ||
+    !options.certificateIp ||
+    !options.coversBoothWifi
+  ) {
+    return true;
+  }
+  return (
+    options.lanIp !== BOOTH_WIFI_IP && options.certificateIp !== options.lanIp
+  );
+}
+
+async function certificateCoversBoothWifi(certPath: string) {
+  const pem = await Bun.file(certPath)
+    .text()
+    .catch(() => undefined);
+  if (!pem) return false;
+
+  try {
+    return (new X509Certificate(pem).subjectAltName ?? "")
+      .split(", ")
+      .includes(`IP Address:${BOOTH_WIFI_IP}`);
+  } catch {
+    return false;
+  }
 }
 
 export async function runCertCommand(
@@ -58,34 +90,46 @@ export async function runCertCommand(
     throw new SilentExit(1);
   }
 
-  if (ifChanged) {
-    const certificateIp = await getWebPublicIp({ repoRoot }).catch(
-      () => undefined,
-    );
-    const hasCertificate = await Bun.file(
-      getWebTlsCertPath({ repoRoot }),
-    ).exists();
+  const certificateIp = await getWebPublicIp({ repoRoot }).catch(
+    () => undefined,
+  );
 
-    if (!needsNewCertificate({ certificateIp, hasCertificate, lanIp: ip })) {
+  if (ifChanged) {
+    const certPath = getWebTlsCertPath({ repoRoot });
+    const hasCertificate = await Bun.file(certPath).exists();
+    const coversBoothWifi = await certificateCoversBoothWifi(certPath);
+
+    if (
+      !needsNewCertificate({
+        certificateIp,
+        coversBoothWifi,
+        hasCertificate,
+        lanIp: ip,
+      })
+    ) {
       ok(`Certificate already covers ${ip}`);
       return;
     }
   }
 
-  step(`Generating certificate for ${ip}`);
+  // On the booth Wi-Fi, keep the venue address the booth last had: the
+  // booth Wi-Fi's own is in every certificate anyway.
+  const publicIp = ip === BOOTH_WIFI_IP && certificateIp ? certificateIp : ip;
+
+  step(`Generating certificate for ${publicIp}`);
   await run(
     serviceBun([
       "run",
       "--filter",
       "@dither-booth/engine",
       "cert:generate",
-      ip,
+      publicIp,
       ...(ifChanged ? ["--skip-install"] : []),
     ]),
     { cwd: repoRoot },
   );
 
-  ok(`Certificate generated for ${ip}`);
+  ok(`Certificate generated for ${publicIp} and the booth Wi-Fi`);
 }
 
 // Prints a ready-to-paste scp command so the operator can copy the mkcert root
