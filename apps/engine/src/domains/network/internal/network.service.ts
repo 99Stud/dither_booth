@@ -309,6 +309,41 @@ export async function getCaptiveStatus(
   return { nearby: status.nearby, state: "pick-network" };
 }
 
+/**
+ * Why the captive page can't join this network, if it can't. Only while the
+ * booth is on its own Wi-Fi for want of a network: during an event on the
+ * booth Wi-Fi, a guest who joined it can't move the booth.
+ */
+export function refuseCaptiveJoin(
+  status: CaptiveStatus,
+  input: { ssid: string; password?: string },
+): string | undefined {
+  if (status.state !== "pick-network") {
+    return "The booth isn't waiting for a network.";
+  }
+  // Saved without one, a protected network fails to join with nothing that
+  // says why.
+  if (
+    !input.password &&
+    status.nearby.some(
+      (network) => network.ssid === input.ssid && network.secured,
+    )
+  ) {
+    return `${input.ssid} needs its password.`;
+  }
+  return undefined;
+}
+
+export async function joinFromCaptive(
+  deps: NetworkDeps,
+  input: { ssid: string; password?: string },
+): Promise<void> {
+  const refusal = refuseCaptiveJoin(await getCaptiveStatus(deps), input);
+
+  if (refusal) throw new Error(refusal);
+  await saveWifiNetwork(deps, { ...input, connectNow: true });
+}
+
 /** The booth Wi-Fi's name and password, for the ticket that lets staff join it. */
 export async function getBoothWifiCredentials(
   deps: Pick<NetworkDeps, "nmcli">,

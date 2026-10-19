@@ -90,14 +90,17 @@ WantedBy=multi-user.target
 }
 
 /** Lets the engine save and join networks as the service user, nothing wider. */
-function buildPolkitRule(): string {
+export function buildPolkitRule(): string {
   return `// Installed by \`booth network setup\`.
 polkit.addRule(function (action, subject) {
   if (
     subject.user === "${SERVICE_USER}" &&
     (action.id === "org.freedesktop.NetworkManager.settings.modify.system" ||
       action.id === "org.freedesktop.NetworkManager.network-control" ||
-      action.id === "org.freedesktop.NetworkManager.wifi.scan")
+      action.id === "org.freedesktop.NetworkManager.wifi.scan" ||
+      // Bringing the booth Wi-Fi back after a failed join, and staff
+      // choosing to run the event on it.
+      action.id === "org.freedesktop.NetworkManager.wifi.share.protected")
   ) {
     return polkit.Result.YES;
   }

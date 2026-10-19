@@ -38,7 +38,7 @@ export function renderCaptivePage() {
     <input id="ssid" name="ssid" autocapitalize="off" autocorrect="off" spellcheck="false" required maxlength="32" />
     <label for="password">Password</label>
     <input id="password" name="password" type="password" autocapitalize="off" autocorrect="off" minlength="8" maxlength="63" />
-    <p><small>Leave it empty for an open network.</small></p>
+    <p><small>Leave it empty only for an open network.</small></p>
     <p class="error" data-error role="alert" hidden></p>
     <button class="button" type="submit" data-join>Join</button>
   </form>
@@ -78,6 +78,7 @@ export function renderCaptivePage() {
   const ssidInput = form.elements.ssid;
   const passwordInput = form.elements.password;
   const errorLine = document.querySelector("[data-error]");
+  let networks = [];
   const signalLabel = (signal) => signal >= 70 ? "Strong" : signal >= 40 ? "Good" : "Weak";
 
   const post = async (path, body) => {
@@ -129,6 +130,12 @@ export function renderCaptivePage() {
     errorLine.hidden = true;
     const ssid = ssidInput.value.trim();
     const password = passwordInput.disabled ? "" : passwordInput.value;
+    const picked = networks.find((network) => network.ssid === ssid);
+    if (!password && picked && picked.secured) {
+      fail(new Error(ssid + " needs its password."));
+      passwordInput.focus();
+      return;
+    }
     if (password && password.length < 8) {
       fail(new Error("Wi-Fi passwords are at least 8 characters."));
       return;
@@ -156,7 +163,8 @@ export function renderCaptivePage() {
   fetch("/wifi/status", { cache: "no-store" })
     .then((response) => response.json())
     .then((status) => {
-      renderNetworks(status.nearby || []);
+      networks = status.nearby || [];
+      renderNetworks(networks);
       show(status.state || "pick-network");
     })
     .catch(() => show("pick-network"));

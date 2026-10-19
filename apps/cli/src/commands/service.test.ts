@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { buildPolkitRule } from "./network";
 import { buildNetworkDispatcher, buildUnit } from "./service";
 
 describe("ditherbooth.service", () => {
@@ -35,5 +36,13 @@ describe("network dispatcher", () => {
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
     }
+  });
+});
+
+describe("network polkit rule", () => {
+  test("lets the booth bring its own Wi-Fi up, not only change networks", () => {
+    expect(buildPolkitRule()).toContain(
+      "org.freedesktop.NetworkManager.wifi.share.protected",
+    );
   });
 });
