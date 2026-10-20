@@ -1,0 +1,7 @@
+# CLI state
+.branches
+.temp
+
+# Edge Function secrets for local serve
+.env
+.env.local
