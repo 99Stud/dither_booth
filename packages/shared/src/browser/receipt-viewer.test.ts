@@ -88,50 +88,50 @@ describe("receipt viewer page helpers", () => {
         },
       });
 
-      await navigateReceiptViewerInPage({ template: "tartines" });
+      await navigateReceiptViewerInPage({ template: "photo" });
     });
 
-    expect(events).toEqual(["navigate:tartines"]);
+    expect(events).toEqual(["navigate:photo"]);
   });
 
   test("puppeteer-safe bridge helpers call into the installed bridge", async () => {
     const events: string[] = [];
     const fakeWindow = createFakeReceiptViewerWindow({
-      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=tartines`,
-      templateAttribute: "tartines",
+      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=photo`,
+      templateAttribute: "photo",
     });
 
     await withFakeReceiptViewerWindow(fakeWindow, async () => {
       installReceiptViewerNavigationBridge({
         isRouteStateCommitted: (options = {}) => {
           events.push(`committed:${options.template ?? "root"}`);
-          return options.template === "tartines";
+          return options.template === "photo";
         },
         navigate: async ({ template } = {}) => {
           events.push(`navigate:${template ?? "root"}`);
         },
       });
 
-      await navigateReceiptViewerViaBridgeInPage({ template: "tartines" });
+      await navigateReceiptViewerViaBridgeInPage({ template: "photo" });
       expect(
         isReceiptViewerRouteStateCommittedViaBridgeInPage({
-          template: "tartines",
+          template: "photo",
         }),
       ).toBe(true);
     });
 
-    expect(events).toEqual(["navigate:tartines", "committed:tartines"]);
+    expect(events).toEqual(["navigate:photo", "committed:photo"]);
   });
 
   test("requires selected template URL and DOM state to match", async () => {
     const fakeWindow = createFakeReceiptViewerWindow({
-      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=tartines`,
-      templateAttribute: "tartines",
+      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=photo`,
+      templateAttribute: "photo",
     });
 
     await withFakeReceiptViewerWindow(fakeWindow, () => {
       expect(
-        isReceiptViewerRouteStateCommittedInPage({ template: "tartines" }),
+        isReceiptViewerRouteStateCommittedInPage({ template: "photo" }),
       ).toBe(true);
     });
   });
@@ -150,14 +150,14 @@ describe("receipt viewer page helpers", () => {
   test("matches ticket item names encoded in the search string", async () => {
     const ticketItems = ["Mate", "Ginette"];
     const fakeWindow = createFakeReceiptViewerWindow({
-      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=tartines&ticketItems=${encodeURIComponent(JSON.stringify(ticketItems))}`,
-      templateAttribute: "tartines",
+      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=photo&ticketItems=${encodeURIComponent(JSON.stringify(ticketItems))}`,
+      templateAttribute: "photo",
     });
 
     await withFakeReceiptViewerWindow(fakeWindow, () => {
       expect(
         isReceiptViewerRouteStateCommittedInPage({
-          template: "tartines",
+          template: "photo",
           ticketItems,
         }),
       ).toBe(true);
@@ -165,21 +165,40 @@ describe("receipt viewer page helpers", () => {
     });
   });
 
+  test("requires the kit in the URL to match", async () => {
+    const fakeWindow = createFakeReceiptViewerWindow({
+      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=photo&kit=tartines`,
+      templateAttribute: "photo",
+    });
+
+    await withFakeReceiptViewerWindow(fakeWindow, () => {
+      expect(
+        isReceiptViewerRouteStateCommittedInPage({
+          template: "photo",
+          kit: "tartines",
+        }),
+      ).toBe(true);
+      expect(
+        isReceiptViewerRouteStateCommittedInPage({ template: "photo" }),
+      ).toBe(false);
+    });
+  });
+
   test("rejects URL-only match when DOM still has a stale template", async () => {
     const staleTemplateWindow = createFakeReceiptViewerWindow({
-      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=tartines`,
+      search: `?${RECEIPT_VIEWER_TEMPLATE_SEARCH_PARAM}=photo`,
       templateAttribute: "lottery",
     });
 
     await withFakeReceiptViewerWindow(staleTemplateWindow, () => {
       expect(
-        isReceiptViewerRouteStateCommittedInPage({ template: "tartines" }),
+        isReceiptViewerRouteStateCommittedInPage({ template: "photo" }),
       ).toBe(false);
     });
 
     const staleResetWindow = createFakeReceiptViewerWindow({
       search: "",
-      templateAttribute: "tartines",
+      templateAttribute: "photo",
     });
 
     await withFakeReceiptViewerWindow(staleResetWindow, () => {

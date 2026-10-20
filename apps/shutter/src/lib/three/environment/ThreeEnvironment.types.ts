@@ -1,5 +1,6 @@
-import type { FluidBackgroundOptions } from "../internal/features/fluid-background/fluid-background.types";
-import type { PostProcessingOptions } from "../internal/features/post-processing/postProcessing.types";
+import type { BackgroundPreset } from "../internal/features/background.types";
+
+export type { BackgroundPreset };
 
 export interface ThreeEnvironmentSize {
   width: number;
@@ -10,6 +11,6 @@ export interface ThreeEnvironmentSize {
 export interface ThreeEnvironmentOptions {
   container: HTMLElement;
   pixelRatio?: number;
-  postProcessing?: PostProcessingOptions;
-  fluidBackground?: FluidBackgroundOptions;
+  /** The look to start with; `apply` changes it later. */
+  background?: BackgroundPreset;
 }

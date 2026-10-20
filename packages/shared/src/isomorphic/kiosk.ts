@@ -24,7 +24,7 @@ export const kioskScreenSchema = z.enum(KIOSK_SCREENS);
 /**
  * Commands the engine pushes to the kiosk pages over the kiosk channel
  * (`booth.onKioskCommand`). A discriminated union, so new commands (theme
- * updates, …) are added as new `type`s.
+ * changes, …) are added as new `type`s.
  */
 export const KIOSK_COMMAND_SCHEMA = z.discriminatedUnion("type", [
   z.object({
@@ -50,6 +50,11 @@ export const KIOSK_COMMAND_SCHEMA = z.discriminatedUnion("type", [
    * A live view signal for one page: every page gets the broadcast, only
    * the one with `pageId` acts on it.
    */
+  /** The event's kit or its settings changed: re-read `booth.getKit`. */
+  z.object({
+    type: z.literal("kit-updated"),
+    commandId: z.string().min(1),
+  }),
   z.object({
     type: z.literal("camera"),
     pageId: z.string().trim().min(1).max(64),

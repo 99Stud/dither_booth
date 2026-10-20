@@ -1,4 +1,8 @@
-import { DEFAULT_KIT_ID, kitIdSchema } from "@dither-booth/shared/kits";
+import {
+  DEFAULT_KIT_ID,
+  kitIdSchema,
+  kitSettingsSchema,
+} from "@dither-booth/shared/kits";
 import { raritySchema } from "@dither-booth/shared/lottery";
 import { ticketItemNamesSchema } from "@dither-booth/shared/ticket";
 import z from "zod";
@@ -16,7 +20,12 @@ export const createEventInputSchema = z.object({
 
 export const updateEventInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
+});
+
+/** The kit and what the event changes on it, saved together. */
+export const updateKitSettingsInputSchema = z.object({
   kitId: kitIdSchema,
+  settings: kitSettingsSchema,
 });
 
 export const updateTicketItemsInputSchema = z.object({
@@ -78,6 +87,9 @@ export const listDrawsInputSchema = z.object({
 
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
+export type UpdateKitSettingsInput = z.infer<
+  typeof updateKitSettingsInputSchema
+>;
 export type UpdateTicketItemsInput = z.infer<
   typeof updateTicketItemsInputSchema
 >;

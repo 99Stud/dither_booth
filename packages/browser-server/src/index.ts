@@ -116,20 +116,22 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
   }
 
   const spaFallback = isProduction
-    ? () =>
-        new Response(
+    ? (req: Request) => {
+        const headers = new Headers(
+          options.getDocumentHeaders?.(new URL(req.url)),
+        );
+        headers.set("Cache-Control", PUBLIC_ASSET_CACHE_CONTROL);
+
+        return new Response(
           Bun.file(
             new URL(
               `./dist/${PRODUCTION_SERVER_HTML_FILE_NAME}`,
               appPackageUrl,
             ),
           ),
-          {
-            headers: {
-              "Cache-Control": PUBLIC_ASSET_CACHE_CONTROL,
-            },
-          },
-        )
+          { headers },
+        );
+      }
     : options.indexHtml;
   const healthzRoute = createHealthzRoute({
     mode: options.mode,

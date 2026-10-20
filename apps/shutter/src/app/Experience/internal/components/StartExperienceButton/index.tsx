@@ -1,10 +1,14 @@
 import type { FC } from "react";
 
+import { plainCopyText } from "@dither-booth/shared/kit-copy";
 import { animate } from "animejs";
 import clsx from "clsx";
 import { motion } from "motion/react";
 import { Vercel } from "pixelarticons/react/Vercel.js";
 import { useEffect, useRef } from "react";
+
+import { KitText } from "#kits/KitText/index";
+import { useKitCopy } from "#kits/useKit";
 
 import { SHUTTER_TRANSITION } from "../../Experience.motion";
 
@@ -18,6 +22,7 @@ export const StartExperienceButton: FC<{
   onAnimationComplete: () => void;
   onStart: () => void;
 }> = (props) => {
+  const startLabel = useKitCopy()["landing.start"];
   const { disabled, isAtOrigin, isVisible, onAnimationComplete, onStart } =
     props;
   const labelRef = useRef<HTMLParagraphElement>(null);
@@ -70,7 +75,7 @@ export const StartExperienceButton: FC<{
         type="button"
         disabled={disabled}
         onClick={onStart}
-        aria-label="Press to start"
+        aria-label={plainCopyText(startLabel)}
         className={clsx(
           "fixed inset-0 z-20",
           disabled ? "pointer-events-none" : "cursor-pointer",
@@ -101,7 +106,9 @@ export const StartExperienceButton: FC<{
           <span ref={iconRef} className="inline-flex">
             <Vercel className="size-12 shrink-0 rotate-90 drop-shadow-glow" />
           </span>
-          <span className="translate-y-1">Press to start</span>
+          <span className="translate-y-1">
+            <KitText text={startLabel} />
+          </span>
         </p>
       </motion.div>
     </>

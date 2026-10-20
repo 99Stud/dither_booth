@@ -1,26 +1,30 @@
-import type { ReceiptTemplate } from "@dither-booth/shared/routes";
 import type { FC } from "react";
 
 import { RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE } from "@dither-booth/shared/browser/receipt-viewer";
 
-import { LotteryReceiptTemplate } from "#components/receipt-templates/LotteryReceiptTemplate/index";
-import { TartinesReceiptTemplate } from "#components/receipt-templates/TartinesReceiptTemplate/index";
+import { getKitTicket } from "#kits/index";
+import { useKitQuery } from "#kits/useKit";
 import { receiptViewerRoute } from "#lib/router/index";
 
-type ReceiptTemplateComponent = FC<{
-  className?: string;
-}>;
-
-const RECEIPT_TEMPLATE_COMPONENTS = {
-  tartines: TartinesReceiptTemplate,
-  lottery: LotteryReceiptTemplate,
-} satisfies Record<ReceiptTemplate, ReceiptTemplateComponent>;
-
 export const ReceiptViewer: FC = () => {
-  const { template } = receiptViewerRoute.useSearch();
+  const { kit, template } = receiptViewerRoute.useSearch();
+  const { data: kitData, isError } = useKitQuery();
 
-  const ReceiptTemplateComponent = template
-    ? RECEIPT_TEMPLATE_COMPONENTS[template]
+  // No template attribute until the kit's text is in, so the engine never
+  // screenshots a ticket with missing copy.
+  if (!kitData) {
+    return (
+      <div className="min-h-dvh bg-black p-4">
+        <p className="text-white">
+          {isError ? "Could not load the kit" : "Loading kit"}
+        </p>
+      </div>
+    );
+  }
+
+  // The engine names the kit; admin's preview sends it with the draft.
+  const Ticket = template
+    ? getKitTicket(kit ?? kitData.kitId, template)
     : undefined;
 
   return (
@@ -28,8 +32,8 @@ export const ReceiptViewer: FC = () => {
       className="min-h-dvh bg-black p-4"
       {...{ [RECEIPT_VIEWER_TEMPLATE_ATTRIBUTE]: template ?? "" }}
     >
-      {ReceiptTemplateComponent ? (
-        <ReceiptTemplateComponent className="mx-auto" />
+      {Ticket ? (
+        <Ticket className="mx-auto" />
       ) : (
         <p className="text-white">No template selected</p>
       )}

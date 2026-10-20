@@ -1,6 +1,13 @@
+import type { KitSettings, ResolvedKit } from "@dither-booth/shared/kits";
+
 import { logKioskEvent } from "@dither-booth/logging";
 import { parseBoothTicketRef } from "@dither-booth/shared/formatting";
-import { DEFAULT_KIT_ID, resolveKitId } from "@dither-booth/shared/kits";
+import {
+  DEFAULT_KIT_ID,
+  readKitSettings,
+  resolveKit,
+  resolveKitId,
+} from "@dither-booth/shared/kits";
 import {
   DEFAULT_TICKET_ITEM_NAMES,
   ticketItemNamesSchema,
@@ -18,6 +25,7 @@ import {
   prizeTable,
   stockAdjustmentTable,
 } from "#db/internal/db.schema";
+import { withInstalledFonts } from "#domains/font-library/font-library.service";
 import {
   applyStockAdjustment,
   prizeStockColumns,
@@ -29,6 +37,7 @@ import type {
   ListDrawsInput,
   RestockPrizeInput,
   UpdateEventInput,
+  UpdateKitSettingsInput,
   UpdatePrizeInput,
   UpdateLotterySettingsInput,
   UpdateTicketItemsInput,
@@ -78,6 +87,47 @@ function readKitId(campaign: { id: string; kitId: string | null }) {
     });
   }
   return kitId;
+}
+
+/**
+ * The event's kit settings, keeping what this release can use. Anything it
+ * can't (an edit from a newer release, a removed key) shows the kit's default
+ * instead of failing the visit, and is logged so it can be fixed.
+ */
+function readCampaignKitSettings(campaign: {
+  id: string;
+  kitSettings: unknown;
+}): KitSettings {
+  const { settings, rejectedKeys } = readKitSettings(campaign.kitSettings);
+  if (rejectedKeys.length > 0) {
+    logKioskEvent("warn", EVENT_LOG_SOURCE, "event-kit-settings-ignored", {
+      details: { campaignId: campaign.id, rejectedKeys },
+    });
+  }
+  return settings;
+}
+
+/**
+ * The kit the kiosk and the tickets render: the active event's kit with its
+ * settings, or the default kit when there is no event.
+ */
+export async function getKitForDb(db: DB): Promise<ResolvedKit> {
+  const campaign = db
+    .select({
+      id: campaignTable.id,
+      kitId: campaignTable.kitId,
+      kitSettings: campaignTable.kitSettings,
+    })
+    .from(campaignTable)
+    .where(isActiveCampaign)
+    .get();
+  if (!campaign) {
+    return resolveKit(DEFAULT_KIT_ID, {});
+  }
+  return resolveKit(
+    readKitId(campaign),
+    withInstalledFonts(db, readCampaignKitSettings(campaign)),
+  );
 }
 
 /** What a photo receipt takes from the active event, or the defaults. */
@@ -137,6 +187,7 @@ function readCurrentEvent(executor: DbExecutor): CurrentEvent | null {
       id: campaign.id,
       name: campaign.name,
       kitId: readKitId(campaign),
+      kitSettings: readCampaignKitSettings(campaign),
       ticketItemNames: readTicketItemNames(campaign.ticketItemNames),
     },
     lottery: {
@@ -278,7 +329,21 @@ export async function updateEventForDb(
   return writeEvent(db, (tx) => {
     const current = requireCurrentEvent(tx);
     tx.update(campaignTable)
-      .set({ name: input.name, kitId: input.kitId })
+      .set({ name: input.name })
+      .where(eq(campaignTable.id, current.campaign.id))
+      .run();
+  });
+}
+
+/** Sets the event's kit and replaces what it changes on that kit. */
+export async function updateKitSettingsForDb(
+  db: DB,
+  input: UpdateKitSettingsInput,
+): Promise<CurrentEvent> {
+  return writeEvent(db, (tx) => {
+    const current = requireCurrentEvent(tx);
+    tx.update(campaignTable)
+      .set({ kitId: input.kitId, kitSettings: input.settings })
       .where(eq(campaignTable.id, current.campaign.id))
       .run();
   });

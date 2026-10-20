@@ -21,6 +21,8 @@ import { type FC, useMemo } from "react";
 
 import { ElectroniqueLogo } from "#components/svg/ElectroniqueLogo/index";
 import { TartinesLogo } from "#components/svg/TartinesLogo/index";
+import { KitText } from "#kits/KitText/index";
+import { useKitCopy } from "#kits/useKit";
 import { receiptViewerRoute } from "#lib/router/index";
 const RECEIPT_QUANTITY_LABEL = "1x";
 const RECEIPT_QUANTITY_CLASSNAME = clsx(
@@ -52,15 +54,14 @@ const randomPriceSplit = (total: number, count: number): number[] => {
   return extras.map((extra) => minPrice + extra);
 };
 
-interface TartinesReceiptTemplateProps {
+interface TartinesPhotoTicketProps {
   className?: string;
 }
 
-export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
-  props,
-) => {
+export const TartinesPhotoTicket: FC<TartinesPhotoTicketProps> = (props) => {
   const { className } = props;
   const { ticketItems, ticketRef } = receiptViewerRoute.useSearch();
+  const copy = useKitCopy();
   const ticketNumber = ticketRef ? formatBoothTicketNumber(ticketRef) : null;
   const today = new Date();
   const itemNames = ticketItems ?? DEFAULT_TICKET_ITEM_NAMES;
@@ -110,18 +111,22 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
             <p>{format(today, "HH:mm:ss")}</p>
           </div>
           <div className={clsx("flex flex-col items-center")}>
-            <p className={clsx("font-bit text-5xl font-bold")}>
-              Épicerie de Ginette
-            </p>
-            <p className={clsx("font-bit text-4xl italic")}>
-              24 Cr Albert Thomas, 69008 Lyon
-            </p>
+            {copy["photoTicket.venueName"] ? (
+              <p className={clsx("font-bit text-5xl font-bold")}>
+                <KitText text={copy["photoTicket.venueName"]} />
+              </p>
+            ) : null}
+            {copy["photoTicket.venueAddress"] ? (
+              <p className={clsx("font-bit text-4xl italic")}>
+                <KitText text={copy["photoTicket.venueAddress"]} />
+              </p>
+            ) : null}
           </div>
         </div>
         <AsteriskLine />
         <div className={clsx("flex flex-col gap-8")}>
           <p className={clsx("text-center leading-[0.7] font-bold underline")}>
-            ITEMS
+            <KitText text={copy["photoTicket.itemsTitle"]} />
           </p>
           <div className={clsx("flex flex-col gap-4", "font-bold")}>
             {itemNames.map((name, index) => (
@@ -147,7 +152,9 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
             >
               {RECEIPT_QUANTITY_LABEL}
             </span>
-            <p className={clsx("mt-1 leading-[0.7] font-bold")}>TOTAL</p>
+            <p className={clsx("mt-1 leading-[0.7] font-bold")}>
+              <KitText text={copy["photoTicket.totalLabel"]} />
+            </p>
           </div>
           <p className={clsx("font-mono text-2xl font-bold tabular-nums")}>
             {formatPrice(PHOTO_TICKET_TOTAL_CENTS)}
@@ -162,19 +169,29 @@ export const TartinesReceiptTemplate: FC<TartinesReceiptTemplateProps> = (
         </div>
         <AsteriskLine />
         <div className={clsx("flex flex-col items-center")}>
-          <p>Join us on Instagram!</p>
-          <p className={clsx("font-bit text-4xl font-bold")}>@99stud</p>
+          {copy["photoTicket.socialPrompt"] ? (
+            <p>
+              <KitText text={copy["photoTicket.socialPrompt"]} />
+            </p>
+          ) : null}
+          {copy["photoTicket.socialHandle"] ? (
+            <p className={clsx("font-bit text-4xl font-bold")}>
+              <KitText text={copy["photoTicket.socialHandle"]} />
+            </p>
+          ) : null}
         </div>
         <NinetyNineStudQR className={clsx("mx-auto mb-8", "w-1/2")} />
-        <p
-          className={clsx(
-            "mb-4 flex items-center justify-center gap-3 text-4xl font-bold",
-          )}
-        >
-          <Sparkles className="size-8 shrink-0" aria-hidden />
-          Thanks for partying with us!
-          <Sparkles className="size-8 shrink-0" aria-hidden />
-        </p>
+        {copy["photoTicket.thanks"] ? (
+          <p
+            className={clsx(
+              "mb-4 flex items-center justify-center gap-3 text-4xl font-bold",
+            )}
+          >
+            <Sparkles className="size-8 shrink-0" aria-hidden />
+            <KitText text={copy["photoTicket.thanks"]} />
+            <Sparkles className="size-8 shrink-0" aria-hidden />
+          </p>
+        ) : null}
         {ticketNumber ? (
           <p className={clsx("text-center text-3xl font-bold")}>
             {ticketNumber}

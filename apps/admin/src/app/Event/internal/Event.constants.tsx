@@ -1,9 +1,10 @@
+import type { KitId } from "@dither-booth/shared/kits";
 import type { SelectFieldOption } from "@dither-booth/ui/fields/SelectField";
 
-import { capitalize } from "@dither-booth/shared/formatting";
 import {
   DEFAULT_KIT_ID,
   KIT_IDS,
+  KIT_MANIFESTS,
   kitIdSchema,
 } from "@dither-booth/shared/kits";
 import {
@@ -36,7 +37,6 @@ export const CREATE_EVENT_FORM_SCHEMA = z.object({
 
 export const UPDATE_EVENT_FORM_SCHEMA = z.object({
   name: z.string().trim().min(1).max(120),
-  kitId: kitIdSchema,
 });
 
 export const TICKET_ITEMS_FORM_SCHEMA = z.object({
@@ -102,12 +102,12 @@ export const DEFAULT_PRIZE_FORM_VALUES: PrizeFormValues = {
 };
 
 /** The ticket kits this release ships, which decide how receipts look. */
-export const KIT_FIELD_OPTIONS: Array<
-  SelectFieldOption<UpdateEventFormValues["kitId"]>
-> = KIT_IDS.map((kitId) => ({
-  label: capitalize(kitId),
-  value: kitId,
-}));
+export const KIT_FIELD_OPTIONS: Array<SelectFieldOption<KitId>> = KIT_IDS.map(
+  (kitId) => ({
+    label: KIT_MANIFESTS[kitId].label,
+    value: kitId,
+  }),
+);
 
 export const getLotterySettingsFormValues = (event: {
   lottery: LotterySettingsFormValues;
@@ -122,7 +122,6 @@ export const getUpdateEventFormValues = (event: {
   campaign: UpdateEventFormValues;
 }): UpdateEventFormValues => ({
   name: event.campaign.name,
-  kitId: event.campaign.kitId,
 });
 
 export const getTicketItemsFormValues = (event: {

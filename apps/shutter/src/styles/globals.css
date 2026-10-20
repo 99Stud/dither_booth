@@ -2,6 +2,16 @@
 @import "@dither-booth/ui/shadcn.css";
 @import "@dither-booth/ui/theme.css";
 @import "vault66-crt-effect/style.css";
+/*
+ * Kit fonts (BUNDLED_FONTS in @dither-booth/shared/kit-fonts), latin only.
+ * Bundled so the iPad and the Pi's receipt Chromium never fall back to
+ * system fonts, online or not. Geist Mono comes with the UI theme above.
+ */
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-400-italic.css";
+@import "@fontsource/ibm-plex-sans/latin-700.css";
+@import "@fontsource/creepster/latin-400.css";
+@import "@fontsource/special-elite/latin-400.css";
 
 @source "../../../../packages/ui/src";
 
@@ -22,16 +32,20 @@
 }
 
 :root {
+  /*
+   * The default kit's fonts; the Root route sets them from the event's kit
+   * (FONT_ROLE_CSS_VARIABLES), except in the Darkroom.
+   */
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-bit:
-    "PPNeueBit", "IBM Plex Sans", "Geist Mono", ui-monospace, "SFMono-Regular",
-    Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    "PPNeueBit", "IBM Plex Sans", ui-monospace, "SFMono-Regular", Menlo, Monaco,
+    Consolas, "Liberation Mono", monospace;
   --font-mono:
-    "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
+    "Geist Mono Variable", ui-monospace, "SFMono-Regular", Menlo, Monaco,
+    Consolas, "Liberation Mono", monospace;
   --font-heading:
-    "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
+    "Geist Mono Variable", ui-monospace, "SFMono-Regular", Menlo, Monaco,
+    Consolas, "Liberation Mono", monospace;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

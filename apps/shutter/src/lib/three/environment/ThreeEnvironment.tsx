@@ -1,11 +1,24 @@
 import type { Inspector } from "three/addons/inspector/Inspector.js";
+import type { ParametersGroup } from "three/addons/inspector/tabs/Parameters.js";
 
+import {
+  BACKGROUND_IDS,
+  BACKGROUND_PRESETS,
+  POST_PASS_KEYS,
+  type PostPasses,
+} from "@dither-booth/shared/backgrounds";
+
+import type {
+  BackgroundEffect,
+  BackgroundPreset,
+} from "../internal/features/background.types";
 import type { ThreeRuntime } from "../internal/runtime/runtime.types";
 import type { ThreeEnvironmentOptions } from "./ThreeEnvironment.types";
 
 import { createThreeInspector } from "../internal/debug/createThreeInspector";
 import { FluidBackground } from "../internal/features/fluid-background/FluidBackground";
 import { PostProcessingPipeline } from "../internal/features/post-processing/PostProcessing";
+import { SmokeBackground } from "../internal/features/smoke-background/SmokeBackground";
 import { PointerInput } from "../internal/input/PointerInput";
 import { createRenderer } from "../internal/runtime/createRenderer";
 import { createScene } from "../internal/runtime/createScene";
@@ -17,12 +30,22 @@ function getDefaultPixelRatio(): number {
   return Math.min(window.devicePixelRatio || 1, 2);
 }
 
+const samePasses = (a: PostPasses, b: PostPasses) =>
+  POST_PASS_KEYS.every((key) => a[key] === b[key]);
+
 export class ThreeEnvironment {
   private readonly _container: HTMLElement;
   private readonly _runtime: ThreeRuntime;
   private readonly _pointer: PointerInput;
-  private readonly _fluidBackground: FluidBackground;
-  private readonly _postProcessing: PostProcessingPipeline;
+  private _background: BackgroundEffect;
+  private _preset: BackgroundPreset;
+  /** The latest `apply` before `init` finished; applied once it has. */
+  private _pendingPreset: BackgroundPreset | null = null;
+  private _backgroundFolder: ParametersGroup | null = null;
+  private _backgroundDebug: ParametersGroup | null = null;
+  private _postProcessing: PostProcessingPipeline;
+  private _settingsFolder: ParametersGroup | null = null;
+  private _postDebug: ParametersGroup | null = null;
   private readonly _sizeObserver: SizeObserver;
   private readonly _frameLoop: FrameLoop;
   private _intersectionObserver: IntersectionObserver | null = null;
@@ -52,14 +75,15 @@ export class ThreeEnvironment {
     this._container.appendChild(renderer.domElement);
 
     this._pointer = new PointerInput(renderer.domElement);
-    this._fluidBackground = new FluidBackground({
-      options: options.fluidBackground,
-      size,
-      splats: () => this._pointer.drainSplats(),
-    });
-    this._fluidBackground.attach(scene);
+    const preset = options.background ?? BACKGROUND_PRESETS.fluid;
+    this._preset = preset;
+    this._background = this._createBackground(preset);
+    this._background.attach(scene);
 
-    this._postProcessing = new PostProcessingPipeline(options.postProcessing);
+    this._postProcessing = new PostProcessingPipeline(
+      preset.postProcessing,
+      preset.passes,
+    );
     this._frameLoop = new FrameLoop(renderer, (delta) => this._render(delta));
   }
 
@@ -86,7 +110,7 @@ export class ThreeEnvironment {
       return;
     }
 
-    this._fluidBackground.init(renderer);
+    this._background.init(renderer);
 
     await this._postProcessing.setup(
       renderer,
@@ -104,6 +128,65 @@ export class ThreeEnvironment {
     this._attachDebug();
     this._initialized = true;
     this._syncFrameLoop();
+
+    const pending = this._pendingPreset;
+    this._pendingPreset = null;
+    if (pending) this.apply(pending);
+  }
+
+  /**
+   * Shows `preset`, changing as little as it can: new values go straight into
+   * the live uniforms, another shader replaces the current one, and changed
+   * post passes rebuild the post chain (they are part of its node graph).
+   */
+  apply(preset: BackgroundPreset): void {
+    if (this._disposed) return;
+    if (!this._initialized) {
+      this._pendingPreset = preset;
+      return;
+    }
+
+    const previous = this._preset;
+    this._preset = preset;
+
+    if (preset.effect === previous.effect) {
+      this._background.applySettings(preset);
+    } else {
+      this._replaceBackground(preset);
+    }
+
+    if (samePasses(previous.passes, preset.passes)) {
+      this._postProcessing.applySettings(preset.postProcessing);
+    } else {
+      void this._rebuildPostProcessing(preset);
+    }
+  }
+
+  private _replaceBackground(preset: BackgroundPreset): void {
+    const { renderer, scene } = this._runtime;
+    this._background.dispose();
+    this._background = this._createBackground(preset);
+    this._background.attach(scene);
+    this._background.init(renderer);
+    this._attachBackgroundDebug();
+  }
+
+  private async _rebuildPostProcessing(preset: BackgroundPreset) {
+    const { renderer, scene, camera } = this._runtime;
+    const next = new PostProcessingPipeline(
+      preset.postProcessing,
+      preset.passes,
+    );
+    this._postProcessing.dispose();
+    this._postProcessing = next;
+    // A newer rebuild or a dispose makes this one moot.
+    await next.setup(
+      renderer,
+      scene,
+      camera,
+      () => this._disposed || this._postProcessing !== next,
+    );
+    if (this._postProcessing === next) this._attachPostDebug();
   }
 
   start(): void {
@@ -130,7 +213,7 @@ export class ThreeEnvironment {
     // The buffer only: CSS keeps the canvas at the container's size.
     renderer.setSize(size.width, size.height, false);
 
-    this._fluidBackground.resize(size);
+    this._background.resize(size);
     this._postProcessing.resize();
   }
 
@@ -144,7 +227,7 @@ export class ThreeEnvironment {
     this._teardownVisibilityControls();
     this._pointer.dispose();
     this._postProcessing.dispose();
-    this._fluidBackground.dispose();
+    this._background.dispose();
     this._runtime.renderer.dispose();
     this._runtime.renderer.domElement.remove();
   }
@@ -155,17 +238,64 @@ export class ThreeEnvironment {
 
     document.body.appendChild(inspector.domElement);
     const settings = inspector.createParameters("Settings");
-    this._fluidBackground.attachDebug(settings);
-    this._postProcessing.attachDebug(settings);
+    this._settingsFolder = settings;
+    const backgroundFolder = settings.addFolder("Background");
+    backgroundFolder
+      .add({ preset: this._preset.effect }, "preset", [...BACKGROUND_IDS])
+      .name("Preset")
+      .onChange((name: (typeof BACKGROUND_IDS)[number]) => {
+        this.apply(BACKGROUND_PRESETS[name]);
+      });
+    this._backgroundFolder = backgroundFolder;
+    this._attachBackgroundDebug();
+    this._attachPostDebug();
+  }
+
+  private _attachBackgroundDebug(): void {
+    const folder = this._backgroundFolder;
+    if (!folder) return;
+
+    this._backgroundDebug?.paramList.domElement.remove();
+    this._backgroundDebug = folder.addFolder(this._preset.effect);
+    this._background.attachDebug(this._backgroundDebug);
+  }
+
+  private _attachPostDebug(): void {
+    const folder = this._settingsFolder;
+    if (!folder) return;
+
+    this._postDebug?.paramList.domElement.remove();
+    this._postDebug = this._postProcessing.attachDebug(folder);
   }
 
   private _detachInspector(): void {
     this._inspector?.domElement.remove();
     this._inspector = null;
+    this._settingsFolder = null;
+    this._backgroundFolder = null;
+    this._backgroundDebug = null;
+    this._postDebug = null;
+  }
+
+  private _createBackground(preset: BackgroundPreset): BackgroundEffect {
+    const size = this._runtime.size;
+    const splats = () => this._pointer.drainSplats();
+
+    switch (preset.effect) {
+      case "fluid":
+        return new FluidBackground({ settings: preset.settings, size, splats });
+      case "smoke":
+        return new SmokeBackground({ settings: preset.settings, size, splats });
+      default: {
+        // A new background must be wired here before it compiles.
+        const unhandled: never = preset;
+        throw new Error(`Unknown background ${JSON.stringify(unhandled)}`);
+      }
+    }
   }
 
   private _render(delta: number): void {
-    this._fluidBackground.update(delta);
+    this._background.update(delta);
     this._postProcessing.render();
   }
 

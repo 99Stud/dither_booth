@@ -182,6 +182,7 @@ describe("kiosk channel through the router", () => {
       db: createTestDb().db,
       kioskChannel,
     }),
+    db?: TRPCContext["db"],
   ) {
     const unreachable = () => {
       throw new Error("The kiosk channel needs none of this.");
@@ -189,7 +190,7 @@ describe("kiosk channel through the router", () => {
     const context = {
       adminOrigin: ADMIN_ORIGIN,
       allowedHostnames: [],
-      db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
+      db: db ?? (new Proxy({}, { get: unreachable }) as TRPCContext["db"]),
       darkroomAccess: createDarkroomAccessStub(),
       kioskChannel,
       kioskMaintenance,
@@ -235,6 +236,51 @@ describe("kiosk channel through the router", () => {
 
     await iterator.return?.();
     expect(kioskChannel.listPages()).toEqual([]);
+  });
+
+  test("saving the event's kit tells the kiosk to re-read it", async () => {
+    const { db, sqlite } = createTestDb();
+    const kioskChannel = createKioskChannel();
+    const kioskMaintenance = createKioskMaintenance({ db, kioskChannel });
+    const kiosk = createCaller(
+      kioskChannel,
+      "https://192.168.1.10:3000",
+      kioskMaintenance,
+      db,
+    );
+    const admin = createCaller(
+      kioskChannel,
+      ADMIN_ORIGIN,
+      kioskMaintenance,
+      db,
+    );
+
+    try {
+      await admin.config.createEvent({ name: "Halloween" });
+      const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
+      const iterator = commands[Symbol.asyncIterator]();
+      await iterator.next(); // The maintenance snapshot.
+      const received = iterator.next();
+      await Bun.sleep(0);
+
+      const saved = await admin.config.updateKitSettings({
+        kitId: "tartines",
+        settings: { copy: { "landing.start": "Tap to scare" } },
+      });
+
+      expect(saved.delivered).toBe(1);
+      expect((await received).value).toMatchObject({ type: "kit-updated" });
+      expect((await kiosk.booth.getKit()).copy["landing.start"]).toBe(
+        "Tap to scare",
+      );
+      await expect(
+        kiosk.config.updateKitSettings({ kitId: "tartines", settings: {} }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      await iterator.return?.();
+    } finally {
+      sqlite.close();
+    }
   });
 
   test("the admin's navigate reaches the subscribed kiosk page", async () => {

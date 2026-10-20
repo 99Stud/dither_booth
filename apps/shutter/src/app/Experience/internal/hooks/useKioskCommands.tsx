@@ -2,11 +2,13 @@ import type { WebcamHandle } from "@dither-booth/ui/components/misc/Webcam";
 
 import { logKioskEvent } from "@dither-booth/logging";
 import { DARKROOM_PATH } from "@dither-booth/shared/darkroom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type RefObject, useEffect, useState } from "react";
 
 import { SHUTTER_KIOSK_LOG_SOURCE } from "#lib/constants";
 import { useKioskCommandStream } from "#lib/kiosk/useKioskCommandStream";
+import { useTRPC } from "#lib/trpc/trpc.client";
 
 import type { ExperiencePhase } from "../Experience.machine";
 
@@ -34,6 +36,8 @@ export const useKioskCommands = (
   const [maintenance, setMaintenance] = useState<KioskMaintenance>();
   const [isMaintenance, setIsMaintenance] = useState(false);
   const handleCameraCommand = useCameraPreview(webcamRef);
+  const queryClient = useQueryClient();
+  const trpc = useTRPC();
 
   useKioskCommandStream("shutter", isMaintenance, (command) => {
     if (command.type === "maintenance") {
@@ -49,6 +53,14 @@ export const useKioskCommands = (
 
     if (command.type === "camera") {
       handleCameraCommand(command);
+      return;
+    }
+
+    // New copy can show mid-visit: it changes words, never the flow.
+    if (command.type === "kit-updated") {
+      void queryClient.invalidateQueries({
+        queryKey: trpc.booth.getKit.queryKey(),
+      });
       return;
     }
 

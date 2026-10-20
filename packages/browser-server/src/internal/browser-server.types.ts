@@ -56,6 +56,11 @@ export type RunBrowserServerOptions = {
   appRoot: string;
   bindHost: string;
   getTrpcProxyUpstreamPath: (path: string) => string;
+  /**
+   * Extra headers for the app's HTML, chosen per request. Production only:
+   * in development Bun serves the HTML bundle itself.
+   */
+  getDocumentHeaders?: (url: URL) => HeadersInit | undefined;
   healthz: BrowserServerHealthzConfig;
   indexHtml: Bun.HTMLBundle;
   mode: BrowserServerMode;

@@ -21,9 +21,20 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { RootErrorBoundary } from "#app/Root/internal/components/RootErrorBoundary/index";
+import {
+  applyKitFonts,
+  loadKitAssetFonts,
+  waitForKitFonts,
+} from "#kits/kitFonts";
+import { installKitPreview, isKitPreview } from "#kits/kitPreview";
 import { installKioskFullscreen } from "#lib/kiosk-fullscreen";
 import { router } from "#lib/router/index";
-import { TRPCProvider, queryClient, trpcClient } from "#lib/trpc/trpc.client";
+import {
+  TRPCProvider,
+  queryClient,
+  trpc,
+  trpcClient,
+} from "#lib/trpc/trpc.client";
 import { installWebAppManifestLink } from "#lib/web-app-manifest";
 
 import "./styles/globals.css";
@@ -33,7 +44,8 @@ const isDevelopment =
 
 if (typeof document !== "undefined") {
   installWebAppManifestLink();
-  installKioskFullscreen();
+  // Admin's preview is a frame: it never asks for fullscreen.
+  if (!isKitPreview) installKioskFullscreen();
 }
 
 initializeBrowserLogging();
@@ -43,6 +55,8 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
+
+installKitPreview();
 
 installReceiptViewerNavigationBridge({
   isRouteStateCommitted: (options = {}) => {
@@ -72,11 +86,21 @@ installReceiptViewerNavigationBridge({
   },
   navigate: async (options = {}) => {
     const search = buildReceiptViewerSearch(options);
+    // Every ticket prints with the kit as it stands now: this page lives for
+    // the whole event, and an admin save can land between two prints.
+    const kit = await queryClient.fetchQuery({
+      ...trpc.booth.getKit.queryOptions(),
+      staleTime: 0,
+    });
+    applyKitFonts(kit.fonts);
+    await loadKitAssetFonts(kit.fonts);
     // Function form ignores previous params so lottery fields cannot leak/stick.
     await router.navigate({
       to: RECEIPT_VIEWER_PATH,
       search: () => search,
     });
+    // The engine screenshots as soon as this resolves.
+    await waitForKitFonts();
   },
 });
 
