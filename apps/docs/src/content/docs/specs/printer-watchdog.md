@@ -1,4 +1,9 @@
-# Printer watchdog
+---
+title: "Printer watch"
+description: "Spec and hardware findings for the printer watch: ASB measurements, state model, maintenance rules, acceptance criteria."
+sidebar:
+  order: 1
+---
 
 Status: implemented on `feat/printer-watch`, not yet checked on the booth's printer. Basis: measurements on the booth's own printer, listed in [Findings](#findings).
 

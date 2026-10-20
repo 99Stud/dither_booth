@@ -1,4 +1,11 @@
-# Hold the printer's USB connection open and drive its status from Automatic Status Back
+---
+title: "0001 — Persistent printer connection and ASB"
+description: "Hold the printer's USB connection open and drive its status from Automatic Status Back."
+sidebar:
+  order: 2
+---
+
+**Hold the printer's USB connection open and drive its status from Automatic Status Back.**
 
 Status: accepted, 2026-10-19
 
@@ -6,7 +13,7 @@ Status: accepted, 2026-10-19
 
 The engine used to open the TM-T20III for each receipt and close it afterwards, through `@node-escpos/core`. It never read anything back, so a printer out of paper or with its cover open was only discovered when a print failed: a half receipt, then a 20 s hang.
 
-On 2026-10-19 we measured the booth's printer (`docs/specs/printer-watchdog.md`):
+On 2026-10-19 we measured the booth's printer ([Printer watch spec](/docs/specs/printer-watchdog/)):
 
 - Real-time status requests (`DLE EOT`) get no answer while the printer is offline, which is exactly when the cover is open or the paper is out.
 - Automatic Status Back (`GS a`) pushes a status packet within a second of every change, offline included.

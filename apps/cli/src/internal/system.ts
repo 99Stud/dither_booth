@@ -191,7 +191,7 @@ export function detectArch(): SupportedArch | undefined {
   return undefined;
 }
 
-// Best-effort LAN IPv4 detection, matching the README hostname approach.
+// Best-effort LAN IPv4 detection, matching `hostname -I` from the local setup docs.
 export async function detectLanIp(): Promise<string | undefined> {
   const result = await capture(
     ["bash", "-lc", "hostname -I 2>/dev/null | awk '{print $1}'"],

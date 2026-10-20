@@ -1,53 +1,15 @@
 # Dither Booth Admin
 
-Dither Booth Admin is the operator-facing browser app used to configure and manage the kiosk experience. It runs as a Bun-native React app in development and builds to a bundled Bun server for production through the shared browser-server helpers.
-
-## Development
-
-The admin app can be started independently from this directory. For the normal full-project workflow, launch the project from the repository root so Turbo can orchestrate all apps together.
-
-### Start admin app
-
-Development:
+The staff app: Control Center, Event, Settings. Served over HTTPS on port 3002; only its origin may call the engine's `config.*` and `ops.*` procedures.
 
 ```bash
 bun run dev
+bun run build && bun run start
+bun run test
 ```
 
-Production:
+Documentation, in `apps/docs`:
 
-```bash
-bun run build
-bun run start
-```
-
-### Build production server
-
-```bash
-bun run build
-```
-
-### Check code quality
-
-```bash
-bun run lint
-bun run format
-bun run check-types
-```
-
-Use safe fix commands when formatting or lint rules can be applied automatically:
-
-```bash
-bun run lint:fix
-bun run format:fix
-```
-
-## Infrastructure
-
-Development serves `src/index.html` and raw TypeScript entrypoints through Bun HTML imports with hot reloading.
-
-Production builds `src/production-entry.ts` into `dist/server.js`; that entry sets the app root as cwd before loading `src/production-server.ts`. Bun emits optimized HTML and hashed build assets into `dist`.
-
-The production server runs `dist/server.js`, serves static manifest routes over HTTPS, uses immutable cache headers for hashed build assets, and uses conservative cache headers for copied `public/` assets.
-
-The server uses the shared local TLS certificate, proxies `/engine/trpc` to the engine over loopback, and keeps SPA fallback behavior aligned with the shutter app.
+- [Run the event](../docs/src/content/docs/venue/run-the-event.mdx)
+- [Health checks](../docs/src/content/docs/maintenance/health-checks.mdx)
+- [Access control](../docs/src/content/docs/architecture/access-control.md)
