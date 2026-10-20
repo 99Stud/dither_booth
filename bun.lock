@@ -187,6 +187,17 @@
         "@dither-booth/typescript-config": "workspace:*",
       },
     },
+    "packages/protocol": {
+      "name": "@dither-booth/protocol",
+      "dependencies": {
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "@dither-booth/shared": "workspace:*",
+        "@dither-booth/typescript-config": "workspace:*",
+        "@types/bun": "1.3.14",
+      },
+    },
     "packages/shared": {
       "name": "@dither-booth/shared",
       "dependencies": {
@@ -396,6 +407,8 @@
     "@dither-booth/logging": ["@dither-booth/logging@workspace:packages/logging"],
 
     "@dither-booth/ports": ["@dither-booth/ports@workspace:packages/ports"],
+
+    "@dither-booth/protocol": ["@dither-booth/protocol@workspace:packages/protocol"],
 
     "@dither-booth/shared": ["@dither-booth/shared@workspace:packages/shared"],
 

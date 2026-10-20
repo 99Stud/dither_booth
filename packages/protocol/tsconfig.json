@@ -1,0 +1,4 @@
+{
+  "extends": "@dither-booth/typescript-config/base.json",
+  "files": []
+}

@@ -75,6 +75,12 @@ _Avoid_: pause, offline, down.
 **Printer watch**: the engine keeping the printer connected and listening to its status for as long as it runs.
 _Avoid_: watchdog (in staff-facing text).
 
+## The cloud
+
+**Hub**: the cloud side (Supabase, in the EU) that booths report to and staff are alerted from. The booth never depends on it to run an event.
+
+**Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions and its maintenance state. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
+
 ## Connecting devices
 
 **Setup page**: the plain-HTTP page (port `3003`) where a device trusts the booth once, then opens the Shutter. It knows whether the device already trusts the booth.

@@ -1,0 +1,9 @@
+{
+  "extends": "@dither-booth/typescript-config/base.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "WebWorker"],
+    "types": []
+  },
+  "include": ["src/isomorphic/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}
