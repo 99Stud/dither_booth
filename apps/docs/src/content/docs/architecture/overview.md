@@ -104,6 +104,7 @@ A NetworkManager dispatcher hook (`/etc/NetworkManager/dispatcher.d/90-ditherboo
 | `apps/cli`                | `booth` provisioning CLI                                                                            |
 | `apps/docs`               | This site                                                                                           |
 | `packages/shared`         | Types, schemas and helpers shared across apps, split by runtime (`isomorphic`, `browser`, `server`) |
+| `packages/protocol`       | What a booth and the Hub say to each other: runtime-agnostic schemas, read by Bun and by Deno       |
 | `packages/ports`          | Ports, bind hosts, origins, TLS manifest                                                            |
 | `packages/browser-server` | The Bun HTTPS server both web apps are built on                                                     |
 | `packages/logging`        | Structured logging                                                                                  |
