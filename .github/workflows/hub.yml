@@ -63,12 +63,13 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          deno-version: 2.9.0
 
+      # --frozen: the committed deno.lock is the truth, as bun.lock is.
       - name: Typecheck the heartbeat function
         working-directory: supabase/functions
-        run: deno check --config heartbeat/deno.json heartbeat/index.ts
+        run: deno check --frozen --config heartbeat/deno.json heartbeat/index.ts
 
       - name: Test the heartbeat function
         working-directory: supabase/functions
-        run: deno test --config heartbeat/deno.json heartbeat/
+        run: deno test --frozen --config heartbeat/deno.json heartbeat/

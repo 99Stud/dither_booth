@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 import { type BoothAuth, handleHeartbeat } from "./handler.ts";
 
@@ -11,7 +12,10 @@ const supabase = createClient(
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const boothIdSchema = z.uuid();
+
+/** What evaluate_heartbeat raises for a booth the Hub doesn't have. */
+const UNKNOWN_BOOTH = "P0002";
 
 Deno.serve((req) =>
   handleHeartbeat(req, {
@@ -23,9 +27,8 @@ Deno.serve((req) =>
       // app_metadata can only be set by the Hub. user_metadata, which the
       // user can edit, is never read.
       const boothId = data.user.app_metadata?.booth_id;
-      return typeof boothId === "string" && UUID.test(boothId)
-        ? { boothId }
-        : "not-a-booth";
+      const parsed = boothIdSchema.safeParse(boothId);
+      return parsed.success ? { boothId: parsed.data } : "not-a-booth";
     },
 
     async evaluate(boothId, heartbeat) {
@@ -33,7 +36,7 @@ Deno.serve((req) =>
         p_booth_id: boothId,
         p_heartbeat: heartbeat,
       });
-      if (error?.code === "P0002") return "unknown-booth";
+      if (error?.code === UNKNOWN_BOOTH) return "unknown-booth";
       if (error) throw error;
       return "ok";
     },

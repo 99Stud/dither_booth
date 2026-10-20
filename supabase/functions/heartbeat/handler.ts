@@ -2,7 +2,7 @@ import {
   type Heartbeat,
   heartbeatSchema,
   PROTOCOL_VERSION,
-} from "../../../packages/protocol/src/isomorphic/heartbeat.ts";
+} from "@dither-booth/protocol/heartbeat";
 
 /** Who a bearer token is: a booth, a valid user who isn't one, or no one. */
 export type BoothAuth = { boothId: string } | "invalid-token" | "not-a-booth";

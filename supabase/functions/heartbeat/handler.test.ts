@@ -1,7 +1,7 @@
+import { type Heartbeat } from "@dither-booth/protocol/heartbeat";
+import { HEARTBEAT_FIXTURES } from "@dither-booth/protocol/heartbeat.fixtures";
 import { assertEquals } from "@std/assert";
 
-import { HEARTBEAT_FIXTURES } from "../../../packages/protocol/src/isomorphic/heartbeat.fixtures.ts";
-import { type Heartbeat } from "../../../packages/protocol/src/isomorphic/heartbeat.ts";
 import { type BoothAuth, handleHeartbeat } from "./handler.ts";
 
 const BOOTH = "a0a0a0a0-0000-0000-0000-0000000000a0";
