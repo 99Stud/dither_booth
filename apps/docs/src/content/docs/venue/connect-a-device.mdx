@@ -1,0 +1,65 @@
+---
+title: Connect a device
+description: Trust the booth once on an iPad, phone or laptop, then lock the iPad in kiosk mode.
+sidebar:
+  order: 4
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The Shutter and admin are served over **HTTPS** with the booth's own certificate authority. Safari only gives a page the camera over HTTPS from a trusted origin, so each device trusts the booth **once**. After that, moving to another venue changes nothing on the device: the booth issues itself a new certificate from the same CA.
+
+## Trust the booth on an iPad or iPhone
+
+Open the **setup page** from a setup ticket's QR (or the setup link in admin's Control Center). The page detects whether the device already trusts the booth; if it does, it shows **Open the Shutter** straight away.
+
+<Steps>
+
+1. **Use Safari.** The certificate profile can only be installed from Safari; the page says so if you opened it in another browser.
+
+2. **Download the certificate** from the page and allow the profile download.
+
+3. **Install it**: **Settings → General → VPN & Device Management** → the Dither Booth profile → **Install**.
+
+4. **Turn on full trust**: **Settings → General → About → Certificate Trust Settings** → enable full trust for the **mkcert** root certificate.
+
+5. **Back on the setup page, tap Check again.** It now shows **Open the Shutter**, plus links to the Darkroom and admin.
+
+</Steps>
+
+<Aside type="note" title="What exactly is installed">
+  The page serves the **public** root certificate of the booth's mkcert CA,
+  never its private key. A device that trusts it accepts certificates signed by
+  this one booth's CA, and nothing else.
+</Aside>
+
+<Aside type="caution" title="When every iPad must trust again">
+  Re-issuing the certificate for a new IP keeps the CA. A **new CA** — a
+  reinstalled mkcert, a reflashed SD card, a new Pi — un-trusts every device.
+  Each one goes through these steps again. See [TLS and device
+  trust](/docs/architecture/tls-and-trust/).
+</Aside>
+
+## Kiosk mode
+
+### Add the Shutter to the Home Screen
+
+From the Shutter in Safari: **Share → Add to Home Screen**. The icon opens the Shutter full screen without Safari's address bar. Make it from the `https://<hostname>.local:3000` link the setup page prefers: that name stays the same at every venue, so the icon keeps working.
+
+### Guided Access
+
+Guided Access locks the iPad to one app and disables the Home gesture.
+
+1. Once: **Settings → Accessibility → Guided Access** → on, set a passcode. Turn on **Accessibility Shortcut** for Guided Access.
+2. Open the Shutter from its Home Screen icon.
+3. Triple-click the top (or Home) button → **Start**.
+4. To leave: triple-click and enter the passcode.
+
+Also worth setting on the booth iPad: **Display & Brightness → Auto-Lock → Never**, and keep it on its charger.
+
+## Admin on a phone or laptop
+
+- **Phone or tablet:** trust the booth exactly as above, then use the **admin** link on the setup page (`https://<booth>:3002`).
+- **Mac or PC:** over SSH, `booth cert copy` prints an `scp` command that copies the root CA (`rootCA.pem`) to your computer. Import it into the system keychain (macOS: Keychain Access → System → set to **Always Trust**) or the browser's certificate store.
+
+The admin only accepts requests from its own origin, and Darkroom-only actions need the PIN; see [Access control](/docs/architecture/access-control/).

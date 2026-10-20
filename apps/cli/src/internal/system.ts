@@ -9,6 +9,8 @@ export type RunOptions = {
   cwd?: string;
   env?: Record<string, string | undefined>;
   allowFailure?: boolean;
+  /** Written to the command's stdin; without it, stdin is closed. */
+  input?: string;
 };
 
 export type RunResult = {
@@ -88,13 +90,13 @@ export async function capture(
   command: string[],
   options: RunOptions = {},
 ): Promise<RunResult> {
-  let proc: Bun.Subprocess<"ignore", "pipe", "pipe">;
+  let proc: Bun.Subprocess<"ignore" | Blob, "pipe", "pipe">;
 
   try {
     proc = Bun.spawn(command, {
       cwd: options.cwd,
       env: options.env ? { ...process.env, ...options.env } : process.env,
-      stdin: "ignore",
+      stdin: options.input === undefined ? "ignore" : new Blob([options.input]),
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -189,7 +191,7 @@ export function detectArch(): SupportedArch | undefined {
   return undefined;
 }
 
-// Best-effort LAN IPv4 detection, matching the README hostname approach.
+// Best-effort LAN IPv4 detection, matching `hostname -I` from the local setup docs.
 export async function detectLanIp(): Promise<string | undefined> {
   const result = await capture(
     ["bash", "-lc", "hostname -I 2>/dev/null | awk '{print $1}'"],

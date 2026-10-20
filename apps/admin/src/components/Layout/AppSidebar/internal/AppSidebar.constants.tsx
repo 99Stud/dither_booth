@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
-import { Gauge, Settings, Ticket } from "lucide-react";
+import { BookOpen, Gauge, Settings, Ticket } from "lucide-react";
 
+import { DOCS_PATH } from "#lib/docs/docs.constants";
 import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
 type AppNavLink = {
@@ -18,6 +19,13 @@ export const APP_SETTINGS_LINK: AppNavLink = {
   shortLabel: "Settings",
   path: ROUTES_CONFIG.get("settings")!.path,
   icon: <Settings />,
+};
+
+/** The docs site, served by the admin server outside the SPA: a plain link. */
+export const APP_DOCS_LINK = {
+  label: "Docs",
+  href: DOCS_PATH,
+  icon: <BookOpen />,
 };
 
 export const APP_SIDEBAR_MENU_LINKS: AppNavLink[] = [

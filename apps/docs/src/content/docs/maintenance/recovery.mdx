@@ -1,0 +1,87 @@
+---
+title: Backup and recovery
+description: Back up the database, re-issue certificates, reset the network, and rebuild a booth from scratch.
+sidebar:
+  order: 6
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+## What is worth keeping
+
+| Data                     | Where                                                                    | Lose it and…                                                                        |
+| ------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| **Database**             | `/mnt/ssd/dither-booth/data/dither-booth.sqlite`                         | Events, prizes, stock history, draws, print settings and the Darkroom PIN are gone. |
+| **Booth CA**             | mkcert's CAROOT for the service user (`booth cert copy` prints its path) | Every iPad has to trust the booth again.                                            |
+| **Saved Wi-Fi networks** | NetworkManager, `/etc/NetworkManager/system-connections/`                | Re-enter them in admin.                                                             |
+| Everything else          | Rebuilt by `booth install`                                               | —                                                                                   |
+
+## Back up the database
+
+SQLite must be copied consistently. With the service running, use SQLite's own backup:
+
+```bash
+sqlite3 /mnt/ssd/dither-booth/data/dither-booth.sqlite \
+  ".backup '/mnt/ssd/dither-booth/backup-$(date +%F).sqlite'"
+```
+
+If `sqlite3` isn't installed (`sudo apt install sqlite3`), stop the service and copy the file:
+
+```bash
+sudo systemctl stop ditherbooth.service
+cp /mnt/ssd/dither-booth/data/dither-booth.sqlite* ~/
+sudo systemctl start ditherbooth.service
+```
+
+Copy backups off the booth (`scp pi@booth.local:…`). Back up before every update that ships a migration and after every event.
+
+To restore: stop the service, put the file back at the same path (owned by `pi`), start the service.
+
+## Back up the booth CA
+
+```bash
+booth cert copy   # prints the scp command for rootCA.pem
+```
+
+The public `rootCA.pem` is enough to make devices trust the booth. To **keep** the same CA on a rebuilt booth, you also need the private `rootCA-key.pem` from the same CAROOT directory. Treat that key as a secret: whoever holds it can issue certificates every booth-trusting iPad accepts. Store it encrypted, or accept re-trusting iPads after a rebuild.
+
+## Re-issue the certificate
+
+The service does this at every start when the IP changed. By hand:
+
+```bash
+booth cert --if-changed   # only if the IP changed, keeps the CA
+booth cert generate       # always, for the auto-detected LAN IP
+booth cert generate 192.168.1.42
+sudo systemctl restart ditherbooth.service
+```
+
+The certificate covers the LAN IP, `<hostname>` and `<hostname>.local`, and the booth Wi-Fi's `10.42.0.1`. A **hostname change** needs a new certificate.
+
+## Reset the network setup
+
+```bash
+sudo booth network setup
+```
+
+Rewrites the polkit rule, the captive page DNS, the network watch unit, and restarts the watch. It keeps the booth Wi-Fi's name and password. To get a new booth Wi-Fi password, delete the profile first:
+
+```bash
+sudo nmcli connection delete booth-hotspot
+sudo booth network setup
+```
+
+To leave the booth Wi-Fi that staff chose to run on, turn it off in the Darkroom, or `sudo rm /var/lib/ditherbooth/prefer-hotspot`.
+
+## Rebuild a booth from scratch
+
+1. Back up the database (and the CA key if you keep it).
+2. Reflash the SD card ([Flash and first boot](/docs/build/flash-and-first-boot/)). The NVMe keeps its data; **don't re-partition it** if you want the database back.
+3. `sudo booth install`. It mounts the existing ext4 partition and links the data directory to it.
+4. If you restored the CA key into CAROOT before `booth cert`, iPads keep trusting the booth. Otherwise, trust again on each device.
+5. `booth doctor`, a test print, a visit.
+
+<Aside type="caution">
+  `booth install` on a fresh SD card creates a **new CA** unless you restore the
+  old one first. Plan the iPad re-trust before an event, not during it.
+</Aside>

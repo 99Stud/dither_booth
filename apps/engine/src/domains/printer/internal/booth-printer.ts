@@ -4,6 +4,7 @@ import { EventEmitter, on } from "node:events";
 
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 
+import type { PrintJobContent } from "./printer.escpos";
 import type {
   PrinterCondition,
   PrinterHistoryEntry,
@@ -14,7 +15,7 @@ import { createAsbParser, decodeAsb } from "./printer.asb";
 import { PRINTER_FLUSH_TIMEOUT_MS } from "./printer.constants";
 import {
   DLE_DC4_CLEAR_BUFFERS,
-  frameRasterJob,
+  framePrintJob,
   GS_A_OFF,
   GS_A_ON,
 } from "./printer.escpos";
@@ -60,7 +61,7 @@ const defaultLog: PrinterLog = (level, event, details) =>
 /**
  * The receipt printer, watched for as long as the engine runs: it holds the
  * USB connection open, keeps Automatic Status Back on, and prints through
- * the same connection. Why it works this way: docs/specs/printer-watchdog.md.
+ * the same connection. Why it works this way: apps/docs/src/content/docs/specs/printer-watchdog.md.
  */
 export type BoothPrinter = {
   start: () => void;
@@ -72,14 +73,15 @@ export type BoothPrinter = {
   /** In-process listener for every change. Returns the unsubscribe. */
   subscribe: (listener: (status: PrinterStatus) => void) => () => void;
   /**
-   * Prints one receipt, one job at a time. Rejects with
+   * Prints one job, one at a time. Rejects with
    * `PrinterUnavailableError` when the printer can't take it, or when it
    * faults mid-job. `enforceStatus: false` only refuses a printer that isn't
-   * connected: the escape hatch for a sensor that misbehaves.
+   * connected: the escape hatch for a sensor that misbehaves. `content` is
+   * `"raster"` (a receipt) unless the job is an ESC/POS text ticket.
    */
   print: (
-    raster: Buffer,
-    options?: { enforceStatus?: boolean },
+    body: Buffer,
+    options?: { content?: PrintJobContent; enforceStatus?: boolean },
   ) => Promise<void>;
 };
 
@@ -277,7 +279,13 @@ export function createBoothPrinter({
     }
   }
 
-  async function runJob(raster: Buffer, enforceStatus: boolean) {
+  async function runJob(
+    body: Buffer,
+    {
+      content,
+      enforceStatus,
+    }: { content: PrintJobContent; enforceStatus: boolean },
+  ) {
     const current = link;
     const { canPrint, conditions } = status;
 
@@ -294,7 +302,7 @@ export function createBoothPrinter({
 
     const bytes = Buffer.concat([
       ...(needsBufferClear ? [DLE_DC4_CLEAR_BUFFERS] : []),
-      frameRasterJob(raster, { asb: true }),
+      framePrintJob(body, { asb: true, content }),
     ]);
     const controller = new AbortController();
     const stall = setTimeout(
@@ -343,8 +351,8 @@ export function createBoothPrinter({
 
   return {
     getStatus: () => status,
-    print(raster, { enforceStatus = true } = {}) {
-      const job = queue.then(() => runJob(raster, enforceStatus));
+    print(body, { content = "raster", enforceStatus = true } = {}) {
+      const job = queue.then(() => runJob(body, { content, enforceStatus }));
       queue = job.catch(() => {});
       return job;
     },

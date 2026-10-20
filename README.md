@@ -1,220 +1,48 @@
 # Dither Booth
 
-Dither Booth is a physical kiosk system composed of three primary hardware components: a Raspberry Pi that hosts the backend services, a receipt printer for output generation, and an iPad that serves as the user interaction surface.
-
-The software stack is also split into three main applications: a shutter app running on the iPad as the primary user-facing interface, an admin app used by operators to configure and manage the experience, and an engine that mediates communication between the web and admin clients and the receipt printer.
+A self-service photo booth that dithers each portrait and prints it on a thermal receipt, with a lottery ticket on the side. A Raspberry Pi runs everything, an Epson TM-T20III prints, and an iPad is the guest screen.
 
 ## Documentation
 
-- [Shutter app](apps/shutter/README.md): iPad-facing kiosk app commands and infrastructure notes.
-- [Admin app](apps/admin/README.md): operator app commands and infrastructure notes.
-- [Engine](apps/engine/README.md): backend service, database management, and local HTTPS helper commands.
-- [CLI](apps/cli/README.md): `booth` provisioning CLI for installing and managing the Raspberry Pi.
-- [Raspberry Pi setup](docs/raspberry-pi-setup.md): hardware guide, from the parts list and assembly to a booth that prints.
+Everything lives in the docs site, `apps/docs`: the venue field guide, maintenance runbooks, the build guide, how each part works, and the reference.
 
-## Provisioning CLI
+On a booth, admin serves them at `https://<hostname>.local:3002/docs/` (sidebar → **Docs**, or Settings → **Docs**), offline. Locally:
 
-For first-time Raspberry Pi setup, the `booth` CLI automates the manual steps below (Bun install, dependencies, SSD mount, database, certificate, and a systemd service). It is a standalone binary, so the Pi needs no runtime installed in advance:
+```bash
+bun install
+bun run docs:dev     # http://localhost:4321/docs/
+```
+
+Or read the pages directly in [`apps/docs/src/content/docs/`](apps/docs/src/content/docs/):
+
+- [Venue checklist](apps/docs/src/content/docs/venue/checklist.mdx) and [Wi-Fi at a venue](apps/docs/src/content/docs/venue/wifi.mdx)
+- [Troubleshooting](apps/docs/src/content/docs/maintenance/troubleshooting.md)
+- [Build a booth](apps/docs/src/content/docs/build/parts-and-assembly.mdx)
+- [System overview](apps/docs/src/content/docs/architecture/overview.md)
+- [Local setup](apps/docs/src/content/docs/development/local-setup.mdx)
+
+## Quick start
+
+On a booth Pi:
 
 ```bash
 curl -fsSL https://github.com/99Stud/dither_booth/releases/latest/download/install.sh | sudo bash
 sudo booth install
 ```
 
-Before running it, assemble and flash the Pi with the [Raspberry Pi setup guide](docs/raspberry-pi-setup.md). See the [CLI README](apps/cli/README.md) for all commands and options. The rest of this document describes the manual setup the CLI performs.
-
-## Bun
-
-To improve server performance and memory usage on low end devices like the Raspberry Pi, this project uses Bun.
-
-Bun is a fast, all-in-one JavaScript, TypeScript & JSX toolkit. It has a fast JavaScript runtime, bundler, test runner, and package manager built in.
-
-Follow the [`bun` official installation instructions](https://bun.com/docs/installation), then verify `bun` is available in your shell :
-
-```bash
-bun -v
-```
-
-## First local HTTPS Setup
-
-This project serves the shutter and admin browser apps over HTTPS by default so camera access and same-origin API calls work from local network devices. No custom hostname, hosts file, or local DNS server is required.
-
-Default local URLs:
-
-- Shutter: `https://<SERVER_LAN_IP>:3000`
-- Admin: `https://<SERVER_LAN_IP>:3002`
-
-Both apps use the same local TLS certificate and proxy `/engine/trpc` to the engine over loopback.
-
-### 1. Install dependencies
+On a laptop:
 
 ```bash
 bun install
-```
-
-#### Reinstall Puppeteer Chrome
-
-During the first installation, Puppeteer downloads the Chrome binary to an external location. After a fresh install, reinstall Chrome in the Puppeteer Cache folder from the repository root:
-
-```bash
-bun run reinstall-puppeteer
-```
-
-### 2. Set up database
-
-From the repository root, apply all the migrations to the local SQLite database:
-
-```bash
 bun run --filter @dither-booth/engine db:migrate
-```
-
-Optionally seed a local lottery + sample prizes for Experience testing:
-
-```bash
-bun run --filter @dither-booth/engine db:seed:lottery
-```
-
-See the [engine README](apps/engine/README.md) for details about the database management.
-
-Each event picks its receipt kit (`campaign.kit_id`). Adding a kit to `KIT_IDS` in `packages/shared/src/isomorphic/kits.ts` needs no DB migration. See the [engine README](apps/engine/README.md#kits).
-
-### 3. Install mkcert
-
-Follow the [`mkcert` install instructions](https://github.com/FiloSottile/mkcert), then make sure `mkcert` is available in your shell.
-
-### 4. Find server LAN IP
-
-Use IP address that other devices on same Wi-Fi/LAN use to reach machine running app. On macOS, one quick option is:
-
-```bash
-ipconfig getifaddr en0
-```
-
-For mobile hotspot :
-
-```bash
-ifconfig en0 | awk '$1 == "inet" { print $2; exit }'
-```
-
-If that returns nothing, try `en1` instead. On Linux or Raspberry Pi, one quick option is:
-
-```bash
-hostname -I | awk '{print $1}'
-```
-
-Use IPv4 address from your active network interface, for example `192.168.1.42`. Do not use `127.0.0.1` or `localhost`.
-
-### 5. Generate local certificate
-
-Run this from repo root:
-
-```bash
-bun run --filter @dither-booth/engine cert:generate 192.168.1.42
-```
-
-This writes:
-
-- `.local/tls/booth-cert.pem`
-- `.local/tls/booth-key.pem`
-- `.local/tls/booth-manifest.json`
-
-`booth-manifest.json` stores current public IP and the mkcert root CA path. It becomes the runtime source of truth for HTTPS origins and intra-apps fetch TLS configuration.
-
-### 6. Trust mkcert root CA on client devices
-
-Run this on the machine where certificates was generated:
-
-```bash
-bun run --filter @dither-booth/engine cert:caroot
-```
-
-Copy `rootCA.pem` from that directory to each client device and trust it in the OS/browser certificate store. Without this step, browsers may reject the certificate and camera access will stay blocked.
-
-Browser traffic stays same-origin and both browser app servers proxy `/engine/trpc` to the engine over loopback, so client devices only need to trust the shared booth certificate.
-
-### 7. Start apps
-
-Development:
-
-```bash
+bun run --filter @dither-booth/engine cert:generate <LAN_IP>
 bun run dev
 ```
 
-Production:
+## Checks
 
 ```bash
-bun run build
-bun run start
+bun run format && bun run lint && bun run check-types && bun run test && bun run build
 ```
 
-Production with PM2:
-
-```bash
-bun run build
-bun run pm2:start
-bun run pm2:list
-```
-
-PM2 starts the already-built `dist/server.js` entry for each app. Use `bun run pm2:reload` after a new build, `bun run pm2:logs` to inspect process logs, and `bun run pm2:stop` to stop the managed apps. On the booth, systemd starts that same PM2 daemon from `pm2.config.js` and stops it with `pm2 kill`. PM2 restarts the apps. Do not also run `bun run start`.
-
-Health checks:
-
-```bash
-curl http://127.0.0.1:3001/healthz
-curl -k https://<SERVER_LAN_IP>:3000/healthz
-curl -k https://<SERVER_LAN_IP>:3002/healthz
-```
-
-Then open:
-
-- Shutter: `https://<SERVER_LAN_IP>:3000` unless you changed `SHUTTER_PORT`
-- Admin: `https://<SERVER_LAN_IP>:3002` unless you changed `ADMIN_PORT`
-- Or via machine hostname: `https://<hostname>.local:3000` / `:3002` (included in the cert SANs and origin allowlist at generate time). Regenerate the cert if the machine hostname changes.
-
-### 8. Verify setup
-
-- Startup logs should show the shutter and admin HTTPS origins you expect to open.
-- `.local/tls/booth-manifest.json` should show current `publicIp`.
-- iPad should load both the admin and shutter apps.
-
-## Regenerate Or Clean Up
-
-If LAN IP changes:
-
-```bash
-bun run --filter @dither-booth/engine cert:generate <NEW_LAN_IP>
-```
-
-If local TLS files get stale or you want to reset setup:
-
-```bash
-bun run --filter @dither-booth/engine cert:clean
-```
-
-`cert:clean` removes generated cert, key, and manifest. It does not remove mkcert root CA from your machine.
-
-## Environment Overrides
-
-Defaults live in:
-
-- `apps/shutter/.env.example`
-- `apps/admin/.env.example`
-- `apps/engine/.env.example`
-
-Most setups can keep defaults. Override only if you need different ports. Each app has its own env example with only the variables that app uses.
-
-## Checks and CI
-
-Every pull request and every push to `main` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml). It runs the same commands you can run locally from the repository root:
-
-```bash
-bun run format       # oxfmt --check (fix with bun run format:fix)
-bun run lint         # oxlint (fix with bun run lint:fix)
-bun run check-types  # tsc in every package, through Turbo
-bun run test         # bun test --isolate in every package that has tests, through Turbo
-bun run build        # production builds of shutter, admin and engine
-```
-
-The Bun version is pinned once, in the root `package.json` `packageManager` field. CI and the release workflow both read it, and local runs should use the same version (`bun upgrade` to match).
-
-Tests run with `--isolate`, so each test file gets a fresh global object and module registry. A `mock.module()` in one file can't leak into another file, whatever order the runner picks. Bun versions before 1.3.14 ignore the flag silently.
+Every change that adds or changes behaviour updates the docs in the same pull request. See [Writing these docs](apps/docs/src/content/docs/development/documentation.md).

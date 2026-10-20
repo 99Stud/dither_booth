@@ -44,3 +44,5 @@ logs/pm2/*.log
 # Temporary files
 temp
 apps/engine/tmp/
+# Astro
+.astro

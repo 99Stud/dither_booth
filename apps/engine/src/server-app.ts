@@ -1,6 +1,7 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
 import {
   getAdminOrigin,
+  getSetupServerTokenPath,
   getPort,
   getWebTlsHostnames,
 } from "@dither-booth/ports";
@@ -9,16 +10,26 @@ import {
   ENGINE_HEALTHZ_SERVICE,
   createHealthzPayload,
 } from "@dither-booth/shared/healthz";
+import { SETUP_SERVER_TOKEN_HEADER } from "@dither-booth/shared/server/network";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
 import {
   createHTTPHandler,
   type CreateHTTPContextOptions,
 } from "@trpc/server/adapters/standalone";
 import http from "node:http";
+import { resolve } from "node:path";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { createSetupServerAccess } from "#domains/captive/captive.service";
 import { createDarkroomAccess } from "#domains/darkroom/darkroom.service";
+import {
+  BOOT_ID_PATH,
+  DEVICE_SETUP_LOG_SOURCE,
+  SETUP_TICKET_KEY_PATH,
+  createSetupTicketAutoPrint,
+  getCurrentSetupTicket,
+} from "#domains/device-setup/device-setup.service";
 import {
   CAMERA_PREVIEW_ICE_SERVERS,
   CAMERA_PREVIEW_MAX_DURATION_MS,
@@ -27,6 +38,11 @@ import {
   createKioskChannel,
   createKioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
+import {
+  defaultLater,
+  runNmcli,
+  type NetworkDeps,
+} from "#domains/network/network.service";
 import {
   createBoothPrinter,
   createPrinterMaintenancePolicy,
@@ -124,10 +140,45 @@ export async function runEngineServer(options: {
     maxDurationMs: CAMERA_PREVIEW_MAX_DURATION_MS,
   });
   const darkroomAccess = createDarkroomAccess({ db });
+  const setupServerAccess = await createSetupServerAccess(
+    getSetupServerTokenPath({ repoRoot: ENGINE_REPO_ROOT }),
+  );
+  const logDeviceSetup = (
+    level: "info" | "warn" | "error",
+    event: string,
+    details?: Record<string, unknown>,
+  ) => {
+    logKioskEvent(level, DEVICE_SETUP_LOG_SOURCE, event, { details });
+  };
+  const network: NetworkDeps = {
+    later: defaultLater,
+    nmcli: runNmcli,
+    onJoinFailed: async (failure) => {
+      logDeviceSetup("warn", "wifi-join-failed", failure);
+      const ticket = await getCurrentSetupTicket(network, {
+        boothWifiNext: failure.backOnBoothWifi,
+        notice: `Couldn't join ${failure.ssid}: ${failure.reason}`,
+        repoRoot: ENGINE_REPO_ROOT,
+      });
+      if (!ticket) return;
+      await setupTicketAutoPrint.printNow(ticket).catch(() => {
+        logDeviceSetup("warn", "wifi-join-failed-ticket-not-printed");
+      });
+    },
+  };
+  const setupTicketAutoPrint = createSetupTicketAutoPrint({
+    bootIdPath: BOOT_ID_PATH,
+    getTicket: () =>
+      getCurrentSetupTicket(network, { repoRoot: ENGINE_REPO_ROOT }),
+    keyPath: resolve(ENGINE_REPO_ROOT, SETUP_TICKET_KEY_PATH),
+    log: logDeviceSetup,
+    printer,
+  });
 
   const createContext = ({ req }: CreateHTTPContextOptions): TRPCContext => {
     const { page, state: puppeteerState } = puppeteerLifecycle.getCurrent();
     const darkroomToken = req.headers[DARKROOM_TOKEN_HEADER];
+    const setupServerToken = req.headers[SETUP_SERVER_TOKEN_HEADER];
 
     return {
       adminOrigin,
@@ -142,10 +193,14 @@ export async function runEngineServer(options: {
       kioskMaintenance,
       cameraPreview,
       mode: options.mode,
+      network,
       processManager,
       puppeteerLifecycle,
       puppeteerState,
       requestOrigin: req.headers.origin,
+      setupServerAccess,
+      setupServerToken:
+        typeof setupServerToken === "string" ? setupServerToken : undefined,
     };
   };
 
@@ -233,6 +288,10 @@ export async function runEngineServer(options: {
   await puppeteerLifecycle.initialize();
   printer.start();
   if (!receiptPrintDryRun) printerMaintenance.start();
+  // A booth plugged in at a venue prints the way in; a laptop doesn't.
+  if (options.mode === "production" && !receiptPrintDryRun) {
+    setupTicketAutoPrint.start();
+  }
 
   let closePromise: Promise<void> | undefined;
 
@@ -270,6 +329,7 @@ export async function runEngineServer(options: {
       await closeResource("http-server", () => closeHttpServer(server));
       await closeResource("browser", () => puppeteerLifecycle.close());
       await closeResource("printer", async () => {
+        setupTicketAutoPrint.stop();
         printerMaintenance.stop();
         await printer.stop();
       });

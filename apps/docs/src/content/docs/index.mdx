@@ -1,0 +1,62 @@
+---
+title: Dither Booth
+description: Field guide, maintenance runbooks and architecture of the Dither Booth photo kiosk.
+template: splash
+hero:
+  tagline: A photo booth that dithers each portrait and prints it on a thermal receipt, with a lottery ticket on the side. This is how to set it up at a venue, keep it running, and change it.
+  actions:
+    - text: Set up at a venue
+      link: /docs/venue/checklist/
+      icon: right-arrow
+    - text: Something is wrong
+      link: /docs/maintenance/troubleshooting/
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+## Pick your path
+
+<CardGrid>
+  <Card title="At the venue" icon="rocket">
+    Pack list, power-on, Wi-Fi, iPad, first test print, and teardown. Written to
+    be followed on a phone, on site.
+  </Card>
+  <Card title="Keeping it running" icon="setting">
+    Health checks, paper, updates, logs and a troubleshooting table organised by
+    symptom.
+  </Card>
+  <Card title="Building a booth" icon="puzzle">
+    From a box of parts to a Raspberry Pi that prints: assembly, flashing and
+    the `booth` CLI.
+  </Card>
+  <Card title="How it works" icon="open-book">
+    Processes, the receipt pipeline, the printer watch, the network fallback,
+    trust and data. Read this before you change code.
+  </Card>
+</CardGrid>
+
+## Most used pages
+
+<CardGrid>
+  <LinkCard
+    title="Venue checklist"
+    href="/docs/venue/checklist/"
+    description="Everything to pack, check and do, in order."
+  />
+  <LinkCard
+    title="Wi-Fi at a venue"
+    href="/docs/venue/wifi/"
+    description="Every network situation and what to do in each."
+  />
+  <LinkCard
+    title="Troubleshooting"
+    href="/docs/maintenance/troubleshooting/"
+    description="Find the symptom, apply the fix."
+  />
+  <LinkCard
+    title="booth CLI"
+    href="/docs/reference/cli/"
+    description="Every command the Pi understands."
+  />
+</CardGrid>

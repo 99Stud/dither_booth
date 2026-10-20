@@ -1,0 +1,98 @@
+---
+title: Run the event
+description: Set up the event, lottery and prizes in admin, and operate the booth from the Control Center.
+sidebar:
+  order: 6
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Admin is at `https://<booth>.local:3002` (or `https://<booth IP>:3002`). It has three pages: **Control Center**, **Event** and **Settings**.
+
+## The event
+
+The booth runs **one active event at a time**. An event has a name, a **ticket kit** (the look of the photo receipt), the **ticket items** printed on it, a **lottery** and its **prizes**.
+
+- **Create event** when none is active.
+- **Replace event** for the next booking. The current event is **archived**, never deleted: its lottery, prizes, stock history and draws stay on record. Ticket numbers stay unique across all events.
+- Renaming the event or changing its kit is an edit, not a replacement.
+
+## The lottery
+
+Every guest visit runs one draw when the lottery is on. The guest sees the result on the slot machine, then gets a ticket.
+
+| Setting                   | Meaning                                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Lottery is live / off** | Off: no prize is ever drawn. Visits still print the photo receipt.                                                        |
+| **No-win weight**         | The weight of “no prize” in the draw. Higher means fewer winners. New events start at 50.                                 |
+| **Pause after a win**     | Minutes after a win during which every draw is a loss. Stops a run of winners in a row. `0` lets guests win back to back. |
+| **Print loser ticket**    | Also print a ticket when the guest doesn't win.                                                                           |
+
+### How the odds work
+
+Each prize **with stock left** has a **weight**; by default it comes from its rarity:
+
+| Rarity    | Default weight |
+| --------- | -------------- |
+| Common    | 40             |
+| Uncommon  | 20             |
+| Rare      | 8              |
+| Epic      | 4              |
+| Legendary | 2              |
+
+A draw picks one outcome with probability **weight ÷ (sum of all weights + no-win weight)**. With the default no-win weight and only a common prize, a guest wins about 1 in 2.3; with only a legendary prize, about 1 in 26. **The more prizes in the draw, the more often someone wins**; a prize that runs out leaves the draw and the others' odds go up. The Event page's odds and forecast cards compute this for you — check them after every change.
+
+<Aside type="caution">
+  Weights don't depend on how much stock is left: a prize with 1 unit left is as
+  likely as one with 100, until it runs out. If you want a prize to last the
+  whole event, give it a lower weight, not just a lower stock.
+</Aside>
+
+## Prizes and stock
+
+A prize has a **title**, a **rarity**, a **weight** (optional, overrides the rarity default), and **How to claim it** — the instruction printed on the winning ticket, such as “Show this ticket at the bar”.
+
+Stock is a ledger, not a number you overwrite:
+
+- **Add prize** with **How many you have** creates the initial stock.
+- **Restock** adds units (or removes them with a negative number). Each restock is applied exactly once, even if the network hiccups and the form retries.
+- Each win takes one unit at the moment of the draw. The booth refuses a win that would take stock below zero.
+- **Delete** removes a prize from future draws; draws that already won it keep its title.
+
+You can restock during the event at any time, without closing the booth.
+
+## Draws and ticket lookup
+
+The **Draws** table lists every draw of the active event, wins and losses, newest first. To check a ticket a guest brings back, type its six digits (or scan its `STUD_DITHERBOOTH_XXXXXX` code) into the lookup: it shows the draw that ticket belongs to, or says it isn't a real draw. Admin test prints use `000000` and never draw.
+
+## Control Center
+
+The page to keep open on your phone during the event.
+
+| Card              | What it shows and does                                                                                                                                                                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Health checks** | Engine, Shutter, Camera, Printer and the receipt renderer (Puppeteer). Each item explains what is wrong. From here you can reload the kiosk page (now, or when the current guest is done), re-initialize Puppeteer, or restart a service. |
+| **Printer**       | Live printer state (ready, paper low, out of paper, cover open, error, not connected), since when, whether it can print, and the last changes.                                                                                            |
+| **Booth screen**  | **Photo booth / Darkroom**: switch what the iPad shows. **Maintenance**: close the booth to guests. **Automatic**: let the printer close and reopen the booth on its own.                                                                 |
+| **Booth camera**  | **Watch live**: see what the iPad camera sees, to check framing from across the room. Stops after 10 minutes.                                                                                                                             |
+| **Network**       | The booth's network and address, the QR and link to connect a device, and **Print setup ticket**.                                                                                                                                         |
+
+### Maintenance
+
+Switching **Maintenance** on shows guests a “be right back” screen. A guest in the middle of a visit finishes first; the screen switches once the iPad is back on the landing screen (at most about 90 seconds later). The Darkroom keeps working.
+
+The booth is in maintenance while **any** reason holds:
+
+- **Manual** — you switched it on. Only you switch it off; a fixed printer never reopens the booth.
+- **Printer** — the printer can't print (out of paper, cover open, error, unplugged), with **Automatic** on. It clears on its own once the printer has been ready for 3 seconds.
+
+If you switch maintenance off while the printer is still the reason, the card says so and the booth stays closed until the printer is fixed.
+
+**Automatic** should stay on. Turn it off only if a misbehaving sensor keeps closing the booth for no reason: then the booth only refuses to print when the printer is not connected at all.
+
+## Settings
+
+- **Darkroom PIN** — 4 to 8 digits. Changing it signs out every open Darkroom.
+- **Wi-Fi** — save, forget and switch networks; run on the booth Wi-Fi. See [Wi-Fi at a venue](/docs/venue/wifi/).
+- **Appearance** — light or dark theme for admin itself.
+- **Docs** — opens this documentation. The booth serves it itself at `/docs/` on the admin address, so it works at a venue with no internet. On a computer, the sidebar's **Docs** link does the same.

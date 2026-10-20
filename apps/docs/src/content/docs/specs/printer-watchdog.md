@@ -1,6 +1,11 @@
-# Printer watchdog
+---
+title: "Printer watch"
+description: "Spec and hardware findings for the printer watch: ASB measurements, state model, maintenance rules, acceptance criteria."
+sidebar:
+  order: 1
+---
 
-Status: implemented on `feat/printer-watch`, not yet checked on the booth's printer. Basis: measurements on the booth's own printer, listed in [Findings](#findings).
+Status: implemented (#32) and running on the booth since 2026-10-19. Basis: measurements on the booth's own printer, listed in [Findings](#findings); behaviour on the booth, in [Checked on the booth](#checked-on-the-booth).
 
 ## As built: where it differs from the draft below
 
@@ -70,7 +75,19 @@ Packets recorded while staff opened the cover, held Feed and removed and replace
 | `1c 00 0c 0f` | roll removed, cover closed       | offline + paper out              |
 | `3c 00 0c 0f` | roll removed, cover open         | offline + cover open + paper out |
 
-**Unknown:** we haven't seen a **paper near-end** packet, because the roll stayed full. Per Epson's command reference it should be byte 3 bits 0–1 = `11`. We also haven't seen error packets (cutter jam, overheat).
+**Explained:** we haven't seen a **paper near-end** packet because the TM-T20III ships with near-end detection **off**. Per the [TM-T20III Technical Reference Guide](https://files.support.epson.com/pdf/pos/bulk/tm-t20iii_trg_en_reva.pdf) (rev. A, p. 27, 43):
+
+- Near-end detection is a memory switch, **Disabled (default setting)**. Until it's enabled, the sensor reports nothing and the Paper LED only lights at paper end.
+- It's enabled in Software Setting Mode (Feed-button menu, Customize Value **9: Near-end Detection**, p. 54) or with the Epson TM-T20III Utility.
+- The detection lever has two positions, set by a screw under the roll: **lower (default) trips at about 23 mm** of roll outer diameter left, **upper at about 27 mm**. Epson recommends cores of 12 mm inner / 18 mm outer diameter for accurate detection, and says it can't be exact.
+- It only works with the printer **horizontal**; vertical or wall-mounted, it must stay off.
+- Near-end isn't in the guide's list of conditions that take the printer offline (p. 15): it lights the Paper LED and keeps printing. Epson's ESC/POS reference adds that it stops printing only if `ESC c 4` selects the near-end sensor, which the engine never sends.
+
+Per Epson's command reference, ASB reports it as byte 3 bits 0–1 = `11`.
+
+**Decision (2026-10-20):** the booth's printer is installed **vertically** (paper exit at the front, toward the guest), where Epson requires near-end detection to stay off. It stays off; the parser and the `paper-near-end` condition stay in place for a horizontally mounted printer, unverified on hardware.
+
+**Observed later, on the running booth:** byte 2 bit 3 (`0x08`, auto-cutter error) set together with cover open and/or paper out (`3c08000f`, `1c08000f`, `3c080c0f`, `1c080c0f`). The watch reports it as `error`. We haven't seen the unrecoverable or auto-recoverable error bits.
 
 **Unknown:** the paper-out packets all arrived within one second, at the moment the cover closed after the roll change. We can't tell whether the sensor reads paper only once the cover is closed, or whether the packets were held back. Either way, the state was correct once the cover closed.
 
@@ -86,18 +103,18 @@ We inspected Epson's macOS filter (`rastertotmtr` from the `com.epson.pkg.TMPrin
 
 Every packet is 4 bytes. The first byte always has `(b1 & 0x93) == 0x10`, which tells it apart from a `DLE EOT` reply (`(b & 0x93) == 0x12`). The bits below are the ones we use. The "Seen" column says whether we've seen the bit change on the printer.
 
-| Byte | Bit(s)       | Meaning when set                            | Seen                       |
-| ---- | ------------ | ------------------------------------------- | -------------------------- |
-| 1    | 3 (`0x08`)   | offline                                     | yes                        |
-| 1    | 5 (`0x20`)   | cover open                                  | yes                        |
-| 1    | 6 (`0x40`)   | Feed button pressed                         | yes                        |
-| 1    | 2 (`0x04`)   | drawer connector pin 3                      | yes; always set, ignore it |
-| 2    | 3 (`0x08`)   | auto-cutter error                           | no                         |
-| 2    | 5 (`0x20`)   | unrecoverable error                         | no                         |
-| 2    | 6 (`0x40`)   | auto-recoverable error (e.g. head overheat) | no                         |
-| 3    | 0–1 (`0x03`) | paper near end                              | no                         |
-| 3    | 2–3 (`0x0c`) | paper out                                   | yes                        |
-| 4    | all          | reserved (`0x0f` seen)                      | ignore                     |
+| Byte | Bit(s)       | Meaning when set                            | Seen                              |
+| ---- | ------------ | ------------------------------------------- | --------------------------------- |
+| 1    | 3 (`0x08`)   | offline                                     | yes                               |
+| 1    | 5 (`0x20`)   | cover open                                  | yes                               |
+| 1    | 6 (`0x40`)   | Feed button pressed                         | yes                               |
+| 1    | 2 (`0x04`)   | drawer connector pin 3                      | yes; always set, ignore it        |
+| 2    | 3 (`0x08`)   | auto-cutter error                           | yes, with cover open or paper out |
+| 2    | 5 (`0x20`)   | unrecoverable error                         | no                                |
+| 2    | 6 (`0x40`)   | auto-recoverable error (e.g. head overheat) | no                                |
+| 3    | 0–1 (`0x03`) | paper near end                              | no                                |
+| 3    | 2–3 (`0x0c`) | paper out                                   | yes                               |
+| 4    | all          | reserved (`0x0f` seen)                      | ignore                            |
 
 A packet can be split across two USB reads, or two packets can arrive in one read. The parser has to buffer bytes and cut packets on the first-byte pattern.
 
@@ -205,6 +222,20 @@ type PrinterStatusEvent = {
 };
 ```
 
+## Checked on the booth
+
+The engine's own logs on the booth (`engine.printer`, 2026-10-19 → 2026-10-20, engine at `20b6b16`) show the watch working on the real printer:
+
+| Criterion                             | Seen in the logs                                                                                                            |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 1. Start with the printer OK          | `[]` (`1400000f`) on every connect, no maintenance                                                                          |
+| 2, 5. Cover open, paper out, and back | `cover-open` (`3c00000f`), `paper-out` (`1c000c0f`), both (`3c000c0f`), then `[]`                                           |
+| 2. Maintenance follows the printer    | `printer-maintenance-left` 3 s after the printer reported `[]`                                                              |
+| 8. Unplugged, and back                | `disconnected`, `printer-maintenance-entered` 10 s later; `printer-connected`, `unknown` → `[]`, maintenance left 3 s later |
+| 10. State stays live after prints     | Status changes keep arriving after setup tickets printed (`setup-ticket-printed` ×19)                                       |
+
+Not applicable: paper near-end (criterion 13), off on our vertically mounted printer, see [Findings](#automatic-status-back-gs-a-n-the-mechanism-to-use). Still open: and a job aborted mid-print (criterion 11) — no aborted job appears in the logs, so the buffer clear after an interrupted raster is unverified.
+
 ## Acceptance criteria
 
 1. Engine start with the printer connected and OK: admin shows **OK** within 2 s, and the booth isn't in maintenance.
@@ -219,7 +250,7 @@ type PrinterStatusEvent = {
 10. Print several receipts in a row: the state stays live after each one, which proves `GS a` is re-sent after `ESC @`.
 11. Paper runs out mid-receipt: the job fails within about 1 s with `PRINTER_UNAVAILABLE`, not after 20 s.
 12. `RECEIPT_PRINT_DRY_RUN=true`: no USB access, state `unknown`, never maintenance.
-13. **Hardware only:** run a roll to near-end and confirm the **paper low** packet and its bits. Update [ASB packet format](#asb-packet-format) with the result.
+13. **Hardware only, horizontal printers only (not our booth):** enable near-end detection on the printer (memory switch, off by default), run a roll to near-end and confirm the **paper low** packet and its bits. Update [ASB packet format](#asb-packet-format) with the result.
 
 Unit tests cover the ASB parser (split packets, concatenated packets, DLE EOT bytes mixed in), the state transitions with debounce (fake timers), the maintenance reason rules (1, 2, 3, 6, 7), and the print gate.
 
