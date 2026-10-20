@@ -15,6 +15,8 @@ bun run test         # bun test --isolate in every package with tests
 bun run build        # production builds of shutter, admin, engine and this site
 ```
 
+Changes under `supabase/` also run `.github/workflows/hub.yml`: a database lint and the pgTAP tests (see [The Hub](/docs/development/hub/)).
+
 ## Notes
 
 - **Bun version** is pinned once, in the root `package.json` `packageManager` field. CI and the release workflow read it; locally, `bun upgrade` to match.
