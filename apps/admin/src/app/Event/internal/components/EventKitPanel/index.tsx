@@ -170,6 +170,13 @@ const isMissingText = (draft: KitDraft, key: CopyKey) => {
   return !("optional" in field) && draft.copy[key]?.trim() === "";
 };
 
+const CHANGED_PART_LABELS = {
+  copy: "text",
+  fonts: "fonts",
+  background: "shader",
+  camera: "camera screen",
+} satisfies Record<keyof KitSettings, string>;
+
 const GROUP_ICONS = {
   landing: MonitorSmartphone,
   prompts: MessageSquareText,
@@ -203,7 +210,9 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
   const defaults = KIT_MANIFESTS[draft.kitId].copy;
   const isDirty = !sameSettings(draft, saved);
   const missingKeys = COPY_KEYS.filter((key) => isMissingText(draft, key));
-  const changedCount = Object.keys(toSettings(draft).copy ?? {}).length;
+  const changedParts = Object.keys(toSettings(draft)).map(
+    (part) => CHANGED_PART_LABELS[part as keyof KitSettings],
+  );
   const shaderPreview = applyBackgroundControls(
     getBackgroundBase(
       draft.kitId,
@@ -294,18 +303,18 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
               )}
             >
               <p>
-                {changedCount === 0
-                  ? "All text is the kit's own."
-                  : `${changedCount} ${changedCount === 1 ? "line differs" : "lines differ"} from the kit.`}
+                {changedParts.length === 0
+                  ? "Everything is the kit's own."
+                  : `Differs from the kit: ${changedParts.join(", ")}.`}
               </p>
               <Button
                 type="button"
                 variant="destructive"
-                disabled={changedCount === 0}
+                disabled={changedParts.length === 0}
                 onClick={() => setIsResetOpen(true)}
               >
                 <RotateCcw data-icon="inline-start" />
-                Reset text to the kit
+                Reset to kit defaults
               </Button>
             </div>
           </CardContent>
@@ -415,10 +424,11 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
       <AlertDialog open={isResetOpen} onOpenChange={setIsResetOpen}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset text to the kit?</AlertDialogTitle>
+            <AlertDialogTitle>Reset to kit defaults?</AlertDialogTitle>
             <AlertDialogDescription>
-              Every line goes back to {KIT_MANIFESTS[draft.kitId].label}&apos;s
-              wording. Nothing changes on the booth until you save.
+              The text, fonts, shader and camera screen all go back to{" "}
+              {KIT_MANIFESTS[draft.kitId].label}&apos;s own. Nothing changes on
+              the booth until you save.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -426,11 +436,11 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
-                setDraft((current) => ({ ...current, copy: {} }));
+                setDraft((current) => ({ kitId: current.kitId, copy: {} }));
                 setIsResetOpen(false);
               }}
             >
-              Reset text
+              Reset everything
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -18,7 +18,7 @@ import {
 } from "@dither-booth/ui/components/ui/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { MonitorOff, RefreshCw } from "lucide-react";
+import { Eye, MonitorOff, RefreshCw, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useTRPC } from "#lib/trpc/trpc.client";
@@ -49,13 +49,21 @@ export const KitPreviewPane: FC<KitPreviewPaneProps> = (props) => {
   const shutterOrigin = healthz.data?.shutter.origin;
   const [surface, setSurface] = useState<KitPreviewSurface>("landing");
   const [isReady, setIsReady] = useState(false);
+  // Held "Compare": the kit's own look, so before and after is one gesture.
+  const [isComparing, setIsComparing] = useState(false);
+  // Bumped by "Replay intro" to load the booth screen from scratch.
+  const [replay, setReplay] = useState(0);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [boxWidth, setBoxWidth] = useState(0);
 
   const size = isTicket(surface) ? TICKET_SIZE : SCREEN_SIZE;
   const scale = boxWidth > 0 ? Math.min(1, boxWidth / size.width) : 0;
-  const draft: KitPreviewMessage = { type: "kit.preview", kitId, settings };
+  const draft: KitPreviewMessage = {
+    type: "kit.preview",
+    kitId,
+    settings: isComparing ? {} : settings,
+  };
   const draftRef = useRef(draft);
   draftRef.current = draft;
 
@@ -144,10 +152,48 @@ export const KitPreviewPane: FC<KitPreviewPaneProps> = (props) => {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <p className={clsx("text-xs text-muted-foreground")}>
-          Unsaved changes show here first.
-        </p>
+        <div className={clsx("flex items-center gap-2")}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            aria-label="Hold to compare with the kit's own look"
+            onPointerDown={() => setIsComparing(true)}
+            onPointerUp={() => setIsComparing(false)}
+            onPointerLeave={() => setIsComparing(false)}
+            onPointerCancel={() => setIsComparing(false)}
+            onBlur={() => setIsComparing(false)}
+            onKeyDown={(event) => {
+              if (event.key === " " || event.key === "Enter") {
+                setIsComparing(true);
+              }
+            }}
+            onKeyUp={() => setIsComparing(false)}
+          >
+            <Eye data-icon="inline-start" />
+            Compare
+          </Button>
+          {surface === "landing" ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setIsReady(false);
+                setReplay((count) => count + 1);
+              }}
+            >
+              <RotateCcw data-icon="inline-start" />
+              Replay intro
+            </Button>
+          ) : null}
+        </div>
       </div>
+      <p className={clsx("text-xs text-muted-foreground")}>
+        {isComparing
+          ? "Showing the kit's own look."
+          : "Unsaved changes show here first."}
+      </p>
 
       <div
         ref={boxRef}
@@ -189,7 +235,7 @@ export const KitPreviewPane: FC<KitPreviewPaneProps> = (props) => {
             className={clsx("relative mx-auto")}
           >
             <iframe
-              key={src}
+              key={`${src}#${replay}`}
               ref={frameRef}
               src={src}
               title={`Preview: ${KIT_PREVIEW_SURFACE_LABELS[surface]}`}
