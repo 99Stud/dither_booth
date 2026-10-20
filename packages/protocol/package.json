@@ -6,7 +6,8 @@
     "#isomorphic/*": "./src/isomorphic/*.ts"
   },
   "exports": {
-    "./heartbeat": "./src/isomorphic/heartbeat.ts"
+    "./heartbeat": "./src/isomorphic/heartbeat.ts",
+    "./heartbeat.fixtures": "./src/isomorphic/heartbeat.fixtures.ts"
   },
   "scripts": {
     "update": "bun update -i",

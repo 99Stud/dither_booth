@@ -6,11 +6,10 @@ import { describe, expect, test } from "bun:test";
 
 import {
   heartbeatSchema,
-  PROTOCOL_VERSION,
   type maintenanceReasonSchema,
   type printerConditionSchema,
-  type Heartbeat,
 } from "#isomorphic/heartbeat";
+import { HEARTBEAT_FIXTURES } from "#isomorphic/heartbeat.fixtures";
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -27,43 +26,21 @@ const maintenanceReasonsMatch: Equal<
   MaintenanceReason
 > = true;
 
-const ready: Heartbeat = {
-  protocol: PROTOCOL_VERSION,
-  version: "0.7.0",
-  dryRun: false,
-  sentAt: "2026-10-31T18:00:30.000Z",
-  printer: {
-    conditions: [],
-    canPrint: true,
-    changedAt: "2026-10-31T17:00:00.000Z",
-  },
-  maintenance: { on: false, reasons: [] },
-};
-
-const paperOut: Heartbeat = {
-  ...ready,
-  printer: {
-    conditions: ["paper-out"],
-    canPrint: false,
-    changedAt: "2026-10-31T18:00:00.000Z",
-  },
-  maintenance: { on: true, reasons: ["printer"] },
-};
-
 describe("heartbeatSchema", () => {
   test("the names the booth uses are the names the Hub reads", () => {
     expect(printerConditionsMatch).toBe(true);
     expect(maintenanceReasonsMatch).toBe(true);
   });
 
-  test.each([
-    ["a ready booth", ready],
-    ["a booth out of paper, in maintenance", paperOut],
-  ])("accepts %s", (_, fixture) => {
-    expect(heartbeatSchema.parse(fixture)).toEqual(fixture);
-  });
+  test.each(Object.entries(HEARTBEAT_FIXTURES))(
+    "accepts the %s fixture",
+    (_, fixture) => {
+      expect(heartbeatSchema.parse(fixture)).toEqual(fixture);
+    },
+  );
 
   test("ignores a field a newer booth adds", () => {
+    const { ready } = HEARTBEAT_FIXTURES;
     const parsed = heartbeatSchema.parse({ ...ready, spoolBacklog: 3 });
     expect(parsed).toEqual(ready);
   });
@@ -71,7 +48,12 @@ describe("heartbeatSchema", () => {
   test.each([
     [
       "an unknown printer condition",
-      { printer: { ...ready.printer, conditions: ["on-fire"] } },
+      {
+        printer: {
+          ...HEARTBEAT_FIXTURES.ready.printer,
+          conditions: ["on-fire"],
+        },
+      },
     ],
     ["a time that isn't ISO 8601", { sentAt: "yesterday" }],
     ["a missing dry-run flag", { dryRun: undefined }],
@@ -82,6 +64,7 @@ describe("heartbeatSchema", () => {
       { maintenance: { on: true, reasons: ["tired"] } },
     ],
   ])("refuses %s", (_, change) => {
+    const { ready } = HEARTBEAT_FIXTURES;
     expect(heartbeatSchema.safeParse({ ...ready, ...change }).success).toBe(
       false,
     );
