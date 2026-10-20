@@ -16,6 +16,7 @@ A Bun workspace orchestrated by Turborepo. Apps in `apps/*`, shared code in `pac
 | `apps/admin`   | React, TanStack Router                                     | same                                             |
 | `apps/cli`     | Citty, Clack, `bun build --compile`                        | `src/index.ts`                                   |
 | `apps/docs`    | Astro Starlight                                            | `src/content/docs/`                              |
+| `supabase`     | Postgres migrations, RLS tests, local stack config         | `migrations/`, `tests/database/`                 |
 
 ## Engine layout
 
