@@ -8,8 +8,7 @@ import {
 import clsx from "clsx";
 
 import { CameraCrt } from "#app/Experience/internal/components/CameraCrt/index";
-import { IntroChrome } from "#app/Experience/internal/components/IntroChrome/index";
-import { StartExperienceButton } from "#app/Experience/internal/components/StartExperienceButton/index";
+import { KitLanding } from "#app/Experience/internal/components/KitLanding/index";
 import { InteractiveBackground } from "#components/misc/InteractiveBackground/index";
 import { useKit } from "#kits/useKit";
 import { kitPreviewRoute } from "#lib/router/index";
@@ -52,16 +51,17 @@ export const KitPreview: FC = () => {
           </div>
         </div>
       ) : (
-        <>
-          <IntroChrome isVisible lotteryStatus={SAMPLE_LOTTERY_STATUS} />
-          <StartExperienceButton
-            disabled
-            isAtOrigin
-            isVisible
-            onAnimationComplete={noop}
-            onStart={noop}
-          />
-        </>
+        <KitLanding
+          isIntroVisible
+          lotteryStatus={SAMPLE_LOTTERY_STATUS}
+          start={{
+            disabled: true,
+            isAtOrigin: true,
+            isVisible: true,
+            onAnimationComplete: noop,
+            onStart: noop,
+          }}
+        />
       )}
     </>
   );

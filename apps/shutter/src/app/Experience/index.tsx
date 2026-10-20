@@ -7,11 +7,10 @@ import { CameraStage } from "./internal/components/CameraStage/index";
 import { CaptureFlash } from "./internal/components/CaptureFlash/index";
 import { DarkroomHotspot } from "./internal/components/DarkroomHotspot/index";
 import { FrozenPhoto } from "./internal/components/FrozenPhoto/index";
-import { IntroChrome } from "./internal/components/IntroChrome/index";
+import { KitLanding } from "./internal/components/KitLanding/index";
 import { MaintenanceScreen } from "./internal/components/MaintenanceScreen/index";
 import { PostPrintStage } from "./internal/components/PostPrintStage/index";
 import { SlotMachineStage } from "./internal/components/SlotMachineStage/index";
-import { StartExperienceButton } from "./internal/components/StartExperienceButton/index";
 import { experienceStageClassName } from "./internal/Experience.styles";
 import { useExperienceFlow } from "./internal/hooks/useExperienceFlow";
 
@@ -49,16 +48,16 @@ export const Experience = () => {
       <InteractiveBackground preset={kit.background} />
       <CaptureFlash captureId={captureFlashId} />
       <DarkroomHotspot isEnabled={phase === "idle"} />
-      <IntroChrome
-        isVisible={isIntroDecorationsVisible}
+      <KitLanding
+        isIntroVisible={isIntroDecorationsVisible}
         lotteryStatus={lotteryStatus}
-      />
-      <StartExperienceButton
-        disabled={isStartDisabled}
-        isAtOrigin={isStartButtonAtOrigin}
-        isVisible={isStartButtonVisible}
-        onAnimationComplete={handleStartButtonAnimationComplete}
-        onStart={handleStartExperience}
+        start={{
+          disabled: isStartDisabled,
+          isAtOrigin: isStartButtonAtOrigin,
+          isVisible: isStartButtonVisible,
+          onAnimationComplete: handleStartButtonAnimationComplete,
+          onStart: handleStartExperience,
+        }}
       />
       <MaintenanceScreen isVisible={isMaintenance} />
       <div className={experienceStageClassName}>
