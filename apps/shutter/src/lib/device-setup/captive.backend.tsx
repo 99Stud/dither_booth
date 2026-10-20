@@ -5,9 +5,9 @@ import { TRPCClientError, createTRPCClient, httpLink } from "@trpc/client";
 
 import type { CaptiveBackend } from "./device-setup.server";
 
-/** Input errors come back as zod's JSON: staff need a sentence instead. */
+/** An input the engine refused: staff need a sentence, not zod's report. */
 const toStaffError = (error: unknown) =>
-  error instanceof TRPCClientError && error.message.trimStart().startsWith("[")
+  error instanceof TRPCClientError && error.data?.zodError
     ? new Error("Check the network name and password.")
     : error;
 

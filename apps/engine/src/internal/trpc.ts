@@ -1,9 +1,24 @@
 import { isAllowedConfiguredOrigin } from "@dither-booth/ports/origin";
 import { TRPCError, initTRPC } from "@trpc/server";
+import z from "zod";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 const t = initTRPC.context<TRPCContext>().create({
+  // Input errors carry their fields, so a client can say what to fix instead
+  // of showing zod's message.
+  errorFormatter({ shape, error }) {
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        zodError:
+          error.code === "BAD_REQUEST" && error.cause instanceof z.ZodError
+            ? z.flattenError(error.cause)
+            : null,
+      },
+    };
+  },
   sse: {
     // Subscriptions (the kiosk channel) reach the kiosk through the Shutter
     // server's proxy, which Bun.serve closes after 10 s without traffic.
