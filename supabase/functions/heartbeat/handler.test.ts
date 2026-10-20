@@ -1,0 +1,142 @@
+import { assertEquals } from "@std/assert";
+
+import { HEARTBEAT_FIXTURES } from "../../../packages/protocol/src/isomorphic/heartbeat.fixtures.ts";
+import { type Heartbeat } from "../../../packages/protocol/src/isomorphic/heartbeat.ts";
+import { type BoothAuth, handleHeartbeat } from "./handler.ts";
+
+const BOOTH = "a0a0a0a0-0000-0000-0000-0000000000a0";
+
+function setup(auth: BoothAuth = { boothId: BOOTH }) {
+  const evaluated: { boothId: string; heartbeat: Heartbeat }[] = [];
+  const deps = {
+    authenticate: (_token: string) => Promise.resolve(auth),
+    evaluate: (boothId: string, heartbeat: Heartbeat) => {
+      evaluated.push({ boothId, heartbeat });
+      return Promise.resolve("ok" as const);
+    },
+  };
+  return { deps, evaluated };
+}
+
+const post = (body: unknown, headers: Record<string, string> = {}) =>
+  new Request("https://hub.test/functions/v1/heartbeat", {
+    method: "POST",
+    headers: { Authorization: "Bearer token", ...headers },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+
+Deno.test("stores a booth's heartbeat and answers 200", async () => {
+  const { deps, evaluated } = setup();
+  const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.paperOut), deps);
+  assertEquals(res.status, 200);
+  assertEquals(evaluated, [
+    { boothId: BOOTH, heartbeat: HEARTBEAT_FIXTURES.paperOut },
+  ]);
+});
+
+Deno.test("accepts every fixture the protocol ships", async () => {
+  for (const [name, fixture] of Object.entries(HEARTBEAT_FIXTURES)) {
+    const { deps, evaluated } = setup();
+    const res = await handleHeartbeat(post(fixture), deps);
+    assertEquals(res.status, 200, name);
+    assertEquals(evaluated.length, 1, name);
+  }
+});
+
+Deno.test("the booth is the token's, whatever the body claims", async () => {
+  const { deps, evaluated } = setup();
+  await handleHeartbeat(
+    post({ ...HEARTBEAT_FIXTURES.ready, boothId: "someone-else" }),
+    deps,
+  );
+  assertEquals(evaluated[0]?.boothId, BOOTH);
+});
+
+Deno.test("refuses anything but POST", async () => {
+  const { deps, evaluated } = setup();
+  const res = await handleHeartbeat(
+    new Request("https://hub.test/", { method: "GET" }),
+    deps,
+  );
+  assertEquals(res.status, 405);
+  assertEquals(evaluated.length, 0);
+});
+
+Deno.test("refuses a request with no bearer token", async () => {
+  const { deps, evaluated } = setup();
+  const req = new Request("https://hub.test/", {
+    method: "POST",
+    body: JSON.stringify(HEARTBEAT_FIXTURES.ready),
+  });
+  assertEquals((await handleHeartbeat(req, deps)).status, 401);
+  assertEquals(evaluated.length, 0);
+});
+
+Deno.test("refuses a token Auth does not know", async () => {
+  const { deps, evaluated } = setup("invalid-token");
+  const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), deps);
+  assertEquals(res.status, 401);
+  assertEquals(evaluated.length, 0);
+});
+
+Deno.test("refuses a signed-in user who is not a booth", async () => {
+  const { deps, evaluated } = setup("not-a-booth");
+  const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), deps);
+  assertEquals(res.status, 403);
+  assertEquals(evaluated.length, 0);
+});
+
+Deno.test("refuses a body that is not JSON", async () => {
+  const { deps } = setup();
+  assertEquals((await handleHeartbeat(post("{nope"), deps)).status, 400);
+});
+
+Deno.test("refuses a heartbeat the schema refuses, naming the field", async () => {
+  const { deps, evaluated } = setup();
+  const res = await handleHeartbeat(
+    post({
+      ...HEARTBEAT_FIXTURES.ready,
+      printer: { ...HEARTBEAT_FIXTURES.ready.printer, conditions: ["on-fire"] },
+    }),
+    deps,
+  );
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.issues[0].path, "printer.conditions.0");
+  assertEquals(evaluated.length, 0);
+});
+
+Deno.test("says so when the booth speaks a newer protocol", async () => {
+  const { deps, evaluated } = setup();
+  const res = await handleHeartbeat(
+    post({ ...HEARTBEAT_FIXTURES.ready, protocol: 99 }),
+    deps,
+  );
+  assertEquals(res.status, 422);
+  assertEquals(evaluated.length, 0);
+});
+
+Deno.test("answers 404 for a booth the Hub does not have", async () => {
+  const { deps } = setup();
+  const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), {
+    ...deps,
+    evaluate: () => Promise.resolve("unknown-booth" as const),
+  });
+  assertEquals(res.status, 404);
+});
+
+Deno.test("answers 500 without leaking the error when storing fails", async () => {
+  const { deps } = setup();
+  const original = console.error;
+  console.error = () => {};
+  try {
+    const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), {
+      ...deps,
+      evaluate: () => Promise.reject(new Error("password=hunter2")),
+    });
+    assertEquals(res.status, 500);
+    assertEquals(await res.json(), { error: "internal error" });
+  } finally {
+    console.error = original;
+  }
+});
