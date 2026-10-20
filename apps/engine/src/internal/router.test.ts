@@ -15,7 +15,7 @@ const DARKROOM_TOKEN = "darkroom-token";
 const SETUP_SERVER_TOKEN = "setup-server-token";
 
 const GROUPS = {
-  captive: ["getCaptiveStatus", "joinFromCaptive", "runOnBoothWifi"],
+  captive: ["getCaptiveStatus", "joinFromCaptive"],
   booth: [
     "getLotteryStatus",
     "lockDarkroom",

@@ -1,6 +1,5 @@
 import { getCaptiveStatus } from "./captive/get-captive-status";
 import { joinFromCaptive } from "./captive/join-from-captive";
-import { runOnBoothWifi } from "./captive/run-on-booth-wifi";
 import { forgetWifiNetwork } from "./mutations/forget-wifi-network";
 import { saveWifiNetwork } from "./mutations/save-wifi-network";
 import { setBoothWifi } from "./mutations/set-booth-wifi";
@@ -17,5 +16,4 @@ export const network = {
 export const captive = {
   getCaptiveStatus,
   joinFromCaptive,
-  runOnBoothWifi,
 };

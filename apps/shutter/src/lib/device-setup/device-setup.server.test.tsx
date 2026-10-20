@@ -26,7 +26,6 @@ const captive: CaptiveBackend = {
   join: async (input) => {
     joined.push(input);
   },
-  runOnBoothWifi: async () => {},
 };
 
 const handle = createDeviceSetupFetch({

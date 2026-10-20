@@ -337,11 +337,11 @@ export function refuseCaptiveJoin(
     return "The booth isn't waiting for a network.";
   }
   // Saved without one, a protected network fails to join with nothing that
-  // says why.
+  // says why. Only a network the scan saw as open goes without.
   if (
     !input.password &&
-    status.nearby.some(
-      (network) => network.ssid === input.ssid && network.secured,
+    !status.nearby.some(
+      (network) => network.ssid === input.ssid && !network.secured,
     )
   ) {
     return `${input.ssid} needs its password.`;

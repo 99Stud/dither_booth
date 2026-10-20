@@ -15,7 +15,6 @@ export type CaptiveStatus = {
 export type CaptiveBackend = {
   getStatus: () => Promise<CaptiveStatus>;
   join: (input: { ssid: string; password?: string }) => Promise<void>;
-  runOnBoothWifi: () => Promise<void>;
 };
 
 export type DeviceSetupRoutesOptions = {
@@ -134,8 +133,6 @@ export function createDeviceSetupFetch(options: DeviceSetupRoutesOptions) {
             typeof body.password === "string" ? body.password : undefined,
           ssid: typeof body.ssid === "string" ? body.ssid : "",
         });
-      } else if (pathname === `${CAPTIVE_PAGE_PATH}/booth-wifi`) {
-        await options.captive.runOnBoothWifi();
       } else {
         return new Response(null, { status: 404 });
       }

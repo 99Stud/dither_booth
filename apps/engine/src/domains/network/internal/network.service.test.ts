@@ -204,5 +204,22 @@ describe("network", () => {
         ),
       ).toBe("The booth isn't waiting for a network.");
     });
+
+    test("needs a password for a network the scan didn't see as open", () => {
+      const open = { inUse: false, secured: false, signal: 40, ssid: "Lobby" };
+
+      expect(
+        refuseCaptiveJoin(
+          { nearby: [open], state: "pick-network" },
+          { ssid: "Lobby" },
+        ),
+      ).toBeUndefined();
+      expect(
+        refuseCaptiveJoin(
+          { nearby: [open], state: "pick-network" },
+          { ssid: "Hidden-Venue" },
+        ),
+      ).toBe("Hidden-Venue needs its password.");
+    });
   });
 });

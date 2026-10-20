@@ -40,6 +40,5 @@ export function createCaptiveBackend(options: {
       engine.captive.joinFromCaptive.mutate(input).catch((error: unknown) => {
         throw toStaffError(error);
       }),
-    runOnBoothWifi: () => engine.captive.runOnBoothWifi.mutate(),
   };
 }

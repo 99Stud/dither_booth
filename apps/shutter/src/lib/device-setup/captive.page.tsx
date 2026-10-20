@@ -42,8 +42,9 @@ export function renderCaptivePage() {
     <p class="error" data-error role="alert" hidden></p>
     <button class="button" type="submit" data-join>Join</button>
   </form>
-  <button class="button secondary" type="button" data-booth-wifi>Run the event on the booth Wi-Fi</button>
-  <p><small>For venue Wi-Fi that keeps devices apart, or no Wi-Fi at all. Photos still print.</small></p>
+  <p><small>Venue Wi-Fi that keeps devices apart, or none at all? Run the event on
+  the booth Wi-Fi: on the iPad, open the Darkroom, then Wi-Fi, then
+  <em>Run on booth Wi-Fi</em>.</small></p>
 </section>
 
 <section data-state="joining" hidden>
@@ -59,13 +60,13 @@ export function renderCaptivePage() {
 
 <section data-state="booth-wifi-chosen" hidden>
   <h1>Running on the booth Wi-Fi</h1>
-  <p class="lead">The booth stays on its own Wi-Fi for the event. You can close this page.</p>
+  <p class="lead">Staff chose to run the event on the booth's own Wi-Fi. You can close this page.</p>
   <p>To open the Shutter, scan the second QR on the booth Wi-Fi ticket.</p>
 </section>
 
 <section data-state="not-on-booth-wifi" hidden>
   <h1>The booth is online</h1>
-  <p class="lead">It's on a network already. Change its Wi-Fi from the admin's Settings.</p>
+  <p class="lead">It's on a network already. Change its Wi-Fi from the Darkroom or the admin's Settings.</p>
 </section>
 
 <script>
@@ -131,7 +132,8 @@ export function renderCaptivePage() {
     const ssid = ssidInput.value.trim();
     const password = passwordInput.disabled ? "" : passwordInput.value;
     const picked = networks.find((network) => network.ssid === ssid);
-    if (!password && picked && picked.secured) {
+    // Same rule as the booth: only a network the scan saw as open goes without.
+    if (!password && !(picked && !picked.secured)) {
       fail(new Error(ssid + " needs its password."));
       passwordInput.focus();
       return;
@@ -151,14 +153,6 @@ export function renderCaptivePage() {
 
   ssidInput.addEventListener("input", () => { passwordInput.disabled = false; });
 
-  document.querySelector("[data-booth-wifi]").addEventListener("click", async () => {
-    try {
-      await post("/wifi/booth-wifi");
-      show("booth-wifi-chosen");
-    } catch (error) {
-      fail(error);
-    }
-  });
 
   fetch("/wifi/status", { cache: "no-store" })
     .then((response) => response.json())
