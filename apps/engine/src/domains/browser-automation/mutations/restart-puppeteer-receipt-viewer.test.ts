@@ -32,6 +32,8 @@ function createTestCaller(
     cameraPreview: {} as TRPCContext["cameraPreview"],
     mode: "production",
     page: undefined,
+    network: {} as TRPCContext["network"],
+    setupServerAccess: { verify: () => false },
     printer: createStubPrinter(),
     processManager: "unknown",
     puppeteerLifecycle: {

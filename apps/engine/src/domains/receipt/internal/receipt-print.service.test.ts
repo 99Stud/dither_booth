@@ -154,6 +154,8 @@ function createCtx(
     kioskMaintenance: createKioskMaintenance({ db, kioskChannel }),
     cameraPreview: {} as TRPCContext["cameraPreview"],
     mode: "production",
+    network: {} as TRPCContext["network"],
+    setupServerAccess: { verify: () => false },
     printer,
     processManager: "unknown",
     puppeteerLifecycle: {

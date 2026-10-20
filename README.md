@@ -130,6 +130,8 @@ bun run --filter @dither-booth/engine cert:caroot
 
 Copy `rootCA.pem` from that directory to each client device and trust it in the OS/browser certificate store. Without this step, browsers may reject the certificate and camera access will stay blocked.
 
+For a phone or iPad, the Shutter server also serves a setup page over plain HTTP on port 3003 (`SETUP_PORT`): it hands out the CA's public certificate and walks the device through trusting it. `bun run phone` prints its QR code.
+
 Browser traffic stays same-origin and both browser app servers proxy `/engine/trpc` to the engine over loopback, so client devices only need to trust the shared booth certificate.
 
 ### 7. Start apps
@@ -192,6 +194,8 @@ bun run --filter @dither-booth/engine cert:clean
 ```
 
 `cert:clean` removes generated cert, key, and manifest. It does not remove mkcert root CA from your machine.
+
+Re-issuing the certificate for a new IP keeps the CA, so devices that trust it keep working. A **new CA** (for example a reinstalled mkcert) un-trusts every iPad: each one has to go through the setup page again.
 
 ## Environment Overrides
 
