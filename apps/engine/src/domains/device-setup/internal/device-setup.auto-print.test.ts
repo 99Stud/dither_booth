@@ -159,4 +159,23 @@ describe("setup ticket auto-print", () => {
     booth.moveTo("10.0.0.7");
     await waitFor(() => booth.printed.length === 1);
   });
+
+  test("a ticket printed now isn't printed again by the next check", async () => {
+    const booth = setup();
+    const autoPrint = booth.start();
+
+    await waitFor(() => booth.printed.length === 1);
+    // As after a failed join: the ticket prints, then the booth Wi-Fi is back.
+    await autoPrint.printNow({
+      build: () => Buffer.from("couldn't join"),
+      key: "booth-wifi",
+    });
+    booth.moveTo("booth-wifi");
+    await Bun.sleep(30);
+
+    expect(booth.printed.map(String)).toEqual([
+      "192.168.1.42",
+      "couldn't join",
+    ]);
+  });
 });

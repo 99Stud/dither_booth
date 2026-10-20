@@ -156,11 +156,12 @@ export async function runEngineServer(options: {
     onJoinFailed: async (failure) => {
       logDeviceSetup("warn", "wifi-join-failed", failure);
       const ticket = await getCurrentSetupTicket(network, {
+        boothWifiNext: failure.backOnBoothWifi,
         notice: `Couldn't join ${failure.ssid}: ${failure.reason}`,
         repoRoot: ENGINE_REPO_ROOT,
       });
       if (!ticket) return;
-      await printer.print(ticket.build(), { content: "escpos" }).catch(() => {
+      await setupTicketAutoPrint.printNow(ticket).catch(() => {
         logDeviceSetup("warn", "wifi-join-failed-ticket-not-printed");
       });
     },

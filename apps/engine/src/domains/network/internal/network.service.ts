@@ -38,7 +38,7 @@ export type JoinFailure = {
   ssid: string;
   /** For staff, on the ticket: "Wrong password." */
   reason: string;
-  /** The booth was on its own Wi-Fi and went back to it. */
+  /** The booth was on its own Wi-Fi and goes back to it. */
   backOnBoothWifi: boolean;
   /** nmcli's own words, for the log. */
   nmcliError: string;
@@ -253,15 +253,20 @@ async function joinNetwork(
 
   if (result.exitCode === 0) return;
 
-  if (fromBoothWifi) {
-    await deps.nmcli(["connection", "up", "id", HOTSPOT_CONNECTION_NAME]);
+  // The ticket first: printed before the booth Wi-Fi is back, it's the only
+  // one, rather than racing the booth Wi-Fi ticket that comes with it.
+  try {
+    await deps.onJoinFailed({
+      backOnBoothWifi: fromBoothWifi,
+      nmcliError: result.stderr.trim(),
+      reason: describeJoinFailure(result.stderr),
+      ssid,
+    });
+  } finally {
+    if (fromBoothWifi) {
+      await deps.nmcli(["connection", "up", "id", HOTSPOT_CONNECTION_NAME]);
+    }
   }
-  await deps.onJoinFailed({
-    backOnBoothWifi: fromBoothWifi,
-    nmcliError: result.stderr.trim(),
-    reason: describeJoinFailure(result.stderr),
-    ssid,
-  });
 }
 
 export async function forgetWifiNetwork(

@@ -32,15 +32,20 @@ export async function getCurrentDeviceSetupLinks(
  */
 export async function getCurrentSetupTicket(
   network: Pick<NetworkDeps, "nmcli">,
-  options: { repoRoot: string } & TicketOptions,
+  options: {
+    repoRoot: string;
+    /** The booth is about to go back to its own Wi-Fi: ticket for that. */
+    boothWifiNext?: boolean;
+  } & TicketOptions,
 ): Promise<SetupTicket | undefined> {
   const connection = await readConnection(network);
+  const onBoothWifi = options.boothWifiNext || connection?.mode === "hotspot";
 
-  if (connection?.mode === "offline") return undefined;
+  if (!onBoothWifi && connection?.mode === "offline") return undefined;
 
-  if (connection?.mode === "hotspot") {
+  if (onBoothWifi) {
     const [links, boothWifi] = await Promise.all([
-      getDeviceSetupLinks({ ...options, ip: connection.ip }),
+      getDeviceSetupLinks({ ...options, ip: BOOTH_WIFI_IP }),
       getBoothWifiCredentials(network),
     ]);
 

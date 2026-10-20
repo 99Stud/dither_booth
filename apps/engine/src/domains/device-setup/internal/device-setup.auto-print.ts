@@ -87,6 +87,13 @@ export function createSetupTicketAutoPrint(options: {
   const { signal } = controller;
   const pollMs = options.pollMs ?? SETUP_TICKET_POLL_MS;
 
+  async function printAndRecord(ticket: SetupTicket, key: string) {
+    await options.printer.print(ticket.build(), { content: "escpos" });
+    await mkdir(dirname(options.keyPath), { recursive: true });
+    await writeFile(options.keyPath, `${key}\n`);
+    options.log("info", "setup-ticket-printed", { key: ticket.key });
+  }
+
   async function printIfNew(bootId: string, failures: Map<string, number>) {
     const ticket = await options.getTicket();
     if (!ticket) return;
@@ -98,10 +105,7 @@ export function createSetupTicketAutoPrint(options: {
     if ((await readText(options.keyPath)) === key) return;
 
     try {
-      await options.printer.print(ticket.build(), { content: "escpos" });
-      await mkdir(dirname(options.keyPath), { recursive: true });
-      await writeFile(options.keyPath, `${key}\n`);
-      options.log("info", "setup-ticket-printed", { key: ticket.key });
+      await printAndRecord(ticket, key);
     } catch (error) {
       failures.set(key, failed + 1);
       options.log("warn", "setup-ticket-print-failed", {
@@ -140,6 +144,14 @@ export function createSetupTicketAutoPrint(options: {
     },
     stop() {
       controller.abort();
+    },
+    /**
+     * Prints `ticket` now, e.g. one that says why a join failed, and counts
+     * it as printed: the next check doesn't print the same ticket again.
+     */
+    async printNow(ticket: SetupTicket) {
+      const bootId = (await readText(options.bootIdPath)) ?? "";
+      await printAndRecord(ticket, `${bootId}:${ticket.key}`);
     },
   };
 }
