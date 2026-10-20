@@ -41,7 +41,6 @@ import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 const NETWORK_SERVICE_PATH = `/etc/systemd/system/${NETWORK_SERVICE_NAME}`;
 const POLKIT_RULE_PATH = "/etc/polkit-1/rules.d/50-ditherbooth-network.rules";
 const TICK_MS = 10_000;
-const CAPTIVE_NFT_PATH = `${NETWORK_STATE_DIR}/captive.nft`;
 /** A boot that lasts less than this counts towards the double power-cycle. */
 const EARLY_BOOT_S = 120;
 // No 0/O, 1/l/I: staff may have to type it off the ticket.
@@ -251,14 +250,15 @@ export async function readAvahiHostName(): Promise<string | null> {
   return parseBusctlString(result.stdout);
 }
 
-/** The booth Wi-Fi's captive checks reach the setup server (see `#internal/captive`). */
+/**
+ * The booth Wi-Fi's captive checks reach the setup server (see
+ * `#internal/captive`). The rules go in through stdin: a file would sit in a
+ * folder the service user can write, and root would load whatever it found.
+ */
 async function applyCaptiveRedirect(): Promise<void> {
-  await Bun.write(
-    CAPTIVE_NFT_PATH,
-    buildCaptiveNftRules(getPort("SETUP_PORT")),
-  );
-  const result = await capture(["nft", "-f", CAPTIVE_NFT_PATH], {
+  const result = await capture(["nft", "-f", "-"], {
     allowFailure: true,
+    input: buildCaptiveNftRules(getPort("SETUP_PORT")),
   });
 
   if (result.exitCode !== 0) {
