@@ -52,8 +52,12 @@ A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edg
 | `booth.silent`           | critical | no heartbeat for 3 minutes while `live_from`–`live_until` is on |
 
 - An alert closes when its condition clears, and any heartbeat ends a silence. Closed alerts stay as history.
-- The minute of grace is counted on the booth's own clock (`changedAt` to `sentAt`), so a Pi with the wrong time doesn't skew it.
-- A dry-run booth never alerts, and a printer with no status yet (`unknown`) never does either.
+- The minute of grace only holds an alert back from opening. It is counted on the booth's own clock (`changedAt` to `sentAt`), so a Pi with the wrong time doesn't skew it; a negative age (the clock went back) counts as past it. Once open, an alert stays open while its condition holds, whatever else changes.
+- `unknown` (the printer reconnecting) leaves printer alerts as they are: it says nothing about the paper.
+- A dry-run booth never alerts, and switching to dry run closes what was open.
+- A heartbeat older than the one stored (a late retry) is ignored.
+- Silence counts from `live_from` at the earliest, so a booth switched on as its window opens has three minutes to report.
+- `alert.key` only takes the keys above: a new rule adds its key to the `alert_key_known` constraint.
 - `evaluate_silence` runs every minute from `pg_cron` (job `booth-silence`).
 - Both functions are for the service role only. The thresholds are constants in the migration, until an event needs others.
 
@@ -61,7 +65,7 @@ A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edg
 
 Each table's access rules have a pgTAP file in `supabase/tests/database/`. They act as a user with `set local role authenticated` and a `request.jwt.claims` setting, and check both what is allowed and what is refused (`42501`).
 
-The Edge Functions keep their logic in a `handler.ts` that takes its dependencies (Auth, the database) as arguments, so `deno test` covers every answer without a stack. Their bodies are tested with the fixtures from `@dither-booth/protocol/heartbeat.fixtures`.
+The Edge Functions keep their logic in a `handler.ts` that takes its dependencies (Auth, the database) as arguments, so `deno test` covers every answer without a stack. Their bodies are tested with the fixtures from `@dither-booth/protocol/heartbeat.fixtures`. A function imports the protocol by its package exports, mapped in its `deno.json` to the files in `packages/protocol`.
 
 `.github/workflows/hub.yml` runs `supabase db lint --schema public`, `supabase test db`, `deno check` and `deno test` on any change under `supabase/` or `packages/protocol/`. Before committing a migration, run `supabase db advisors --local` too.
 

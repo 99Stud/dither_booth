@@ -81,6 +81,13 @@ _Avoid_: watchdog (in staff-facing text).
 
 **Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions and its maintenance state. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
 
+**Alert**: something staff must act on, opened by the Hub from a heartbeat: out of paper, a printer error or unplugged, paper low, the cover open, or a silent booth. It closes by itself when the condition clears, and staff can acknowledge it meanwhile.
+
+**Silent booth**: a booth that has sent no heartbeat for three minutes while its event is on (between `live_from` and `live_until`). Only the Hub can notice it, since a booth that lost power or its network can't say so.
+_Avoid_: offline, down (in staff-facing text).
+
+**Dry run**: a booth that runs without printing for real, for development. It never raises an alert.
+
 ## Connecting devices
 
 **Setup page**: the plain-HTTP page (port `3003`) where a device trusts the booth once, then opens the Shutter. It knows whether the device already trusts the booth.
