@@ -159,7 +159,7 @@ describe("installLibraryFont", () => {
         license: "OFL-1.1",
         weights: [400, 700],
       });
-      expect(await readdir(join(fontsDir, asset.id))).toEqual([
+      expect((await readdir(join(fontsDir, asset.id))).sort()).toEqual([
         "400-normal.woff2",
         "700-normal.woff2",
       ]);
