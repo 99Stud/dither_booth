@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  isBoothWifiClient,
   getNetworkMode,
   parseNmcliDevices,
   parseNmcliWifiList,
@@ -61,5 +62,15 @@ describe("getNetworkMode", () => {
         ]),
       ),
     ).toBe("offline");
+  });
+});
+
+describe("booth Wi-Fi clients", () => {
+  test("are the /24 NetworkManager hands out, IPv4-mapped included", () => {
+    expect(isBoothWifiClient("10.42.0.23")).toBe(true);
+    expect(isBoothWifiClient("::ffff:10.42.0.23")).toBe(true);
+    expect(isBoothWifiClient("10.42.1.23")).toBe(false);
+    expect(isBoothWifiClient("192.168.1.20")).toBe(false);
+    expect(isBoothWifiClient(undefined)).toBe(false);
   });
 });

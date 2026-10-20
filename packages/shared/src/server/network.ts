@@ -1,12 +1,21 @@
 import { BOOTH_WIFI_IP } from "@dither-booth/ports";
+import { BlockList } from "node:net";
 
 /**
  * The booth's own Wi-Fi, and the files the network watch (root) and the
  * engine (service user) share. NetworkManager owns the networks themselves.
  */
 export const HOTSPOT_CONNECTION_NAME = "booth-hotspot";
-/** NetworkManager's address for a shared (`ipv4.method shared`) connection. */
-export const HOTSPOT_IP = BOOTH_WIFI_IP;
+/** NetworkManager's shared mode hands the booth Wi-Fi's devices a /24. */
+export const BOOTH_WIFI_PREFIX_LENGTH = 24;
+
+const boothWifiClients = new BlockList();
+boothWifiClients.addSubnet(BOOTH_WIFI_IP, BOOTH_WIFI_PREFIX_LENGTH, "ipv4");
+
+/** A device on the booth's own Wi-Fi, IPv4-mapped IPv6 included. */
+export const isBoothWifiClient = (address: string | undefined) =>
+  !!address &&
+  boothWifiClients.check(address, address.includes(":") ? "ipv6" : "ipv4");
 
 /** Owned by the service user, so the engine can write what the watch reads. */
 export const NETWORK_STATE_DIR = "/var/lib/ditherbooth";
@@ -17,30 +26,46 @@ export const WIFI_SCAN_CACHE_PATH = `${NETWORK_STATE_DIR}/wifi-scan.json`;
 /** Left by a boot that didn't last two minutes: the next one forces the hotspot. */
 export const BOOT_MARKER_PATH = `${NETWORK_STATE_DIR}/early-boot`;
 
+/** What a captive check expects back when the Wi-Fi needs no login page. */
+export type CaptiveCheckReply = {
+  status: number;
+  body?: string;
+  contentType?: string;
+};
+
+const APPLE_SUCCESS: CaptiveCheckReply = {
+  body: "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>",
+  contentType: "text/html",
+  status: 200,
+};
+const NO_CONTENT: CaptiveCheckReply = { status: 204 };
+
 /**
  * Hosts phones and laptops fetch over plain HTTP to tell whether a Wi-Fi
- * needs a login page. On the booth Wi-Fi they resolve to the booth, which
- * answers with the Wi-Fi picker while it has no network to join.
+ * needs a login page, with the reply that says it doesn't. On the booth
+ * Wi-Fi they resolve to the booth (dnsmasq), which answers with the Wi-Fi
+ * picker instead while it has no network to join. Only these hosts: the
+ * rest of the internet still resolves, for a booth with an Ethernet uplink.
  */
-export const CAPTIVE_CHECK_HOSTS = [
+export const CAPTIVE_CHECKS: Record<string, CaptiveCheckReply> = {
   // iOS, iPadOS, macOS
-  "captive.apple.com",
-  "www.apple.com",
-  "www.appleiphonecell.com",
-  "www.itools.info",
-  "www.ibook.info",
-  "www.airport.us",
-  "www.thinkdifferent.us",
+  "captive.apple.com": APPLE_SUCCESS,
+  "www.apple.com": APPLE_SUCCESS,
+  "www.appleiphonecell.com": APPLE_SUCCESS,
+  "www.itools.info": APPLE_SUCCESS,
+  "www.ibook.info": APPLE_SUCCESS,
+  "www.airport.us": APPLE_SUCCESS,
+  "www.thinkdifferent.us": APPLE_SUCCESS,
   // Android
-  "connectivitycheck.gstatic.com",
-  "connectivitycheck.android.com",
-  "clients3.google.com",
+  "connectivitycheck.gstatic.com": NO_CONTENT,
+  "connectivitycheck.android.com": NO_CONTENT,
+  "clients3.google.com": NO_CONTENT,
   // Windows
-  "www.msftconnecttest.com",
-  "www.msftncsi.com",
+  "www.msftconnecttest.com": { body: "Microsoft Connect Test", status: 200 },
+  "www.msftncsi.com": { body: "Microsoft NCSI", status: 200 },
   // Firefox
-  "detectportal.firefox.com",
-] as const;
+  "detectportal.firefox.com": { body: "success\n", status: 200 },
+};
 
 /** Where the setup server sends the booth Wi-Fi's captive page requests. */
 export const CAPTIVE_HTTP_PORT = 80;

@@ -1,8 +1,8 @@
-import { getPort } from "@dither-booth/ports";
+import { BOOTH_WIFI_IP, getPort } from "@dither-booth/ports";
 import {
   BOOT_MARKER_PATH,
   HOTSPOT_CONNECTION_NAME,
-  HOTSPOT_IP,
+  BOOTH_WIFI_PREFIX_LENGTH,
   NETWORK_STATE_DIR,
   PREFER_HOTSPOT_PATH,
   WIFI_SCAN_CACHE_PATH,
@@ -150,7 +150,7 @@ async function ensureHotspotProfile(): Promise<void> {
     "ipv4.method",
     "shared",
     "ipv4.addresses",
-    `${HOTSPOT_IP}/24`,
+    `${BOOTH_WIFI_IP}/${BOOTH_WIFI_PREFIX_LENGTH}`,
     "wifi-sec.key-mgmt",
     "wpa-psk",
     "wifi-sec.psk",

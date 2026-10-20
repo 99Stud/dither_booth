@@ -20,10 +20,8 @@ export async function getCurrentDeviceSetupLinks(
 ) {
   const connection = await readConnection(network);
 
-  return getDeviceSetupLinks({
-    ...options,
-    ip: connection?.mode === "hotspot" ? BOOTH_WIFI_IP : connection?.ip,
-  });
+  // On the booth Wi-Fi the interface has its address: 10.42.0.1.
+  return getDeviceSetupLinks({ ...options, ip: connection?.ip });
 }
 
 /**
@@ -42,7 +40,7 @@ export async function getCurrentSetupTicket(
 
   if (connection?.mode === "hotspot") {
     const [links, boothWifi] = await Promise.all([
-      getDeviceSetupLinks({ ...options, ip: BOOTH_WIFI_IP }),
+      getDeviceSetupLinks({ ...options, ip: connection.ip }),
       getBoothWifiCredentials(network),
     ]);
 
@@ -55,7 +53,7 @@ export async function getCurrentSetupTicket(
   }
 
   const certificateIp = await getWebPublicIp(options);
-  const ip = connection?.mode === "hotspot" ? BOOTH_WIFI_IP : connection?.ip;
+  const ip = connection?.ip;
 
   if (ip && ip !== BOOTH_WIFI_IP && ip !== certificateIp) return undefined;
 

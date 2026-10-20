@@ -1,4 +1,11 @@
-import { HOTSPOT_IP } from "@dither-booth/shared/server/network";
+import type { EngineOutputs } from "@dither-booth/engine/router.types";
+
+import { BOOTH_WIFI_IP } from "@dither-booth/ports";
+import {
+  CAPTIVE_CHECKS,
+  isBoothWifiClient,
+  type CaptiveCheckReply,
+} from "@dither-booth/shared/server/network";
 
 import { renderCaptivePage } from "./captive.page";
 import { renderDeviceSetupPage } from "./device-setup.page";
@@ -6,10 +13,7 @@ import { renderDeviceSetupPage } from "./device-setup.page";
 export const DEVICE_SETUP_CA_PATH = "/dither-booth-ca.crt";
 export const CAPTIVE_PAGE_PATH = "/wifi";
 
-export type CaptiveStatus = {
-  state: "pick-network" | "booth-wifi-chosen" | "not-on-booth-wifi";
-  nearby: Array<{ ssid: string; signal: number; secured: boolean }>;
-};
+export type CaptiveStatus = EngineOutputs["captive"]["getCaptiveStatus"];
 
 /** The engine's `captive.*` procedures, called with the setup server's token. */
 export type CaptiveBackend = {
@@ -26,36 +30,11 @@ export type DeviceSetupRoutesOptions = {
   captive: CaptiveBackend;
 };
 
-/** The booth Wi-Fi's own subnet (NetworkManager's shared mode). */
-const BOOTH_WIFI_CLIENT = new RegExp(
-  `^(::ffff:)?${HOTSPOT_IP.split(".").slice(0, 3).join("\\.")}\\.\\d{1,3}$`,
-);
-
-/**
- * What each OS expects from its captive check when the Wi-Fi is open, so it
- * doesn't show a login sheet. Keyed by the host it asks.
- */
-const CAPTIVE_CHECK_SUCCESS: Record<string, () => Response> = {
-  "captive.apple.com": () => appleSuccess(),
-  "www.apple.com": () => appleSuccess(),
-  "www.appleiphonecell.com": () => appleSuccess(),
-  "www.itools.info": () => appleSuccess(),
-  "www.ibook.info": () => appleSuccess(),
-  "www.airport.us": () => appleSuccess(),
-  "www.thinkdifferent.us": () => appleSuccess(),
-  "connectivitycheck.gstatic.com": () => new Response(null, { status: 204 }),
-  "connectivitycheck.android.com": () => new Response(null, { status: 204 }),
-  "clients3.google.com": () => new Response(null, { status: 204 }),
-  "www.msftconnecttest.com": () => new Response("Microsoft Connect Test"),
-  "www.msftncsi.com": () => new Response("Microsoft NCSI"),
-  "detectportal.firefox.com": () => new Response("success\n"),
-};
-
-const appleSuccess = () =>
-  new Response(
-    "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>",
-    { headers: { "content-type": "text/html" } },
-  );
+const captiveCheckSuccess = (reply: CaptiveCheckReply) =>
+  new Response(reply.body ?? null, {
+    headers: reply.contentType ? { "content-type": reply.contentType } : {},
+    status: reply.status,
+  });
 
 const noStore = { "cache-control": "no-store" };
 
@@ -82,7 +61,7 @@ export function createDeviceSetupFetch(options: DeviceSetupRoutesOptions) {
   const captivePage = renderCaptivePage();
 
   const handleCaptiveCheck = async (
-    succeed: () => Response,
+    reply: CaptiveCheckReply,
     onBoothWifi: boolean,
   ) => {
     const status = onBoothWifi
@@ -94,10 +73,10 @@ export function createDeviceSetupFetch(options: DeviceSetupRoutesOptions) {
           status: 302,
           headers: {
             ...noStore,
-            location: `http://${HOTSPOT_IP}${CAPTIVE_PAGE_PATH}`,
+            location: `http://${BOOTH_WIFI_IP}${CAPTIVE_PAGE_PATH}`,
           },
         })
-      : succeed();
+      : captiveCheckSuccess(reply);
   };
 
   const handleCaptivePage = async (request: Request, pathname: string) => {
@@ -144,9 +123,8 @@ export function createDeviceSetupFetch(options: DeviceSetupRoutesOptions) {
 
   return async (request: Request, clientIp?: string) => {
     const { hostname, pathname } = new URL(request.url);
-    const onBoothWifi =
-      clientIp !== undefined && BOOTH_WIFI_CLIENT.test(clientIp);
-    const captiveCheck = CAPTIVE_CHECK_SUCCESS[hostname];
+    const onBoothWifi = isBoothWifiClient(clientIp);
+    const captiveCheck = CAPTIVE_CHECKS[hostname];
 
     if (captiveCheck) {
       return handleCaptiveCheck(captiveCheck, onBoothWifi);

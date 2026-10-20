@@ -1,7 +1,7 @@
+import { BOOTH_WIFI_IP } from "@dither-booth/ports";
 import {
-  CAPTIVE_CHECK_HOSTS,
+  CAPTIVE_CHECKS,
   CAPTIVE_HTTP_PORT,
-  HOTSPOT_IP,
 } from "@dither-booth/shared/server/network";
 
 /** NetworkManager's dnsmasq for shared connections (the booth Wi-Fi) reads this. */
@@ -16,7 +16,9 @@ export function buildCaptiveDnsmasqConf(): string {
   return [
     "# Installed by `booth network setup`: devices that join the booth Wi-Fi",
     "# ask the booth whether it needs a login page.",
-    ...CAPTIVE_CHECK_HOSTS.map((host) => `address=/${host}/${HOTSPOT_IP}`),
+    ...Object.keys(CAPTIVE_CHECKS).map(
+      (host) => `address=/${host}/${BOOTH_WIFI_IP}`,
+    ),
     "",
   ].join("\n");
 }
@@ -32,7 +34,7 @@ delete table ip ditherbooth
 table ip ditherbooth {
   chain prerouting {
     type nat hook prerouting priority dstnat; policy accept;
-    ip daddr ${HOTSPOT_IP} tcp dport ${CAPTIVE_HTTP_PORT} redirect to :${setupPort}
+    ip daddr ${BOOTH_WIFI_IP} tcp dport ${CAPTIVE_HTTP_PORT} redirect to :${setupPort}
   }
 }
 `;
