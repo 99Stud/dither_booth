@@ -124,6 +124,9 @@
         "@dither-booth/ports": "workspace:*",
         "@dither-booth/shared": "workspace:*",
         "@dither-booth/ui": "workspace:*",
+        "@fontsource/creepster": "5.3.0",
+        "@fontsource/ibm-plex-sans": "5.3.0",
+        "@fontsource/special-elite": "5.3.0",
         "@tanstack/react-form": "1.33.2",
         "@tanstack/react-pacer": "0.22.1",
         "@tanstack/react-query": "5.101.4",
@@ -499,6 +502,12 @@
     "@fontsource-variable/geist": ["@fontsource-variable/geist@5.3.0", "", {}, "sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA=="],
 
     "@fontsource-variable/geist-mono": ["@fontsource-variable/geist-mono@5.3.0", "", {}, "sha512-vBbuwDEo9AkrqADMXOrlAR3DFcJi4/JxeuU43FoiQERnNwsfXNnvxvReZG02cQKmyk4DZkZdBZX3oTDvy2zBAw=="],
+
+    "@fontsource/creepster": ["@fontsource/creepster@5.3.0", "", {}, "sha512-k1Y03cPd2QnoVBygqfYd/y1Byx1Rl3vDLuq3TrmujwaSgFh8hFy2e1ar7/zhillaaCwweLDI9AlvhIBA+VlsWg=="],
+
+    "@fontsource/ibm-plex-sans": ["@fontsource/ibm-plex-sans@5.3.0", "", {}, "sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w=="],
+
+    "@fontsource/special-elite": ["@fontsource/special-elite@5.3.0", "", {}, "sha512-fOQ9XU8m4KnqzcLibAXCxTsKzbxePNDjPqVss5GSMcPVCY1TuCv+Wq8gm1ebqIR6XS1rhMbQ7ECP9ocKVEEpTA=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.14", "", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
 

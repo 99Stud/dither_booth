@@ -55,6 +55,25 @@ export const useEventQueries = () => {
     },
   });
 
+  const updateKitSettingsMutation = useMutation({
+    ...trpc.config.updateKitSettings.mutationOptions(),
+    onSuccess: async ({ delivered }) => {
+      notify.success(
+        delivered > 0
+          ? "Kit saved. The booth screen is updated."
+          : "Kit saved. No booth screen is connected right now.",
+      );
+      await invalidateCurrentEvent();
+    },
+    onError: (error) => {
+      reportEventError(
+        error,
+        "update-kit-settings-failed",
+        "Failed to save the kit.",
+      );
+    },
+  });
+
   const replaceEventMutation = useMutation({
     ...trpc.config.replaceEvent.mutationOptions(),
     onSuccess: async () => {
@@ -138,6 +157,7 @@ export const useEventQueries = () => {
     createEventMutation,
     updateEventMutation,
     updateTicketItemsMutation,
+    updateKitSettingsMutation,
     replaceEventMutation,
     updateLotterySettingsMutation,
     createPrizeMutation,

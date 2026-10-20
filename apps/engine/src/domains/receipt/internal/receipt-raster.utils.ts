@@ -91,7 +91,7 @@ export async function buildReceiptRasterCommand({
   ticketItems,
   ticketRef,
 }: {
-  /** The event's kit, which picks the photo receipt's template. */
+  /** The event's kit, which picks how the ticket looks. */
   kitId: KitId;
   page: Page;
   photoBuffer: Buffer<ArrayBuffer>;
@@ -121,8 +121,8 @@ export async function buildReceiptRasterCommand({
             data: ditheredImageData,
             mimeType: "image/png",
           },
+          kitId,
           page,
-          template: kitId,
           ticketItems,
           ticketRef,
         }),
@@ -155,10 +155,13 @@ export async function buildReceiptRasterCommand({
 }
 
 export async function buildLotteryTicketRasterCommand({
+  kitId,
   page,
   draw,
   ticketRef,
 }: {
+  /** The event's kit, which picks how the ticket looks. */
+  kitId: KitId;
   page: Page;
   draw: DrawResult;
   ticketRef: string;
@@ -169,6 +172,7 @@ export async function buildLotteryTicketRasterCommand({
         page,
         search: {
           template: LOTTERY_RECEIPT_TEMPLATE,
+          kit: kitId,
           outcome: draw.outcome,
           wonAt: new Date().toISOString(),
           ...(draw.outcome === "win"

@@ -25,7 +25,7 @@ import { NodeMaterial, QuadMesh } from "three/webgpu";
 
 import { disposeMaterial } from "#lib/three/internal/runtime/disposeMaterial";
 
-import type { FluidBackgroundOptions, Splat } from "./fluid-background.types";
+import type { FluidSimulationSettings, Splat } from "./fluid-background.types";
 
 interface DoubleFBO {
   read: RenderTarget;
@@ -33,29 +33,15 @@ interface DoubleFBO {
   swap(): void;
 }
 
-const DEFAULTS: Required<FluidBackgroundOptions> = {
-  simRes: 128,
-  dyeRes: 512,
-  iterations: 2,
-  densityDissipation: 0.98,
-  velocityDissipation: 0.913,
-  pressureDissipation: 0.99,
-  curlStrength: 8,
-  splatRadius: 0.3,
-  idleFrames: 180,
-};
-
-function createFluidSimulationUniforms(
-  config: Required<FluidBackgroundOptions>,
-) {
-  const rcpSim = 1 / config.simRes;
+function createFluidSimulationUniforms(settings: FluidSimulationSettings) {
+  const rcpSim = 1 / settings.simRes;
 
   return {
-    uDensityDissipation: uniform(config.densityDissipation),
-    uVelocityDissipation: uniform(config.velocityDissipation),
-    uPressureDissipation: uniform(config.pressureDissipation),
-    uCurlStrength: uniform(config.curlStrength),
-    uSplatRadius: uniform(config.splatRadius),
+    uDensityDissipation: uniform(settings.densityDissipation),
+    uVelocityDissipation: uniform(settings.velocityDissipation),
+    uPressureDissipation: uniform(settings.pressureDissipation),
+    uCurlStrength: uniform(settings.curlStrength),
+    uSplatRadius: uniform(settings.splatRadius),
     uSimTexelSize: uniform(vec2(rcpSim, rcpSim)),
   };
 }
@@ -300,7 +286,7 @@ export class FluidSimulation {
   densityTexture: Texture;
 
   private _renderer: WebGPURenderer | null = null;
-  private readonly _cfg: Required<FluidBackgroundOptions>;
+  private readonly _cfg: FluidSimulationSettings;
   private readonly _uniforms: FluidSimulationUniforms;
 
   private readonly _density: DoubleFBO;
@@ -324,8 +310,8 @@ export class FluidSimulation {
 
   private static readonly MAX_SPLATS_PER_FRAME = 3;
 
-  constructor(config: FluidBackgroundOptions = {}) {
-    this._cfg = { ...DEFAULTS, ...config };
+  constructor(settings: FluidSimulationSettings) {
+    this._cfg = settings;
     const { simRes, dyeRes } = this._cfg;
     this._uniforms = createFluidSimulationUniforms(this._cfg);
 
@@ -358,6 +344,16 @@ export class FluidSimulation {
 
   init(renderer: WebGPURenderer): void {
     this._renderer = renderer;
+  }
+
+  /** The tunable values; resolutions and solver passes stay as built. */
+  applySettings(settings: FluidSimulationSettings): void {
+    const u = this._uniforms;
+    u.uDensityDissipation.value = settings.densityDissipation;
+    u.uVelocityDissipation.value = settings.velocityDissipation;
+    u.uPressureDissipation.value = settings.pressureDissipation;
+    u.uCurlStrength.value = settings.curlStrength;
+    u.uSplatRadius.value = settings.splatRadius;
   }
 
   attachDebug(folder: ParametersGroup): void {

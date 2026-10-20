@@ -18,7 +18,7 @@ export type CurrentEvent = NonNullable<
 >;
 export type EventPrize = CurrentEvent["prizes"][number];
 
-export type EventTab = "overview" | "lottery" | "prizes" | "draws";
+export type EventTab = "overview" | "kit" | "lottery" | "prizes" | "draws";
 
 export type CreateEventFormValues = z.infer<typeof CREATE_EVENT_FORM_SCHEMA>;
 export type UpdateEventFormValues = z.infer<typeof UPDATE_EVENT_FORM_SCHEMA>;

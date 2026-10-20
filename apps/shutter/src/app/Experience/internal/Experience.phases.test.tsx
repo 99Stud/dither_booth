@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test";
 import type { ExperiencePhase } from "./Experience.machine";
 import type { ExperiencePhaseFlag } from "./Experience.phases";
 
-import { PROMPT_TEXT_BY_PHASE } from "./Experience.copy";
+import { PROMPT_BY_PHASE } from "./Experience.copy";
 import {
   PROMPT_TEXT_TRANSITION,
   PROMPT_TRANSITION,
@@ -128,14 +128,12 @@ describe("AUTO_ADVANCE_ACTION_BY_PHASE", () => {
   });
 });
 
-describe("PROMPT_TEXT_BY_PHASE", () => {
+describe("PROMPT_BY_PHASE", () => {
   // The caption is a pure derivation of the phase, so the phases where the
   // prompt panel is still fading out have to repeat the text it faded out with.
   it("holds the printing caption through the phases that fade the panel out", () => {
-    expect(PROMPT_TEXT_BY_PHASE.cameraExiting).toBe(
-      PROMPT_TEXT_BY_PHASE.printing,
-    );
-    expect(PROMPT_TEXT_BY_PHASE.resetting).toBe(PROMPT_TEXT_BY_PHASE.printing);
+    expect(PROMPT_BY_PHASE.cameraExiting).toBe(PROMPT_BY_PHASE.printing);
+    expect(PROMPT_BY_PHASE.resetting).toBe(PROMPT_BY_PHASE.printing);
   });
 
   // Both fade-out phases are left when the shutter closes. That has to

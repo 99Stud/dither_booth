@@ -13,7 +13,7 @@ import {
   SLOT_RESULT_HOLD_MS,
   SMILE_HOLD_MS,
 } from "../Experience.constants";
-import { PROMPT_TEXT_BY_PHASE } from "../Experience.copy";
+import { PROMPT_BY_PHASE } from "../Experience.copy";
 import {
   experienceReducer,
   initialExperienceState,
@@ -194,7 +194,7 @@ export const useExperienceFlow = () => {
     lotteryStatus,
     phase,
     photoUrl,
-    promptText: PROMPT_TEXT_BY_PHASE[phase],
+    prompt: PROMPT_BY_PHASE[phase],
     webcamRef,
   };
 };

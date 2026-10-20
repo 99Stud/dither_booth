@@ -17,6 +17,8 @@ const SETUP_SERVER_TOKEN = "setup-server-token";
 const GROUPS = {
   captive: ["getCaptiveStatus", "joinFromCaptive"],
   booth: [
+    "getFontAsset",
+    "getKit",
     "getLotteryStatus",
     "lockDarkroom",
     "onKioskCommand",
@@ -29,6 +31,7 @@ const GROUPS = {
   config: [
     "createEvent",
     "createPrize",
+    "deleteFontAsset",
     "deletePrize",
     "dither",
     "forgetWifiNetwork",
@@ -38,6 +41,8 @@ const GROUPS = {
     "getDeviceSetup",
     "getNetworkStatus",
     "getPrintConfiguration",
+    "installLibraryFont",
+    "listFontAssets",
     "listDraws",
     "printReceipt",
     "printSampleLotteryTicket",
@@ -45,13 +50,16 @@ const GROUPS = {
     "replaceEvent",
     "restockPrize",
     "saveWifiNetwork",
+    "searchFontLibrary",
     "setBoothWifi",
     "setDarkroomPin",
     "updateEvent",
+    "updateKitSettings",
     "updateLotterySettings",
     "updatePrintConfiguration",
     "updatePrize",
     "updateTicketItems",
+    "uploadFont",
   ],
   ops: [
     "getHealthz",

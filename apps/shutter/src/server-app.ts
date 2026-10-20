@@ -24,6 +24,7 @@ import {
 import { SHUTTER_SERVER_LOG_SOURCE } from "#lib/constants";
 import { createCaptiveBackend } from "#lib/device-setup/captive.backend";
 import { runDeviceSetupServer } from "#lib/device-setup/device-setup.server";
+import { getKitPreviewDocumentHeaders } from "#lib/kit-preview-headers";
 import { SHUTTER_APP_ROOT, SHUTTER_REPO_ROOT } from "#lib/server-constants";
 const engineOrigin = getEngineInternalOrigin();
 
@@ -62,11 +63,22 @@ export async function runShutterServer(options: {
     ],
   });
 
+  const adminPort = getPort("ADMIN_PORT");
+  const adminOrigins = [
+    await getAdminOrigin(repoPathOptions),
+    ...(await getLocalOrigins(repoPathOptions, {
+      port: adminPort,
+      protocol: "https",
+    })),
+    `https://${BOOTH_WIFI_IP}:${adminPort}`,
+  ];
+
   const browserServer = await runBrowserServer({
     allowedHostnames,
     engineOrigin,
     appRoot: SHUTTER_APP_ROOT,
     bindHost: SHUTTER_BIND_HOST,
+    getDocumentHeaders: getKitPreviewDocumentHeaders(adminOrigins),
     getTrpcProxyUpstreamPath,
     healthz: {
       service: SHUTTER_HEALTHZ_SERVICE,

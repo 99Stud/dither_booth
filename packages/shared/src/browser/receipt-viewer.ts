@@ -44,6 +44,7 @@ declare const window: ReceiptViewerPageWindow;
 
 export const RECEIPT_VIEWER_SEARCH_KEYS = [
   "template",
+  "kit",
   "outcome",
   "prizeId",
   "title",
@@ -55,6 +56,7 @@ export const RECEIPT_VIEWER_SEARCH_KEYS = [
 ] as const satisfies ReadonlyArray<keyof ReceiptViewerSearch>;
 
 const URL_SEARCH_KEYS = [
+  "kit",
   "outcome",
   "prizeId",
   "title",
@@ -148,7 +150,7 @@ function urlReceiptSearchValueMatches(
   return actual === expected;
 }
 
-function lotterySearchMatches(
+function urlSearchMatches(
   searchParams: URLSearchParams,
   options: ReceiptViewerSearch,
 ): boolean {
@@ -181,7 +183,7 @@ export function isReceiptViewerRouteStateCommittedInPage(
     .querySelector(`[${templateAttribute}]`)
     ?.getAttribute(templateAttribute);
 
-  if (!lotterySearchMatches(searchParams, options)) {
+  if (!urlSearchMatches(searchParams, options)) {
     return false;
   }
 

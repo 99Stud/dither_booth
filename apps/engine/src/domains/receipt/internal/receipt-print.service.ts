@@ -219,6 +219,7 @@ export const prepareReceiptJob = async ({
 
   try {
     job.lotteryRasterCmd = await buildLotteryTicketRasterCommand({
+      kitId,
       page,
       draw,
       ticketRef,
@@ -331,7 +332,10 @@ export const printSampleLotteryTicketJob = async ({
   ctx,
   draw,
 }: {
-  ctx: Pick<TRPCContext, "kioskMaintenance" | "printer" | "puppeteerLifecycle">;
+  ctx: Pick<
+    TRPCContext,
+    "db" | "kioskMaintenance" | "printer" | "puppeteerLifecycle"
+  >;
   draw: DrawResult;
 }): Promise<void> => {
   const { dryRun, print } = assertPrinterAvailable(ctx);
@@ -344,8 +348,10 @@ export const printSampleLotteryTicketJob = async ({
     });
   }
 
+  const { kitId } = await getReceiptEventSettingsForDb(ctx.db);
   const lotteryRasterCmd = await buildLotteryTicketRasterCommand({
     draw,
+    kitId,
     page,
     ticketRef: SAMPLE_LOTTERY_TICKET_REF,
   });
