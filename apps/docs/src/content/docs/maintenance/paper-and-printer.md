@@ -20,6 +20,21 @@ Count the receipts from the first full roll at a real event and replace these es
 
 When a roll is nearly finished, a **red stripe** appears on the paper. The printer's sensors don't see it; it's a reminder for staff to have the next roll ready. The printer's own **paper low** sensor shows in admin as a warning, and the printer keeps printing.
 
+### Paper low (near-end sensor)
+
+The printer has a near-end sensor, a lever that rests on the roll. **It is off by default on the TM-T20III**, so out of the box admin never shows **Paper low**. To turn it on (once per printer):
+
+1. Printer off. Hold **Feed** and switch it on: the self-test prints. Then hold **Feed** for at least 1 second: the mode menu prints.
+2. Press **Feed** briefly 3 times, then hold it 1 second: _Software setting mode (Customized Value Settings)_.
+3. Press **Feed** briefly 9 times, then hold it 1 second: **9: Near-end Detection**. The printer prints the choices; select **Enabled** the same way (short presses for its number, then hold).
+4. Switch the printer off and on.
+
+Or use Epson's _TM-T20III Utility_ from a computer over USB, with the booth's engine stopped (it holds the printer).
+
+Where it trips depends on the lever, set by a screw under the roll (_Adjusting the Roll Paper Near-End Sensor_ in Epson's guide): **lower position (default) at about 23 mm** of roll diameter left, **upper at about 27 mm**. On our 80 mm rolls that is roughly 2–3 m of paper, a dozen photo receipts, in the lower position, and about twice that in the upper one. These are estimates from the roll geometry; note the real count at the first event. The printer must sit horizontally for the sensor to work.
+
+Paper low only warns: the printer keeps printing until the paper end sensor stops it.
+
 ## Changing a roll
 
 1. Open the cover. The booth goes into **maintenance** about **3 seconds** later: guests see “be right back”. If a receipt was printing, the job stops within a second; the iPad retries twice, 2 seconds apart, and if the printer still can't print, that visit ends without its receipt. Change rolls between guests when you can.
