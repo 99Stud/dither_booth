@@ -1,0 +1,77 @@
+---
+title: Tune the prints
+description: Use the Darkroom on the booth iPad to get good dithered portraits under the venue's light.
+sidebar:
+  order: 5
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+A thermal printer has two colours: black dot or no dot. Every grey in the photo is made by **dithering**, a pattern of dots whose density the eye reads as tone. How good that looks depends on the light at the venue, the paper and a few settings. The **Darkroom** is where you set them, on the booth iPad, with the booth's own camera.
+
+## Open the Darkroom
+
+- On the landing screen, **tap the Dither Booth logo at the top left four times within two seconds**. It only works while no visit is running, and taps on the logo never start a visit.
+- Or open `/darkroom` on the Shutter's address. Admin's Control Center → **Booth screen → Darkroom** also sends the iPad there once the current guest is done.
+
+Enter the **PIN** (4–8 digits, set in admin's **Settings → Darkroom PIN**). No PIN set means the Darkroom stays locked.
+
+The Darkroom locks again with the **Lock** button, after **30 minutes without use**, when the PIN changes in admin, or when the engine restarts. Five wrong PINs in a row block unlocking for a minute.
+
+<Aside type="note">
+  While the Darkroom is open, guests can't start a visit from that iPad, and the
+  booth camera's live view in admin is off.
+</Aside>
+
+## Tuning workflow
+
+<Steps>
+
+1. **Take a photo** under the event's real light, ideally with someone standing where guests will stand.
+
+2. **Look at the preview.** The Darkroom dithers the photo with the current settings and shows the full receipt preview. Settings are **saved as you change them**; there is no Save button.
+
+3. **Adjust exposure first.** Most venue problems are exposure: dark rooms make muddy prints, bright windows behind the subject make silhouettes.
+
+4. **Test print.** The screen is not the paper. Thermal paper, print density and the roll all change the result. Always judge on paper.
+
+5. **Repeat** until faces read clearly at arm's length.
+
+</Steps>
+
+## Settings
+
+| Setting                                                      | Range                  | What it does                                                                                              | Start with             |
+| ------------------------------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Dither mode**                                              | see below              | The dot pattern.                                                                                          | **Blue noise (macOS)** |
+| **Exposure**                                                 | 0–4                    | Brightens or darkens before dithering. The most useful knob.                                              | 1, then ±0.1 steps     |
+| **Tone gamma**                                               | 1–3                    | Blue noise only. How mid-tones map to dot density. 1.8 matches macOS printing to this printer.            | 1.8                    |
+| **Threshold**                                                | 0–255                  | Where the final black/white cut sits when the image becomes printer dots.                                 | 128                    |
+| **Rotation**                                                 | 0–360°                 | Rotates the photo before dithering.                                                                       | 0                      |
+| **Color scheme**                                             | Mono, Grayscale 4/8/16 | Palette the error-diffusion modes dither to. Ignored by blue noise.                                       | Mono                   |
+| **Serpentine**                                               | on/off                 | Error-diffusion scans alternate rows in reverse, which breaks up “worm” artefacts. Ignored by blue noise. | on                     |
+| **Saturation**, **Shadows lift**, **Highlights compression** |                        | Tone adjustments before error diffusion. Ignored by blue noise.                                           | defaults               |
+
+### Dither modes
+
+- **Blue noise (macOS)** — the default. An ordered dither against a 64×64 blue-noise mask, the way macOS prints to the TM-T20III. Even, grain-like texture with no visible pattern; the best choice for faces.
+- **Floyd-Steinberg, Atkinson, Burkes, Stucki, Sierra, Sierra Lite, Jarvis-Judice-Ninke** — error-diffusion modes. Sharper edges and more contrast, but they can produce worms and streaks on flat areas. **Atkinson** gives the classic high-contrast “early Macintosh” look.
+- **Ordered** — a regular Bayer-style pattern, visibly geometric.
+- **Dizzy** — a stylised pattern.
+- **None** — a plain threshold: black or white, no grey.
+
+## Sample tickets
+
+The **Sample tickets** card prints a lottery **win** ticket for any prize of the active event, and a **loss** ticket, without touching the draw or the stock. Use it to check the prize copy before guests see it.
+
+## When prints look wrong
+
+| Symptom                         | Likely cause                  | Fix                                                                                                                                                |
+| ------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Everything washed out, faint    | Paper or printer density      | Raise the printer's print density before changing dither settings. Some thick rolls print faint.                                                   |
+| Faces too dark, background fine | Backlight, dark venue         | Exposure up. Move the booth so light falls on guests, not behind them.                                                                             |
+| Blown-out faces                 | Direct spotlight              | Exposure down.                                                                                                                                     |
+| Vertical white lines            | Dirty print head              | Clean the head with an isopropyl pen, printer off.                                                                                                 |
+| Print stops halfway             | Paper ran out or cover opened | Normal: the job fails within a second, the booth closes until the printer is ready. See [Paper and printer](/docs/maintenance/paper-and-printer/). |
+
+Print settings belong to the **booth** (they're device tuning), not to the event. The look of the receipt around the photo belongs to the event's **kit**.

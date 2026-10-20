@@ -61,7 +61,7 @@ const defaultLog: PrinterLog = (level, event, details) =>
 /**
  * The receipt printer, watched for as long as the engine runs: it holds the
  * USB connection open, keeps Automatic Status Back on, and prints through
- * the same connection. Why it works this way: docs/specs/printer-watchdog.md.
+ * the same connection. Why it works this way: apps/docs/src/content/docs/specs/printer-watchdog.md.
  */
 export type BoothPrinter = {
   start: () => void;

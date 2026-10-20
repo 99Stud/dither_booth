@@ -1,0 +1,86 @@
+---
+title: Local setup
+description: Run the whole booth on a laptop, with HTTPS, and open it from a phone.
+sidebar:
+  order: 1
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The booth runs on a laptop exactly as on the Pi: same three processes, same HTTPS, same proxy. You need [Bun](https://bun.com/docs/installation) (the version pinned in the root `package.json` `packageManager` field; `bun upgrade` to match) and [mkcert](https://github.com/FiloSottile/mkcert).
+
+<Steps>
+
+1. **Install dependencies** from the repo root:
+
+   ```bash
+   bun install
+   bun run reinstall-puppeteer   # puts Chrome in the repo's Puppeteer cache
+   ```
+
+2. **Create the database:**
+
+   ```bash
+   bun run --filter @dither-booth/engine db:migrate
+   bun run --filter @dither-booth/engine db:seed:lottery   # optional: a dev event with prizes
+   ```
+
+3. **Find your LAN IP** — the address a phone on the same Wi-Fi uses to reach you, never `127.0.0.1`:
+
+   ```bash
+   ipconfig getifaddr en0          # macOS (try en1 if empty)
+   hostname -I | awk '{print $1}'  # Linux
+   ```
+
+4. **Generate the certificate:**
+
+   ```bash
+   bun run --filter @dither-booth/engine cert:generate 192.168.1.42
+   ```
+
+   Writes `.local/tls/booth-cert.pem`, `booth-key.pem` and `booth-manifest.json`. Regenerate when your IP changes; `cert:clean` removes them (not the mkcert CA).
+
+5. **Start everything:**
+
+   ```bash
+   bun run dev
+   ```
+
+   Turbo runs the engine, Shutter and admin with hot reload. Open `https://<LAN_IP>:3000` (Shutter) and `https://<LAN_IP>:3002` (admin), or `https://<hostname>.local:…`.
+
+6. **Test on a phone.** With `bun run dev` running:
+
+   ```bash
+   bun run phone
+   ```
+
+   It prints a QR to the setup page. Scan it, trust the certificate once, open the apps. If the page doesn't load, allow incoming connections for `bun` in the macOS firewall.
+
+</Steps>
+
+<Aside type="note">
+  In development, automatic maintenance is **off** by default, so a laptop
+  without the printer keeps the kiosk open. Use [dry
+  run](/docs/development/without-a-printer/) to see receipts without a printer.
+</Aside>
+
+## Production build locally
+
+```bash
+bun run build
+bun run start          # or: bun run pm2:start, then pm2:list / pm2:logs / pm2:stop
+```
+
+Each app builds `src/production-entry.ts` into `dist/server.js`. Native dependencies (Puppeteer, Sharp, the USB packages) stay external, so `node_modules` must be present where the build runs.
+
+## Per-app commands
+
+From an app's directory (`apps/engine`, `apps/shutter`, `apps/admin`):
+
+```bash
+bun run dev          # that app alone
+bun run check-types
+bun run test
+```
+
+Engine extras: `db:generate`, `db:migrate`, `db:studio`, `db:seed:lottery [-- --reset]`, `cert:generate`, `cert:caroot`, `cert:clean`, `phone`.

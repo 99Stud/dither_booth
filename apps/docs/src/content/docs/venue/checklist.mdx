@@ -1,0 +1,78 @@
+---
+title: Venue checklist
+description: What to pack, what to do the day before, on arrival, during the event and at teardown.
+sidebar:
+  order: 1
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Print this page or keep it open on your phone. Each step links to the page that explains it.
+
+## Pack list
+
+**Booth**
+
+- [ ] Raspberry Pi in its case, with the **official 27 W USB-C power supply**. A phone charger under-powers the Pi 5 and its USB ports.
+- [ ] Epson TM-T20III and **its own power brick** (it doesn't draw from the Pi).
+- [ ] USB cable, printer to Pi.
+- [ ] iPad, charged, with its charger and a long cable. It runs on mains all event.
+- [ ] iPad stand or enclosure.
+
+**Consumables**
+
+- [ ] Thermal rolls, 80 × 80 mm, 12.7 mm core. Count about **350–400 photo receipts per roll**, fewer with lottery tickets. Bring one roll per ~300 expected guests, plus two spare.
+- [ ] Prizes, if the event runs a lottery, matching the stock you'll enter in admin.
+
+**Tools**
+
+- [ ] A phone or laptop for admin (any browser that trusts the booth).
+- [ ] An Ethernet cable (gives the booth internet even when you run on the booth Wi-Fi).
+- [ ] Power strip and an extension lead.
+- [ ] Gaffer tape for cables guests will walk near.
+
+## The day before
+
+- [ ] **Add the venue's Wi-Fi** in admin's **Settings → Wi-Fi** (or the Darkroom's **Wi-Fi → Save for later**). The booth then joins it on site without anyone touching it. [Details](/docs/venue/wifi/#before-you-leave)
+- [ ] **Create or replace the event** in admin's **Event** page: name, kit, lottery odds and cooldown, prizes and stock. [Details](/docs/venue/run-the-event/)
+- [ ] Do a **test visit** at the office: photo, slot machine, both receipts.
+- [ ] Run `booth doctor` over SSH. Every critical line should be green. [Details](/docs/maintenance/health-checks/)
+- [ ] Check the Darkroom PIN is set and that whoever runs the event knows it.
+
+<Aside type="tip">
+  Ask the venue whether its guest Wi-Fi has a login page or keeps devices apart
+  (“client isolation”). Either one rules it out: plan to run on the booth Wi-Fi
+  instead. See [Wi-Fi at a venue](/docs/venue/wifi/).
+</Aside>
+
+## On arrival
+
+1. [ ] Place the booth. Keep the Pi's air intake clear and the printer reachable for roll changes.
+2. [ ] Load a roll and close the printer cover. Switch the printer **on before or after** the Pi; either works.
+3. [ ] Power the Pi. Wait for the **setup ticket** (or a **Wi-Fi ticket**) to print, usually within a minute or two.
+4. [ ] Connect the iPad from the ticket's QR. [Details](/docs/venue/setup/)
+5. [ ] Open the Shutter, add it to the Home Screen if it isn't, and start **Guided Access**. [Details](/docs/venue/connect-a-device/#kiosk-mode)
+6. [ ] Open the **Darkroom**, do a **test print**, adjust exposure for the venue's light. [Details](/docs/venue/tune-prints/)
+7. [ ] Open admin's **Control Center** on your phone. Health, Printer and Network should all be green. [Details](/docs/venue/run-the-event/#control-center)
+8. [ ] Do one full guest visit yourself.
+
+## During the event
+
+- Keep a spare roll next to the printer. When a **red stripe** appears on the paper, the roll is nearly done.
+- If the printer runs out or the cover opens, the booth closes itself (“be right back”) within about 3 seconds and reopens 3 seconds after the printer is ready again. You don't need to touch admin. [Details](/docs/maintenance/paper-and-printer/)
+- To close the booth on purpose (a break, a speech), switch on **Maintenance** in admin's Control Center. Only you can switch it off again.
+- Restock prizes from the Event page as you hand them out or add more. [Details](/docs/venue/run-the-event/#prizes-and-stock)
+
+## Teardown
+
+1. [ ] In admin, switch on **Maintenance** so no visit starts while you pack.
+2. [ ] Optional: note the number of draws in the Event page for your report.
+3. [ ] Power off the Pi cleanly: `ssh pi@booth.local sudo poweroff`, or just unplug it once nothing is printing. The database is on the SSD and survives a power cut, but a clean shutdown is kinder to the microSD card.
+4. [ ] Switch off the printer, remove the partly used roll, pack everything.
+
+<Aside type="caution">
+  A boot that lasts less than two minutes makes the next boot open the booth
+  Wi-Fi. That is a recovery feature, not a fault: if you plug the Pi in and pull
+  it out again quickly, expect a Wi-Fi ticket on the next power-on. See [Wi-Fi
+  at a venue](/docs/venue/wifi/#stuck-on-a-network-the-ipad-cant-reach).
+</Aside>
