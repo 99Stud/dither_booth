@@ -5,20 +5,23 @@ import type { RepoPathOptions } from "#internal/ports.types";
 
 import {
   ADMIN_BIND_HOST,
+  BOOTH_WIFI_IP,
   ENGINE_BIND_HOST,
   CERT_GENERATE_COMMAND,
   DEFAULT_ADMIN_PORT,
   DEFAULT_ENGINE_PORT,
+  DEFAULT_SETUP_PORT,
   DEFAULT_SHUTTER_PORT,
   DEFAULT_WEB_TLS_MANIFEST_FILE_NAME,
   PORT_SCHEMA,
   SHUTTER_BIND_HOST,
+  SETUP_SERVER_TOKEN_PATH,
   WEB_TLS_CERT_PATH,
   WEB_TLS_KEY_PATH,
   WEB_TLS_MANIFEST_SCHEMA,
 } from "#internal/ports.constants";
 
-export { ADMIN_BIND_HOST, ENGINE_BIND_HOST, SHUTTER_BIND_HOST };
+export { ADMIN_BIND_HOST, BOOTH_WIFI_IP, ENGINE_BIND_HOST, SHUTTER_BIND_HOST };
 
 function resolveRepoPath(filePath: string, repoRoot: string) {
   return isAbsolute(filePath) ? filePath : resolve(repoRoot, filePath);
@@ -81,7 +84,9 @@ async function readWebTlsManifest(options: RepoPathOptions) {
   };
 }
 
-export function getPort(name: "ENGINE_PORT" | "SHUTTER_PORT" | "ADMIN_PORT") {
+export function getPort(
+  name: "ENGINE_PORT" | "SHUTTER_PORT" | "ADMIN_PORT" | "SETUP_PORT",
+) {
   const value = process.env[name];
 
   if (!value) {
@@ -92,6 +97,8 @@ export function getPort(name: "ENGINE_PORT" | "SHUTTER_PORT" | "ADMIN_PORT") {
         return DEFAULT_ENGINE_PORT;
       case "SHUTTER_PORT":
         return DEFAULT_SHUTTER_PORT;
+      case "SETUP_PORT":
+        return DEFAULT_SETUP_PORT;
     }
   }
 
@@ -163,6 +170,35 @@ export async function getAdminOrigin(options: RepoPathOptions) {
     await getWebPublicIp(options),
     getPort("ADMIN_PORT"),
   );
+}
+
+/** Plain-HTTP origin of the setup page, where a device trusts the booth CA. */
+export async function getSetupOrigin(options: RepoPathOptions) {
+  return formatOrigin(
+    "http",
+    await getWebPublicIp(options),
+    getPort("SETUP_PORT"),
+  );
+}
+
+/**
+ * The booth's `.local` origins for one app. They survive the booth getting a
+ * new IP, and they are the only way in for a device with no IPv4 route to the
+ * booth, such as an iPad on an iPhone's Personal Hotspot.
+ */
+export async function getLocalOrigins(
+  options: RepoPathOptions,
+  { protocol, port }: { protocol: "http" | "https"; port: number },
+) {
+  const hostnames = await getWebTlsHostnames(options);
+
+  return hostnames
+    .filter((hostname) => hostname.endsWith(".local"))
+    .map((hostname) => formatOrigin(protocol, hostname, port));
+}
+
+export function getSetupServerTokenPath({ repoRoot }: RepoPathOptions) {
+  return resolveRepoPath(SETUP_SERVER_TOKEN_PATH, repoRoot);
 }
 
 export function getWebTlsCertPath({ repoRoot }: RepoPathOptions) {

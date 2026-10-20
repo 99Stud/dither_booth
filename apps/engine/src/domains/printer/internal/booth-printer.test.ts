@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
 import { type BoothPrinter, createBoothPrinter } from "./booth-printer";
-import { DLE_DC4_CLEAR_BUFFERS, frameRasterJob } from "./printer.escpos";
+import { DLE_DC4_CLEAR_BUFFERS, framePrintJob } from "./printer.escpos";
 import { createFakeTransport, waitFor } from "./printer.test-utils";
 import { PrinterUnavailableError } from "./printer.transport";
 
@@ -228,7 +228,7 @@ describe("print", () => {
     await printer.print(RASTER);
 
     expect(hexes(fake.writes).at(-1)).toBe(
-      frameRasterJob(RASTER, { asb: true }).toString("hex"),
+      framePrintJob(RASTER, { asb: true }).toString("hex"),
     );
   });
 
@@ -286,7 +286,7 @@ describe("print", () => {
     expect(hexes(fake.writes).at(-1)).toBe(
       Buffer.concat([
         DLE_DC4_CLEAR_BUFFERS,
-        frameRasterJob(RASTER, { asb: true }),
+        framePrintJob(RASTER, { asb: true }),
       ]).toString("hex"),
     );
   });

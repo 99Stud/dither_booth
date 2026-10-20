@@ -7,6 +7,7 @@ import { useDarkroomSession } from "#lib/darkroom/darkroom-token";
 import { DarkroomHeader } from "./internal/components/DarkroomHeader";
 import { DarkroomHealthStrip } from "./internal/components/DarkroomHealthStrip";
 import { DarkroomUnlock } from "./internal/components/DarkroomUnlock";
+import { DarkroomWifiCard } from "./internal/components/DarkroomWifiCard";
 import { SampleTicketsCard } from "./internal/components/SampleTicketsCard";
 import { useDarkroomKioskCommands } from "./internal/hooks/useDarkroomKioskCommands";
 import { useDarkroomSessionGuard } from "./internal/hooks/useDarkroomSessionGuard";
@@ -29,8 +30,13 @@ const DarkroomWorkspace = () => {
           </>
         )}
       />
-      <div className={clsx("px-4 pb-6 lg:px-6")}>
+      <div
+        className={clsx(
+          "grid items-start gap-4 px-4 pb-6 lg:grid-cols-2 lg:px-6",
+        )}
+      >
         <SampleTicketsCard />
+        <DarkroomWifiCard />
       </div>
     </div>
   );

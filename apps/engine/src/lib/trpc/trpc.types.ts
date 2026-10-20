@@ -1,12 +1,14 @@
 import type { Page } from "puppeteer";
 
 import type { DB } from "#db/internal/db.types";
+import type { SetupServerAccess } from "#domains/captive/captive.service";
 import type { DarkroomAccess } from "#domains/darkroom/darkroom.service";
 import type {
   CameraPreview,
   KioskChannel,
   KioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
+import type { NetworkDeps } from "#domains/network/network.service";
 import type { BoothPrinter } from "#domains/printer/printer.service";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 import type {
@@ -29,7 +31,13 @@ export type TRPCContext = {
   /** Whether the booth is in maintenance, and why. */
   kioskMaintenance: KioskMaintenance;
   mode: "development" | "production";
+  /** NetworkManager, through `nmcli`, as the engine's user. */
+  network: NetworkDeps;
   requestOrigin?: string;
+  /** Opens `captive.*`: the token only the setup server can read. */
+  setupServerAccess: SetupServerAccess;
+  /** The `x-setup-server-token` header, when the setup server sent one. */
+  setupServerToken?: string;
   processManager: RuntimeProcessManager;
   puppeteerLifecycle: PuppeteerReceiptViewerLifecycle;
   puppeteerState: PuppeteerStartupState;

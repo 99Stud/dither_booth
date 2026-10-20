@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { BoothCameraCard } from "#components/App/ControlCenter/BoothCameraCard/index";
 import { BoothScreenCard } from "#components/App/ControlCenter/BoothScreenCard/index";
 import { HealthCard } from "#components/App/ControlCenter/HealthCard/index";
+import { NetworkCard } from "#components/App/ControlCenter/NetworkCard/index";
 import { PrinterCard } from "#components/App/ControlCenter/PrinterCard/index";
 import {
   AppPageBody,
@@ -30,6 +31,7 @@ export const ControlCenter = () => {
             <BoothScreenCard />
             <PrinterCard />
             <BoothCameraCard />
+            <NetworkCard />
           </div>
           <HealthCard />
         </div>

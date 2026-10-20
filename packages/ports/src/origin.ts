@@ -1,4 +1,12 @@
-const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
+import { BOOTH_WIFI_IP } from "#internal/ports.constants";
+
+/** Always the booth, whatever network it's on: loopback, and its own Wi-Fi. */
+const BOOTH_HOSTNAMES = new Set([
+  "localhost",
+  "127.0.0.1",
+  "::1",
+  BOOTH_WIFI_IP,
+]);
 
 function tryParseOrigin(value: string): URL | null {
   try {
@@ -10,8 +18,8 @@ function tryParseOrigin(value: string): URL | null {
 
 /**
  * True when `requestOrigin` matches `configuredOrigin`, or is a loopback /
- * manifest hostname (`localhost` / `127.0.0.1` / `::1` / machine hostnames)
- * with the same protocol and port.
+ * booth Wi-Fi / manifest hostname (`localhost` / `127.0.0.1` / `::1` /
+ * `10.42.0.1` / machine hostnames) with the same protocol and port.
  *
  * Local TLS certs include those SANs, so opening admin/shutter via localhost or the
  * machine hostname is valid even when the public origin uses the LAN IP.
@@ -38,7 +46,7 @@ export function isAllowedConfiguredOrigin(
 
   const requestHostname = requestUrl.hostname.toLowerCase();
   const allowedHostnameSet = new Set([
-    ...LOOPBACK_HOSTNAMES,
+    ...BOOTH_HOSTNAMES,
     ...allowedHostnames.map((value) => value.toLowerCase()),
   ]);
 

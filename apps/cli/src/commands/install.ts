@@ -3,9 +3,11 @@ import { defineCommand } from "citty";
 import type { BoothContext } from "#internal/context";
 
 import { runBunCommand } from "#commands/bun";
-import { runCertCommand, runCertCopyCommand } from "#commands/cert";
+import { runCertCommand } from "#commands/cert";
 import { runDbCommand } from "#commands/db";
 import { runDoctorCommand } from "#commands/doctor";
+import { runNetworkSetupCommand } from "#commands/network";
+import { runQrCommand } from "#commands/qr";
 import { runRepoCommand } from "#commands/repo";
 import { runServiceCommand } from "#commands/service";
 import { runSsdCommand } from "#commands/ssd";
@@ -21,6 +23,8 @@ const APT_PACKAGES = [
   "mkcert",
   "libnss3-tools",
   "ca-certificates",
+  // Counts devices on the booth Wi-Fi (`booth network watch`).
+  "iw",
   // Chromium/Puppeteer runtime libraries commonly required on Raspberry Pi OS.
   "libatk1.0-0",
   "libatk-bridge2.0-0",
@@ -61,13 +65,15 @@ export async function runInstallCommand(context: BoothContext): Promise<void> {
   await runDbCommand(context);
   await runCertCommand(context);
   await runServiceCommand(context);
-  await runCertCopyCommand(context);
+  await runNetworkSetupCommand();
 
   try {
     await runDoctorCommand(context);
   } catch {
     warn("Some health checks did not pass yet. Re-run `booth doctor` shortly.");
   }
+
+  await runQrCommand(context);
 
   ok("Install complete");
 }
