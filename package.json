@@ -7,8 +7,10 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development PROCESS_MANAGER=turborepo turbo run dev --filter=!@dither-booth/cli -vvv",
+    "dev": "NODE_ENV=development PROCESS_MANAGER=turborepo turbo run dev --filter=!@dither-booth/cli --filter=!@dither-booth/docs -vvv",
     "phone": "bun run --cwd apps/engine phone",
+    "docs:dev": "bun run --filter @dither-booth/docs dev",
+    "docs:build": "bun run --filter @dither-booth/docs build",
     "build": "NODE_ENV=production turbo run build --filter=!@dither-booth/cli",
     "start": "NODE_ENV=production PROCESS_MANAGER=turborepo turbo run start",
     "pm2:start": "pm2 startOrReload pm2.config.js --env production --update-env",

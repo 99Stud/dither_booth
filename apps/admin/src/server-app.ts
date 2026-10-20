@@ -14,8 +14,11 @@ import {
   TRPC_PROXY_PATH,
   getTrpcProxyUpstreamPath,
 } from "@dither-booth/shared/trpc-proxy";
+import { resolve } from "node:path";
 
 import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
+import { DOCS_DIST_RELATIVE_PATH } from "#lib/docs/docs.constants";
+import { createDocsRoutes } from "#lib/docs/docs.routes";
 import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
 import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
@@ -53,6 +56,7 @@ export async function runAdminServer(options: {
     mode: options.mode,
     port: getPort("ADMIN_PORT"),
     publicOrigin: adminOrigin,
+    routes: createDocsRoutes(resolve(ADMIN_REPO_ROOT, DOCS_DIST_RELATIVE_PATH)),
     webSocketRoutes: isPm2Managed
       ? {
           [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute(),

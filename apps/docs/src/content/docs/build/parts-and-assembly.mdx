@@ -1,0 +1,57 @@
+---
+title: Parts and assembly
+description: The bill of materials for one booth and how to put the Raspberry Pi together.
+sidebar:
+  order: 1
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+This section takes a booth from a box of parts to a Pi that prints. It is done once per booth. The software side is automated by the `booth` CLI ([Install the software](/docs/build/install-software/)).
+
+## Parts
+
+| Part                                          | Role                                                                  | Why this one                                                                                              |
+| --------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Raspberry Pi 5, 4 GB                          | Runs engine, admin and Shutter, plus a headless Chromium for receipts | 4 GB is enough for the three Bun processes and one Chromium; Pi 5 for PCIe and CPU headroom for dithering |
+| Official Raspberry Pi 27 W USB-C power supply | Power                                                                 | Lets the Pi deliver its full 1.6 A across the USB ports. Other supplies make the Pi cap USB current       |
+| Geekworm H505 active cooler                   | Heatsink and blower on the SoC                                        | Chromium and dithering keep the CPU busy; without active cooling the Pi throttles                         |
+| Geekworm X1001 PCIe to M.2 shield (top)       | Holds the NVMe drive                                                  |                                                                                                           |
+| Patriot P300 M.2 2280 NVMe, 256 GB            | Data drive: database and booth data at `/mnt/ssd`                     | Keeps database writes off the SD card                                                                     |
+| Lexar Blue microSDXC, 128 GB (A2)             | Boot drive: Raspberry Pi OS                                           |                                                                                                           |
+| Epson TM-T20III, USB                          | Receipt printer, raw ESC/POS over USB (no driver, no CUPS)            | Fast, reliable, reports its status (paper, cover) back over USB                                           |
+| Thermal rolls, 80 × 80 mm, 12.7 mm core       | Receipt paper                                                         | See [Paper and printer](/docs/maintenance/paper-and-printer/#paper)                                       |
+| iPad                                          | Guest screen and camera, running the Shutter in Safari                |                                                                                                           |
+
+You also need a Mac or PC with a microSD reader, and a network (Wi-Fi or Ethernet) shared by the Pi and your computer for the first install.
+
+## Assemble the Pi
+
+<Steps>
+
+1. **Cooler.** Remove the protective film from the H505's thermal pads, seat it over the SoC and fix it to the board. Plug the fan cable into the Pi 5's `FAN` header. The firmware drives the fan from then on; there is nothing to configure.
+
+2. **NVMe shield.** Screw the X1001's standoffs into the Pi's mounting holes. Connect the PCIe ribbon cable to the Pi's `PCIe` connector and to the shield, contacts facing the way the X1001 instructions show, with both connector latches closed.
+
+3. **Drive.** Insert the NVMe into the shield's M.2 slot and fix it with the screw at the 2280 position.
+
+4. **Airflow.** The shield sits right above the cooler. Check that the standoffs leave the blower's intake open.
+
+</Steps>
+
+Leave the microSD card out for now.
+
+<Aside type="caution">
+  A ribbon cable in backwards, or a latch left open, is the usual reason the
+  drive doesn't show up later. Check both before you close the case.
+</Aside>
+
+## Own screen and camera (planned)
+
+The booth is moving off the iPad to its own touchscreen on the Pi. None of this is in the CLI yet; this is the plan:
+
+- **OS:** stay on Raspberry Pi OS Lite and add [`cage`](https://github.com/cage-kiosk/cage), a Wayland compositor that shows a single app full screen, running `chromium --kiosk` on the Shutter. No desktop, no panel, no pop-ups for guests to tap.
+- **Camera:** a USB webcam on a blue USB 3 port. Chromium reads USB (UVC) webcams directly; the CSI Raspberry Pi Camera goes through libcamera, which Chromium does not pick up on its own.
+- **No prompts:** a Chromium managed policy (`VideoCaptureAllowedUrls`) grants the camera to the Shutter, and the booth CA goes into the kiosk user's certificate store.
+- **Screen:** an HDMI panel with USB touch works without setup. A DSI panel needs its `dtoverlay` in `/boot/firmware/config.txt`, and its ribbon has to be routed around the X1001.
+- **Memory:** with 4 GB, the kiosk Chromium runs next to the receipt Chromium, so keep the Lite image. Raspberry Pi OS on Trixie sets up zram swap (`swapon --show` lists `zram0`). Measure with `free -h` during a full shoot-and-print cycle.

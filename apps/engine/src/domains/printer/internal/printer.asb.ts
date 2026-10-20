@@ -16,7 +16,7 @@ export type AsbReading = {
 /**
  * One Automatic Status Back packet (GS a), as the TM-T20III sends it. Bits
  * from Epson's GS a table; the ones marked "seen" were checked on the booth's
- * printer (docs/specs/printer-watchdog.md).
+ * printer (apps/docs/src/content/docs/specs/printer-watchdog.md).
  */
 export function decodeAsb(packet: Buffer): AsbReading {
   const [byte1 = 0, byte2 = 0, byte3 = 0] = packet;

@@ -1,6 +1,6 @@
 /**
  * The receipt printer as the engine's printer watch sees it, shared with
- * admin. Why these and not more: docs/specs/printer-watchdog.md.
+ * admin. Why these and not more: apps/docs/src/content/docs/specs/printer-watchdog.md.
  */
 
 /** What the printer reports through Automatic Status Back. */

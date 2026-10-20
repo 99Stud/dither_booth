@@ -1,0 +1,96 @@
+---
+title: Flash and first boot
+description: Flash Raspberry Pi OS, update the firmware, and prepare the NVMe drive.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+## Flash Raspberry Pi OS
+
+Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) on your computer:
+
+- **Device:** Raspberry Pi 5.
+- **OS:** Raspberry Pi OS (other) → **Raspberry Pi OS Lite (64-bit)**. The Pi has no screen of its own, so the desktop image only costs memory. **64-bit is required**: Bun has no 32-bit ARM build.
+- **Storage:** the microSD card.
+
+Under **Edit settings** before writing:
+
+| Setting  | Value                                         | Why                                                                                                                                                          |
+| -------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Hostname | e.g. `booth`                                  | The certificate and the tickets use `<hostname>.local`. Pick it now: changing it later means regenerating the certificate. Give each booth a different name. |
+| Username | `pi`                                          | The systemd service runs as `pi`. Another name works, but then every `booth` command needs `BOOTH_SERVICE_USER=<name>`.                                      |
+| Wi-Fi    | Country, plus your office network if you like | Venue networks are added later from admin or the Darkroom. You never reflash for a venue.                                                                    |
+| Locale   | Time zone, keyboard                           | Timestamps on tickets and in logs.                                                                                                                           |
+| Services | Enable SSH                                    |                                                                                                                                                              |
+
+Write the card, put it in the Pi, connect the power supply and wait a minute or two for the first boot.
+
+## First boot
+
+```bash
+ssh pi@booth.local
+```
+
+Bring the system and the bootloader up to date:
+
+```bash
+sudo apt update && sudo apt full-upgrade -y
+sudo rpi-eeprom-update -a
+```
+
+Check that the NVMe drive is visible:
+
+```bash
+lsblk -f
+```
+
+It shows up as `nvme0n1`. With current firmware the Pi detects the X1001 without configuration. If `nvme0n1` is missing, enable the PCIe connector, then reboot:
+
+```bash
+echo 'dtparam=pciex1' | sudo tee -a /boot/firmware/config.txt
+sudo reboot
+```
+
+If it's still missing, recheck the ribbon orientation and its latches. Keep the link at its default Gen 2 speed: `dtparam=pciex1_gen=3` is faster but not officially supported, and the booth only needs the drive for a small SQLite database.
+
+The Pi doesn't need a fixed address. Whenever it starts on a network with a new IP, `ditherbooth.service` re-issues the TLS certificate for that address before the apps start.
+
+## Prepare the NVMe drive
+
+The CLI **never formats disks**: it looks for an unmounted ext4 partition and mounts it at `/mnt/ssd`. If `lsblk -f` already shows `nvme0n1p1` as `ext4` and the drive holds nothing you need, skip this.
+
+<Aside type="danger">
+  The next two commands **erase the whole drive**. Check that the device really
+  is the NVMe (`nvme0n1`) and not the SD card (`mmcblk0`).
+</Aside>
+
+```bash
+sudo parted /dev/nvme0n1 --script mklabel gpt mkpart booth-data ext4 0% 100%
+sudo mkfs.ext4 -L booth-data /dev/nvme0n1p1
+```
+
+Leave it unmounted. `booth install` adds it to `/etc/fstab` and moves the database onto it.
+
+## Connect the printer
+
+<Steps>
+
+1. Power the TM-T20III with **its own power brick**. It does not draw from the Pi.
+
+2. Load a roll: open the cover, drop the roll in following the diagram inside the cover, pull a few centimetres of paper past the cutter and close the cover.
+
+3. Optional self-test: with the printer off, hold **Feed** and switch it on. It prints its settings page.
+
+4. Connect it to one of the Pi's **black USB 2 ports**. Keep the blue USB 3 ports for a camera later.
+
+5. Check that the Pi sees it (`04b8` is Epson's USB vendor ID):
+
+   ```bash
+   lsusb | grep -i 04b8
+   ```
+
+   If nothing is listed, try another cable or port.
+
+</Steps>

@@ -1,0 +1,75 @@
+---
+title: Troubleshooting
+description: Find the symptom, apply the fix. Organised by what you see.
+sidebar:
+  order: 5
+---
+
+Start with admin's **Control Center → Health checks** and, over SSH, `booth doctor`. Most problems show up there with the fix. If not, find the symptom below.
+
+## Getting in
+
+| Symptom                                                               | Check                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| No ticket at power-on                                                 | Printer powered, paper loaded, cover closed. The ticket waits until the printer can print. Then the USB cable. Over SSH: `booth qr` shows the same QR.                                                                   |
+| Can't SSH to `booth.local`                                            | Same network as the booth? Try the IP from the ticket. On the booth Wi-Fi: `ssh pi@10.42.0.1`.                                                                                                                           |
+| Setup QR: “Safari can't open the page… not connected to the internet” | The iPad has no IPv4 route to the booth (Wi-Fi address `192.0.0.2`, as on an iPhone hotspot). Scan the ticket's second QR (`http://<hostname>.local:3003`), or run on the booth Wi-Fi.                                   |
+| Setup page times out on the venue Wi-Fi                               | The venue isolates devices. [Run on the booth Wi-Fi](/docs/venue/wifi/#run-the-event-on-the-booth-wi-fi).                                                                                                                |
+| `<hostname>.local` doesn't open, the IP does                          | avahi renamed the booth (`booth-2.local`). `booth network watch` takes the name back within a minute; `sudo systemctl restart avahi-daemon` does it at once. If it comes back renamed, another device has the same name. |
+| Safari: certificate warning, or no camera                             | The iPad doesn't trust the booth CA. [Connect a device](/docs/venue/connect-a-device/). If it trusted it before, the booth may have a **new CA** (reflash, new mkcert): trust again.                                     |
+| Certificate for the wrong IP                                          | It's re-issued at service start. `booth cert --if-changed`, then `sudo systemctl restart ditherbooth`; `booth doctor` confirms.                                                                                          |
+
+## Wi-Fi
+
+| Symptom                                                     | Check                                                                                                                                                       |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The Wi-Fi picker doesn't open on the booth Wi-Fi            | Scan the Wi-Fi ticket's second QR and use Darkroom → Wi-Fi. If it never appears: `booth doctor` → “Network setup out of date” → `sudo booth network setup`. |
+| Booth Wi-Fi takes a minute to come back after a failed join | Same: `sudo booth network setup`.                                                                                                                           |
+| Booth joined a network the iPad can't reach                 | Power off and on twice within two minutes: the booth Wi-Fi opens.                                                                                           |
+| No booth Wi-Fi ever opens                                   | `systemctl status ditherbooth-network.service`. Not running → `sudo booth network setup`. No Wi-Fi adapter found → check `nmcli device`.                    |
+| Join fails with “Wrong password”                            | Retype it on the captive page. Passwords are at least 8 characters; an empty password is for open networks only.                                            |
+| Venue Wi-Fi has a login page                                | Not supported. Run on the booth Wi-Fi.                                                                                                                      |
+
+## Printer
+
+| Symptom                                   | Check                                                                                                                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin shows **Not connected**             | USB cable, printer power. `lsusb \| grep -i 04b8` should list it. The engine reconnects on its own within seconds of the printer reappearing.                          |
+| Printing fails with `LIBUSB_ERROR_ACCESS` | The service user can't open the USB device. `sudo usermod -aG lp pi`, then reboot.                                                                                     |
+| Booth in maintenance, printer looks fine  | Admin's Printer card says which condition holds. Cover fully latched? Paper past the sensor? If a sensor misbehaves, turn **Automatic** off for the event and note it. |
+| Admin shows **Checking** for a long time  | The printer is connected but never sent a status. Power-cycle the printer.                                                                                             |
+| Prints faint or washed out                | Raise the printer's print density; some rolls are thick. Then [tune the prints](/docs/venue/tune-prints/).                                                             |
+| Vertical white lines                      | Clean the print head.                                                                                                                                                  |
+| Half a receipt after a paper-out          | Expected: the job is aborted. The next job clears the printer's buffer first.                                                                                          |
+| Prints from another program don't work    | The engine holds the printer exclusively while it runs. Stop the service first.                                                                                        |
+
+## Booth screen (iPad)
+
+| Symptom                                     | Check                                                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Shader broken, screen frozen, layout wrong  | Admin → Health → Shutter → **Reload** (when idle, or now). A tab whose JavaScript is fully frozen needs a manual reload on the iPad. |
+| “Be right back” and you didn't switch it on | The printer can't print (see Printer). Admin's Booth screen card lists the reasons.                                                  |
+| Camera item unhealthy in admin              | Safari's camera permission for the Shutter, or another app holding the camera. Reload the page.                                      |
+| Visit stuck on “printing…”                  | It gives up after 45 s and resets. Check the printer and the receipt renderer in Health.                                             |
+| Darkroom says “Too many wrong PINs”         | Wait a minute.                                                                                                                       |
+| Darkroom locked itself                      | 30 minutes without use, a PIN change, or an engine restart. Enter the PIN again.                                                     |
+
+## Receipts and the engine
+
+| Symptom                                | Check                                                                                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Receipt renderer (Puppeteer) unhealthy | Admin → Health → **Re-initialize Puppeteer**. Persistent: `sudo booth install` re-installs Chromium's libraries, then `booth doctor`. |
+| A PM2 process keeps restarting         | `bun run pm2:list` for the restart count, then its `-err.log`. See [Logs](/docs/maintenance/logs/).                                   |
+| `EADDRINUSE` at start                  | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.  |
+| Lottery never wins                     | Lottery is off, prizes are out of stock, or a win cooldown is running. Check the Event page's odds card.                              |
+| Wrong receipt look                     | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                          |
+
+## The Pi itself
+
+| Symptom                                  | Check                                                                                                                                                                                                                      |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nvme0n1` missing from `lsblk`           | Ribbon cable orientation and latches, `dtparam=pciex1` in `/boot/firmware/config.txt`, bootloader updated with `rpi-eeprom-update -a`.                                                                                     |
+| `booth ssd` can't find the SSD partition | It needs an unmounted ext4 partition. Force one with `BOOTH_SSD_DEVICE=/dev/nvme0n1p1`.                                                                                                                                    |
+| Throttling, loud fan                     | `vcgencmd get_throttled` (`0x0` is fine). Official 27 W supply? Cooler contact, blower intake clear?                                                                                                                       |
+| `Error opening terminal: xterm-ghostty`  | The Pi has no terminfo for Ghostty. Prefix commands with `TERM=xterm-256color`, or copy the entry: `infocmp -x xterm-ghostty > xterm-ghostty.ti` on the Mac, then `tic -x xterm-ghostty.ti` (and `sudo tic -x`) on the Pi. |
+| SD card or SSD full                      | `df -h / /mnt/ssd`. PM2 logs in `/opt/dither-booth/logs/pm2/` aren't rotated: truncate old ones (`truncate -s 0 <file>`).                                                                                                  |

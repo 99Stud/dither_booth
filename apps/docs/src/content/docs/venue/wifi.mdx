@@ -1,0 +1,108 @@
+---
+title: Wi-Fi at a venue
+description: Every network situation you'll meet on site, and what to do in each.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The booth and the iPad must be on **the same network and able to reach each other**. That is the only network requirement: the booth needs no internet to run an event.
+
+The booth has two ways to get there: a **venue network** (or your own router) that it already knows, or **its own Wi-Fi**, `DitherBooth-XXXX`, at `10.42.0.1`.
+
+## Choose a plan
+
+| Venue situation                                              | Plan                                                                                      |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Normal Wi-Fi with a password, devices can see each other     | [Save it the day before](#before-you-leave). The booth joins on its own.                  |
+| Wi-Fi you only learn on site                                 | [Pick it from the captive page](#no-saved-network-the-booth-wi-fi-opens).                 |
+| Guest Wi-Fi with a **login page** (hotel, conference centre) | Not supported. [Run on the booth Wi-Fi](#run-the-event-on-the-booth-wi-fi).               |
+| Wi-Fi that **keeps devices apart** (page never loads)        | [Run on the booth Wi-Fi](#run-the-event-on-the-booth-wi-fi).                              |
+| No Wi-Fi at all                                              | [Run on the booth Wi-Fi](#run-the-event-on-the-booth-wi-fi).                              |
+| iPhone Personal Hotspot                                      | Works, by `.local` name only. [See below](#the-ipad-shows-not-connected-to-the-internet). |
+
+<Aside type="tip">
+  When in doubt, the booth Wi-Fi is the most predictable choice: nothing between
+  the iPad and the booth but the booth itself. You lose internet on the booth,
+  which only matters for future cloud sync — plug an Ethernet cable if you want
+  both.
+</Aside>
+
+## Before you leave
+
+Add the venue network in admin's **Settings → Wi-Fi**, or in the Darkroom's **Wi-Fi** card with **Save for later**. The booth stores it in NetworkManager and joins it automatically whenever it's in range, at any boot. You never reflash or reconfigure the booth for a venue.
+
+You can save as many networks as you like; **Forget** removes one.
+
+## No saved network: the booth Wi-Fi opens
+
+When no saved network has been around for **45 seconds**, the booth opens its own Wi-Fi and prints a **Wi-Fi ticket**.
+
+<Steps>
+
+1. **Scan the first QR** on the Wi-Fi ticket with the phone, iPad or laptop camera. It joins `DitherBooth-XXXX`; the name and password are printed under the QR.
+
+2. **The device shows the booth's Wi-Fi picker on its own**, the way hotel Wi-Fi shows its login page. It lists the networks the booth saw before it opened its Wi-Fi.
+
+3. **Pick the venue network, type its password, tap Join.** No PIN and no certificate are needed on this page.
+
+4. **The booth switches over** and prints a **setup ticket** headed **On &lt;venue network&gt;** with its new address.
+
+5. **Join the venue network on the iPad** and scan the new ticket. Continue with [Set up at a venue](/docs/venue/setup/).
+
+</Steps>
+
+If the picker doesn't appear, scan the Wi-Fi ticket's **second QR** (the setup page) and use **Darkroom → Wi-Fi** or admin's **Settings → Wi-Fi** instead.
+
+### When the join fails
+
+A wrong password or a network out of range sends the booth straight back to its own Wi-Fi. It prints a new Wi-Fi ticket that starts with the reason, for example **Couldn't join Venue-Guest: Wrong password.** Join the booth Wi-Fi again and retry.
+
+### When nobody joins
+
+If the booth Wi-Fi stays empty for **3 minutes** and the booth isn't online, the booth drops it and tries its saved networks again, then reopens it after another 45 seconds without one. That covers a venue router that comes up after the booth.
+
+## Run the event on the booth Wi-Fi
+
+In the **Darkroom → Wi-Fi**, tap **Run on booth Wi-Fi**. It needs the Darkroom PIN, so a guest who joined the booth Wi-Fi can't do it.
+
+- The booth keeps its own Wi-Fi up for the rest of the event and stops showing the picker to devices that join.
+- Join the iPad (and your admin phone) to `DitherBooth-XXXX` from the Wi-Fi ticket.
+- Photos and prints work exactly as on a venue network. Internet-dependent features wait; an Ethernet cable gives the booth internet without changing anything else.
+- To go back, turn the same switch off in the Darkroom: the booth returns to its saved networks.
+
+The booth's address on its own Wi-Fi is always `10.42.0.1`, and it is in every certificate the booth issues, so switching to and from the booth Wi-Fi restarts nothing.
+
+## Troubleshooting
+
+### Stuck on a network the iPad can't reach
+
+The booth joined a saved network, but the iPad can't open it there (another floor, isolated guest network…). With no screen on the booth, use the power switch:
+
+**Power the booth off and on twice within two minutes.** The second boot forces the booth Wi-Fi and prints the Wi-Fi ticket. Join it and pick another network or run on the booth Wi-Fi.
+
+<Aside type="note">
+  Technically: a boot that ends in under two minutes leaves a marker; the next
+  boot finds it and holds the booth Wi-Fi until staff join a network.
+</Aside>
+
+### The venue Wi-Fi keeps devices apart
+
+Symptoms: the setup ticket prints with a venue address, the iPad is on the same network, and the setup page never loads (it times out, it doesn't say “can't connect”). The venue isolates clients. [Run on the booth Wi-Fi](#run-the-event-on-the-booth-wi-fi).
+
+### The iPad shows “not connected to the internet”
+
+Safari says it can't open the page because the iPad is “not connected to the internet”, and **Settings → Wi-Fi** shows the iPad's address as `192.0.0.2`. The network (an iPhone Personal Hotspot is the common case) gives the iPad no IPv4 route to the booth. The iPad can still reach it **by name over IPv6**.
+
+Scan the ticket's **second QR**, `http://<hostname>.local:3003`. Everything after that uses `.local` addresses.
+
+### `<hostname>.local` doesn't open, the IP does
+
+After a network switch, avahi sometimes renames the booth (`booth-2.local`) because it hears its own earlier announcement. The network watch takes the name back within a minute. To do it at once: `sudo systemctl restart avahi-daemon`. If it keeps coming back renamed, another device on that network has the same name.
+
+### The picker never opens, or the booth Wi-Fi takes a minute to come back
+
+The booth's network setup is older than its software. `booth doctor` says **Network setup out of date**. Run `sudo booth network setup`. See [Update the booth](/docs/maintenance/update-the-booth/).
+
+How all of this works under the hood: [Network and Wi-Fi fallback](/docs/architecture/network/).
