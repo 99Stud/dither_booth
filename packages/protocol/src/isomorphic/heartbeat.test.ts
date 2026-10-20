@@ -1,0 +1,76 @@
+import type { MaintenanceReason } from "@dither-booth/shared/kiosk";
+import type { PrinterCondition as BoothPrinterCondition } from "@dither-booth/shared/printer";
+import type { z } from "zod";
+
+import { describe, expect, test } from "bun:test";
+
+import {
+  heartbeatSchema,
+  type maintenanceReasonSchema,
+  type printerConditionSchema,
+} from "#isomorphic/heartbeat";
+import { HEARTBEAT_FIXTURES } from "#isomorphic/heartbeat.fixtures";
+
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
+
+// A compile error here means the booth and the Hub disagree on a name.
+// `bun test` can't see it, so the package's test script runs tsc first.
+const printerConditionsMatch: Equal<
+  z.infer<typeof printerConditionSchema>,
+  BoothPrinterCondition
+> = true;
+const maintenanceReasonsMatch: Equal<
+  z.infer<typeof maintenanceReasonSchema>,
+  MaintenanceReason
+> = true;
+
+describe("heartbeatSchema", () => {
+  test("the names the booth uses are the names the Hub reads", () => {
+    // Checked when the file compiles (see above); this keeps both in use.
+    expect([printerConditionsMatch, maintenanceReasonsMatch]).toEqual([
+      true,
+      true,
+    ]);
+  });
+
+  test.each(Object.entries(HEARTBEAT_FIXTURES))(
+    "accepts the %s fixture",
+    (_, fixture) => {
+      expect(heartbeatSchema.parse(fixture)).toEqual(fixture);
+    },
+  );
+
+  test("ignores a field a newer booth adds", () => {
+    const { ready } = HEARTBEAT_FIXTURES;
+    const parsed = heartbeatSchema.parse({ ...ready, spoolBacklog: 3 });
+    expect(parsed).toEqual(ready);
+  });
+
+  test.each([
+    [
+      "an unknown printer condition",
+      {
+        printer: {
+          ...HEARTBEAT_FIXTURES.ready.printer,
+          conditions: ["on-fire"],
+        },
+      },
+    ],
+    ["a time that isn't ISO 8601", { sentAt: "yesterday" }],
+    ["a missing dry-run flag", { dryRun: undefined }],
+    ["an empty release", { release: " " }],
+    ["a negative protocol", { protocol: -1 }],
+    [
+      "an unknown maintenance reason",
+      { maintenance: { on: true, reasons: ["tired"] } },
+    ],
+  ])("refuses %s", (_, change) => {
+    const { ready } = HEARTBEAT_FIXTURES;
+    expect(heartbeatSchema.safeParse({ ...ready, ...change }).success).toBe(
+      false,
+    );
+  });
+});
