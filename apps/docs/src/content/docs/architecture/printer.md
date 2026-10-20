@@ -99,6 +99,8 @@ The reason feeds kiosk maintenance (`kiosk.maintenance.ts`), which closes the bo
 
 ## Open hardware questions
 
+Cover open, paper out, unplug/replug and the maintenance delays are confirmed on the booth's printer ([Checked on the booth](/docs/specs/printer-watchdog/#checked-on-the-booth)). Still open:
+
 - Paper near-end has not been observed on the booth yet; the bits come from Epson's reference.
-- Error bits (cutter jam, head overheat) have not been observed.
+- The auto-cutter error bit has been seen, always together with cover open or paper out. The unrecoverable and auto-recoverable error bits have not.
 - Whether the TM-T20III honours the buffer clear after an interrupted raster is a hardware check.

@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-Status: implemented on `feat/printer-watch`, not yet checked on the booth's printer. Basis: measurements on the booth's own printer, listed in [Findings](#findings).
+Status: implemented (#32) and running on the booth since 2026-10-19. Basis: measurements on the booth's own printer, listed in [Findings](#findings); behaviour on the booth, in [Checked on the booth](#checked-on-the-booth).
 
 ## As built: where it differs from the draft below
 
@@ -75,7 +75,9 @@ Packets recorded while staff opened the cover, held Feed and removed and replace
 | `1c 00 0c 0f` | roll removed, cover closed       | offline + paper out              |
 | `3c 00 0c 0f` | roll removed, cover open         | offline + cover open + paper out |
 
-**Unknown:** we haven't seen a **paper near-end** packet, because the roll stayed full. Per Epson's command reference it should be byte 3 bits 0–1 = `11`. We also haven't seen error packets (cutter jam, overheat).
+**Unknown:** we haven't seen a **paper near-end** packet, because the roll stayed full. Per Epson's command reference it should be byte 3 bits 0–1 = `11`.
+
+**Observed later, on the running booth:** byte 2 bit 3 (`0x08`, auto-cutter error) set together with cover open and/or paper out (`3c08000f`, `1c08000f`, `3c080c0f`, `1c080c0f`). The watch reports it as `error`. We haven't seen the unrecoverable or auto-recoverable error bits.
 
 **Unknown:** the paper-out packets all arrived within one second, at the moment the cover closed after the roll change. We can't tell whether the sensor reads paper only once the cover is closed, or whether the packets were held back. Either way, the state was correct once the cover closed.
 
@@ -91,18 +93,18 @@ We inspected Epson's macOS filter (`rastertotmtr` from the `com.epson.pkg.TMPrin
 
 Every packet is 4 bytes. The first byte always has `(b1 & 0x93) == 0x10`, which tells it apart from a `DLE EOT` reply (`(b & 0x93) == 0x12`). The bits below are the ones we use. The "Seen" column says whether we've seen the bit change on the printer.
 
-| Byte | Bit(s)       | Meaning when set                            | Seen                       |
-| ---- | ------------ | ------------------------------------------- | -------------------------- |
-| 1    | 3 (`0x08`)   | offline                                     | yes                        |
-| 1    | 5 (`0x20`)   | cover open                                  | yes                        |
-| 1    | 6 (`0x40`)   | Feed button pressed                         | yes                        |
-| 1    | 2 (`0x04`)   | drawer connector pin 3                      | yes; always set, ignore it |
-| 2    | 3 (`0x08`)   | auto-cutter error                           | no                         |
-| 2    | 5 (`0x20`)   | unrecoverable error                         | no                         |
-| 2    | 6 (`0x40`)   | auto-recoverable error (e.g. head overheat) | no                         |
-| 3    | 0–1 (`0x03`) | paper near end                              | no                         |
-| 3    | 2–3 (`0x0c`) | paper out                                   | yes                        |
-| 4    | all          | reserved (`0x0f` seen)                      | ignore                     |
+| Byte | Bit(s)       | Meaning when set                            | Seen                              |
+| ---- | ------------ | ------------------------------------------- | --------------------------------- |
+| 1    | 3 (`0x08`)   | offline                                     | yes                               |
+| 1    | 5 (`0x20`)   | cover open                                  | yes                               |
+| 1    | 6 (`0x40`)   | Feed button pressed                         | yes                               |
+| 1    | 2 (`0x04`)   | drawer connector pin 3                      | yes; always set, ignore it        |
+| 2    | 3 (`0x08`)   | auto-cutter error                           | yes, with cover open or paper out |
+| 2    | 5 (`0x20`)   | unrecoverable error                         | no                                |
+| 2    | 6 (`0x40`)   | auto-recoverable error (e.g. head overheat) | no                                |
+| 3    | 0–1 (`0x03`) | paper near end                              | no                                |
+| 3    | 2–3 (`0x0c`) | paper out                                   | yes                               |
+| 4    | all          | reserved (`0x0f` seen)                      | ignore                            |
 
 A packet can be split across two USB reads, or two packets can arrive in one read. The parser has to buffer bytes and cut packets on the first-byte pattern.
 
@@ -209,6 +211,20 @@ type PrinterStatusEvent = {
   maintenance: { entered: boolean; left: boolean }; // whether this change moved the printer reason
 };
 ```
+
+## Checked on the booth
+
+The engine's own logs on the booth (`engine.printer`, 2026-10-19 → 2026-10-20, engine at `20b6b16`) show the watch working on the real printer:
+
+| Criterion                             | Seen in the logs                                                                                                            |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 1. Start with the printer OK          | `[]` (`1400000f`) on every connect, no maintenance                                                                          |
+| 2, 5. Cover open, paper out, and back | `cover-open` (`3c00000f`), `paper-out` (`1c000c0f`), both (`3c000c0f`), then `[]`                                           |
+| 2. Maintenance follows the printer    | `printer-maintenance-left` 3 s after the printer reported `[]`                                                              |
+| 8. Unplugged, and back                | `disconnected`, `printer-maintenance-entered` 10 s later; `printer-connected`, `unknown` → `[]`, maintenance left 3 s later |
+| 10. State stays live after prints     | Status changes keep arriving after setup tickets printed (`setup-ticket-printed` ×19)                                       |
+
+Still open: paper near-end (criterion 13), and a job aborted mid-print (criterion 11) — no aborted job appears in the logs, so the buffer clear after an interrupted raster is unverified.
 
 ## Acceptance criteria
 
