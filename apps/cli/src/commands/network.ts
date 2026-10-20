@@ -39,7 +39,8 @@ import { capture, chownToServiceUser, run } from "#internal/system";
 import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
 const NETWORK_SERVICE_PATH = `/etc/systemd/system/${NETWORK_SERVICE_NAME}`;
-const POLKIT_RULE_PATH = "/etc/polkit-1/rules.d/50-ditherbooth-network.rules";
+export const POLKIT_RULE_PATH =
+  "/etc/polkit-1/rules.d/50-ditherbooth-network.rules";
 const TICK_MS = 10_000;
 /** A boot that lasts less than this counts towards the double power-cycle. */
 const EARLY_BOOT_S = 120;

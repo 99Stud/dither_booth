@@ -30,22 +30,22 @@ booth doctor            # health checks
 
 ### Commands
 
-| Command              | Description                                                                                                                                                                       |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `install`            | Full provisioning: apt deps, Bun, repo, SSD, db, cert, service, network, doctor, qr (needs root)                                                                                  |
-| `bun`                | Install the Bun runtime if missing                                                                                                                                                |
-| `repo`               | Clone/pull repo into `/opt/dither-booth`, install deps, build, reinstall Puppeteer                                                                                                |
-| `ssd`                | Mount the SSD and relocate the database onto it (needs root)                                                                                                                      |
-| `db`                 | Apply migrations and seed the default print configuration                                                                                                                         |
-| `cert`               | Generate the TLS certificate (same as `cert generate`; auto-detects LAN IP)                                                                                                       |
-| `cert generate [ip]` | Generate the TLS certificate for an explicit or auto-detected LAN IP                                                                                                              |
-| `cert --if-changed`  | Re-issue the certificate only when the LAN IP changed, keeping the CA (run by `ditherbooth.service` at start-up)                                                                  |
-| `cert copy`          | Print the `scp` command to copy the mkcert root CA to your machine                                                                                                                |
-| `qr`                 | Show the QR code that connects an iPad (the same one the booth prints on its setup ticket)                                                                                        |
-| `network setup`      | Create the booth's own Wi-Fi, the polkit rule that lets the engine manage Wi-Fi, and `ditherbooth-network.service`                                                                |
-| `network watch`      | Open the booth Wi-Fi when no network is around for 45 s (run by `ditherbooth-network.service`)                                                                                    |
-| `service`            | Install and enable the `ditherbooth.service` systemd unit, which forks the PM2 daemon from `pm2.config.js`, and the NetworkManager hook that restarts it on a new IP (needs root) |
-| `doctor`             | Check SSD mount, data symlink, Bun, cert IP, PM2 processes, and healthz                                                                                                           |
+| Command              | Description                                                                                                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `install`            | Full provisioning: apt deps, Bun, repo, SSD, db, cert, service, network, doctor, qr (needs root)                                                                                                      |
+| `bun`                | Install the Bun runtime if missing                                                                                                                                                                    |
+| `repo`               | Clone/pull repo into `/opt/dither-booth`, install deps, build, reinstall Puppeteer                                                                                                                    |
+| `ssd`                | Mount the SSD and relocate the database onto it (needs root)                                                                                                                                          |
+| `db`                 | Apply migrations and seed the default print configuration                                                                                                                                             |
+| `cert`               | Generate the TLS certificate (same as `cert generate`; auto-detects LAN IP)                                                                                                                           |
+| `cert generate [ip]` | Generate the TLS certificate for an explicit or auto-detected LAN IP                                                                                                                                  |
+| `cert --if-changed`  | Re-issue the certificate only when the LAN IP changed, keeping the CA (run by `ditherbooth.service` at start-up)                                                                                      |
+| `cert copy`          | Print the `scp` command to copy the mkcert root CA to your machine                                                                                                                                    |
+| `qr`                 | Show the QR code that connects an iPad (the same one the booth prints on its setup ticket)                                                                                                            |
+| `network setup`      | Create the booth's own Wi-Fi, its captive page DNS, the polkit rule that lets the engine manage Wi-Fi, and `ditherbooth-network.service`. Re-run after an update: `doctor` says when it's out of date |
+| `network watch`      | Open the booth Wi-Fi when no network is around for 45 s (run by `ditherbooth-network.service`)                                                                                                        |
+| `service`            | Install and enable the `ditherbooth.service` systemd unit, which forks the PM2 daemon from `pm2.config.js`, and the NetworkManager hook that restarts it on a new IP (needs root)                     |
+| `doctor`             | Check SSD mount, data symlink, Bun, cert IP, PM2 processes, and healthz                                                                                                                               |
 
 ### Options
 

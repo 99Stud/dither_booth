@@ -32,3 +32,6 @@ _Avoid_: watchdog (in staff-facing text)
 _Avoid_: hotspot, access point (in staff-facing text)
 
 **Wi-Fi ticket**: what the printer prints when the booth Wi-Fi opens: a QR to join it and a QR to the setup page.
+
+**Captive page**: the Wi-Fi picker a phone, iPad or laptop shows on its own when it joins the booth Wi-Fi while the booth waits for a network, the way hotel Wi-Fi shows its login page. Staff pick the venue's network there; it never needs the Darkroom PIN, and it's gone once the booth has a network or staff run the event on the booth Wi-Fi.
+_Avoid_: captive portal, login page (in staff-facing text)

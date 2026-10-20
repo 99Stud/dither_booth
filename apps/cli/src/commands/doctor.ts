@@ -9,8 +9,16 @@ import { hostname } from "node:os";
 
 import type { BoothContext } from "#internal/context";
 
-import { readAvahiHostName } from "#commands/network";
+import {
+  POLKIT_RULE_PATH,
+  buildPolkitRule,
+  readAvahiHostName,
+} from "#commands/network";
 import { printCommandBanner } from "#internal/banner";
+import {
+  CAPTIVE_DNSMASQ_PATH,
+  buildCaptiveDnsmasqConf,
+} from "#internal/captive";
 import {
   ENGINE_DATA_RELATIVE,
   NETWORK_SERVICE_NAME,
@@ -259,6 +267,39 @@ async function checkSetupPage(
   }
 }
 
+/**
+ * What `booth network setup` writes, as this version of the CLI writes it.
+ * An update that changed them only applies once it runs again.
+ */
+async function checkNetworkSetupFiles(results: CheckResult[]): Promise<void> {
+  const stale: string[] = [];
+  const dnsmasq = await Bun.file(CAPTIVE_DNSMASQ_PATH)
+    .text()
+    .catch(() => undefined);
+
+  if (dnsmasq !== buildCaptiveDnsmasqConf()) stale.push("captive page DNS");
+
+  // Root-only on the booth: only checked when doctor runs with sudo.
+  const polkit = await Bun.file(POLKIT_RULE_PATH)
+    .text()
+    .catch(() => undefined);
+
+  if (polkit !== undefined && polkit !== buildPolkitRule()) {
+    stale.push("Wi-Fi permissions");
+  }
+
+  if (stale.length > 0) {
+    record(
+      results,
+      "warn",
+      `Network setup out of date (${stale.join(", ")})`,
+      "Run `sudo booth network setup`.",
+    );
+  } else {
+    record(results, "pass", "Network setup up to date");
+  }
+}
+
 /** The certificate and the setup ticket only know `<hostname>.local`. */
 async function checkMdnsName(results: CheckResult[]): Promise<void> {
   const machineName = hostname().split(".")[0] ?? hostname();
@@ -332,6 +373,7 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   );
   await checkSetupPage(results, lanIp);
   await checkNetworkWatch(results);
+  await checkNetworkSetupFiles(results);
   await checkMdnsName(results);
 
   plain("");
