@@ -101,6 +101,6 @@ The reason feeds kiosk maintenance (`kiosk.maintenance.ts`), which closes the bo
 
 Cover open, paper out, unplug/replug and the maintenance delays are confirmed on the booth's printer ([Checked on the booth](/docs/specs/printer-watchdog/#checked-on-the-booth)). Still open:
 
-- Paper near-end has not been observed: the TM-T20III ships with near-end detection **disabled** (a memory switch). Once enabled, it trips at about 23 mm of roll diameter left (lever in the default, lower position) and the printer keeps printing. See the [spec's findings](/docs/specs/printer-watchdog/#automatic-status-back-gs-a-n-the-mechanism-to-use).
+- Paper near-end is never reported on our booth: the TM-T20III ships with near-end detection **disabled**, and it must stay off because the printer is mounted vertically (Epson: horizontal only). The `paper-near-end` handling is kept for a horizontally mounted printer, unverified on hardware. See the [spec's findings](/docs/specs/printer-watchdog/#automatic-status-back-gs-a-n-the-mechanism-to-use).
 - The auto-cutter error bit has been seen, always together with cover open or paper out. The unrecoverable and auto-recoverable error bits have not.
 - Whether the TM-T20III honours the buffer clear after an interrupted raster is a hardware check.

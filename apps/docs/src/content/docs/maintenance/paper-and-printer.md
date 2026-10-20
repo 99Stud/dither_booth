@@ -20,20 +20,20 @@ Count the receipts from the first full roll at a real event and replace these es
 
 When a roll is nearly finished, a **red stripe** appears on the paper. The printer's sensors don't see it; it's a reminder for staff to have the next roll ready. The printer's own **paper low** sensor shows in admin as a warning, and the printer keeps printing.
 
-### Paper low (near-end sensor)
+### Paper low (near-end sensor): off on our booth
 
-The printer has a near-end sensor, a lever that rests on the roll. **It is off by default on the TM-T20III**, so out of the box admin never shows **Paper low**. To turn it on (once per printer):
+The TM-T20III has a near-end sensor, a lever resting on the roll, but **the booth doesn't use it**: Epson's guide says it only works with the printer **horizontal** (paper exit on top, toward the ceiling) and must stay disabled when the printer stands **vertically** (paper exit at the front) or hangs on a wall, or it misfires. Our booth's printer stands vertically, with the paper coming out toward the guest. Near-end detection is also off by default on this printer, so there's nothing to change.
+
+So admin never shows **Paper low** on our booth. The **red stripe** is the only low-paper cue; out of paper and cover open are still detected and close the booth.
+
+If a booth ever mounts its printer horizontally, near-end can be enabled once per printer:
 
 1. Printer off. Hold **Feed** and switch it on: the self-test prints. Then hold **Feed** for at least 1 second: the mode menu prints.
 2. Press **Feed** briefly 3 times, then hold it 1 second: _Software setting mode (Customized Value Settings)_.
-3. Press **Feed** briefly 9 times, then hold it 1 second: **9: Near-end Detection**. The printer prints the choices; select **Enabled** the same way (short presses for its number, then hold).
+3. Press **Feed** briefly 9 times, then hold it 1 second: **9: Near-end Detection**. Select **Enabled** the same way (short presses for its number, then hold).
 4. Switch the printer off and on.
 
-Or use Epson's _TM-T20III Utility_ from a computer over USB, with the booth's engine stopped (it holds the printer).
-
-Where it trips depends on the lever, set by a screw under the roll (_Adjusting the Roll Paper Near-End Sensor_ in Epson's guide): **lower position (default) at about 23 mm** of roll diameter left, **upper at about 27 mm**. On our 80 mm rolls that is roughly 2–3 m of paper, a dozen photo receipts, in the lower position, and about twice that in the upper one. These are estimates from the roll geometry; note the real count at the first event. The printer must sit horizontally for the sensor to work.
-
-Paper low only warns: the printer keeps printing until the paper end sensor stops it.
+It then trips at about **23 mm** of roll diameter left with the lever in its default (lower) position, **27 mm** in the upper one — roughly a dozen photo receipts, or twice that, on our rolls (estimated from the roll geometry). It only lights the Paper LED and warns in admin; printing continues until the paper end sensor stops it.
 
 ## Changing a roll
 
@@ -47,13 +47,13 @@ You don't need to touch admin. If staff had switched maintenance on by hand, it 
 
 The engine watches the printer continuously (the **printer watch**). The printer pushes a status packet within a second of every change: cover, paper, errors.
 
-| Printer condition                                   | Can print | Effect                                                              |
-| --------------------------------------------------- | --------- | ------------------------------------------------------------------- |
-| Ready                                               | yes       | —                                                                   |
-| **Paper low**                                       | yes       | Warning in admin.                                                   |
-| **Out of paper**, **cover open**, **printer error** | no        | Maintenance after **3 s** in that state.                            |
-| **Not connected** (unplugged, switched off)         | no        | Maintenance after **10 s**, which covers a quick replug or restart. |
-| **Checking** (no status yet, just after start)      | no        | Maintenance after 10 s if it never reports.                         |
+| Printer condition                                   | Can print | Effect                                                                              |
+| --------------------------------------------------- | --------- | ----------------------------------------------------------------------------------- |
+| Ready                                               | yes       | —                                                                                   |
+| **Paper low**                                       | yes       | Warning in admin. Never on our booth: near-end detection is off (vertical printer). |
+| **Out of paper**, **cover open**, **printer error** | no        | Maintenance after **3 s** in that state.                                            |
+| **Not connected** (unplugged, switched off)         | no        | Maintenance after **10 s**, which covers a quick replug or restart.                 |
+| **Checking** (no status yet, just after start)      | no        | Maintenance after 10 s if it never reports.                                         |
 
 - **Before** a visit spends anything, the engine checks the printer. A booth out of paper never burns a lottery prize.
 - **During** a print, a printer that stops being able to print aborts the job within about a second instead of hanging for 20 seconds.
