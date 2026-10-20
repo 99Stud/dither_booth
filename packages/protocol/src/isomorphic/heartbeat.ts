@@ -10,7 +10,7 @@ import { z } from "zod";
  * printer watch's and kiosk maintenance's own; the tests fail if they drift.
  */
 
-/** Bumped when a field changes meaning. The Hub reads N and N−1. */
+/** Bumped when a field changes meaning. The Hub is to read N and N−1. */
 export const PROTOCOL_VERSION = 0;
 
 export const PRINTER_CONDITIONS = [
@@ -29,9 +29,10 @@ export const MAINTENANCE_REASONS = ["manual", "printer"] as const;
 export const maintenanceReasonSchema = z.enum(MAINTENANCE_REASONS);
 
 export const heartbeatSchema = z.object({
+  /** Any number reads here; the Hub decides which ones it supports. */
   protocol: z.number().int().min(0),
   /** The release the booth runs. */
-  version: z.string().trim().min(1).max(64),
+  release: z.string().trim().min(1).max(64),
   /** A booth in dry-run (development) never raises an alert. */
   dryRun: z.boolean(),
   sentAt: z.iso.datetime(),

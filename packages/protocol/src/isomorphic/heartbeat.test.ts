@@ -17,6 +17,7 @@ type Equal<A, B> =
     : false;
 
 // A compile error here means the booth and the Hub disagree on a name.
+// `bun test` can't see it, so the package's test script runs tsc first.
 const printerConditionsMatch: Equal<
   z.infer<typeof printerConditionSchema>,
   BoothPrinterCondition
@@ -28,8 +29,11 @@ const maintenanceReasonsMatch: Equal<
 
 describe("heartbeatSchema", () => {
   test("the names the booth uses are the names the Hub reads", () => {
-    expect(printerConditionsMatch).toBe(true);
-    expect(maintenanceReasonsMatch).toBe(true);
+    // Checked when the file compiles (see above); this keeps both in use.
+    expect([printerConditionsMatch, maintenanceReasonsMatch]).toEqual([
+      true,
+      true,
+    ]);
   });
 
   test.each(Object.entries(HEARTBEAT_FIXTURES))(
@@ -57,7 +61,7 @@ describe("heartbeatSchema", () => {
     ],
     ["a time that isn't ISO 8601", { sentAt: "yesterday" }],
     ["a missing dry-run flag", { dryRun: undefined }],
-    ["an empty release", { version: " " }],
+    ["an empty release", { release: " " }],
     ["a negative protocol", { protocol: -1 }],
     [
       "an unknown maintenance reason",

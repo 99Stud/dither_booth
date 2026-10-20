@@ -11,7 +11,7 @@ const LONG_AGO = "2026-10-31T17:00:00.000Z";
 
 const ready: Heartbeat = {
   protocol: PROTOCOL_VERSION,
-  version: "0.7.0",
+  release: "0.7.0",
   dryRun: false,
   sentAt: SENT_AT,
   printer: { conditions: [], canPrint: true, changedAt: LONG_AGO },
