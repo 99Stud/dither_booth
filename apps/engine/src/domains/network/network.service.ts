@@ -2,15 +2,12 @@ export { runNmcli, type Nmcli } from "./internal/network.nmcli";
 export {
   defaultLater,
   getBoothWifiCredentials,
-  getCaptiveStatus,
   getNetworkStatus,
   readConnection,
-  type CaptiveStatus,
+  saveWifiNetwork,
   type JoinFailure,
   type NetworkDeps,
   type NetworkStatus,
 } from "./internal/network.service";
-export {
-  createSetupServerAccess,
-  type SetupServerAccess,
-} from "./internal/network.setup-server-access";
+export { wifiNetworkInput } from "./internal/network.input";
+export { asNetworkRequest } from "./internal/network.procedure";

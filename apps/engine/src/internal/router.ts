@@ -1,4 +1,5 @@
 import { browserAutomation } from "#domains/browser-automation/index";
+import { captive } from "#domains/captive/index";
 import { darkroom } from "#domains/darkroom/index";
 import { deviceSetup } from "#domains/device-setup/index";
 import { event } from "#domains/event/index";
@@ -6,7 +7,7 @@ import { healthz } from "#domains/healthz/index";
 import { imageManipulation } from "#domains/image-manipulation/index";
 import { kiosk } from "#domains/kiosk/index";
 import { lottery } from "#domains/lottery/index";
-import { captive, network } from "#domains/network/index";
+import { network } from "#domains/network/index";
 import { printConfiguration } from "#domains/print-configuration/index";
 import { printer } from "#domains/printer/index";
 import { receipt } from "#domains/receipt/index";

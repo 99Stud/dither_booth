@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createSetupServerAccess } from "./network.setup-server-access";
+import { createSetupServerAccess } from "./captive.setup-server-access";
 
 describe("setup server access", () => {
   test("only the token in the owner-only file opens it", async () => {

@@ -1,8 +1,10 @@
+import {
+  asNetworkRequest,
+  wifiNetworkInput,
+} from "#domains/network/network.service";
 import { captiveProcedure } from "#internal/trpc";
 
-import { wifiNetworkInput } from "../internal/network.input";
-import { asNetworkRequest } from "../internal/network.procedure";
-import { joinFromCaptive as join } from "../internal/network.service";
+import { joinFromCaptive as join } from "../internal/captive.service";
 
 /** Joins the venue's network from the booth Wi-Fi's captive page. */
 export const joinFromCaptive = captiveProcedure

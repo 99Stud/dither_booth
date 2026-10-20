@@ -21,6 +21,7 @@ import { resolve } from "node:path";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { createSetupServerAccess } from "#domains/captive/captive.service";
 import { createDarkroomAccess } from "#domains/darkroom/darkroom.service";
 import {
   BOOT_ID_PATH,
@@ -38,7 +39,6 @@ import {
   createKioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
 import {
-  createSetupServerAccess,
   defaultLater,
   runNmcli,
   type NetworkDeps,

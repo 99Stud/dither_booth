@@ -1,16 +1,14 @@
 import type { Page } from "puppeteer";
 
 import type { DB } from "#db/internal/db.types";
+import type { SetupServerAccess } from "#domains/captive/captive.service";
 import type { DarkroomAccess } from "#domains/darkroom/darkroom.service";
 import type {
   CameraPreview,
   KioskChannel,
   KioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
-import type {
-  NetworkDeps,
-  SetupServerAccess,
-} from "#domains/network/network.service";
+import type { NetworkDeps } from "#domains/network/network.service";
 import type { BoothPrinter } from "#domains/printer/printer.service";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 import type {
