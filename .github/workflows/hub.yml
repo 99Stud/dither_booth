@@ -1,0 +1,47 @@
+name: Hub
+
+# The Hub's migrations and their RLS tests, run only when `supabase/` changes
+# so the main CI stays fast. Locally: `supabase start && supabase test db`.
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/hub.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/hub.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: hub-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  database:
+    name: Database
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.98.2
+
+      # Auth is in: the tests insert into auth.users. Nothing else is needed
+      # to test SQL, so the rest of the stack stays off.
+      - name: Start the local database
+        run: supabase start -x realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Lint the database
+        run: supabase db lint --local --fail-on error
+
+      - name: Test the database
+        run: supabase test db
