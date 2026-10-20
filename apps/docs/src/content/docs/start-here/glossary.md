@@ -19,7 +19,29 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Engine**: the backend process. It is only reachable through the two web apps, which proxy `/engine/trpc` to it over loopback.
 
-**Kit**: the look of an event's photo receipt. Each event picks one (`campaign.kit_id`).
+## Kits
+
+**Kit**: the look of an event, on the booth screen and on paper: its text, fonts, background, camera screen and tickets. Each event picks one (`campaign.kit_id`). A kit ships with the release, so a new kit needs a release, not a database change.
+
+**Kit settings**: what an event changes on its kit, stored on the event. Only the changes are kept, so a kit's new defaults reach every event that didn't touch them.
+
+**Copy**: every piece of text a kit shows, each under a key (`landing.poweredBy`). All kits share the same keys, so an event's edits survive a change of kit. `**text**` renders bold.
+
+**Font role**: where a typeface is used: **display**, **body** or **mono**. A kit picks a font for each role and an event can swap any of them.
+
+**Bundled font**: a font that ships with the Shutter, so it works offline.
+
+**Font library**: Google Fonts, through Fontsource. Staff install a font from it in admin; the booth downloads it once and keeps it on its SSD.
+
+**Font asset**: a font added to this booth, from the font library or a woff2 file staff upload. An event can't remove one it uses.
+
+**Background**: the shader behind the booth screen (_fluid_ or _smoke_).
+
+**Background preset**: a background's values as data, for one kit. Staff don't see raw values; they move **controls** (worded 0–100 sliders and switches) or pick a **look** (a saved set of control values).
+
+**Camera screen**: the CRT effect over the camera square: lines and sweep, and a colour wash.
+
+**Kit preview**: admin's live preview of a kit draft. It frames the Shutter's own screens and tickets, with sample data, and never touches the camera, the lottery or the printer.
 
 ## Events and lottery
 
