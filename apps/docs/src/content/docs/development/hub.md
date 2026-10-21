@@ -24,19 +24,27 @@ For the Edge Functions, also run `supabase functions serve`; they answer on `htt
 
 ## What's in the database
 
-| Table               | Holds                                                                                   |
-| ------------------- | --------------------------------------------------------------------------------------- |
-| `org`, `org_member` | Who may see what. Only `staff` exists.                                                  |
-| `booth`             | One booth, with the window (`live_from`, `live_until`) in which silence is an incident. |
-| `booth_status`      | The last [heartbeat](/docs/start-here/glossary/) of each booth.                         |
-| `alert`             | An alert opened from a heartbeat: one open per booth and key.                           |
-| `push_subscription` | A staff device that gets web push.                                                      |
+| Table               | Holds                                                                                                                                                                                                                                                          |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `org`, `org_member` | Who may see what. Only `staff` exists.                                                                                                                                                                                                                         |
+| `booth`             | One booth: the window (`live_from`, `live_until`) in which silence is an incident, and its registration (the code's hash and expiry, its Auth user, when it registered). Staff read only `id`, `org_id`, `name`, the window, `created_at` and `registered_at`. |
+| `booth_status`      | The last [heartbeat](/docs/start-here/glossary/) of each booth.                                                                                                                                                                                                |
+| `alert`             | An alert opened from a heartbeat: one open per booth and key.                                                                                                                                                                                                  |
+| `push_subscription` | A staff device that gets web push.                                                                                                                                                                                                                             |
 
 Every table has `org_id` and row level security. Rules worth knowing:
 
 - **Staff read their org's rows and write almost nothing.** The only column they write on `alert` is `acked_at`; a trigger records who. They manage their own `push_subscription` rows.
 - **A booth never touches these tables.** Its JWT carries `booth_id` in `app_metadata` (never `user_metadata`, which users can edit), and an Edge Function writes with the service role after checking it.
 - **No `security definer` functions in `public`**: Postgres lets every role call them.
+
+## Production settings `config.toml` doesn't reach
+
+The deploy applies migrations and Edge Functions, not `config.toml`. Set these once in the `dither-hub` dashboard, under Authentication:
+
+- **Sign In / Providers**: turn off **Allow new users to sign up**, and keep the **Email** provider on (staff log in with a magic link).
+
+A stranger who signed up anyway would see nothing (no org, no booth), but staff and booths are the only accounts there should be.
 
 ## How a booth registers
 
@@ -50,11 +58,17 @@ A booth needs its own identity on the Hub, and the Hub's service role must never
 
    The code is ten Crockford base32 characters (no I, L, O or U), valid 24 hours. Only its sha256 is stored, and a new code replaces the old one.
 
-2. In admin, **Settings → Hub**, staff type the code. The engine posts it to the `register-booth` Edge Function.
-3. The function uses the code up, creates the booth's Auth user with `booth_id` in `app_metadata`, and answers with the booth's session. Registering a booth again deletes its previous Auth user, which ends that session.
-4. The engine keeps the refresh token in `hub_link` (SQLite). It is the booth's only credential on the Hub, and is never shown in admin.
+2. In admin, **Settings → Hub**, staff type the code and choose **Register**. The engine posts it to the `register-booth` Edge Function.
+3. The function uses the code up, creates a new Auth user for the booth (`booth_id` in `app_metadata`), links it to the booth, then deletes the booth's previous Auth user, which ends that session, and answers with the new session. Each step leaves something a new code can fix: no failure can block the next registration.
+4. The engine keeps the refresh token in `hub_registration` (SQLite). It is the booth's only credential on the Hub, and is never shown in admin.
 
-The engine registers with the production Hub unless `HUB_URL` and `HUB_PUBLISHABLE_KEY` point it elsewhere, such as the local stack (`supabase status`).
+Things to know:
+
+- **A refused code changes nothing.** Any other failure (no answer, a Hub error) may come after the Hub already replaced the booth's registration, so the engine forgets its own and asks for a new code, rather than show a registration that no longer works.
+- **Forget the registration** (admin) only forgets it on the booth: it stops reporting. The Hub still lists the booth as registered until it registers again.
+- `booth doctor` says whether the booth is registered, read from the engine's database.
+- In development, `HUB_URL` and `HUB_PUBLISHABLE_KEY` point the engine at another Hub, such as the local stack (`supabase status`). They are refused with `NODE_ENV=production`.
+- **Studio must name its columns** when it reads `booth` (`select('id, name, …')`): staff have no grant on the registration columns, so `select('*')` is refused.
 
 ## How alerts open and close
 
