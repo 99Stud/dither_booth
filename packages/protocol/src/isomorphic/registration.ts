@@ -20,9 +20,15 @@ const normalizeCode = (typed: string) =>
     .replace(/O/gu, "0")
     .replace(/[IL]/gu, "1");
 
+/**
+ * Longest a typed code may be: ten characters, the dash, and a few spaces
+ * people add. Inputs that show a code use it too.
+ */
+export const REGISTRATION_CODE_MAX_TYPED_LENGTH = 16;
+
 export const registrationCodeSchema = z
   .string()
-  .max(32)
+  .max(REGISTRATION_CODE_MAX_TYPED_LENGTH)
   .transform(normalizeCode)
   .pipe(
     z
