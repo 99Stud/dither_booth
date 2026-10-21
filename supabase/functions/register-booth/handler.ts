@@ -47,7 +47,13 @@ export async function handleRegister(
     });
   }
 
-  const booth = await deps.claim(await hashRegistrationCode(parsed.data.code));
+  let booth: ClaimedBooth | null;
+  try {
+    booth = await deps.claim(await hashRegistrationCode(parsed.data.code));
+  } catch (error) {
+    console.error("claiming a code failed", error);
+    return reply(500, { error: "registration failed, try again" });
+  }
   // Unknown, used and expired look the same from outside.
   if (!booth) return reply(404, { error: "unknown, used or expired code" });
 
