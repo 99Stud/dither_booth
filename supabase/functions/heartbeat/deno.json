@@ -1,9 +1,0 @@
-{
-  "imports": {
-    "@dither-booth/protocol/heartbeat": "../../../packages/protocol/src/isomorphic/heartbeat.ts",
-    "@dither-booth/protocol/heartbeat.fixtures": "../../../packages/protocol/src/isomorphic/heartbeat.fixtures.ts",
-    "@std/assert": "jsr:@std/assert@1.0.13",
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.118.0",
-    "zod": "npm:zod@4.4.3"
-  }
-}

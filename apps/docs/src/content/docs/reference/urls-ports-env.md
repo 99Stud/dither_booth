@@ -50,11 +50,12 @@ Defaults live in `packages/ports/src/internal/ports.constants.ts`. Each app has 
 
 These must not be set with `NODE_ENV=production`.
 
-| Variable                          | Purpose                                                                                                |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `RECEIPT_PRINT_DRY_RUN=true`      | Skip the USB printer; write photo and lottery rasters as PNGs to `tmp/receipt-previews/` and open them |
-| `LOTTERY_FORCE_OUTCOME=win\|loss` | Force the draw's outcome                                                                               |
-| `LOTTERY_FORCE_PRIZE_ID=<id>`     | Force that prize (implies a win). Required with `LOTTERY_FORCE_OUTCOME=win`                            |
+| Variable                          | Purpose                                                                                                     |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `RECEIPT_PRINT_DRY_RUN=true`      | Skip the USB printer; write photo and lottery rasters as PNGs to `tmp/receipt-previews/` and open them      |
+| `LOTTERY_FORCE_OUTCOME=win\|loss` | Force the draw's outcome                                                                                    |
+| `LOTTERY_FORCE_PRIZE_ID=<id>`     | Force that prize (implies a win). Required with `LOTTERY_FORCE_OUTCOME=win`                                 |
+| `HUB_URL`, `HUB_PUBLISHABLE_KEY`  | Register with another Hub than production, such as the local stack (`supabase status`). Set both or neither |
 
 Rules and examples: [Developing without a printer](/docs/development/without-a-printer/).
 

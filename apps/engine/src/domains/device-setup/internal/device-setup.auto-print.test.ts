@@ -45,8 +45,13 @@ function setup({
   const printed: Buffer[] = [];
   let address: string | undefined = ip;
   let currentBootId = bootId;
+  let current: { stop: () => void } | undefined;
 
+  // An engine (re)start: the previous one is gone, as when its process ends.
+  // Left running, it would read the new ticket's key as "mine is missing"
+  // and print again, racing the test's counts.
   const start = () => {
+    current?.stop();
     writeFileSync(bootIdPath, `${currentBootId}\n`);
     const autoPrint = createSetupTicketAutoPrint({
       bootIdPath,
@@ -70,6 +75,7 @@ function setup({
     });
     autoPrint.start();
     running.push(autoPrint);
+    current = autoPrint;
     return autoPrint;
   };
 

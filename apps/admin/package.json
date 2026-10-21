@@ -23,6 +23,7 @@
     "@dither-booth/engine": "workspace:*",
     "@dither-booth/logging": "workspace:*",
     "@dither-booth/ports": "workspace:*",
+    "@dither-booth/protocol": "workspace:*",
     "@dither-booth/shared": "workspace:*",
     "@dither-booth/ui": "workspace:*",
     "@dnd-kit/core": "6.3.1",

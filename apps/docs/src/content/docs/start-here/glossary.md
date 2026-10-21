@@ -86,6 +86,11 @@ _Avoid_: watchdog (in staff-facing text).
 **Silent booth**: a booth that has sent no heartbeat for three minutes while its event is on (between `live_from` and `live_until`). Only the Hub can notice it, since a booth that lost power or its network can't say so.
 _Avoid_: offline, down (in staff-facing text).
 
+**Hub registration**: the booth's own identity on the Hub, made once with a registration code from admin's **Settings → Hub**. A registered booth reports to the Hub; **forgetting the registration** stops that, on the booth only.
+_Avoid_: link, connect, pair (in staff-facing text).
+
+**Registration code**: the one-time code staff issue on the Hub and type in admin's Settings, so a booth gets its own identity there. Ten letters and digits (`7KQ2M-9XD4T`), valid 24 hours, works once.
+
 **Dry run**: a booth that runs without printing for real, for development. It never raises an alert.
 
 ## Connecting devices

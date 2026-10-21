@@ -21,6 +21,7 @@ import {
 } from "#internal/captive";
 import {
   ENGINE_DATA_RELATIVE,
+  ENGINE_DB_RELATIVE,
   NETWORK_SERVICE_NAME,
   PM2_PROCESS_NAMES,
   SERVICE_BUN,
@@ -29,6 +30,7 @@ import {
   SSD_MOUNT_POINT,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
+import { readHubRegistration } from "#internal/hub-registration";
 import {
   capture,
   detectLanIp,
@@ -338,6 +340,24 @@ function printResults(results: CheckResult[]): void {
   }
 }
 
+/** Not registered is a warning: the booth runs an event without the Hub. */
+function checkHubRegistration(results: CheckResult[], repoRoot: string): void {
+  const check = readHubRegistration(`${repoRoot}/${ENGINE_DB_RELATIVE}`);
+
+  if ("unreadable" in check) {
+    record(results, "warn", "Hub registration unknown", check.unreadable);
+  } else if (check.registered) {
+    record(results, "pass", `Registered with the Hub as ${check.boothName}`);
+  } else {
+    record(
+      results,
+      "warn",
+      "Not registered with the Hub",
+      "no alerts reach staff; register in admin, Settings, Hub",
+    );
+  }
+}
+
 export async function runDoctorCommand(context: BoothContext): Promise<void> {
   const { repoRoot } = context;
 
@@ -375,6 +395,7 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkNetworkWatch(results);
   await checkNetworkSetupFiles(results);
   await checkMdnsName(results);
+  checkHubRegistration(results, repoRoot);
 
   plain("");
   printResults(results);

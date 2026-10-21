@@ -98,6 +98,31 @@ export function parseLotteryForceConfig({
   return { outcome: "win", prizeId: normalizedPrizeId };
 }
 
+/** Another Hub than production, such as the local stack. Dev only. */
+export type HubOverride = { url: string; publishableKey: string };
+
+export function parseHubOverride({
+  nodeEnv,
+  url,
+  publishableKey,
+}: {
+  nodeEnv?: string;
+  url?: string;
+  publishableKey?: string;
+}): HubOverride | null {
+  if (!url && !publishableKey) {
+    return null;
+  }
+
+  assertDevOnlyFlag("HUB_URL", nodeEnv);
+
+  if (!url || !publishableKey) {
+    throw new Error("HUB_URL and HUB_PUBLISHABLE_KEY must be set together");
+  }
+
+  return { url, publishableKey };
+}
+
 export function isReceiptPrintDryRun(
   env: Record<string, string | undefined> = Bun.env,
 ): boolean {
@@ -114,5 +139,15 @@ export function getLotteryForceConfig(
     nodeEnv: readEnv("NODE_ENV", env),
     outcome: readEnv("LOTTERY_FORCE_OUTCOME", env),
     prizeId: readEnv("LOTTERY_FORCE_PRIZE_ID", env),
+  });
+}
+
+export function getHubOverride(
+  env: Record<string, string | undefined> = Bun.env,
+): HubOverride | null {
+  return parseHubOverride({
+    nodeEnv: readEnv("NODE_ENV", env),
+    url: readEnv("HUB_URL", env),
+    publishableKey: readEnv("HUB_PUBLISHABLE_KEY", env),
   });
 }
