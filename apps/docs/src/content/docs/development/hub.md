@@ -38,6 +38,24 @@ Every table has `org_id` and row level security. Rules worth knowing:
 - **A booth never touches these tables.** Its JWT carries `booth_id` in `app_metadata` (never `user_metadata`, which users can edit), and an Edge Function writes with the service role after checking it.
 - **No `security definer` functions in `public`**: Postgres lets every role call them.
 
+## How a booth registers
+
+A booth needs its own identity on the Hub, and the Hub's service role must never leave it. So a booth registers once, with a one-time code:
+
+1. Staff create the booth on the Hub and issue a code. Until Studio has a button, run this in the SQL editor:
+
+   ```sql
+   select public.issue_booth_registration_code('<booth id>');  -- 7KQ2M-9XD4T
+   ```
+
+   The code is ten Crockford base32 characters (no I, L, O or U), valid 24 hours. Only its sha256 is stored, and a new code replaces the old one.
+
+2. In admin, **Settings → Hub**, staff type the code. The engine posts it to the `register-booth` Edge Function.
+3. The function uses the code up, creates the booth's Auth user with `booth_id` in `app_metadata`, and answers with the booth's session. Registering a booth again deletes its previous Auth user, which ends that session.
+4. The engine keeps the refresh token in `hub_link` (SQLite). It is the booth's only credential on the Hub, and is never shown in admin.
+
+The engine registers with the production Hub unless `HUB_URL` and `HUB_PUBLISHABLE_KEY` point it elsewhere, such as the local stack (`supabase status`).
+
 ## How alerts open and close
 
 A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edge Function every 30 seconds. The function takes the booth from the session (`app_metadata.booth_id`, checked with Auth), checks the body against `@dither-booth/protocol`, and calls `evaluate_heartbeat`, which stores it and opens or closes alerts:
