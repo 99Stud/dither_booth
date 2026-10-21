@@ -7,7 +7,8 @@ name: Hub deploy
 #
 # Needs, in the `production` environment (or the repository):
 # - secret SUPABASE_ACCESS_TOKEN: a personal access token scoped to the Hub's
-#   project only
+#   project only, with Read on Project Settings, API Keys, API Key Secrets and
+#   Connection Pooling, and Read-write on Edge Functions
 # - secret SUPABASE_DB_PASSWORD: the project's database password
 # - variable SUPABASE_PROJECT_ID: the project ref
 on:
@@ -57,6 +58,17 @@ jobs:
 
       - name: Link the project
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      # Runners have no IPv6 and the database's own host has nothing else, so
+      # migrations go through the pooler. Without Connection Pooling: Read,
+      # `link` skips the pooler without a word and `db push` fails later on
+      # an IPv6 address: say what is missing here instead.
+      - name: Check the pooler is reachable
+        run: |
+          if [ ! -s supabase/.temp/pooler-url ]; then
+            echo "::error::supabase link found no pooler URL. Give SUPABASE_ACCESS_TOKEN Connection Pooling: Read."
+            exit 1
+          fi
 
       - name: Migrations to apply
         run: supabase db push --dry-run

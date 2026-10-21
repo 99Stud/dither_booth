@@ -21,7 +21,15 @@ The [Hub](/docs/development/hub/) deploys itself. When a change under `supabase/
 
 Migrations go first, so a function never runs against a schema it doesn't know. One deploy runs at a time and is never cancelled halfway. To deploy `main` again by hand, run the workflow from the Actions tab.
 
-It needs, in the `production` environment: the secrets `SUPABASE_ACCESS_TOKEN` (a personal access token scoped to the Hub's project only) and `SUPABASE_DB_PASSWORD`, and the variable `SUPABASE_PROJECT_ID`.
+It needs, in the `production` environment: the secrets `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`, and the variable `SUPABASE_PROJECT_ID`. The token is a personal access token scoped to the Hub's project only, with:
+
+| Permission                                  | Access     | For                                                                               |
+| ------------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
+| Project Settings, API Keys, API Key Secrets | Read       | `supabase link`                                                                   |
+| Connection Pooling                          | Read       | the pooler URL: GitHub's runners have no IPv6, the database host has nothing else |
+| Edge Functions                              | Read-write | `supabase functions deploy`                                                       |
+
+Without Connection Pooling, `link` succeeds anyway and the migrations fail on an IPv6 address; the workflow checks for it right after linking.
 
 A migration that reached `main` can't be taken back by a revert: write a new one that undoes it.
 
