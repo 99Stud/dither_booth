@@ -98,3 +98,20 @@ Deno.test("answers 500 without leaking the cause when the session can't be made"
     console.error = original;
   }
 });
+
+Deno.test("answers 500 without leaking the cause when the code can't be looked up", async () => {
+  const { deps, sessions } = setup();
+  const original = console.error;
+  console.error = () => {};
+  try {
+    const res = await handleRegister(post({ code: "7KQ2M-9XD4T" }), {
+      ...deps,
+      claim: () => Promise.reject(new Error("Legacy API keys are disabled")),
+    });
+    assertEquals(res.status, 500);
+    assertEquals(await res.json(), { error: "registration failed, try again" });
+    assertEquals(sessions.length, 0);
+  } finally {
+    console.error = original;
+  }
+});
