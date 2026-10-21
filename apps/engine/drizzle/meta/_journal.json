@@ -141,6 +141,13 @@
       "when": 1792165952280,
       "tag": "0019_font_asset",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1792597954938,
+      "tag": "0020_hub_registration",
+      "breakpoints": true
     }
   ]
 }

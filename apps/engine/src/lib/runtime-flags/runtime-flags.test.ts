@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   getLotteryForceConfig,
   isReceiptPrintDryRun,
+  parseHubOverride,
   parseLotteryForceConfig,
   parseReceiptPrintDryRun,
 } from "./runtime-flags";
@@ -106,6 +107,38 @@ describe("parseLotteryForceConfig", () => {
         prizeId: "prize-1",
       }),
     ).toThrow(/LOTTERY_FORCE_PRIZE_ID/);
+  });
+});
+
+describe("parseHubOverride", () => {
+  test("is none unless set, so the booth talks to the production Hub", () => {
+    expect(parseHubOverride({ nodeEnv: "production" })).toBeNull();
+  });
+
+  test("points the booth at another Hub in development", () => {
+    expect(
+      parseHubOverride({
+        nodeEnv: "development",
+        url: "http://127.0.0.1:56321",
+        publishableKey: "local",
+      }),
+    ).toEqual({ url: "http://127.0.0.1:56321", publishableKey: "local" });
+  });
+
+  test("refuses to run in production", () => {
+    expect(() =>
+      parseHubOverride({
+        nodeEnv: "production",
+        url: "http://x",
+        publishableKey: "k",
+      }),
+    ).toThrow("HUB_URL must not be enabled when NODE_ENV=production");
+  });
+
+  test("needs both values", () => {
+    expect(() =>
+      parseHubOverride({ nodeEnv: "development", url: "http://x" }),
+    ).toThrow("HUB_URL and HUB_PUBLISHABLE_KEY must be set together");
   });
 });
 

@@ -321,23 +321,23 @@ export const fontAssetTable = sqliteTable(
 );
 
 /**
- * The booth's link to the Hub, once registered with a one-time code. One row
+ * The booth's registration with the Hub, made with a one-time code. One row
  * or none. The refresh token is the booth's only credential on the Hub: it
  * is single use, so every refresh stores the next one here.
  */
-export const hubLinkTable = sqliteTable(
-  "hub_link",
+export const hubRegistrationTable = sqliteTable(
+  "hub_registration",
   {
     id: integer("id").primaryKey().notNull().default(1),
     hubUrl: text("hub_url").notNull(),
     boothId: text("booth_id").notNull(),
     boothName: text("booth_name").notNull(),
     refreshToken: text("refresh_token").notNull(),
-    linkedAt: integer("linked_at", { mode: "timestamp" })
+    registeredAt: integer("registered_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
   },
-  (table) => [check("hub_link_singleton_check", sql`${table.id} = 1`)],
+  (table) => [check("hub_registration_singleton_check", sql`${table.id} = 1`)],
 );
 
 export const dbSchema = {
@@ -350,5 +350,5 @@ export const dbSchema = {
   darkroomAccessTable,
   kioskMaintenanceTable,
   fontAssetTable,
-  hubLinkTable,
+  hubRegistrationTable,
 };

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "2fcfde76-b0d4-4721-ba90-0a49e864b134",
+  "id": "402415b7-48d1-4995-a7fa-2052be74a0c7",
   "prevId": "3eace30e-877a-4bd4-b449-8ff9283d7b13",
   "tables": {
     "campaign": {
@@ -304,8 +304,8 @@
         }
       }
     },
-    "hub_link": {
-      "name": "hub_link",
+    "hub_registration": {
+      "name": "hub_registration",
       "columns": {
         "id": {
           "name": "id",
@@ -343,8 +343,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "linked_at": {
-          "name": "linked_at",
+        "registered_at": {
+          "name": "registered_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -357,9 +357,9 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {
-        "hub_link_singleton_check": {
-          "name": "hub_link_singleton_check",
-          "value": "\"hub_link\".\"id\" = 1"
+        "hub_registration_singleton_check": {
+          "name": "hub_registration_singleton_check",
+          "value": "\"hub_registration\".\"id\" = 1"
         }
       }
     },
