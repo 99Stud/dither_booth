@@ -212,8 +212,9 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
-enable_signup = false
+# The email provider itself: off would refuse every email login, magic links
+# included. New sign-ups stay off through [auth] enable_signup.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
@@ -406,3 +407,11 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+[functions.heartbeat]
+enabled = true
+# The function checks the booth's session itself (Auth, then app_metadata), so
+# the gateway's JWT check, which doesn't know the newer signing keys, is off.
+verify_jwt = false
+import_map = "./functions/heartbeat/deno.json"
+entrypoint = "./functions/heartbeat/index.ts"

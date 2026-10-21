@@ -15,7 +15,7 @@ bun run test         # bun test --isolate in every package with tests
 bun run build        # production builds of shutter, admin, engine and this site
 ```
 
-Changes under `supabase/` also run `.github/workflows/hub.yml`: a database lint and the pgTAP tests (see [The Hub](/docs/development/hub/)).
+Changes under `supabase/` or `packages/protocol/` also run `.github/workflows/hub.yml`: a database lint, the pgTAP tests, and `deno check` and `deno test` for the Edge Functions (see [The Hub](/docs/development/hub/)). Deno is pinned there (`2.9.0`) and runs with `--frozen`, so commit `deno.lock` with any dependency change.
 
 ## Notes
 
