@@ -1,15 +1,29 @@
 ---
 title: Releases
-description: How the CLI is released, and how booth software reaches a booth.
+description: How the CLI is released, how booth software reaches a booth, and how the Hub is deployed.
 sidebar:
   order: 5
 ---
 
-There are two things to ship, on two paths.
+There are three things to ship, on three paths.
 
 ## Booth software: `main`
 
 The booth runs whatever `main` is when someone runs `sudo booth repo` on it ([Update the booth](/docs/maintenance/update-the-booth/)). There is no separate release: **`main` must always be deployable**. Merge only what passed CI and, for hardware-facing changes, was checked on a booth.
+
+## The Hub: merged to `main`
+
+The [Hub](/docs/development/hub/) deploys itself. When a change under `supabase/` or `packages/protocol/` reaches `main` and the Hub checks pass, `.github/workflows/hub-deploy.yml`:
+
+1. links the Supabase project,
+2. lists, then applies, the migrations it doesn't have yet (`supabase db push`),
+3. deploys every Edge Function (`supabase functions deploy`).
+
+Migrations go first, so a function never runs against a schema it doesn't know. One deploy runs at a time and is never cancelled halfway. To deploy `main` again by hand, run the workflow from the Actions tab.
+
+It needs, in the `production` environment: the secrets `SUPABASE_ACCESS_TOKEN` (a personal access token scoped to the Hub's project only) and `SUPABASE_DB_PASSWORD`, and the variable `SUPABASE_PROJECT_ID`.
+
+A migration that reached `main` can't be taken back by a revert: write a new one that undoes it.
 
 ## The CLI: Git tags
 
