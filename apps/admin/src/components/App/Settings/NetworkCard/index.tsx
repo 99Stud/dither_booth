@@ -2,14 +2,12 @@ import { WifiCard } from "@dither-booth/ui/components/misc/WifiCard";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { SETTINGS_LOG_SOURCE } from "#app/Settings/internal/Settings.constants";
+import { errorMessage } from "#lib/feedback/error-message";
 import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 const STATUS_POLL_MS = 15_000;
-
-const errorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Something went wrong.";
 
 /**
  * The booth's Wi-Fi from a laptop or a phone: add the venue's network the

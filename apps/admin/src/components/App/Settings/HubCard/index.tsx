@@ -1,6 +1,9 @@
 import type { FormEvent } from "react";
 
-import { registrationCodeSchema } from "@dither-booth/protocol/registration";
+import {
+  REGISTRATION_CODE_MAX_TYPED_LENGTH,
+  registrationCodeSchema,
+} from "@dither-booth/protocol/registration";
 import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import {
   AlertDialog,
@@ -28,13 +31,10 @@ import { Cloud, Link2 } from "lucide-react";
 import { useState } from "react";
 
 import { SETTINGS_LOG_SOURCE } from "#app/Settings/internal/Settings.constants";
+import { errorMessage } from "#lib/feedback/error-message";
 import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.client";
-
-/** The engine's own explanation (bad code, no internet) when it gave one. */
-const messageOf = (error: unknown, fallback: string) =>
-  error instanceof Error && error.message ? error.message : fallback;
 
 /**
  * Registers the booth with the Hub, where its alerts reach staff phones.
@@ -44,45 +44,51 @@ export const HubCard = () => {
   const trpc = useTRPC();
   const [code, setCode] = useState("");
   const [isForgetOpen, setIsForgetOpen] = useState(false);
-  const linkQuery = useQuery(trpc.config.getHubLink.queryOptions());
-  const { mutateAsync: linkToHub, isPending: isLinking } = useMutation(
-    trpc.config.linkToHub.mutationOptions(),
+  const registrationQuery = useQuery(
+    trpc.config.getHubRegistration.queryOptions(),
   );
-  const { mutateAsync: unlinkFromHub, isPending: isUnlinking } = useMutation(
-    trpc.config.unlinkFromHub.mutationOptions(),
-  );
-  const link = linkQuery.data;
+  const { mutateAsync: registerWithHub, isPending: isRegistering } =
+    useMutation(trpc.config.registerWithHub.mutationOptions());
+  const { mutateAsync: forgetHubRegistration, isPending: isForgetting } =
+    useMutation(trpc.config.forgetHubRegistration.mutationOptions());
+  const registration = registrationQuery.data;
   const isCodeValid = registrationCodeSchema.safeParse(code).success;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!isCodeValid) return;
 
-    const linked = await linkToHub({ code }).catch((error: unknown) => {
-      reportKioskError(error, {
-        event: "settings-hub-link-failed",
-        source: SETTINGS_LOG_SOURCE,
-        userMessage: messageOf(error, "Couldn't register the booth."),
-      });
-    });
-    if (!linked?.linked) return;
+    const registered = await registerWithHub({ code }).catch(
+      (error: unknown) => {
+        reportKioskError(error, {
+          event: "settings-hub-register-failed",
+          source: SETTINGS_LOG_SOURCE,
+          userMessage: errorMessage(error, "Couldn't register the booth."),
+        });
+      },
+    );
+    // A failure may also have forgotten an earlier registration.
+    await registrationQuery.refetch();
+    if (!registered) return;
 
     setCode("");
-    await linkQuery.refetch();
-    notify.success(`Registered with the Hub as ${linked.boothName}.`);
+    notify.success(`Registered with the Hub as ${registered.boothName}.`);
   };
 
   const forget = async () => {
-    const done = await unlinkFromHub().catch((error: unknown) => {
-      reportKioskError(error, {
-        event: "settings-hub-unlink-failed",
-        source: SETTINGS_LOG_SOURCE,
-        userMessage: "Couldn't forget the Hub.",
+    const forgotten = await forgetHubRegistration()
+      .then(() => true)
+      .catch((error: unknown) => {
+        reportKioskError(error, {
+          event: "settings-hub-forget-failed",
+          source: SETTINGS_LOG_SOURCE,
+          userMessage: "Couldn't forget the registration.",
+        });
+        return false;
       });
-    });
     setIsForgetOpen(false);
-    if (!done) return;
-    await linkQuery.refetch();
+    if (!forgotten) return;
+    await registrationQuery.refetch();
     notify.success("The booth no longer reports to the Hub.");
   };
 
@@ -98,10 +104,10 @@ export const HubCard = () => {
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-3")}>
         <p className={clsx("text-sm text-muted-foreground")}>
-          {link === undefined
+          {registration === undefined
             ? "Checking…"
-            : link.linked
-              ? `Registered as ${link.boothName} since ${format(new Date(link.linkedAt), "MMM d, HH:mm")}.`
+            : registration.registered
+              ? `Registered as ${registration.boothName} since ${format(new Date(registration.registeredAt), "MMM d, HH:mm")}.`
               : "Not registered: the Hub can't alert staff about this booth."}
         </p>
         <form className={clsx("flex flex-col gap-2")} onSubmit={submit}>
@@ -111,20 +117,20 @@ export const HubCard = () => {
               autoCapitalize="characters"
               autoComplete="off"
               enterKeyHint="go"
-              maxLength={16}
+              maxLength={REGISTRATION_CODE_MAX_TYPED_LENGTH}
               placeholder="7KQ2M-9XD4T"
               spellCheck={false}
               className={clsx("font-mono uppercase")}
               value={code}
               onChange={(event) => setCode(event.target.value)}
             />
-            <Button type="submit" disabled={!isCodeValid || isLinking}>
-              {isLinking ? (
+            <Button type="submit" disabled={!isCodeValid || isRegistering}>
+              {isRegistering ? (
                 <Spinner className="size-4" />
               ) : (
                 <>
                   <Link2 data-icon="inline-start" />
-                  {link?.linked ? "Register again" : "Register"}
+                  {registration?.registered ? "Register again" : "Register"}
                 </>
               )}
             </Button>
@@ -133,15 +139,15 @@ export const HubCard = () => {
             Ask for a one-time code on the Hub. It works once, for 24 hours.
           </p>
         </form>
-        {link?.linked ? (
+        {registration?.registered ? (
           <Button
             type="button"
             variant="outline"
             className={clsx("self-start")}
-            disabled={isUnlinking}
+            disabled={isForgetting}
             onClick={() => setIsForgetOpen(true)}
           >
-            Forget the Hub
+            Forget the registration
           </Button>
         ) : null}
       </CardContent>
@@ -149,10 +155,11 @@ export const HubCard = () => {
       <AlertDialog open={isForgetOpen} onOpenChange={setIsForgetOpen}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Forget the Hub?</AlertDialogTitle>
+            <AlertDialogTitle>Forget the registration?</AlertDialogTitle>
             <AlertDialogDescription>
-              The booth stops reporting, so staff get no alert about it. To
-              register it again, ask for a new code.
+              The booth stops reporting, so staff get no alert about it. The Hub
+              still lists it as registered. To register it again, ask for a new
+              code.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

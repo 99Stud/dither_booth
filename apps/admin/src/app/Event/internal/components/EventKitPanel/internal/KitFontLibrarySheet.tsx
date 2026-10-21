@@ -43,13 +43,11 @@ import clsx from "clsx";
 import { CloudOff, Plus, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { errorMessage } from "#lib/feedback/error-message";
 import { notify } from "#lib/feedback/notify";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 const SEARCH_DEBOUNCE_MS = 250;
-
-const messageOf = (error: unknown) =>
-  error instanceof Error ? error.message : "Something went wrong.";
 
 interface KitFontLibrarySheetProps {
   open: boolean;
@@ -75,7 +73,7 @@ export const KitFontLibrarySheet: FC<KitFontLibrarySheetProps> = (props) => {
       notify.success("Font removed");
       await refreshAssets();
     },
-    onError: (error) => notify.error(messageOf(error)),
+    onError: (error) => notify.error(errorMessage(error)),
   });
 
   return (
@@ -219,7 +217,7 @@ const GoogleFontsSearch: FC<{ onAdded: () => Promise<void> }> = ({
       notify.success(`${asset.family} added to the booth`);
       await onAdded();
     },
-    onError: (error) => notify.error(messageOf(error)),
+    onError: (error) => notify.error(errorMessage(error)),
   });
 
   return (
@@ -242,7 +240,7 @@ const GoogleFontsSearch: FC<{ onAdded: () => Promise<void> }> = ({
       {results.isError ? (
         <p role="status" className={clsx("flex items-start gap-2 text-sm")}>
           <CloudOff aria-hidden className={clsx("mt-0.5 size-4 shrink-0")} />
-          {messageOf(results.error)}
+          {errorMessage(results.error)}
         </p>
       ) : results.isLoading ? (
         <Spinner />
@@ -313,7 +311,7 @@ const FontUploadForm: FC<{ onAdded: () => Promise<void> }> = ({ onAdded }) => {
       setLicenseConfirmed(false);
       await onAdded();
     },
-    onError: (error) => notify.error(messageOf(error)),
+    onError: (error) => notify.error(errorMessage(error)),
   });
   const canUpload =
     file !== null &&
