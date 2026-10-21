@@ -14,6 +14,7 @@ export const SSD_BOOTH_DIR = `${SSD_MOUNT_POINT}/dither-booth`;
 export const SSD_DATA_DIR = `${SSD_BOOTH_DIR}/data`;
 export const ENGINE_APP_RELATIVE = "apps/engine";
 export const ENGINE_DATA_RELATIVE = `${ENGINE_APP_RELATIVE}/data`;
+export const ENGINE_DB_RELATIVE = `${ENGINE_DATA_RELATIVE}/dither-booth.sqlite`;
 
 export const SERVICE_NAME = "ditherbooth.service";
 export const SERVICE_PATH = `/etc/systemd/system/${SERVICE_NAME}`;
