@@ -70,6 +70,18 @@ Things to know:
 - In development, `HUB_URL` and `HUB_PUBLISHABLE_KEY` point the engine at another Hub, such as the local stack (`supabase status`). They are refused with `NODE_ENV=production`.
 - **Studio must name its columns** when it reads `booth` (`select('id, name, …')`): staff have no grant on the registration columns, so `select('*')` is refused.
 
+## How a registered booth reports
+
+Once registered, the engine sends a heartbeat every 30 seconds, and at once when the printer's conditions change, so an alert doesn't wait for the next tick. It does nothing while the booth isn't registered.
+
+- **The session.** The access token stays in memory. The refresh token is single use: every renewal returns the next one, which the engine stores before using the access token that came with it.
+- **Refused.** If the Hub refuses the session (the booth was registered again elsewhere, or removed), the engine forgets its registration, and admin asks for a new code.
+- **Failures.** A Hub that can't be reached keeps the registration; the next tick tries again. Admin's Hub card shows the last report, or why it failed.
+- **Release.** The heartbeat's `release` is `git describe` of the checkout the engine runs from.
+- **Dry run.** An engine in dry run (`RECEIPT_PRINT_DRY_RUN`) says so, and the Hub never alerts for it.
+
+To try it on a laptop, point the engine at the local stack (`HUB_URL`, `HUB_PUBLISHABLE_KEY` from `supabase status`), register it with a code from the local SQL editor, and watch `booth_status`.
+
 ## How alerts open and close
 
 A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edge Function every 30 seconds. The function takes the booth from the session (`app_metadata.booth_id`, checked with Auth), checks the body against `@dither-booth/protocol`, and calls `evaluate_heartbeat`, which stores it and opens or closes alerts:
