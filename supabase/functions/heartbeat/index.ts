@@ -1,16 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { createServiceClient } from "../_shared/clients.ts";
 import { type BoothAuth, handleHeartbeat } from "./handler.ts";
 
-// The service role stays here, on the Hub: a booth only ever holds its own
-// session. It is used for what the booth may not do itself (see the
-// migrations): store its status and open or close its alerts.
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  { auth: { persistSession: false, autoRefreshToken: false } },
-);
+const supabase = createServiceClient();
 
 const boothIdSchema = z.uuid();
 

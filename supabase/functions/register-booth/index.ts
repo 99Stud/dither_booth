@@ -1,23 +1,21 @@
-import { createClient } from "@supabase/supabase-js";
-
+import { createPublicClient, createServiceClient } from "../_shared/clients.ts";
 import { type ClaimedBooth, handleRegister } from "./handler.ts";
 
-const url = Deno.env.get("SUPABASE_URL")!;
-const noSession = { auth: { persistSession: false, autoRefreshToken: false } };
-
-// The service role stays here, on the Hub: it creates the booth's Auth user
-// and links it to the booth. The booth only ever gets its own session.
-const admin = createClient(
-  url,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  noSession,
-);
+const admin = createServiceClient();
 
 /** 32 random bytes, used once to sign in and never stored. */
 function randomPassword(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return btoa(String.fromCharCode(...bytes));
 }
+
+/**
+ * Each registration gets its own address, so a user left behind by a failed
+ * attempt can never block the next one. `.invalid` is reserved: no mail can
+ * ever leave for it.
+ */
+const boothEmail = (boothId: string) =>
+  `booth-${boothId}-${crypto.randomUUID().slice(0, 8)}@booths.dither.invalid`;
 
 Deno.serve((req) =>
   handleRegister(req, {
@@ -37,18 +35,10 @@ Deno.serve((req) =>
         : null;
     },
 
+    // In an order where any failure leaves something a new code can fix:
+    // the new user exists and is linked before the old one goes.
     async createSession(booth: ClaimedBooth) {
-      // A booth registered again (a new Pi, a wiped SSD) leaves its old
-      // session behind: deleting the old user ends it.
-      if (booth.previousAuthUserId) {
-        const { error } = await admin.auth.admin.deleteUser(
-          booth.previousAuthUserId,
-        );
-        if (error && error.status !== 404) throw error;
-      }
-
-      // `.invalid` is reserved, so no mail can ever leave for this address.
-      const email = `booth-${booth.boothId}@booths.dither.invalid`;
+      const email = boothEmail(booth.boothId);
       const password = randomPassword();
       const { data: created, error: createError } =
         await admin.auth.admin.createUser({
@@ -68,22 +58,36 @@ Deno.serve((req) =>
           registered_at: new Date().toISOString(),
         })
         .eq("id", booth.boothId);
-      if (linkError) throw linkError;
+      if (linkError) {
+        await admin.auth.admin.deleteUser(created.user.id);
+        throw linkError;
+      }
 
-      const client = createClient(
-        url,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        noSession,
-      );
-      const { data, error } = await client.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error || !data.session) throw error ?? new Error("no session");
+      // The booth registered before (a new Pi, a wiped SSD): deleting its old
+      // user ends that session. A failure here leaves the old session alive
+      // but harmless to this one, so it is logged, not fatal.
+      if (booth.previousAuthUserId) {
+        const { error } = await admin.auth.admin.deleteUser(
+          booth.previousAuthUserId,
+        );
+        if (error && error.status !== 404) {
+          console.error(
+            "previous booth user not deleted",
+            booth.boothId,
+            error,
+          );
+        }
+      }
+
+      const { data, error } =
+        await createPublicClient().auth.signInWithPassword({ email, password });
+      if (error || !data.session?.expires_at) {
+        throw error ?? new Error("no session, or no expiry");
+      }
       return {
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
-        expiresAt: data.session.expires_at ?? 0,
+        expiresAt: data.session.expires_at,
       };
     },
   }),
