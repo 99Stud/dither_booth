@@ -5,6 +5,7 @@ import { deviceSetup } from "#domains/device-setup/index";
 import { event, eventBooth } from "#domains/event/index";
 import { fontLibrary, fontLibraryBooth } from "#domains/font-library/index";
 import { healthz } from "#domains/healthz/index";
+import { hub } from "#domains/hub/index";
 import { imageManipulation } from "#domains/image-manipulation/index";
 import { kiosk } from "#domains/kiosk/index";
 import { lottery } from "#domains/lottery/index";
@@ -43,6 +44,7 @@ export const engineRouter = router({
     getDeviceSetup: deviceSetup.getDeviceSetup,
     printSetupTicket: deviceSetup.printSetupTicket,
     ...network,
+    ...hub,
   }),
   captive: router({
     ...captive,
