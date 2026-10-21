@@ -413,5 +413,12 @@ enabled = true
 # The function checks the booth's session itself (Auth, then app_metadata), so
 # the gateway's JWT check, which doesn't know the newer signing keys, is off.
 verify_jwt = false
-import_map = "./functions/heartbeat/deno.json"
+import_map = "./functions/deno.json"
 entrypoint = "./functions/heartbeat/index.ts"
+
+[functions.register-booth]
+enabled = true
+# The one-time code is the credential: there is no session yet to check.
+verify_jwt = false
+import_map = "./functions/deno.json"
+entrypoint = "./functions/register-booth/index.ts"

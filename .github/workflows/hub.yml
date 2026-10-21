@@ -66,10 +66,10 @@ jobs:
           deno-version: 2.9.0
 
       # --frozen: the committed deno.lock is the truth, as bun.lock is.
-      - name: Typecheck the heartbeat function
+      - name: Typecheck the Edge Functions
         working-directory: supabase/functions
-        run: deno check --frozen --config heartbeat/deno.json heartbeat/index.ts
+        run: deno check --frozen */index.ts
 
-      - name: Test the heartbeat function
+      - name: Test the Edge Functions
         working-directory: supabase/functions
-        run: deno test --frozen --config heartbeat/deno.json heartbeat/
+        run: deno test --frozen
