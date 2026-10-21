@@ -31,6 +31,12 @@ import {
   getCurrentSetupTicket,
 } from "#domains/device-setup/device-setup.service";
 import {
+  createHubReporter,
+  HUB_LOG_SOURCE,
+  PRODUCTION_HUB,
+  readRelease,
+} from "#domains/hub/hub.service";
+import {
   CAMERA_PREVIEW_ICE_SERVERS,
   CAMERA_PREVIEW_MAX_DURATION_MS,
   CAMERA_PREVIEW_MAX_VIEWERS,
@@ -53,7 +59,10 @@ import { ENGINE_REPO_ROOT } from "#lib/constants";
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
 import { getRuntimeProcessManager } from "#lib/process-manager/process-manager.utils";
 import { createPuppeteerReceiptViewerLifecycle } from "#lib/puppeteer/puppeteer-lifecycle.utils";
-import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
+import {
+  getHubOverride,
+  isReceiptPrintDryRun,
+} from "#lib/runtime-flags/runtime-flags";
 import {
   ENGINE_SERVER_BIND_HOST,
   ENGINE_SERVER_LOG_SOURCE,
@@ -133,6 +142,17 @@ export async function runEngineServer(options: {
     maintenance: kioskMaintenance,
     printer,
   });
+  // Reports to the Hub once the booth is registered; idle until then.
+  const hubReporter = createHubReporter({
+    db,
+    hub: getHubOverride() ?? PRODUCTION_HUB,
+    printer,
+    maintenance: kioskMaintenance,
+    release: readRelease(ENGINE_REPO_ROOT),
+    dryRun: receiptPrintDryRun,
+    log: (level, event, details) =>
+      logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
+  });
   const cameraPreview = createCameraPreview({
     kioskChannel,
     iceServers: CAMERA_PREVIEW_ICE_SERVERS,
@@ -187,6 +207,7 @@ export async function runEngineServer(options: {
       page,
       db,
       darkroomAccess,
+      hubReporter,
       darkroomToken:
         typeof darkroomToken === "string" ? darkroomToken : undefined,
       kioskChannel,
@@ -288,6 +309,7 @@ export async function runEngineServer(options: {
   await puppeteerLifecycle.initialize();
   printer.start();
   if (!receiptPrintDryRun) printerMaintenance.start();
+  hubReporter.start();
   // A booth plugged in at a venue prints the way in; a laptop doesn't.
   if (options.mode === "production" && !receiptPrintDryRun) {
     setupTicketAutoPrint.start();
@@ -327,6 +349,7 @@ export async function runEngineServer(options: {
       };
 
       await closeResource("http-server", () => closeHttpServer(server));
+      await closeResource("hub-reporter", () => hubReporter.stop());
       await closeResource("browser", () => puppeteerLifecycle.close());
       await closeResource("printer", async () => {
         setupTicketAutoPrint.stop();

@@ -24,6 +24,7 @@ import {
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
+import { createHubReporterStub } from "#domains/hub/internal/hub.test-utils";
 import {
   createKioskChannel,
   createKioskMaintenance,
@@ -150,6 +151,7 @@ function createCtx(
     allowedHostnames: [],
     db,
     darkroomAccess: createDarkroomAccessStub(),
+    hubReporter: createHubReporterStub(),
     kioskChannel,
     kioskMaintenance: createKioskMaintenance({ db, kioskChannel }),
     cameraPreview: {} as TRPCContext["cameraPreview"],

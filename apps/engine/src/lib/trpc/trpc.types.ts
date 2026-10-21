@@ -3,6 +3,7 @@ import type { Page } from "puppeteer";
 import type { DB } from "#db/internal/db.types";
 import type { SetupServerAccess } from "#domains/captive/captive.service";
 import type { DarkroomAccess } from "#domains/darkroom/darkroom.service";
+import type { HubReporter } from "#domains/hub/hub.service";
 import type {
   CameraPreview,
   KioskChannel,
@@ -24,6 +25,8 @@ export type TRPCContext = {
   darkroomAccess: DarkroomAccess;
   /** The `x-darkroom-token` header, when the Darkroom sent one. */
   darkroomToken?: string;
+  /** The booth's reports to the Hub, one per engine process. */
+  hubReporter: HubReporter;
   /** Push channel to the connected kiosk pages, one per engine process. */
   kioskChannel: KioskChannel;
   /** Live views of the booth camera, one registry per engine process. */
