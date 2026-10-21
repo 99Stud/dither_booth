@@ -1,16 +1,20 @@
 name: Hub
 
-# The Hub's migrations and their RLS tests, run only when `supabase/` changes
-# so the main CI stays fast. Locally: `supabase start && supabase test db`.
+# The Hub's migrations, their RLS tests and its Edge Functions, run only when
+# `supabase/` or the protocol it reads changes, so the main CI stays fast.
+# Locally: `supabase start && supabase test db`, and `deno test` in
+# supabase/functions.
 on:
   pull_request:
     paths:
       - "supabase/**"
+      - "packages/protocol/**"
       - ".github/workflows/hub.yml"
   push:
     branches: [main]
     paths:
       - "supabase/**"
+      - "packages/protocol/**"
       - ".github/workflows/hub.yml"
   workflow_dispatch:
 
@@ -40,8 +44,32 @@ jobs:
       - name: Start the local database
         run: supabase start -x realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 
+      # Only the schema we own: pgTAP's functions in `extensions` trip the
+      # linter once the tests have installed it.
       - name: Lint the database
-        run: supabase db lint --local --fail-on error
+        run: supabase db lint --local --schema public --fail-on error
 
       - name: Test the database
         run: supabase test db
+
+  functions:
+    name: Edge Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.9.0
+
+      # --frozen: the committed deno.lock is the truth, as bun.lock is.
+      - name: Typecheck the heartbeat function
+        working-directory: supabase/functions
+        run: deno check --frozen --config heartbeat/deno.json heartbeat/index.ts
+
+      - name: Test the heartbeat function
+        working-directory: supabase/functions
+        run: deno test --frozen --config heartbeat/deno.json heartbeat/
