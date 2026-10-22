@@ -80,3 +80,9 @@ const UNKNOWN_WORDING: AlertWording = {
 export const alertWording = (key: string): AlertWording =>
   (ALERT_WORDING as Record<string, AlertWording | undefined>)[key] ??
   UNKNOWN_WORDING;
+
+/**
+ * How long a booth goes without a heartbeat before it is silent. The Hub's
+ * `evaluate_silence` holds the same 3 minutes (`v_silent`).
+ */
+export const SILENT_AFTER_MS = 3 * 60_000;

@@ -14,12 +14,25 @@ import {
   FieldLabel,
 } from "@dither-booth/ui/components/ui/field";
 import { Input } from "@dither-booth/ui/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@dither-booth/ui/components/ui/input-otp";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { hub } from "#lib/hub";
+
+/** The Hub's sign-in codes: six digits (otp_length). */
+const CODE_LENGTH = 6;
+
+/** Slots sized for a thumb, not a cursor. */
+const SLOT = "size-11 text-lg font-medium";
 
 /**
  * Sign in with a code sent by email, typed here. A link would open Safari,
@@ -51,17 +64,18 @@ export const SignIn = () => {
     setStep("code");
   };
 
-  const verify = async (event: FormEvent) => {
-    event.preventDefault();
+  const verify = async (token: string) => {
     setBusy(true);
     const { error } = await hub.auth.verifyOtp({
       email: email.trim(),
-      token: code.trim(),
+      token,
       type: "email",
     });
     setBusy(false);
-    if (error)
+    if (error) {
+      setCode("");
       toast.error("That code doesn't work. Check it, or ask for a new one.");
+    }
   };
 
   return (
@@ -94,30 +108,49 @@ export const SignIn = () => {
             </Button>
           </form>
         ) : (
-          <form className={clsx("flex flex-col gap-3")} onSubmit={verify}>
+          <form
+            className={clsx("flex flex-col gap-3")}
+            onSubmit={(event: FormEvent) => {
+              event.preventDefault();
+              if (code.length === CODE_LENGTH) void verify(code);
+            }}
+          >
             <Field>
               <FieldLabel htmlFor="code">Code</FieldLabel>
-              <Input
+              <InputOTP
                 id="code"
+                maxLength={CODE_LENGTH}
+                pattern={REGEXP_ONLY_DIGITS}
                 autoComplete="one-time-code"
                 inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={10}
-                required
-                className={clsx("font-mono tracking-widest")}
+                autoFocus
+                disabled={busy}
                 value={code}
-                onChange={(event) =>
-                  setCode(event.target.value.replace(/\D/gu, ""))
-                }
-              />
+                onChange={setCode}
+                // The last digit signs in: no button to look for.
+                onComplete={(value: string) => void verify(value)}
+              >
+                <InputOTPGroup>
+                  {[0, 1, 2].map((index) => (
+                    <InputOTPSlot key={index} index={index} className={SLOT} />
+                  ))}
+                </InputOTPGroup>
+                <InputOTPSeparator />
+                <InputOTPGroup>
+                  {[3, 4, 5].map((index) => (
+                    <InputOTPSlot key={index} index={index} className={SLOT} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
               <FieldDescription>It works for an hour, once.</FieldDescription>
             </Field>
-            <Button type="submit" disabled={busy || code.length < 6}>
+            <Button type="submit" disabled={busy || code.length < CODE_LENGTH}>
               {busy ? <Spinner className="size-4" /> : "Sign in"}
             </Button>
             <Button
               type="button"
               variant="ghost"
+              disabled={busy}
               onClick={() => {
                 setCode("");
                 setStep("email");

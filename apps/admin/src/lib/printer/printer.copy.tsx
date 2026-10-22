@@ -5,6 +5,7 @@ import type {
   PrinterStatus,
 } from "@dither-booth/shared/printer";
 
+import { PRINTER_CONDITION_LABEL } from "@dither-booth/protocol/heartbeat";
 import { format } from "date-fns";
 
 /**
@@ -33,39 +34,39 @@ const READY: ConditionCopy = {
 const COPY: Record<PrinterCondition, ConditionCopy> = {
   "paper-near-end": {
     action: "Have a new 80 mm roll ready and swap it between guests.",
-    label: "Paper low",
+    label: PRINTER_CONDITION_LABEL["paper-near-end"],
     tone: "warning",
     trouble: "the printer is running low on paper",
   },
   "paper-out": {
     action: "Load a new 80 mm roll and close the cover.",
-    label: "Out of paper",
+    label: PRINTER_CONDITION_LABEL["paper-out"],
     tone: "destructive",
     trouble: "the printer is out of paper",
   },
   "cover-open": {
     action: "Close the printer cover.",
-    label: "Cover open",
+    label: PRINTER_CONDITION_LABEL["cover-open"],
     tone: "destructive",
     trouble: "the printer cover is open",
   },
   error: {
     action:
       "Turn the printer off and on. If it keeps happening, check the cutter for a paper jam.",
-    label: "Printer error",
+    label: PRINTER_CONDITION_LABEL.error,
     tone: "destructive",
     trouble: "the printer reported an error",
   },
   disconnected: {
     action:
       "Check that the printer is on and its USB cable is plugged into the Pi.",
-    label: "Not connected",
+    label: PRINTER_CONDITION_LABEL.disconnected,
     tone: "destructive",
     trouble: "the printer is not connected",
   },
   unknown: {
     action: null,
-    label: "Checking…",
+    label: PRINTER_CONDITION_LABEL.unknown,
     tone: "muted",
     trouble: "the printer isn't answering yet",
   },
