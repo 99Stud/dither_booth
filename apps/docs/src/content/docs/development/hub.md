@@ -24,17 +24,17 @@ For the Edge Functions, also run `supabase functions serve`; they answer on `htt
 
 ## What's in the database
 
-| Table               | Holds                                                                                                                                                                                                                                                          |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `org`, `org_member` | Who may see what. Only `staff` exists.                                                                                                                                                                                                                         |
-| `booth`             | One booth: the window (`live_from`, `live_until`) in which silence is an incident, and its registration (the code's hash and expiry, its Auth user, when it registered). Staff read only `id`, `org_id`, `name`, the window, `created_at` and `registered_at`. |
-| `booth_status`      | The last [heartbeat](/docs/start-here/glossary/) of each booth.                                                                                                                                                                                                |
-| `alert`             | An alert opened from a heartbeat: one open per booth and key.                                                                                                                                                                                                  |
-| `push_subscription` | A staff device that gets web push.                                                                                                                                                                                                                             |
+| Table               | Holds                                                                                                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `org`, `org_member` | Who may see what. Only `staff` exists.                                                                                                                                                                                                                                                           |
+| `booth`             | One booth: its [event times](/docs/start-here/glossary/) (`live_from`, `live_until`), when silence is an alert, and its registration (the code's hash and expiry, its Auth user, when it registered). Staff read only `id`, `org_id`, `name`, the event times, `created_at` and `registered_at`. |
+| `booth_status`      | The last [heartbeat](/docs/start-here/glossary/) of each booth.                                                                                                                                                                                                                                  |
+| `alert`             | An alert opened from a heartbeat: one open per booth and key.                                                                                                                                                                                                                                    |
+| `push_subscription` | A staff device that gets web push.                                                                                                                                                                                                                                                               |
 
 Every table has `org_id` and row level security. Rules worth knowing:
 
-- **Staff read their org's rows and write little.** On `booth` they add one to their org (`org_id`, `name`) and change its `name` and window; never its registration. The only column they write on `alert` is `acked_at`; a trigger records who. They manage their own `push_subscription` rows.
+- **Staff read their org's rows and write little.** On `booth` they add one to their org (`org_id`, `name`) and set its event times (`live_from`, `live_until`); never its registration, nor its name. The only column they write on `alert` is `acked_at`; a trigger records who. They manage their own `push_subscription` rows.
 - **Realtime** publishes `alert` and `booth_status`, so Studio updates without polling. It applies the same row level security: staff only hear about their org's rows.
 - **A booth never touches these tables.** Its JWT carries `booth_id` in `app_metadata` (never `user_metadata`, which users can edit), and an Edge Function writes with the service role after checking it.
 - **No `security definer` functions in `public`**: Postgres lets every role call them.
@@ -101,7 +101,7 @@ A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edg
 - `unknown` (the printer reconnecting) leaves printer alerts as they are: it says nothing about the paper.
 - A dry-run booth never alerts, and switching to dry run closes what was open.
 - A heartbeat older than the one stored (a late retry) is ignored.
-- Silence counts from `live_from` at the earliest, so a booth switched on as its window opens has three minutes to report.
+- Silence counts from `live_from` at the earliest, so a booth switched on as its event starts has three minutes to report.
 - `alert.key` only takes the keys above: a new rule adds its key to the `alert_key_known` constraint.
 - `evaluate_silence` runs every minute from `pg_cron` (job `booth-silence`).
 - Both functions are for the service role only. The thresholds are constants in the migration, until an event needs others.
