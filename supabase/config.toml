@@ -422,3 +422,10 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
 entrypoint = "./functions/register-booth/index.ts"
+
+[functions.notify]
+enabled = true
+# Called by the database (pg_net), which proves itself with NOTIFY_SECRET.
+verify_jwt = false
+import_map = "./functions/deno.json"
+entrypoint = "./functions/notify/index.ts"
