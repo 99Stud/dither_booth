@@ -37,7 +37,7 @@ const AlertCard = ({
   return (
     <Card
       id={`alert-${alert.id}`}
-      className={clsx(closed && "opacity-70", focused && "ring-2 ring-ring")}
+      className={clsx(focused && "ring-2 ring-ring")}
     >
       <CardContent className={clsx("flex gap-3")}>
         <IconBubble tone={closed ? "emerald" : critical ? "rose" : "amber"}>
