@@ -1,5 +1,9 @@
-import type { PrinterCondition } from "@dither-booth/protocol/heartbeat";
+import type {
+  Heartbeat,
+  PrinterCondition,
+} from "@dither-booth/protocol/heartbeat";
 
+import { SILENT_AFTER_MS } from "@dither-booth/protocol/alerts";
 import { format, formatDistanceToNowStrict } from "date-fns";
 
 import { hub } from "./hub";
@@ -20,19 +24,6 @@ export type BoothRow = {
   } | null;
 };
 
-/** The glossary's words for what the printer reports. */
-export const CONDITION_LABEL: Record<PrinterCondition, string> = {
-  "paper-near-end": "Paper low",
-  "paper-out": "Out of paper",
-  "cover-open": "Cover open",
-  error: "Printer error",
-  disconnected: "Not connected",
-  unknown: "Checking",
-};
-
-/** A booth that hasn't reported for this long is silent. */
-export const SILENT_AFTER_MS = 3 * 60_000;
-
 export async function listBooths(): Promise<BoothRow[]> {
   const [booths, statuses] = await Promise.all([
     hub
@@ -50,13 +41,8 @@ export async function listBooths(): Promise<BoothRow[]> {
   );
   return (booths.data ?? []).map((booth) => {
     const status = byBooth.get(booth.id);
-    const heartbeat = status?.heartbeat as
-      | {
-          release?: string;
-          printer?: { conditions?: PrinterCondition[] };
-          maintenance?: { on?: boolean };
-        }
-      | undefined;
+    // The heartbeat Edge Function stored it after checking it against the schema.
+    const heartbeat = status?.heartbeat as Heartbeat | undefined;
     return {
       id: booth.id,
       orgId: booth.org_id,
@@ -68,8 +54,8 @@ export async function listBooths(): Promise<BoothRow[]> {
         ? {
             lastSeenAt: status.last_seen_at,
             dryRun: status.dry_run,
-            conditions: heartbeat?.printer?.conditions ?? [],
-            maintenance: heartbeat?.maintenance?.on ?? false,
+            conditions: heartbeat?.printer.conditions ?? [],
+            maintenance: heartbeat?.maintenance.on ?? false,
             release: heartbeat?.release ?? "",
           }
         : null,
@@ -84,8 +70,8 @@ export async function addBooth(orgId: string, name: string): Promise<void> {
   if (error) throw error;
 }
 
-/** When the booth's event is on: its silence is an incident then, never outside. */
-export async function setLiveWindow(
+/** The booth's event times: its silence is an alert then, never outside. */
+export async function setEventTimes(
   boothId: string,
   from: string | null,
   until: string | null,
@@ -103,7 +89,7 @@ export type RegistrationCode = {
   expiresAt: string;
 };
 
-/** A one-time code to type in the booth's admin (Settings, Hub). */
+/** A one-time code to type in the booth's admin (Settings → Hub). */
 export async function issueRegistrationCode(
   boothId: string,
 ): Promise<RegistrationCode> {
@@ -119,11 +105,13 @@ export async function issueRegistrationCode(
   return data;
 }
 
+export type ReportTone = "ok" | "warn" | "off";
+
 /** How the booth is doing, from its last report. */
 export function reportLine(
   booth: BoothRow,
   now: number,
-): { text: string; tone: "ok" | "warn" | "off" } {
+): { text: string; tone: ReportTone } {
   if (!booth.registeredAt) return { text: "Not registered yet.", tone: "off" };
   if (!booth.status) return { text: "Registered, no report yet.", tone: "off" };
   const seen = new Date(booth.status.lastSeenAt);
