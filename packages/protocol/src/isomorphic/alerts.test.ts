@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import { ALERT_KEYS, ALERT_WORDING, alertWording } from "#isomorphic/alerts";
 
+// Test-only: the Hub's migrations hold the other copy of the key list, so
+// the test reads them to keep the two from drifting.
 const MIGRATIONS = join(import.meta.dir, "../../../../supabase/migrations");
 
 describe("alerts", () => {
