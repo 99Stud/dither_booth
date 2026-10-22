@@ -6,8 +6,10 @@
     "#isomorphic/*": "./src/isomorphic/*.ts"
   },
   "exports": {
+    "./alerts": "./src/isomorphic/alerts.ts",
     "./heartbeat": "./src/isomorphic/heartbeat.ts",
     "./heartbeat.fixtures": "./src/isomorphic/heartbeat.fixtures.ts",
+    "./push": "./src/isomorphic/push.ts",
     "./registration": "./src/isomorphic/registration.ts"
   },
   "scripts": {

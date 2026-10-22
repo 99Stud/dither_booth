@@ -1,7 +1,9 @@
 {
   "imports": {
+    "@dither-booth/protocol/alerts": "../../packages/protocol/src/isomorphic/alerts.ts",
     "@dither-booth/protocol/heartbeat": "../../packages/protocol/src/isomorphic/heartbeat.ts",
     "@dither-booth/protocol/heartbeat.fixtures": "../../packages/protocol/src/isomorphic/heartbeat.fixtures.ts",
+    "@dither-booth/protocol/push": "../../packages/protocol/src/isomorphic/push.ts",
     "@dither-booth/protocol/registration": "../../packages/protocol/src/isomorphic/registration.ts",
     "@std/assert": "jsr:@std/assert@1.0.13",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.118.0",
