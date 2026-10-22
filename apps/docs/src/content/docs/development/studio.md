@@ -5,7 +5,7 @@ sidebar:
   order: 8
 ---
 
-Studio (`apps/studio`) is the staff app: a static site on Cloudflare Pages that staff add to their Home Screen. For now it signs them in and sets their [device](/docs/start-here/glossary/) up to get the booths' alerts; the alerts list comes next.
+Studio (`apps/studio`) is the staff app: a static site on Cloudflare Pages that staff add to their Home Screen. It has three tabs: **Alerts**, **Booths** and **This device**, which sets a [device](/docs/start-here/glossary/) up to get the booths' alerts.
 
 ## Run it locally
 
@@ -26,9 +26,12 @@ bun run studio:dev
 
 ## How it works
 
-- **Sign-in with a code.** Staff type their address, get a 6-digit code by email, and type it in Studio. A link would open Safari, not the Home Screen app, and the two don't share a session on an iPhone. Only addresses already on the Hub can sign in (`shouldCreateUser: false`, and sign-up is off).
+- **Sign-in with a code.** Staff type their address, get a 6-digit code by email, and type it in Studio; the last digit signs them in, and iOS offers the code from Mail above the keyboard. A link would open Safari, not the Home Screen app, and the two don't share a session on an iPhone. Only addresses already on the Hub can sign in (`shouldCreateUser: false`, and sign-up is off).
 - **The device card** walks a device through what it needs: on an iPhone or iPad, add Studio to the Home Screen first; then _Turn on notifications_ (the permission prompt only shows in answer to a tap); then _Send test notification_ (the `send-test` function) and _Turn off_. A staff member who isn't in an org yet is told so.
-- **The service worker** (`src/sw`, built to `/sw.js`) shows each push. Pushes for one alert share a tag, so a reminder or "back to normal" replaces the notification already there; if two arrive out of order, it keeps the newer one, by the push's `at`. A tap opens Studio.
+- **Alerts** (`/alerts`) lists what is open now, critical first, then what closed in the last 24 hours. **Acknowledge** stops an alert's reminders. The tab shows how many are open.
+- **Booths** (`/booths`) shows each booth's last report, its printer and maintenance state, and its [event times](/docs/start-here/glossary/), which staff set there. **Add a booth** creates one in the staff member's org, and **Get a registration code** issues its code (the `booth-code` function), to type in the booth's admin.
+- **Live.** Both screens read again when the Hub's Realtime says `alert` or `booth_status` changed, when Studio comes back to the foreground (iOS drops the socket in the background), and every minute.
+- **The service worker** (`src/sw`, built to `/sw.js`) shows each push. Pushes for one alert share a tag, so a reminder or "back to normal" replaces the notification already there; if two arrive out of order, it keeps the newer one, by the push's `at`. A tap opens Studio on that alert (`/alerts/<id>`).
 - **The Hub it talks to** is built in: production by default, `BUN_PUBLIC_HUB_URL`, `BUN_PUBLIC_HUB_PUBLISHABLE_KEY` and `BUN_PUBLIC_VAPID_PUBLIC_KEY` otherwise. All three are public.
 
 ## Deploy

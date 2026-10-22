@@ -34,7 +34,8 @@ For the Edge Functions, also run `supabase functions serve`; they answer on `htt
 
 Every table has `org_id` and row level security. Rules worth knowing:
 
-- **Staff read their org's rows and write almost nothing.** The only column they write on `alert` is `acked_at`; a trigger records who. They manage their own `push_subscription` rows.
+- **Staff read their org's rows and write little.** On `booth` they add one to their org (`org_id`, `name`) and change its `name` and window; never its registration. The only column they write on `alert` is `acked_at`; a trigger records who. They manage their own `push_subscription` rows.
+- **Realtime** publishes `alert` and `booth_status`, so Studio updates without polling. It applies the same row level security: staff only hear about their org's rows.
 - **A booth never touches these tables.** Its JWT carries `booth_id` in `app_metadata` (never `user_metadata`, which users can edit), and an Edge Function writes with the service role after checking it.
 - **No `security definer` functions in `public`**: Postgres lets every role call them.
 
@@ -50,7 +51,7 @@ A stranger who signed up anyway would see nothing (no org, no booth), but staff 
 
 A booth needs its own identity on the Hub, and the Hub's service role must never leave it. So a booth registers once, with a one-time code:
 
-1. Staff create the booth on the Hub and issue a code. Until Studio has a button, run this in the SQL editor:
+1. Staff add the booth in Studio (Booths) and choose **Get a registration code**. That calls the `booth-code` Edge Function, which checks the caller is staff of the booth's org and issues the code with the service role. Without Studio, the SQL editor does the same:
 
    ```sql
    select public.issue_booth_registration_code('<booth id>');  -- 7KQ2M-9XD4T
@@ -80,7 +81,7 @@ Once registered, the engine sends a heartbeat every 30 seconds, and at once when
 - **Release.** The heartbeat's `release` is `git describe` of the checkout the engine runs from.
 - **Dry run.** An engine in dry run (`RECEIPT_PRINT_DRY_RUN`) says so, and the Hub never alerts for it.
 
-To try it on a laptop, point the engine at the local stack (`HUB_URL`, `HUB_PUBLISHABLE_KEY` from `supabase status`), register it with a code from the local SQL editor, and watch `booth_status`.
+To try it on a laptop, point the engine at the local stack (`HUB_URL`, `HUB_PUBLISHABLE_KEY` from `supabase status`), register it with a code from local Studio or the local SQL editor, and watch `booth_status`.
 
 ## How alerts open and close
 
