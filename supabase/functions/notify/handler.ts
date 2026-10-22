@@ -1,38 +1,43 @@
+import {
+  type AlertEvent,
+  alertEventSchema,
+} from "@dither-booth/protocol/alerts";
 import { z } from "zod";
 
 import {
-  type AlertForPush,
-  composeMessage,
-  type PushMessage,
-} from "./messages.ts";
+  type Device,
+  deliver,
+  type PushDeps,
+  type PushOptions,
+  topicFor,
+} from "../_shared/push.ts";
+import { type AlertToPush, composeMessage } from "./messages.ts";
 
-export type PushSubscriptionRow = {
-  id: string;
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-};
-
-export type NotifyDeps = {
+export type NotifyDeps = PushDeps & {
   /** NOTIFY_SECRET: the database sends it with every event. */
   secret: string;
-  getAlert: (id: string) => Promise<(AlertForPush & { orgId: string }) | null>;
-  listSubscriptions: (orgId: string) => Promise<PushSubscriptionRow[]>;
-  /** Sends one push; resolves with the push service's HTTP status. */
-  send: (
-    subscription: PushSubscriptionRow,
-    message: PushMessage,
-    options: { urgency: "high" | "normal"; ttlSeconds: number },
-  ) => Promise<number>;
-  /** The push service says this device is gone (404, 410). */
-  removeSubscription: (id: string) => Promise<void>;
-  markDelivered: (id: string) => Promise<void>;
+  /** False when the VAPID keys are missing: nothing could be pushed. */
+  ready: boolean;
+  getAlert: (id: string) => Promise<AlertToPush | null>;
+  listDevices: (orgId: string) => Promise<Device[]>;
+  now?: () => Date;
 };
 
-const eventSchema = z.object({
-  alertId: z.uuid(),
-  event: z.enum(["opened", "resolved", "reminder"]),
-});
+const eventSchema = z.object({ alertId: z.uuid(), event: alertEventSchema });
+
+/** How hard each event pushes, for an alert of a given severity. */
+const EVENT_POLICY: Record<
+  AlertEvent,
+  (alert: AlertToPush) => Omit<PushOptions, "topic">
+> = {
+  // A device offline longer than an hour gets the next reminder instead.
+  opened: (alert) => ({
+    urgency: alert.severity === "critical" ? "high" : "normal",
+    ttlSeconds: 3600,
+  }),
+  reminder: () => ({ urgency: "high", ttlSeconds: 3600 }),
+  resolved: () => ({ urgency: "normal", ttlSeconds: 600 }),
+};
 
 const reply = (status: number, body: Record<string, unknown>) =>
   Response.json(body, { status });
@@ -50,8 +55,7 @@ function sameSecret(a: string, b: string): boolean {
 
 /**
  * One alert event from the database (opened, resolved, reminder), pushed to
- * every device of the alert's org. A device the push service says is gone
- * is forgotten.
+ * every device of the alert's org.
  */
 export async function handleNotify(
   req: Request,
@@ -64,6 +68,10 @@ export async function handleNotify(
   ) {
     return reply(401, { error: "unauthorized" });
   }
+  if (!deps.ready) {
+    console.error("notify has no VAPID keys: nothing can be pushed");
+    return reply(500, { error: "push is not configured" });
+  }
 
   const parsed = eventSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return reply(400, { error: "invalid event" });
@@ -71,38 +79,22 @@ export async function handleNotify(
 
   const alert = await deps.getAlert(alertId);
   if (!alert) return reply(404, { error: "unknown alert" });
-  // Late reminders and late opens for an alert that moved on are dropped.
-  if (event !== "resolved" && alert.resolved)
+  // An open or a reminder for an alert that moved on is dropped.
+  if (event !== "resolved" && alert.resolvedAt)
     return reply(200, { skipped: "resolved" });
   if (event === "reminder" && alert.acked)
     return reply(200, { skipped: "acknowledged" });
 
-  const message = composeMessage(alert, event);
-  const options = {
-    urgency:
-      alert.severity === "critical" && event !== "resolved" ? "high" : "normal",
-    // A phone offline longer than this gets the next reminder instead.
-    ttlSeconds: event === "resolved" ? 600 : 3600,
-  } as const;
-
-  const result = { sent: 0, removed: 0, failed: 0 };
-  for (const subscription of await deps.listSubscriptions(alert.orgId)) {
-    try {
-      const status = await deps.send(subscription, message, options);
-      if (status >= 200 && status < 300) {
-        result.sent += 1;
-        await deps.markDelivered(subscription.id);
-      } else if (status === 404 || status === 410) {
-        result.removed += 1;
-        await deps.removeSubscription(subscription.id);
-      } else {
-        result.failed += 1;
-        console.error("push refused", subscription.id, status);
-      }
-    } catch (error) {
-      result.failed += 1;
-      console.error("push failed", subscription.id, error);
-    }
-  }
-  return reply(200, result);
+  const message = composeMessage(
+    alert,
+    event,
+    (deps.now ?? (() => new Date()))(),
+  );
+  const outcome = await deliver(
+    await deps.listDevices(alert.orgId),
+    JSON.stringify(message),
+    { ...EVENT_POLICY[event](alert), topic: topicFor(alert.id) },
+    deps,
+  );
+  return reply(200, outcome);
 }

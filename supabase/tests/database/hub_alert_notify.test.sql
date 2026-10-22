@@ -1,7 +1,7 @@
 -- Alert events go to the notify function through pg_net, after commit. The
 -- queue is read here, so nothing leaves the database.
 begin;
-select plan(14);
+select plan(19);
 
 insert into public.org (id, name) values ('aaaaaaaa-0000-0000-0000-00000000000a', 'Org A');
 insert into public.booth (id, org_id, name) values
@@ -17,6 +17,9 @@ language sql as $$
   from net.http_request_queue order by id
 $$;
 delete from net.http_request_queue;
+-- Whatever this database's Vault holds (a local setup, say), the test starts
+-- without them; the transaction rolls this back.
+delete from vault.secrets where name in ('notify_url', 'notify_secret');
 
 -- Without Vault secrets: the alert opens, nothing is queued.
 insert into public.alert (id, org_id, booth_id, key, severity) values
@@ -85,6 +88,11 @@ select is(has_schema_privilege('authenticated', 'private', 'usage'), false, 'sta
 select is(has_schema_privilege('anon', 'private', 'usage'), false, 'nor can anon');
 select is(has_function_privilege('authenticated', 'private.remind_open_alerts()', 'execute'), false, 'staff cannot trigger reminders');
 select is(has_function_privilege('authenticated', 'private.post_alert_event(uuid, text)', 'execute'), false, 'nor post an alert event');
+select is(has_function_privilege('anon', 'private.remind_open_alerts()', 'execute'), false, 'anon cannot trigger reminders');
+select is(has_function_privilege('anon', 'private.post_alert_event(uuid, text)', 'execute'), false, 'nor post an alert event');
+select is(has_function_privilege('authenticated', 'private.alert_notify()', 'execute'), false, 'staff cannot call the notify trigger');
+select is(has_function_privilege('authenticated', 'private.alert_stamp_notified()', 'execute'), false, 'nor the stamp trigger');
+select is(has_function_privilege('anon', 'private.alert_notify()', 'execute'), false, 'nor can anon');
 
 select is(
   (select schedule from cron.job where jobname = 'alert-reminders'),

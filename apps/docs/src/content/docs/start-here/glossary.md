@@ -83,6 +83,14 @@ _Avoid_: watchdog (in staff-facing text).
 
 **Alert**: something staff must act on, opened by the Hub from a heartbeat: out of paper, a printer error or unplugged, paper low, the cover open, or a silent booth. It closes by itself when the condition clears, and staff can acknowledge it meanwhile.
 
+**Device**: a staff phone, iPad or computer that gets alerts as push notifications, once its owner turned them on in the Studio app (`push_subscription` in the code). A device the push service says is gone is forgotten.
+_Avoid_: subscription (in staff-facing text).
+
+**Reminder**: an alert pushed again: a critical alert still open and not acknowledged is pushed every 10 minutes.
+
+**Acknowledge**: what staff do in the Studio app to say "I'm on it". It stops the reminders; the alert still closes by itself when the condition clears.
+_Avoid_: dismiss, mute.
+
 **Silent booth**: a booth that has sent no heartbeat for three minutes while its event is on (between `live_from` and `live_until`). Only the Hub can notice it, since a booth that lost power or its network can't say so.
 _Avoid_: offline, down (in staff-facing text).
 
