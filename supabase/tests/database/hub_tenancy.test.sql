@@ -44,11 +44,11 @@ select is((select count(*) from public.booth_status), 1::bigint, 'staff A sees o
 select is((select booth_id from public.alert), 'a0a0a0a0-0000-0000-0000-0000000000a0'::uuid, 'staff A sees only their alert');
 
 select throws_ok(
-  $$insert into public.booth (org_id, name) values ('aaaaaaaa-0000-0000-0000-00000000000a', 'Mine now')$$,
-  '42501', null, 'staff cannot add a booth');
+  $$insert into public.booth (org_id, name) values ('bbbbbbbb-0000-0000-0000-00000000000b', 'Mine now')$$,
+  '42501', null, 'staff cannot add a booth to another org');
 select throws_ok(
-  $$update public.booth set name = 'Renamed'$$,
-  '42501', null, 'staff cannot rename a booth');
+  $$update public.booth set registered_at = now()$$,
+  '42501', null, 'staff cannot mark a booth registered');
 select throws_ok(
   $$insert into public.alert (org_id, booth_id, key, severity)
     values ('aaaaaaaa-0000-0000-0000-00000000000a', 'a0a0a0a0-0000-0000-0000-0000000000a0', 'made.up', 'warn')$$,

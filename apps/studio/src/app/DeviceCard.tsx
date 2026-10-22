@@ -25,6 +25,7 @@ import {
   turnOff,
   turnOn,
 } from "#lib/device";
+import { messageOf } from "#lib/errors";
 
 /** Where this device stands, from "can't" to "gets the alerts". */
 type DeviceState =
@@ -35,11 +36,6 @@ type DeviceState =
   | { kind: "blocked" }
   | { kind: "off"; orgId: string }
   | { kind: "on"; orgId: string };
-
-const messageOf = (error: unknown) =>
-  error instanceof Error && error.message
-    ? error.message
-    : "Something went wrong.";
 
 async function readState(): Promise<DeviceState> {
   const support = deviceSupport(readBrowserTraits());

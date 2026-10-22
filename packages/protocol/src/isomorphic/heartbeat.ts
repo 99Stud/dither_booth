@@ -51,3 +51,13 @@ export const heartbeatSchema = z.object({
 
 export type Heartbeat = z.infer<typeof heartbeatSchema>;
 export type PrinterCondition = z.infer<typeof printerConditionSchema>;
+
+/** The glossary's word for each condition, as staff read it everywhere. */
+export const PRINTER_CONDITION_LABEL: Record<PrinterCondition, string> = {
+  "paper-near-end": "Paper low",
+  "paper-out": "Out of paper",
+  "cover-open": "Cover open",
+  error: "Printer error",
+  disconnected: "Not connected",
+  unknown: "Checking…",
+};
