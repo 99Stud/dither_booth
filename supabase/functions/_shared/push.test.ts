@@ -8,7 +8,7 @@ import {
   topicFor,
 } from "./push.ts";
 
-const device = (id: string, host = "push.test"): Device => ({
+const device = (id: string, host = "fcm.googleapis.com"): Device => ({
   id,
   endpoint: `https://${host}/${id}`,
   p256dh: "k",
@@ -79,7 +79,10 @@ Deno.test("delivers to every device, and says what each push service refused", a
       "400 BadWebPushToken",
       "403 BadJwtToken",
     ]);
-    assertEquals(outcome.refused["push.test"]?.sort(), ["410", "timeout"]);
+    assertEquals(outcome.refused["fcm.googleapis.com"]?.sort(), [
+      "410",
+      "timeout",
+    ]);
     assertEquals(forgotten.sort(), ["apple", "gone"]);
     assertEquals(delivered, ["ok"]);
   } finally {
@@ -105,16 +108,49 @@ Deno.test("sends to all devices at once, not one after another", async () => {
   assertEquals(most, 3);
 });
 
-Deno.test("a delivery that can't be recorded counts as failed, not sent", async () => {
+Deno.test("a push that arrived counts as sent, even if noting it fails", async () => {
   const { deps: d } = deps({});
-  const original = console.warn;
-  console.warn = () => {};
+  const original = console.error;
+  console.error = () => {};
   try {
     const outcome = await deliver([device("ok")], "{}", OPTIONS, {
       ...d,
       markDelivered: () => Promise.reject(new Error("db down")),
     });
-    assertEquals([outcome.sent, outcome.failed], [0, 1]);
+    assertEquals([outcome.sent, outcome.failed], [1, 0]);
+  } finally {
+    console.error = original;
+  }
+});
+
+Deno.test("an endpoint that isn't a push service is never fetched, and is forgotten", async () => {
+  const fetched: string[] = [];
+  const { deps: d, forgotten } = deps({});
+  const original = console.warn;
+  console.warn = () => {};
+  try {
+    const outcome = await deliver(
+      [
+        {
+          id: "internal",
+          endpoint: "https://169.254.169.254/latest",
+          p256dh: "k",
+          auth: "a",
+        },
+        { id: "broken", endpoint: "not a url", p256dh: "k", auth: "a" },
+        device("ok"),
+      ],
+      "{}",
+      OPTIONS,
+      {
+        ...d,
+        send: (dev: Device) => (fetched.push(dev.id), d.send(dev)),
+      },
+    );
+    assertEquals(fetched, ["ok"]);
+    assertEquals(forgotten.sort(), ["broken", "internal"]);
+    assertEquals([outcome.sent, outcome.removed, outcome.failed], [1, 2, 0]);
+    assertEquals(outcome.refused["not a push service"]?.length, 2);
   } finally {
     console.warn = original;
   }

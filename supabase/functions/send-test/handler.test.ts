@@ -1,14 +1,15 @@
+import type { PushMessage } from "@dither-booth/protocol/push";
+
 import { assertEquals } from "@std/assert";
 
 import type { Device } from "../_shared/push.ts";
-import type { PushMessage } from "../notify/messages.ts";
 
 import { handleSendTest, type SendTestDeps } from "./handler.ts";
 
 const USER = "c0ffee00-0000-4000-8000-000000000001";
 const PHONE: Device = {
   id: "phone",
-  endpoint: "https://push.test/1",
+  endpoint: "https://fcm.googleapis.com/fcm/send/1",
   p256dh: "k",
   auth: "a",
 };

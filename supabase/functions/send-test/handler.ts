@@ -1,4 +1,4 @@
-import type { PushMessage } from "../notify/messages.ts";
+import type { PushMessage } from "@dither-booth/protocol/push";
 
 import {
   type Device,

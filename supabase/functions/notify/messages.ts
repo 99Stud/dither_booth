@@ -1,3 +1,5 @@
+import type { PushMessage } from "@dither-booth/protocol/push";
+
 import {
   type AlertEvent,
   type AlertSeverity,
@@ -15,23 +17,6 @@ export type AlertToPush = {
   openedAt: string;
   resolvedAt: string | null;
   acked: boolean;
-};
-
-/** What Studio's service worker shows on a staff device. */
-export type PushMessage = {
-  title: string;
-  body: string;
-  /** One notification per alert: a reminder or "back to normal" replaces it. */
-  tag: string;
-  /** Where a tap leads, inside Studio. */
-  url: string;
-  event: AlertEvent | "test";
-  severity: AlertSeverity;
-  /**
-   * When what it says happened. Two pushes for one alert can arrive out of
-   * order; the service worker keeps the newer one, by this.
-   */
-  at: string;
 };
 
 export function composeMessage(

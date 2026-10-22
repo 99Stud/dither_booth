@@ -1,3 +1,5 @@
+import { isPushServiceEndpoint } from "@dither-booth/protocol/push";
+
 /** A staff device that gets pushes (a row of push_subscription). */
 export type Device = {
   id: string;
@@ -57,17 +59,30 @@ export async function deliver(
     refused: {},
   };
   const refuse = (device: Device, what: string) => {
-    const host = new URL(device.endpoint).host;
+    const host = isPushServiceEndpoint(device.endpoint)
+      ? new URL(device.endpoint).host
+      : "not a push service";
     (outcome.refused[host] ??= []).push(what);
   };
 
   await Promise.all(
     devices.map(async (device) => {
       try {
+        // The database only takes push service endpoints; this holds even
+        // for a row that predates that check. Nothing else is fetched.
+        if (!isPushServiceEndpoint(device.endpoint)) {
+          refuse(device, "endpoint refused");
+          await deps.forget(device.id);
+          outcome.removed += 1;
+          return;
+        }
         const answer = await deps.send(device, payload, options);
         if (answer.status >= 200 && answer.status < 300) {
-          await deps.markDelivered(device.id);
           outcome.sent += 1;
+          // It arrived: a failure to note it doesn't make it unsent.
+          await deps.markDelivered(device.id).catch((error: unknown) => {
+            console.error("delivery not recorded", device.id, error);
+          });
           return;
         }
         refuse(

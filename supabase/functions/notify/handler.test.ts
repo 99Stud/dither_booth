@@ -1,14 +1,12 @@
+import type { PushMessage } from "@dither-booth/protocol/push";
+
 import { ALERT_KEYS } from "@dither-booth/protocol/alerts";
 import { assertEquals } from "@std/assert";
 
 import type { Device, PushOptions } from "../_shared/push.ts";
 
 import { handleNotify, type NotifyDeps } from "./handler.ts";
-import {
-  type AlertToPush,
-  composeMessage,
-  type PushMessage,
-} from "./messages.ts";
+import { type AlertToPush, composeMessage } from "./messages.ts";
 
 const ALERT_ID = "0f3e9c7a-5b1d-4c2e-8a6f-1d2c3b4a5e6f";
 const NOW = new Date("2026-10-31T18:10:00.000Z");
@@ -24,7 +22,7 @@ const ALERT: AlertToPush = {
 };
 const PHONE: Device = {
   id: "phone",
-  endpoint: "https://push.test/1",
+  endpoint: "https://fcm.googleapis.com/fcm/send/1",
   p256dh: "k",
   auth: "a",
 };
