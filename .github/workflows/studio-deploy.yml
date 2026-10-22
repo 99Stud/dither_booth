@@ -1,0 +1,59 @@
+name: Studio deploy
+
+# Ships Studio, the staff app, to Cloudflare Pages when it (or what it is
+# built from) changes on main. The build talks to the production Hub; its
+# address and keys are public and built in.
+#
+# Needs, in the `production` environment:
+# - secrets CLOUDFLARE_API_TOKEN (Pages: Edit, on this account only) and
+#   CLOUDFLARE_ACCOUNT_ID
+# - variable CLOUDFLARE_PAGES_PROJECT: the Pages project's name
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/studio/**"
+      - "packages/ui/**"
+      - "packages/protocol/**"
+      - ".github/workflows/studio-deploy.yml"
+  workflow_dispatch:
+
+# The newest commit wins: an older deploy still running is cancelled.
+concurrency:
+  group: studio-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Test
+        run: bun run --filter @dither-booth/studio test
+
+      - name: Build
+        run: bun run --filter @dither-booth/studio build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/studio/dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }} --branch=main
