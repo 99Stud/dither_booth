@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { type AlertRow, sortAlerts } from "#lib/alerts";
+import { type AlertRow, sortAlerts, waitingAlerts } from "#lib/alerts";
 import { type BoothRow, reportLine } from "#lib/booths";
 import { parseRoute, pathOf } from "#lib/route";
 
@@ -33,6 +33,18 @@ describe("sortAlerts", () => {
     ]);
     expect(open.map((a) => a.id)).toEqual(["critical", "new-warn", "old-warn"]);
     expect(closed.map((a) => a.id)).toEqual(["closed-late", "closed-early"]);
+  });
+});
+
+describe("waitingAlerts", () => {
+  test("open and not acknowledged, most urgent first: what the banner shows", () => {
+    const waiting = waitingAlerts([
+      alert("warn", { severity: "warn" }),
+      alert("acked", { ackedAt: "2026-10-31T18:05:00.000Z" }),
+      alert("closed", { resolvedAt: "2026-10-31T18:10:00.000Z" }),
+      alert("critical", {}),
+    ]);
+    expect(waiting.map((a) => a.id)).toEqual(["critical", "warn"]);
   });
 });
 

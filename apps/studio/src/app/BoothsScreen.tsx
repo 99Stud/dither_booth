@@ -1,6 +1,10 @@
 import type { FormEvent } from "react";
 
-import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
+import { PRINTER_CONDITION_LABEL } from "@dither-booth/protocol/heartbeat";
+import {
+  IconBubble,
+  type IconBubbleTone,
+} from "@dither-booth/ui/components/misc/IconBubble";
 import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
@@ -19,29 +23,32 @@ import { CalendarClock, Copy, KeyRound, Plus, Printer } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { LiveFallback } from "#app/LiveFallback";
 import {
   addBooth,
   type BoothRow,
-  CONDITION_LABEL,
   issueRegistrationCode,
   listBooths,
   reportLine,
   type RegistrationCode,
-  setLiveWindow,
+  type ReportTone,
+  setEventTimes,
 } from "#lib/booths";
 import { staffOrgId } from "#lib/device";
+import { messageOf } from "#lib/errors";
 import { useLive } from "#lib/live";
 
-const messageOf = (error: unknown) =>
-  error instanceof Error && error.message
-    ? error.message
-    : "Something went wrong.";
+const REPORT_TONE: Record<ReportTone, IconBubbleTone> = {
+  ok: "emerald",
+  warn: "amber",
+  off: "zinc",
+};
 
 /** A datetime-local input's value, in this device's time zone. */
 const toLocalInput = (iso: string | null) =>
   iso ? format(new Date(iso), "yyyy-MM-dd'T'HH:mm") : "";
 
-const EventWindow = ({
+const EventTimes = ({
   booth,
   onSaved,
 }: {
@@ -53,16 +60,11 @@ const EventWindow = ({
   const [until, setUntil] = useState(toLocalInput(booth.liveUntil));
   const [busy, setBusy] = useState(false);
 
-  const save = async (window: {
-    from: string | null;
-    until: string | null;
-  }) => {
+  const save = async (times: { from: string | null; until: string | null }) => {
     setBusy(true);
     try {
-      await setLiveWindow(booth.id, window.from, window.until);
-      toast.success(
-        window.from ? "Event times saved." : "Event times cleared.",
-      );
+      await setEventTimes(booth.id, times.from, times.until);
+      toast.success(times.from ? "Event times saved." : "Event times cleared.");
       setEditing(false);
       onSaved();
     } catch (error) {
@@ -167,7 +169,7 @@ const RegistrationCodePanel = ({ code }: { code: RegistrationCode }) => (
     className={clsx("flex flex-col gap-2 rounded-lg border border-border p-3")}
   >
     <p className={clsx("text-sm")}>
-      In the booth's admin, Settings, Hub, type:
+      In the booth's admin, Settings → Hub, type:
     </p>
     <div className={clsx("flex items-center gap-2")}>
       <code
@@ -227,15 +229,7 @@ const BoothCard = ({
     <Card>
       <CardHeader>
         <CardTitle className={clsx("flex items-center gap-2.5")}>
-          <IconBubble
-            tone={
-              report.tone === "ok"
-                ? "emerald"
-                : report.tone === "warn"
-                  ? "amber"
-                  : "zinc"
-            }
-          >
+          <IconBubble tone={REPORT_TONE[report.tone]}>
             <Printer />
           </IconBubble>
           {booth.name}
@@ -250,7 +244,7 @@ const BoothCard = ({
             ) : (
               conditions.map((condition) => (
                 <Badge key={condition} variant="secondary">
-                  {CONDITION_LABEL[condition]}
+                  {PRINTER_CONDITION_LABEL[condition]}
                 </Badge>
               ))
             )}
@@ -263,7 +257,7 @@ const BoothCard = ({
           </div>
         ) : null}
 
-        <EventWindow booth={booth} onSaved={onChanged} />
+        <EventTimes booth={booth} onSaved={onChanged} />
 
         {code ? (
           <RegistrationCodePanel code={code} />
@@ -341,13 +335,7 @@ export const BoothsScreen = () => {
   const now = Date.now();
 
   if (live.data === undefined) {
-    return live.error ? (
-      <p className={clsx("text-sm text-destructive")}>
-        Couldn't load the booths. Check the connection.
-      </p>
-    ) : (
-      <Spinner className="mx-auto size-5" />
-    );
+    return <LiveFallback error={live.error} what="booths" />;
   }
 
   return (

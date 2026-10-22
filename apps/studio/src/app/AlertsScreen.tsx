@@ -1,24 +1,40 @@
 import { alertWording } from "@dither-booth/protocol/alerts";
-import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
+import {
+  IconBubble,
+  type IconBubbleTone,
+} from "@dither-booth/ui/components/misc/IconBubble";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import { Card, CardContent } from "@dither-booth/ui/components/ui/card";
-import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
 import { formatDistanceToNowStrict } from "date-fns";
-import { CircleCheck, Hand, OctagonAlert, TriangleAlert } from "lucide-react";
+import {
+  CircleCheck,
+  Hand,
+  type LucideIcon,
+  OctagonAlert,
+  TriangleAlert,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import {
-  acknowledge,
-  type AlertRow,
-  listAlerts,
-  sortAlerts,
-} from "#lib/alerts";
-import { useLive } from "#lib/live";
+import type { Live } from "#lib/live";
+
+import { LiveFallback } from "#app/LiveFallback";
+import { acknowledge, type AlertRow, sortAlerts } from "#lib/alerts";
+import { messageOf } from "#lib/errors";
 
 const ago = (iso: string) =>
   formatDistanceToNowStrict(new Date(iso), { addSuffix: true });
+
+/** An alert's colour and icon: fixed, critical, or a warning. */
+export const alertLook = (
+  alert: AlertRow,
+): { tone: IconBubbleTone; Icon: LucideIcon } =>
+  alert.resolvedAt !== null
+    ? { tone: "emerald", Icon: CircleCheck }
+    : alert.severity === "critical"
+      ? { tone: "rose", Icon: OctagonAlert }
+      : { tone: "amber", Icon: TriangleAlert };
 
 const AlertCard = ({
   alert,
@@ -31,7 +47,7 @@ const AlertCard = ({
 }) => {
   const { what, todo, fixed } = alertWording(alert.key);
   const closed = alert.resolvedAt !== null;
-  const critical = alert.severity === "critical";
+  const { tone, Icon } = alertLook(alert);
   const [busy, setBusy] = useState(false);
 
   return (
@@ -40,14 +56,8 @@ const AlertCard = ({
       className={clsx(focused && "ring-2 ring-ring")}
     >
       <CardContent className={clsx("flex gap-3")}>
-        <IconBubble tone={closed ? "emerald" : critical ? "rose" : "amber"}>
-          {closed ? (
-            <CircleCheck />
-          ) : critical ? (
-            <OctagonAlert />
-          ) : (
-            <TriangleAlert />
-          )}
+        <IconBubble tone={tone}>
+          <Icon />
         </IconBubble>
         <div className={clsx("flex min-w-0 flex-1 flex-col gap-1")}>
           <p className={clsx("leading-snug font-medium")}>
@@ -86,8 +96,13 @@ const AlertCard = ({
 };
 
 /** What needs attention now, and what happened in the last day. */
-export const AlertsScreen = ({ focusId }: { focusId?: string }) => {
-  const live = useLive("alerts", () => listAlerts(), ["alert"]);
+export const AlertsScreen = ({
+  live,
+  focusId,
+}: {
+  live: Live<AlertRow[]>;
+  focusId?: string;
+}) => {
   const { open, closed } = sortAlerts(live.data ?? []);
 
   // A notification's link: bring its alert into view once it's there.
@@ -105,20 +120,12 @@ export const AlertsScreen = ({ focusId }: { focusId?: string }) => {
       toast.success("Acknowledged: no more reminders for this one.");
       live.reload();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Couldn't acknowledge it.",
-      );
+      toast.error(messageOf(error, "Couldn't acknowledge it."));
     }
   };
 
   if (live.data === undefined) {
-    return live.error ? (
-      <p className={clsx("text-sm text-destructive")}>
-        Couldn't load the alerts. Check the connection.
-      </p>
-    ) : (
-      <Spinner className="mx-auto size-5" />
-    );
+    return <LiveFallback error={live.error} what="alerts" />;
   }
 
   return (

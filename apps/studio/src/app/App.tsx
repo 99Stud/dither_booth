@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { AlertBanner } from "#app/AlertBanner";
 import { AlertsScreen } from "#app/AlertsScreen";
 import { BoothsScreen } from "#app/BoothsScreen";
 import { DeviceCard } from "#app/DeviceCard";
@@ -25,17 +26,23 @@ const TITLES: Record<Route["screen"], string> = {
 /** The signed-in app: a screen, and the tab bar under it. */
 const SignedIn = ({ userId, email }: { userId: string; email: string }) => {
   const [route, go] = useRoute();
-  // Shared with the Alerts screen's own reads: the badge stays current anywhere.
-  const alerts = useLive("alert-count", () => listAlerts(), ["alert"]);
+  // One read for the Alerts screen, the banner and the tab's count.
+  const alerts = useLive("alerts", () => listAlerts(), ["alert"]);
   const openAlerts = (alerts.data ?? []).filter(
     (alert) => alert.resolvedAt === null,
   ).length;
 
   return (
     <>
+      {route.screen !== "alerts" ? (
+        <AlertBanner
+          alerts={alerts.data ?? []}
+          onOpen={(alertId) => go({ screen: "alerts", alertId })}
+        />
+      ) : null}
       <h2 className={clsx("text-xl font-semibold")}>{TITLES[route.screen]}</h2>
       {route.screen === "alerts" ? (
-        <AlertsScreen focusId={route.alertId} />
+        <AlertsScreen live={alerts} focusId={route.alertId} />
       ) : null}
       {route.screen === "booths" ? <BoothsScreen /> : null}
       {route.screen === "device" ? (
