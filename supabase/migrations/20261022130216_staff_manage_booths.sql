@@ -1,10 +1,10 @@
--- What Studio lets staff do with their booths: add one (its name), and
--- rename it or set the window in which its silence is an incident. Nothing
--- else on a booth: its registration stays the Hub's (register-booth, and
--- booth-code for a new code).
+-- What Studio lets staff do with their booths: add one (its name), and set
+-- its event times (live_from, live_until), when its silence is an alert.
+-- Nothing else on a booth: its registration stays the Hub's (register-booth,
+-- and booth-code for a new code).
 
 grant insert (org_id, name) on public.booth to authenticated;
-grant update (name, live_from, live_until) on public.booth to authenticated;
+grant update (live_from, live_until) on public.booth to authenticated;
 
 create policy "members add booths to their orgs" on public.booth
   for insert to authenticated

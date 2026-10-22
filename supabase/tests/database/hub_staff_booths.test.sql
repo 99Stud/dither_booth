@@ -1,7 +1,7 @@
--- What staff may do with booths from Studio: add, rename, set the window;
+-- What staff may do with booths from Studio: add one, set its event times;
 -- never touch a registration, nor another org's booth.
 begin;
-select plan(10);
+select plan(11);
 
 insert into auth.users (id, email) values
   ('a1a1a1a1-0000-0000-0000-000000000001', 'staff-a@example.com'),
@@ -32,18 +32,21 @@ select throws_ok(
   '42501', null, 'nor its registration code');
 
 select results_eq(
-  $$update public.booth set name = 'Booth A, foyer', live_from = '2026-10-31 18:00+00', live_until = '2026-11-01 02:00+00'
-    where name = 'Booth A' returning name$$,
-  array['Booth A, foyer'], 'staff rename their booth and set its window');
+  $$update public.booth set live_from = '2026-10-31 18:00+00', live_until = '2026-11-01 02:00+00'
+    where name = 'Booth A' returning live_from$$,
+  array['2026-10-31 18:00+00'::timestamptz], 'staff set their booth''s event times');
 select throws_ok(
-  $$update public.booth set registered_at = now() where name = 'Booth A, foyer'$$,
-  '42501', null, 'but not its registration');
+  $$update public.booth set name = 'Booth A, foyer' where name = 'Booth A'$$,
+  '42501', null, 'but not rename it (Studio has no rename)');
+select throws_ok(
+  $$update public.booth set registered_at = now() where name = 'Booth A'$$,
+  '42501', null, 'nor its registration');
 select is_empty(
-  $$update public.booth set name = 'Mine now' where id = 'b0b0b0b0-0000-0000-0000-0000000000b0' returning id$$,
+  $$update public.booth set live_from = null, live_until = null where id = 'b0b0b0b0-0000-0000-0000-0000000000b0' returning id$$,
   'and not another org''s booth');
 select throws_ok(
-  $$update public.booth set live_from = '2026-11-01 02:00+00', live_until = '2026-10-31 18:00+00' where name = 'Booth A, foyer'$$,
-  '23514', null, 'a window that ends before it starts is refused');
+  $$update public.booth set live_from = '2026-11-01 02:00+00', live_until = '2026-10-31 18:00+00' where name = 'Booth A'$$,
+  '23514', null, 'event times that end before they start are refused');
 
 reset role;
 select ok(
