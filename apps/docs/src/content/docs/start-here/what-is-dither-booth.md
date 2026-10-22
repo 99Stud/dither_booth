@@ -28,7 +28,7 @@ Three processes run on the Pi under PM2, started by `ditherbooth.service` at boo
 | ----------- | ---------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Shutter** | `3000` (HTTPS)         | Guests, on the iPad         | The guest experience (camera, countdown, slot machine), the **Darkroom** for print tuning, and the receipt layout page Chromium prints from. Also serves the plain-HTTP **setup page** on `3003`. |
 | **Engine**  | `3001` (loopback only) | The two web apps            | The backend. Owns the database, the lottery, the printer connection, the network, and the kiosk channel.                                                                                          |
-| **Admin**   | `3002` (HTTPS)         | Staff, on a laptop or phone | Control Center (health, printer, network, booth screen, live camera), the Event page (lottery, prizes, draws) and Settings.                                                                       |
+| **Admin**   | `3002` (HTTPS)         | Staff, on a laptop or phone | Control Center (booth screen, printer, live camera, health, network), the Event page (lottery, prizes, draws) and Settings.                                                                       |
 
 A fourth piece, the **`booth` CLI**, is a standalone binary that provisions the Pi and runs its health checks. A small companion service, `ditherbooth-network.service`, watches the network and opens the booth's own Wi-Fi when it needs to.
 

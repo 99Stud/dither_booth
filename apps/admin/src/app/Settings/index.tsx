@@ -11,19 +11,30 @@ import {
   AppSidebarPageHeader,
 } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 
-/** What's set once: the booth's Wi-Fi, its Hub registration, the Darkroom PIN, and this device's look. Plus the docs. */
+/**
+ * What's set once, most often needed first: the booth's Wi-Fi (every venue),
+ * its Hub registration (once per booth), the Darkroom PIN, then this device's
+ * look. The docs card only shows on a phone, where the sidebar's link isn't.
+ * Two balanced columns, in that order: the Wi-Fi card is tall on a booth and
+ * short where the machine manages its own Wi-Fi.
+ */
 export const Settings = () => {
   return (
     <>
       <AppSidebarPageHeader title="Settings" />
       <AppPageBody>
         <AppPageHeading title="Settings" />
-        <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
+        <div
+          className={clsx(
+            "flex flex-col gap-4",
+            "lg:block lg:columns-2 lg:gap-4 lg:*:mb-4 lg:*:break-inside-avoid",
+          )}
+        >
           <NetworkCard />
-          <div className={clsx("flex flex-col gap-4")}>
-            <HubCard />
-            <DarkroomPinCard />
-            <AppearanceCard />
+          <HubCard />
+          <DarkroomPinCard />
+          <AppearanceCard />
+          <div className={clsx("md:hidden")}>
             <DocsCard />
           </div>
         </div>
