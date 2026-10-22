@@ -105,6 +105,39 @@ A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edg
 - `evaluate_silence` runs every minute from `pg_cron` (job `booth-silence`).
 - Both functions are for the service role only. The thresholds are constants in the migration, until an event needs others.
 
+## How an alert reaches phones
+
+The database pushes alert events itself:
+
+1. A trigger on `alert` queues **opened** (a new alert) and **resolved** (it closed) for the `notify` Edge Function, through `pg_net`, after the transaction commits.
+2. A `pg_cron` job (`alert-reminders`, every minute) queues a **reminder** for each critical alert that is still open, not acknowledged, and was last pushed 10 minutes ago.
+3. `notify` checks the shared secret, words the message (the glossary's terms: _Out of paper_, _Paper low_, …), and sends an encrypted web push (VAPID) to every device of the alert's org. A device the push service says is gone (404, 410) is forgotten.
+
+Critical alerts go out with high urgency and live an hour at the push service; "back to normal" goes out with normal urgency. Every push for an alert carries the alert's id as its tag and topic, so a reminder or "back to normal" replaces the notification already on the phone.
+
+### Setting it up on a project
+
+Once per project. Without it, alerts still open and close; nothing is pushed, and Postgres logs a warning per alert.
+
+1. Generate a random secret (`openssl rand -hex 32`).
+2. Set the function's secrets:
+
+   ```bash
+   supabase secrets set --project-ref <ref> \
+     VAPID_PUBLIC_KEY=<public key> VAPID_PRIVATE_KEY=<private key> \
+     VAPID_SUBJECT=mailto:<who push services can contact> \
+     NOTIFY_SECRET=<the random secret>
+   ```
+
+3. In the SQL editor, tell the database where to post, with the same secret:
+
+   ```sql
+   select vault.create_secret('https://<ref>.supabase.co/functions/v1/notify', 'notify_url');
+   select vault.create_secret('<the random secret>', 'notify_secret');
+   ```
+
+Locally, the function reads `supabase/functions/.env` (ignored by git), and `notify_url` is `http://supabase_kong_dither-booth:8000/functions/v1/notify`: `pg_net` runs inside the database container.
+
 ## Tests and CI
 
 Each table's access rules have a pgTAP file in `supabase/tests/database/`. They act as a user with `set local role authenticated` and a `request.jwt.claims` setting, and check both what is allowed and what is refused (`42501`).
