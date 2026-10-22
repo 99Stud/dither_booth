@@ -155,7 +155,8 @@ export const HubCard = () => {
             </Button>
           </div>
           <p className={clsx("text-sm text-muted-foreground")}>
-            Get a registration code in the Studio app (Booths). It works once, for 24 hours.
+            Get a registration code in the Studio app (Booths). It works once,
+            for 24 hours.
           </p>
         </form>
         {registration?.registered ? (
