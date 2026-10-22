@@ -44,9 +44,11 @@ export const HubCard = () => {
   const trpc = useTRPC();
   const [code, setCode] = useState("");
   const [isForgetOpen, setIsForgetOpen] = useState(false);
-  const registrationQuery = useQuery(
-    trpc.config.getHubRegistration.queryOptions(),
-  );
+  // Polled, so the last report and any error stay current.
+  const registrationQuery = useQuery({
+    ...trpc.config.getHubRegistration.queryOptions(),
+    refetchInterval: 10_000,
+  });
   const { mutateAsync: registerWithHub, isPending: isRegistering } =
     useMutation(trpc.config.registerWithHub.mutationOptions());
   const { mutateAsync: forgetHubRegistration, isPending: isForgetting } =
@@ -110,6 +112,23 @@ export const HubCard = () => {
               ? `Registered as ${registration.boothName} since ${format(new Date(registration.registeredAt), "MMM d, HH:mm")}.`
               : "Not registered: the Hub can't alert staff about this booth."}
         </p>
+        {registration?.registered ? (
+          <p
+            role="status"
+            className={clsx(
+              "text-sm",
+              registration.report.lastError
+                ? "text-destructive"
+                : "text-muted-foreground",
+            )}
+          >
+            {registration.report.lastError
+              ? `Can't report: ${registration.report.lastError}`
+              : registration.report.lastReportedAt
+                ? `Last report ${format(new Date(registration.report.lastReportedAt), "HH:mm:ss")}.`
+                : "No report yet."}
+          </p>
+        ) : null}
         <form className={clsx("flex flex-col gap-2")} onSubmit={submit}>
           <div className={clsx("flex gap-2")}>
             <Input

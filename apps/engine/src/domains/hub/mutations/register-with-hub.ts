@@ -18,5 +18,7 @@ export const registerWithHub = configProcedure
     logKioskEvent("info", HUB_LOG_SOURCE, "hub-registered", {
       details: { boothId: registration.boothId, hubUrl: registration.hubUrl },
     });
+    // The first report goes now, not at the next tick.
+    void ctx.hubReporter.report();
     return registration;
   });

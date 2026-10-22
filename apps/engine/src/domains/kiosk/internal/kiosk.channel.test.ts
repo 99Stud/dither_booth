@@ -6,6 +6,7 @@ import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createTestDb } from "#db/internal/db.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
+import { createHubReporterStub } from "#domains/hub/internal/hub.test-utils";
 import { createStubPrinter } from "#domains/printer/internal/printer.test-utils";
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
@@ -192,6 +193,7 @@ describe("kiosk channel through the router", () => {
       allowedHostnames: [],
       db: db ?? (new Proxy({}, { get: unreachable }) as TRPCContext["db"]),
       darkroomAccess: createDarkroomAccessStub(),
+      hubReporter: createHubReporterStub(),
       kioskChannel,
       kioskMaintenance,
       cameraPreview: cameraPreviewFor(kioskChannel),
