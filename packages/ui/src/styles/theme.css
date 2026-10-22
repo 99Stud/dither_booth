@@ -117,6 +117,14 @@ html.saas.dark {
   html.saas {
     font-feature-settings: "ss01", "cv11";
     -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* Light text on a dark ground keeps macOS's smoothing: without it thin grey
+     lines turn spindly. iOS ignores both. */
+  html.saas.dark {
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
   }
   html.saas body {
     @apply bg-background text-foreground;
