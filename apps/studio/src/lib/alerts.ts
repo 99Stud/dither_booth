@@ -1,4 +1,4 @@
-import type { AlertSeverity } from "@dither-booth/protocol/alerts";
+import type { AlertKey, AlertSeverity } from "@dither-booth/protocol/alerts";
 
 import { hub } from "./hub";
 
@@ -6,7 +6,7 @@ export type AlertRow = {
   id: string;
   boothId: string;
   boothName: string;
-  key: string;
+  key: AlertKey;
   severity: AlertSeverity;
   openedAt: string;
   resolvedAt: string | null;
@@ -39,7 +39,8 @@ export async function listAlerts(now = new Date()): Promise<AlertRow[]> {
     id: alert.id,
     boothId: alert.booth_id,
     boothName: names.get(alert.booth_id) ?? "A booth",
-    key: alert.key,
+    // The Hub only stores known keys (alert_key_known).
+    key: alert.key as AlertKey,
     severity: alert.severity,
     openedAt: alert.opened_at,
     resolvedAt: alert.resolved_at,
@@ -65,11 +66,20 @@ export function sortAlerts(alerts: AlertRow[]): {
   return { open, closed };
 }
 
+/** Open alerts nobody acknowledged yet, most urgent first: the banner's. */
+export const waitingAlerts = (alerts: AlertRow[]): AlertRow[] =>
+  sortAlerts(alerts).open.filter((alert) => !alert.ackedAt);
+
 /** "I'm on it": stops the reminders. The Hub records who. */
 export async function acknowledge(alertId: string): Promise<void> {
-  const { error } = await hub
+  // Row level security turns a refused update into no rows, not an error.
+  const { data, error } = await hub
     .from("alert")
     .update({ acked_at: new Date().toISOString() })
-    .eq("id", alertId);
+    .eq("id", alertId)
+    .select("id");
   if (error) throw error;
+  if (!data?.length) {
+    throw new Error("The Hub didn't take it. Reload, then try again.");
+  }
 }
