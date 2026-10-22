@@ -105,21 +105,25 @@ A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edg
 - `evaluate_silence` runs every minute from `pg_cron` (job `booth-silence`).
 - Both functions are for the service role only. The thresholds are constants in the migration, until an event needs others.
 
-## How an alert reaches phones
+## How an alert reaches staff devices
 
 The database pushes alert events itself:
 
 1. A trigger on `alert` queues **opened** (a new alert) and **resolved** (it closed) for the `notify` Edge Function, through `pg_net`, after the transaction commits.
 2. A `pg_cron` job (`alert-reminders`, every minute) queues a **reminder** for each critical alert that is still open, not acknowledged, and was last pushed 10 minutes ago.
-3. `notify` checks the shared secret, words the message (the glossary's terms: _Out of paper_, _Paper low_, …), and sends an encrypted web push (VAPID) to every device of the alert's org. A device the push service says is gone (404, 410) is forgotten.
+3. `notify` checks the shared secret, words the message from `@dither-booth/protocol/alerts` (the glossary's terms), and sends an encrypted web push (VAPID) to every [device](/docs/start-here/glossary/) of the alert's org at once. A device the push service says is gone (404, 410, or Apple's 400 `BadWebPushToken`) is forgotten. Its answer counts what was sent, removed and failed, and lists every refusal by push service, which the function's log keeps too.
 
-Critical alerts go out with high urgency and live an hour at the push service; "back to normal" goes out with normal urgency. Every push for an alert carries the alert's id as its tag and topic, so a reminder or "back to normal" replaces the notification already on the phone.
+Critical alerts go out with high urgency and live an hour at the push service; "back to normal" goes out with normal urgency. Every push for an alert carries the alert's id as its tag and topic, so a reminder or "back to normal" replaces the notification already on the device. Each push also says when what it reports happened (`at`): two pushes for one alert can arrive out of order, and the Studio app keeps the newer one.
+
+**A push that fails is not retried.** `pg_net` calls `notify` once: if that call fails, a warning's only push is lost, and a critical alert's next chance is its reminder, up to about 11 minutes later. The alert itself is never lost; Studio shows it.
+
+`send-test` pushes a test notification to the caller's own devices (it takes the caller's session), for the Studio app's "Send test notification" button.
 
 ### Setting it up on a project
 
 Once per project. Without it, alerts still open and close; nothing is pushed, and Postgres logs a warning per alert.
 
-1. Generate a random secret (`openssl rand -hex 32`).
+1. Generate the VAPID key pair once (`bunx web-push generate-vapid-keys`), and a random secret (`openssl rand -hex 32`).
 2. Set the function's secrets:
 
    ```bash
@@ -136,7 +140,7 @@ Once per project. Without it, alerts still open and close; nothing is pushed, an
    select vault.create_secret('<the random secret>', 'notify_secret');
    ```
 
-Locally, the function reads `supabase/functions/.env` (ignored by git), and `notify_url` is `http://supabase_kong_dither-booth:8000/functions/v1/notify`: `pg_net` runs inside the database container.
+Locally, the functions read `supabase/functions/.env` (ignored by git) for the same four values, and the Vault secrets are created the same way in the local SQL editor, with `notify_url` set to `http://supabase_kong_dither-booth:8000/functions/v1/notify`: `pg_net` runs inside the database container. A reset (`supabase db reset`) empties Vault, so create them again after one.
 
 ## Tests and CI
 
