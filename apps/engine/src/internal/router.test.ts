@@ -124,6 +124,12 @@ function createCaller(
     darkroomAccess: createDarkroomAccessStub(DARKROOM_TOKEN),
     darkroomToken,
     db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
+    hubReporter: new Proxy(
+      {},
+      {
+        get: unreachable,
+      },
+    ) as TRPCContext["hubReporter"],
     kioskChannel: new Proxy({}, { get: unreachable }) as KioskChannel,
     cameraPreview: new Proxy(
       {},
