@@ -1,0 +1,6 @@
+# The service worker must never be cached, or a new release wouldn't reach
+# installed devices until the cache expired.
+/sw.js
+  Cache-Control: no-store
+/manifest.webmanifest
+  Cache-Control: no-cache

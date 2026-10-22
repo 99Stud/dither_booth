@@ -17,6 +17,8 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Admin**: the staff web app (`https://<booth>:3002`): Control Center, Event, Settings.
 
+**Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts. It talks to the Hub, never to a booth.
+
 **Engine**: the backend process. It is only reachable through the two web apps, which proxy `/engine/trpc` to it over loopback.
 
 ## Kits

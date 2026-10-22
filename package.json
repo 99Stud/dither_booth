@@ -7,9 +7,10 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development PROCESS_MANAGER=turborepo turbo run dev --filter=!@dither-booth/cli --filter=!@dither-booth/docs -vvv",
+    "dev": "NODE_ENV=development PROCESS_MANAGER=turborepo turbo run dev --filter=!@dither-booth/cli --filter=!@dither-booth/docs --filter=!@dither-booth/studio -vvv",
     "phone": "bun run --cwd apps/engine phone",
     "docs:dev": "bun run --filter @dither-booth/docs dev",
+    "studio:dev": "bun run --filter @dither-booth/studio dev",
     "docs:build": "bun run --filter @dither-booth/docs build",
     "build": "NODE_ENV=production turbo run build --filter=!@dither-booth/cli",
     "start": "NODE_ENV=production PROCESS_MANAGER=turborepo turbo run start",
