@@ -11,7 +11,7 @@ import {
   AppSidebarPageHeader,
 } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 
-/** What's set once: the booth's Wi-Fi, its Hub registration, the Darkroom PIN, and this device's look. Plus the docs. */
+/** What's set once, most needed first. The docs card is for phones, where the sidebar's link isn't. */
 export const Settings = () => {
   return (
     <>
@@ -24,7 +24,9 @@ export const Settings = () => {
             <HubCard />
             <DarkroomPinCard />
             <AppearanceCard />
-            <DocsCard />
+            <div className={clsx("md:hidden")}>
+              <DocsCard />
+            </div>
           </div>
         </div>
       </AppPageBody>

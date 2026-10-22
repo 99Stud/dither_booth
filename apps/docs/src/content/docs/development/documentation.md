@@ -58,6 +58,6 @@ bun run docs:dev     # http://localhost:4321/docs/, hot reload
 bun run docs:build   # static site in apps/docs/dist, with search
 ```
 
-The site is built with the base path `/docs` and is fully static, search included (Pagefind). The root `bun run build` builds it, and the **admin server serves it at `/docs/`**: on a booth, `https://<hostname>.local:3002/docs/`, linked from admin's sidebar and Settings. Every booth therefore carries the docs matching its software, offline.
+The site is built with the base path `/docs` and is fully static, search included (Pagefind). The root `bun run build` builds it, and the **admin server serves it at `/docs/`**: on a booth, `https://<hostname>.local:3002/docs/`, linked from admin's sidebar, and from Settings on a phone. Every booth therefore carries the docs matching its software, offline.
 
 Internal links include the base: write `[Wi-Fi](/docs/venue/wifi/)`, not `/venue/wifi/`.

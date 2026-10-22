@@ -20,6 +20,7 @@ const getGreeting = (hour = new Date().getHours()) =>
         ? "Good afternoon"
         : "Good evening";
 
+/** In the order staff use it: act (screen, printer), find out why (camera, health), connect a device. */
 export const ControlCenter = () => {
   return (
     <>
@@ -27,13 +28,13 @@ export const ControlCenter = () => {
       <AppPageBody>
         <AppPageHeading title={`${getGreeting()} 👋`} />
         <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
-          <div className={clsx("flex flex-col gap-4")}>
-            <BoothScreenCard />
-            <PrinterCard />
-            <BoothCameraCard />
+          <BoothScreenCard />
+          <PrinterCard />
+          <BoothCameraCard />
+          <HealthCard />
+          <div className={clsx("lg:col-span-2")}>
             <NetworkCard />
           </div>
-          <HealthCard />
         </div>
       </AppPageBody>
     </>

@@ -38,7 +38,7 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 
 /**
  * Registers the booth with the Hub, where its alerts reach staff phones.
- * Staff issue a one-time code on the Hub and type it here, once per booth.
+ * Staff get a registration code in the Studio app and type it here, once per booth.
  */
 export const HubCard = () => {
   const trpc = useTRPC();
@@ -155,7 +155,8 @@ export const HubCard = () => {
             </Button>
           </div>
           <p className={clsx("text-sm text-muted-foreground")}>
-            Ask for a one-time code on the Hub. It works once, for 24 hours.
+            Get a registration code in the Studio app (Booths). It works once,
+            for 24 hours.
           </p>
         </form>
         {registration?.registered ? (
