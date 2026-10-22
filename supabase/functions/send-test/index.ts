@@ -1,3 +1,4 @@
+import { createSessionReader } from "../_shared/browser.ts";
 import { createServiceClient } from "../_shared/clients.ts";
 import { createDeviceStore } from "../_shared/devices.ts";
 import { createWebPushSender } from "../_shared/web-push.ts";
@@ -14,10 +15,6 @@ Deno.serve((req) =>
     forget: devices.forget,
     markDelivered: devices.markDelivered,
     listDevices: (userId) => devices.list({ userId }),
-    // Asks Auth, so a signed-out or removed user is refused now.
-    async authenticate(token) {
-      const { data, error } = await admin.auth.getUser(token);
-      return error || !data.user ? null : data.user.id;
-    },
+    authenticate: createSessionReader(admin),
   }),
 );

@@ -443,3 +443,10 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
 entrypoint = "./functions/send-test/index.ts"
+
+[functions.booth-code]
+enabled = true
+# The function checks the caller's session itself (Auth), as heartbeat does.
+verify_jwt = false
+import_map = "./functions/deno.json"
+entrypoint = "./functions/booth-code/index.ts"
