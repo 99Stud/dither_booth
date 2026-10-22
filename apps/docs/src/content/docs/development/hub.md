@@ -115,6 +115,8 @@ The database pushes alert events itself:
 
 Critical alerts go out with high urgency and live an hour at the push service; "back to normal" goes out with normal urgency. Every push for an alert carries the alert's id as its tag and topic, so a reminder or "back to normal" replaces the notification already on the device. Each push also says when what it reports happened (`at`): two pushes for one alert can arrive out of order, and the Studio app keeps the newer one.
 
+**Only push services are fetched.** A device's endpoint is a URL its owner writes and `notify` fetches, so the database only accepts `https` on Apple's, Google's, Mozilla's and Windows' push services (`push_subscription_endpoint_push_service`, the same list as `@dither-booth/protocol/push`), and `notify` refuses and forgets anything else without fetching it.
+
 **A push that fails is not retried.** `pg_net` calls `notify` once: if that call fails, a warning's only push is lost, and a critical alert's next chance is its reminder, up to about 11 minutes later. The alert itself is never lost; Studio shows it.
 
 `send-test` pushes a test notification to the caller's own devices (it takes the caller's session), for the Studio app's "Send test notification" button.
