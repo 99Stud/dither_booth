@@ -1,0 +1,5 @@
+[serve.static]
+plugins = ["bun-plugin-tailwind"]
+# BUN_PUBLIC_HUB_URL, BUN_PUBLIC_HUB_PUBLISHABLE_KEY, BUN_PUBLIC_VAPID_PUBLIC_KEY:
+# point the dev server at another Hub, such as the local stack.
+env = "BUN_PUBLIC_*"
