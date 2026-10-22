@@ -71,10 +71,10 @@ The page to keep open on your phone during the event.
 
 | Card              | What it shows and does                                                                                                                                                                                                                    |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Health checks** | Engine, Shutter, Camera, Printer and the receipt renderer (Puppeteer). Each item explains what is wrong. From here you can reload the kiosk page (now, or when the current guest is done), re-initialize Puppeteer, or restart a service. |
-| **Printer**       | Live printer state (ready, paper low, out of paper, cover open, error, not connected), since when, whether it can print, and the last changes.                                                                                            |
 | **Booth screen**  | **Photo booth / Darkroom**: switch what the iPad shows. **Maintenance**: close the booth to guests. **Automatic**: let the printer close and reopen the booth on its own.                                                                 |
+| **Printer**       | Live printer state (ready, paper low, out of paper, cover open, error, not connected), since when, whether it can print, and the last changes.                                                                                            |
 | **Booth camera**  | **Watch live**: see what the iPad camera sees, to check framing from across the room. Stops after 10 minutes.                                                                                                                             |
+| **Health checks** | Engine, Shutter, Camera, Printer and the receipt renderer (Puppeteer). Each item explains what is wrong. From here you can reload the kiosk page (now, or when the current guest is done), re-initialize Puppeteer, or restart a service. |
 | **Network**       | The booth's network and address, the QR and link to connect a device, and **Print setup ticket**.                                                                                                                                         |
 
 ### Maintenance
@@ -92,7 +92,8 @@ If you switch maintenance off while the printer is still the reason, the card sa
 
 ## Settings
 
-- **Darkroom PIN** — 4 to 8 digits. Changing it signs out every open Darkroom.
 - **Wi-Fi** — save, forget and switch networks; run on the booth Wi-Fi. See [Wi-Fi at a venue](/docs/venue/wifi/).
+- **Hub** — type a [registration code](/docs/start-here/glossary/) from the Studio app and choose **Register**, so the booth's alerts reach staff phones. **Forget the registration** stops that.
+- **Darkroom PIN** — 4 to 8 digits. Changing it signs out every open Darkroom.
 - **Appearance** — light or dark theme for admin itself.
-- **Docs** — opens this documentation. The booth serves it itself at `/docs/` on the admin address, so it works at a venue with no internet. On a computer, the sidebar's **Docs** link does the same.
+- **Docs** (on a phone) — opens this documentation. The booth serves it itself at `/docs/` on the admin address, so it works at a venue with no internet. On an iPad or a computer, it's the sidebar's **Docs** link.

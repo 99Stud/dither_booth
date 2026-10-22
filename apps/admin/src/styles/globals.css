@@ -76,8 +76,6 @@
   body {
     @apply bg-background text-foreground;
   }
-  /* No `antialiased`: on macOS it turns off the font smoothing that keeps
-     light text on a dark ground legible, and thin grey lines turn spindly. */
   html {
     @apply font-sans;
   }
