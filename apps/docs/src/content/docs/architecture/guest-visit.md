@@ -58,7 +58,7 @@ The photo is sent as raw bytes (`octetInputParser`), not JSON.
 3. **Lay out.** The headless Chromium page, which stays open on the Shutter's `/receipt-viewer`, renders the event's **kit** with the dithered photo, the ticket items and the ticket ref, and the engine screenshots it. One page serves every job, one at a time (`runExclusiveReceiptViewerPageJob`); the screenshot is capped at 12 s.
 4. **Draw.** `executeLotteryDraw` runs inside one SQLite transaction: cooldown read, weighted pick among prizes with stock, insert of the `draw` row (which is what takes the unit of stock). A ticket-ref collision retries with a new ref, and the photo receipt is re-rendered with the ref that was actually recorded.
 5. **Lottery ticket.** Rendered for a win, or for a loss when the lottery prints loser tickets.
-6. **Raster.** Each screenshot becomes an ESC/POS `GS v 0` raster command.
+6. **Raster.** Each screenshot becomes an ESC/POS `GS v 0` raster command. With `print_config.upside_down` on (the default), the 1-bit image is turned 180° before packing: the printer feeds the top of the ticket out first, so turned, it reads the right way up for the guest holding it. Doing it in the image rather than with the printer's `ESC {` keeps it independent of how the printer treats raster graphics in upside-down mode, and before the real-time byte escape, which has to see the final bytes.
 7. **Store.** The job is kept in memory for **120 s**, keyed by ticket ref, and the draw is returned to the iPad.
 
 ## Print: `booth.printPreparedReceipt`

@@ -189,6 +189,27 @@ describe("prepareReceiptJob", () => {
     ]);
   });
 
+  test("renders both tickets upside down unless the booth turned it off", async () => {
+    await prepareReceiptJob({
+      ctx: createCtx(setupDb({ outcome: "win" })),
+      input: PHOTO,
+    });
+    const db = setupDb({ outcome: "win" });
+    db.update(printConfigTable).set({ upsideDown: false }).run();
+    await prepareReceiptJob({ ctx: createCtx(db), input: PHOTO });
+
+    const upsideDownOf = (mocked: { mock: { calls: unknown[][] } }) =>
+      mocked.mock.calls.map(
+        ([options]) => (options as { upsideDown: boolean }).upsideDown,
+      );
+
+    expect(upsideDownOf(buildReceiptRasterCommand)).toEqual([true, false]);
+    expect(upsideDownOf(buildLotteryTicketRasterCommand)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
   test("a loss skips the lottery ticket unless printLoserTicket is on", async () => {
     const quiet = await prepareReceiptJob({
       ctx: createCtx(setupDb({ outcome: "loss" })),

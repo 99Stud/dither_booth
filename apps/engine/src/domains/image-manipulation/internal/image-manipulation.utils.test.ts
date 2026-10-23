@@ -20,6 +20,7 @@ const BLUE_NOISE_CONFIGURATION: PrintConfigRow = {
   toneGamma: 1.8,
   threshold: 128,
   rotation: 0,
+  upsideDown: true,
 };
 
 const WIDTH = 96;
