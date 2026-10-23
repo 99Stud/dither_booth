@@ -48,7 +48,7 @@ Once per project:
 
 1. **Push**: the VAPID keys and `notify` set up as in [The Hub](/docs/development/hub/).
 
-The sign-in email needs no setup: the Hub deploy pushes it (see [Production settings come from `config.toml`](/docs/development/hub/#production-settings-come-from-configtoml)). The access token the deploy uses needs read-write on Auth for that.
+The sign-in email needs no setup: the Hub deploy pushes it (see [Production settings come from `config.toml`](/docs/development/hub/#production-settings-come-from-configtoml)). The access token the deploy uses needs, for that step, Read-write on Auth Config and Read on Data API Config, Database Config and Storage Config.
 
 ## Adding staff
 

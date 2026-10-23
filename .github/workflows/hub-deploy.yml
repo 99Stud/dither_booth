@@ -10,8 +10,10 @@ name: Hub deploy
 # Needs, in the `production` environment (or the repository):
 # - secret SUPABASE_ACCESS_TOKEN: a personal access token scoped to the Hub's
 #   project only, with Read on Project Settings, API Keys, API Key Secrets and
-#   Connection Pooling, and Read-write on Edge Functions and Auth (for
-#   `config push`)
+#   Connection Pooling, Read-write on Edge Functions, and for `config push`
+#   Read-write on Auth Config and Read on Data API Config, Database Config
+#   and Storage Config (Read-write on any of those once config.toml changes
+#   its section)
 # - secret SUPABASE_DB_PASSWORD: the project's database password
 # - variable SUPABASE_PROJECT_ID: the project ref
 on:
