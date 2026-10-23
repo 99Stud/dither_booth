@@ -33,6 +33,9 @@ const server = Bun.serve({
     ),
     "/icons/:name": (req) =>
       new Response(Bun.file(resolve(root, "public/icons", req.params.name))),
+    // The sign-in email's images, for the local Hub's mail viewer.
+    "/email/:name": (req) =>
+      new Response(Bun.file(resolve(root, "public/email", req.params.name))),
     "/*": index,
   },
 });

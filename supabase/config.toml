@@ -150,8 +150,9 @@ max_indexes = 5
 [auth]
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails.
-site_url = "http://127.0.0.1:3000"
+# in emails. Studio's dev server, which serves the sign-in email's images
+# (`{{ .SiteURL }}/email/…`); production overrides it below.
+site_url = "http://localhost:5180"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
@@ -239,12 +240,12 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
 # Studio signs staff in with the code, typed in the app: on an iPhone a link
-# would open Safari, not the Home Screen app. The hosted Hub needs the same
-# template, pasted in Authentication, Emails, Magic Link.
+# would open Safari, not the Home Screen app. The code leads the subject, so
+# the notification alone is enough to sign in. The Hub deploy pushes this
+# template to production (`supabase config push`).
 [auth.email.template.magic_link]
-subject = "Your Studio code"
+subject = "{{ .Token }} is your Studio code"
 content_path = "./supabase/templates/magic_link.html"
 
 # [auth.email.template.invite]
@@ -450,3 +451,20 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
 entrypoint = "./functions/booth-code/index.ts"
+
+# Production, as `supabase config push --project-ref` (the Hub deploy) sees it:
+# everything above, with these values in place of the local ones.
+[remotes.production]
+project_id = "cvxebmlzjudvxxesgpgq"
+
+[remotes.production.auth]
+# Studio, which also serves the sign-in email's images.
+site_url = "https://dither-studio.pages.dev"
+additional_redirect_urls = []
+
+[remotes.production.auth.email]
+enable_confirmations = true
+
+[remotes.production.auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true

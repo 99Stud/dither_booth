@@ -182,7 +182,6 @@
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
         "bun-plugin-tailwind": "0.1.2",
-        "sharp": "0.35.3",
       },
     },
     "packages/browser-server": {
@@ -274,6 +273,7 @@
         "@dither-booth/typescript-config": "workspace:*",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
+        "sharp": "0.35.3",
       },
       "peerDependencies": {
         "react": "19.2.8",

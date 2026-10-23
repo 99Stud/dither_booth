@@ -23,5 +23,8 @@ export default defineConfig({
     "AGENTS.md",
     "skills-lock.json",
     "bun.lock",
+    // Go templates (Supabase Auth emails): the formatter would wrap lines
+    // inside `{{ … }}`.
+    "supabase/templates/**",
   ],
 });
