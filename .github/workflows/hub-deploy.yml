@@ -2,13 +2,16 @@ name: Hub deploy
 
 # Ships the Hub to its Supabase project once the Hub checks pass on main:
 # migrations first, then the Edge Functions, so a function never runs against
-# a schema it doesn't know. It only runs when the Hub workflow ran, that is
-# when something under supabase/ or packages/protocol/ changed.
+# a schema it doesn't know, then the project's settings from
+# supabase/config.toml (Auth, with the sign-in email). It only runs when the
+# Hub workflow ran, that is when something under supabase/ or
+# packages/protocol/ changed.
 #
 # Needs, in the `production` environment (or the repository):
 # - secret SUPABASE_ACCESS_TOKEN: a personal access token scoped to the Hub's
 #   project only, with Read on Project Settings, API Keys, API Key Secrets and
-#   Connection Pooling, and Read-write on Edge Functions
+#   Connection Pooling, and Read-write on Edge Functions and Auth (for
+#   `config push`)
 # - secret SUPABASE_DB_PASSWORD: the project's database password
 # - variable SUPABASE_PROJECT_ID: the project ref
 on:
@@ -81,3 +84,10 @@ jobs:
       # packages/protocol from outside supabase/functions.
       - name: Deploy Edge Functions
         run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID"
+
+      # supabase/config.toml as code (what Supabase recommends for email
+      # templates), with [remotes.production] in place of the local values:
+      # the log shows the diff it applies. Last, so a schema or function
+      # failure never leaves new settings behind.
+      - name: Push the project settings
+        run: supabase config push --project-ref "$SUPABASE_PROJECT_ID" --yes

@@ -33,6 +33,9 @@ bun run studio:dev
 - **The banner.** On Booths and This device, the most urgent alert nobody acknowledged yet sits above the screen, and a tap opens it. A push can be muted by Focus; the banner can't.
 - **Live.** Both screens and the banner read again when the Hub's Realtime says `alert` or `booth_status` changed, when Studio comes back to the foreground (iOS drops the socket in the background), and every minute.
 - **The service worker** (`src/sw`, built to `/sw.js`) shows each push. Pushes for one alert share a tag, so a reminder or "back to normal" replaces the notification already there; if two arrive out of order, it keeps the newer one, by the push's `at`. A tap opens Studio on that alert (`/alerts/<id>`).
+- **The sign-in email** (`supabase/templates/magic_link.html`) puts the code first: in the subject (_123456 is your Studio code_), so the notification alone is enough, then large in the body, with how long it lasts and what to do if you didn't ask for it. It loads its two images from Studio (`{{ .SiteURL }}/email/`), PNGs because mail apps block SVG. Locally, `site_url` is Studio's dev server, so the local Hub's mail viewer shows them while `studio:dev` runs.
+- **The icons** come from the Dither Booth mark in `packages/ui/src/lib/brand.tsx`: run `bun run --filter @dither-booth/ui brand` after changing it, and commit what it writes (Studio's, Shutter's and admin's Home Screen icons, the docs' favicon and logos, the email's images). The browser-tab icon is drawn from the same mark at runtime.
+- **Powered by 99Stud** sits under the sign-in screen and at the foot of the sign-in email.
 - **The Hub it talks to** is built in: production by default, `BUN_PUBLIC_HUB_URL`, `BUN_PUBLIC_HUB_PUBLISHABLE_KEY` and `BUN_PUBLIC_VAPID_PUBLIC_KEY` otherwise. All three are public.
 
 ## Deploy
@@ -43,8 +46,9 @@ bun run studio:dev
 
 Once per project:
 
-1. **The sign-in email** (Authentication, Emails, Magic Link): subject _Your Studio code_, and a body that shows `{{ .Token }}`, as `supabase/templates/magic_link.html` does locally.
-2. **Push**: the VAPID keys and `notify` set up as in [The Hub](/docs/development/hub/).
+1. **Push**: the VAPID keys and `notify` set up as in [The Hub](/docs/development/hub/).
+
+The sign-in email needs no setup: the Hub deploy pushes it (see [Production settings come from `config.toml`](/docs/development/hub/#production-settings-come-from-configtoml)). The access token the deploy uses needs read-write on Auth for that.
 
 ## Adding staff
 
