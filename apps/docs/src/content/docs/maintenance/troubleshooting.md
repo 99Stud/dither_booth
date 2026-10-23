@@ -63,6 +63,7 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 | `EADDRINUSE` at start                  | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.  |
 | Lottery never wins                     | Lottery is off, prizes are out of stock, or a win cooldown is running. Check the Event page's odds card.                              |
 | Wrong receipt look                     | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                          |
+| Tickets come out upside down           | Admin → Settings → Printing: pick the other end (**Bottom first** or **Top first**), then **Print a test ticket** to check.           |
 
 ## The Pi itself
 

@@ -130,11 +130,17 @@ export const escapeRealtimeCommandBytes = (
 export const screenshotToGsV0RasterCommand = async (
   screenshot: Uint8Array,
   options: {
+    /** Rotate 180°, so the paper reads the right way up as it comes out. */
+    upsideDown?: boolean;
     width?: number;
   } = {},
 ): Promise<Buffer> => {
   const image = await loadGrayImage(screenshot, options.width);
   const data = snapGrayPixels(image);
+
+  // One byte per pixel, row after row: reversed, it is the image turned 180°.
+  // Done before packing so the real-time escape below sees the final bytes.
+  if (options.upsideDown) data.reverse();
   const info = { height: image.height, width: image.width };
 
   const widthBytes = Math.ceil(info.width / 8);
