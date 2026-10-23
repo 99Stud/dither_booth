@@ -56,14 +56,14 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 
 ## Receipts and the engine
 
-| Symptom                                | Check                                                                                                                                                              |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Receipt renderer (Puppeteer) unhealthy | Admin → Health → **Re-initialize Puppeteer**. Persistent: `sudo booth install` re-installs Chromium's libraries, then `booth doctor`.                              |
-| A PM2 process keeps restarting         | `bun run pm2:list` for the restart count, then its `-err.log`. See [Logs](/docs/maintenance/logs/).                                                                |
-| `EADDRINUSE` at start                  | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.                               |
-| Lottery never wins                     | Lottery is off, prizes are out of stock, or a win cooldown is running. Check the Event page's odds card.                                                           |
-| Wrong receipt look                     | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                                                       |
-| Tickets come out upside down           | Admin → Settings → Printing → **Print tickets upside down**: on turns them for a guest pulling the paper toward them; flip it to match how the printer is mounted. |
+| Symptom                                | Check                                                                                                                                                     |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Receipt renderer (Puppeteer) unhealthy | Admin → Health → **Re-initialize Puppeteer**. Persistent: `sudo booth install` re-installs Chromium's libraries, then `booth doctor`.                     |
+| A PM2 process keeps restarting         | `bun run pm2:list` for the restart count, then its `-err.log`. See [Logs](/docs/maintenance/logs/).                                                       |
+| `EADDRINUSE` at start                  | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.                      |
+| Lottery never wins                     | Lottery is off, prizes are out of stock, or a win cooldown is running. Check the Event page's odds card.                                                  |
+| Wrong receipt look                     | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                                              |
+| Tickets come out upside down           | Admin → Settings → Printing → **Print tickets upside down**: on, tickets come out bottom first; off, top first. Pick the one that reads right for guests. |
 
 ## The Pi itself
 

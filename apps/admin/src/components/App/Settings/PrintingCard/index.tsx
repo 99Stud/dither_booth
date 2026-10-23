@@ -75,9 +75,8 @@ export const PrintingCard = () => {
               Print tickets upside down
             </label>
             <p className={clsx("text-sm text-muted-foreground")}>
-              Turns the photo receipt and the lottery ticket around, so they
-              read the right way up as they come out of the printer. Setup and
-              Wi-Fi tickets aren't affected.
+              On: photo and lottery tickets come out bottom first. Off: top
+              first.
             </p>
           </div>
           <Switch

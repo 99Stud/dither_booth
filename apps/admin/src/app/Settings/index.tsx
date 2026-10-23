@@ -12,7 +12,11 @@ import {
   AppSidebarPageHeader,
 } from "#components/Layout/AppSidebar/external/components/AppSidebarPageHeader/index";
 
-/** What's set once, most needed first. The docs card is for phones, where the sidebar's link isn't. */
+/**
+ * What's set once, most needed first: the booth's hardware on the left, access
+ * and display on the right, so neither column is empty whatever the Wi-Fi
+ * card's height. The docs card is for phones, where the sidebar's link isn't.
+ */
 export const Settings = () => {
   return (
     <>
@@ -20,10 +24,12 @@ export const Settings = () => {
       <AppPageBody>
         <AppPageHeading title="Settings" />
         <div className={clsx("grid items-start gap-4 lg:grid-cols-2")}>
-          <NetworkCard />
+          <div className={clsx("flex flex-col gap-4")}>
+            <NetworkCard />
+            <PrintingCard />
+          </div>
           <div className={clsx("flex flex-col gap-4")}>
             <HubCard />
-            <PrintingCard />
             <DarkroomPinCard />
             <AppearanceCard />
             <div className={clsx("md:hidden")}>
