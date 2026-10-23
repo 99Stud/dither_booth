@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-Print settings are **device tuning**, one row in `print_config`, edited in the Darkroom. How to use them: [Tune the prints](/docs/venue/tune-prints/). **Upside down** is the exception: it is set in admin's **Settings → Printing**.
+Print settings are **device tuning**, one row in `print_config`, edited in the Darkroom. How to use them: [Tune the prints](/docs/venue/tune-prints/). **Upside down** is the exception: it is set in admin's **Settings → Printing**, as **Bottom first** (on) or **Top first** (off).
 
 | Field                  | Column              | Range      | Default           | Read by               |
 | ---------------------- | ------------------- | ---------- | ----------------- | --------------------- |

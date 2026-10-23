@@ -16,7 +16,7 @@ RECEIPT_PRINT_DRY_RUN=true bun run dev
 - No USB access at all: the printer status stays `unknown`, and maintenance never triggers.
 - Set in `apps/engine/.env`, it can't be turned off from the command line as is: Turbo runs tasks in strict env mode and drops variables `turbo.json` doesn't declare, so the file wins. For one run, `RECEIPT_PRINT_DRY_RUN=false bun run dev --env-mode=loose`.
 - Receipts still go through the whole pipeline — Chromium must load the Shutter's `/receipt-viewer`, so the Shutter must be running.
-- The photo receipt and the lottery ticket are written as PNGs to `tmp/receipt-previews/` and opened. They are the bytes the printer would get, so with **Settings → Printing → Print tickets upside down** on (the default) they open turned 180°.
+- The photo receipt and the lottery ticket are written as PNGs to `tmp/receipt-previews/` and opened. They are the bytes the printer would get, so with **Settings → Printing → Bottom first** (the default) they open turned 180°.
 
 ## Forcing the lottery
 
