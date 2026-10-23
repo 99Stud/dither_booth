@@ -30,6 +30,13 @@ export const printConfigTable = sqliteTable(
     toneGamma: real("tone_gamma").notNull().default(1.8),
     threshold: integer("threshold").notNull().default(128),
     rotation: integer("rotation").notNull().default(0),
+    /**
+     * Prints the photo receipt and the lottery ticket rotated 180°, so they
+     * read the right way up as they come out of the printer.
+     */
+    upsideDown: integer("upside_down", { mode: "boolean" })
+      .notNull()
+      .default(true),
   },
   (table) => [
     check("print_config_singleton_check", sql`${table.id} = 1`),
@@ -67,6 +74,7 @@ export const printConfigTable = sqliteTable(
       "print_config_rotation_check",
       sql`${table.rotation} between 0 and 360`,
     ),
+    check("print_config_upside_down_check", sql`${table.upsideDown} in (0, 1)`),
   ],
 );
 

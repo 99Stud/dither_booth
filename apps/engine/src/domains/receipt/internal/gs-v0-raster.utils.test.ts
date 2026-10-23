@@ -24,6 +24,7 @@ const PRINT_CONFIGURATION: PrintConfigRow = {
   toneGamma: 1.8,
   threshold: 109,
   rotation: 0,
+  upsideDown: true,
 };
 
 async function createGrayRampPng(width: number, height: number) {
@@ -126,6 +127,26 @@ describe("screenshotToGsV0RasterCommand", () => {
     const command = await screenshotToGsV0RasterCommand(screenshot);
 
     expect([...command]).toEqual([0x1d, 0x76, 0x30, 0x00, 1, 0, 1, 0, 0xff]);
+  });
+
+  test("turns the image 180° when printing upside down", async () => {
+    // Row 0: black, black, then white. Row 1: all white but the last dot.
+    const screenshot = await createPngFromMonoPixels({
+      height: 2,
+      pixels: [
+        0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+        0,
+      ],
+      width: 8,
+    });
+
+    const command = await screenshotToGsV0RasterCommand(screenshot, {
+      upsideDown: true,
+    });
+
+    expect([...command]).toEqual([
+      0x1d, 0x76, 0x30, 0x00, 1, 0, 2, 0, 0b1000_0000, 0b0000_0011,
+    ]);
   });
 
   test("pads trailing bits as white for non-byte-aligned widths", async () => {

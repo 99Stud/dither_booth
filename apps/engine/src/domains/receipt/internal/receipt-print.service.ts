@@ -119,6 +119,19 @@ const toPrintError = (error: unknown, message: string) => {
 
 type PhotoReceiptInput = ConstructorParameters<typeof Response>[0];
 
+const loadPrintConfiguration = async (db: TRPCContext["db"]) => {
+  const printConfiguration = await db.query.printConfigTable.findFirst();
+
+  if (!printConfiguration) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Print configuration not found.",
+    });
+  }
+
+  return printConfiguration;
+};
+
 /** What every photo receipt render needs, read and validated once. */
 const loadPhotoReceiptSources = async ({
   ctx,
@@ -136,15 +149,7 @@ const loadPhotoReceiptSources = async ({
     });
   }
 
-  const printConfiguration = await ctx.db.query.printConfigTable.findFirst();
-
-  if (!printConfiguration) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Print configuration not found.",
-    });
-  }
-
+  const printConfiguration = await loadPrintConfiguration(ctx.db);
   const photoBuffer = Buffer.from(await new Response(input).arrayBuffer());
 
   if (photoBuffer.byteLength === 0) {
@@ -176,6 +181,7 @@ export const prepareReceiptJob = async ({
     printConfiguration,
     ticketItems,
     ticketRef,
+    upsideDown: printConfiguration.upsideDown,
   });
 
   let execution;
@@ -201,6 +207,7 @@ export const prepareReceiptJob = async ({
       printConfiguration,
       ticketItems,
       ticketRef,
+      upsideDown: printConfiguration.upsideDown,
     });
   }
 
@@ -223,6 +230,7 @@ export const prepareReceiptJob = async ({
       page,
       draw,
       ticketRef,
+      upsideDown: printConfiguration.upsideDown,
     });
   } catch (error) {
     // The draw is already committed. Failing here would drop the photo
@@ -313,6 +321,7 @@ export const printTestReceiptJob = async ({
     printConfiguration,
     ticketItems,
     ticketRef: SAMPLE_LOTTERY_TICKET_REF,
+    upsideDown: printConfiguration.upsideDown,
   });
 
   await printPreparedReceiptJob({
@@ -349,11 +358,13 @@ export const printSampleLotteryTicketJob = async ({
   }
 
   const { kitId } = await getReceiptEventSettingsForDb(ctx.db);
+  const { upsideDown } = await loadPrintConfiguration(ctx.db);
   const lotteryRasterCmd = await buildLotteryTicketRasterCommand({
     draw,
     kitId,
     page,
     ticketRef: SAMPLE_LOTTERY_TICKET_REF,
+    upsideDown,
   });
 
   if (dryRun) {

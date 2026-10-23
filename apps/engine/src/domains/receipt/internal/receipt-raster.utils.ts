@@ -73,6 +73,7 @@ export async function prepareReceiptRasterCommand({
 
   const { kitId, ticketItems } = await getReceiptEventSettingsForDb(ctx.db);
 
+  // A preview on screen, so it stays the right way up.
   return await buildReceiptRasterCommand({
     kitId,
     page,
@@ -80,6 +81,7 @@ export async function prepareReceiptRasterCommand({
     printConfiguration,
     ticketItems,
     ticketRef,
+    upsideDown: false,
   });
 }
 
@@ -90,6 +92,7 @@ export async function buildReceiptRasterCommand({
   printConfiguration,
   ticketItems,
   ticketRef,
+  upsideDown,
 }: {
   /** The event's kit, which picks how the ticket looks. */
   kitId: KitId;
@@ -98,6 +101,8 @@ export async function buildReceiptRasterCommand({
   printConfiguration: PrintConfigRow;
   ticketItems: string[];
   ticketRef?: string;
+  /** Rotate 180° for the printer (`print_config.upside_down`). */
+  upsideDown: boolean;
 }): Promise<Buffer> {
   const dithered = await ditherImage(photoBuffer, printConfiguration, {
     width: PRINT_WIDTH_PX,
@@ -133,6 +138,7 @@ export async function buildReceiptRasterCommand({
     );
 
     return await screenshotToGsV0RasterCommand(receiptScreenshot, {
+      upsideDown,
       width: PRINT_WIDTH_PX,
     }).catch((error) => {
       throw new TRPCError({
@@ -159,12 +165,15 @@ export async function buildLotteryTicketRasterCommand({
   page,
   draw,
   ticketRef,
+  upsideDown,
 }: {
   /** The event's kit, which picks how the ticket looks. */
   kitId: KitId;
   page: Page;
   draw: DrawResult;
   ticketRef: string;
+  /** Rotate 180° for the printer (`print_config.upside_down`). */
+  upsideDown: boolean;
 }): Promise<Buffer> {
   try {
     const lotteryScreenshot = await runExclusiveReceiptViewerPageJob(() =>
@@ -189,6 +198,7 @@ export async function buildLotteryTicketRasterCommand({
     );
 
     return await screenshotToGsV0RasterCommand(lotteryScreenshot, {
+      upsideDown,
       width: PRINT_WIDTH_PX,
     }).catch((error) => {
       throw new TRPCError({

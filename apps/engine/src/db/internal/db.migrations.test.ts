@@ -431,6 +431,22 @@ describe("runSqliteMigrations", () => {
     ).toThrow(/CHECK constraint failed/);
   });
 
+  test("0021 turns upside-down tickets on and keeps the booth's tuning", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    // Up to and including 0020: the last schema without upside_down.
+    runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(21), sqlite });
+    sqlite.run("INSERT INTO print_config (id, threshold) VALUES (1, 100)");
+
+    runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
+
+    expect(
+      sqlite.query("SELECT threshold, upside_down FROM print_config").all(),
+    ).toEqual([{ threshold: 100, upside_down: 1 }]);
+    expect(() => sqlite.run("UPDATE print_config SET upside_down = 2")).toThrow(
+      /CHECK constraint failed/,
+    );
+  });
+
   test("leaves the stock triggers and prize checks in place", () => {
     const { sqlite, db } = openDb({ foreignKeys: true });
     runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });

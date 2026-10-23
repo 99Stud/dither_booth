@@ -5,6 +5,7 @@ import { DarkroomPinCard } from "#components/App/Settings/DarkroomPinCard/index"
 import { DocsCard } from "#components/App/Settings/DocsCard/index";
 import { HubCard } from "#components/App/Settings/HubCard/index";
 import { NetworkCard } from "#components/App/Settings/NetworkCard/index";
+import { PrintingCard } from "#components/App/Settings/PrintingCard/index";
 import {
   AppPageBody,
   AppPageHeading,
@@ -22,6 +23,7 @@ export const Settings = () => {
           <NetworkCard />
           <div className={clsx("flex flex-col gap-4")}>
             <HubCard />
+            <PrintingCard />
             <DarkroomPinCard />
             <AppearanceCard />
             <div className={clsx("md:hidden")}>

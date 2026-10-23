@@ -40,6 +40,7 @@ const PRINT_CONFIGURATION_FIELD_SCHEMAS = {
   toneGamma: z.number().min(1).max(3),
   threshold: z.number().int().min(0).max(255),
   rotation: z.number().int().min(0).max(360),
+  upsideDown: z.boolean(),
 };
 
 export const UPDATE_PRINT_CONFIGURATION_SCHEMA = z.object({
@@ -53,4 +54,5 @@ export const UPDATE_PRINT_CONFIGURATION_SCHEMA = z.object({
   toneGamma: PRINT_CONFIGURATION_FIELD_SCHEMAS.toneGamma.optional(),
   threshold: PRINT_CONFIGURATION_FIELD_SCHEMAS.threshold.optional(),
   rotation: PRINT_CONFIGURATION_FIELD_SCHEMAS.rotation.optional(),
+  upsideDown: PRINT_CONFIGURATION_FIELD_SCHEMAS.upsideDown.optional(),
 });

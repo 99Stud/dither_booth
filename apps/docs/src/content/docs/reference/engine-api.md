@@ -36,7 +36,7 @@ The engine's API is tRPC (`apps/engine/src/internal/router.ts`). Browsers call i
 | `restockPrize`                                | mutation | admin    | `+N` / `−N` stock, idempotent by `adjustmentId`              |
 | `listDraws`                                   | query    | admin    | The active event's draws                                     |
 | `getPrintConfiguration`                       | query    | darkroom | Print tuning                                                 |
-| `updatePrintConfiguration`                    | mutation | darkroom | Print tuning                                                 |
+| `updatePrintConfiguration`                    | mutation | darkroom | Print tuning, and admin's upside-down switch                 |
 | `dither`                                      | mutation | darkroom | Dither a photo with given settings, for the preview          |
 | `generateReceipt`                             | mutation | darkroom | Render a receipt preview                                     |
 | `printReceipt`                                | mutation | darkroom | Test print under ref `000000`; never draws                   |
