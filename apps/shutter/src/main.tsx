@@ -14,6 +14,7 @@ import {
   receiptSearchValuesMatch,
 } from "@dither-booth/shared/browser/receipt-viewer";
 import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes";
+import { linkBrandIcons } from "@dither-booth/ui/brand";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
@@ -44,6 +45,7 @@ const isDevelopment =
 
 if (typeof document !== "undefined") {
   installWebAppManifestLink();
+  linkBrandIcons({ appleTouchIcon: "/icons/icon-180.png" });
   // Admin's preview is a frame: it never asks for fullscreen.
   if (!isKitPreview) installKioskFullscreen();
 }

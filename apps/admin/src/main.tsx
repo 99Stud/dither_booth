@@ -1,4 +1,5 @@
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
+import { linkBrandIcons } from "@dither-booth/ui/brand";
 import { SidebarProvider } from "@dither-booth/ui/components/ui/sidebar";
 import { Toaster } from "@dither-booth/ui/components/ui/sonner";
 import { TooltipProvider } from "@dither-booth/ui/components/ui/tooltip";
@@ -25,6 +26,7 @@ const isTouch = window.matchMedia("(pointer: coarse)").matches;
 
 initializeBrowserLogging();
 watchVirtualKeyboard();
+linkBrandIcons({ appleTouchIcon: "/icons/icon-180.png" });
 
 declare module "@tanstack/react-router" {
   interface Register {

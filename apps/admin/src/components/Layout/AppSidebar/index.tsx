@@ -1,5 +1,6 @@
 import type { ComponentProps, FC } from "react";
 
+import { DitherBoothMark } from "@dither-booth/ui/components/svg/DitherBoothMark/index";
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +16,6 @@ import {
 } from "@dither-booth/ui/components/ui/sidebar";
 import { Link, useLocation } from "@tanstack/react-router";
 import clsx from "clsx";
-import { Aperture } from "lucide-react";
 
 import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
@@ -66,7 +66,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
                   "rounded-lg bg-sidebar-primary text-sidebar-primary-foreground",
                 )}
               >
-                <Aperture className="size-4" />
+                <DitherBoothMark className="h-5" />
               </span>
               <span className="grid flex-1 text-left leading-tight">
                 <span className="truncate text-sm font-semibold">

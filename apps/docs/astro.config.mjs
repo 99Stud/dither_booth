@@ -18,6 +18,12 @@ export default defineConfig({
     mermaid({ autoTheme: true }),
     starlight({
       title: "Dither Booth",
+      // Both generated from the mark by packages/ui's `brand` script.
+      favicon: "/favicon.svg",
+      logo: {
+        light: "./src/assets/ditherbooth-mark-light.svg",
+        dark: "./src/assets/ditherbooth-mark-dark.svg",
+      },
       description:
         "Field guide, maintenance runbooks and architecture of the Dither Booth photo kiosk.",
       editLink: {

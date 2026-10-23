@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 
+import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/index";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
@@ -112,6 +113,19 @@ export const App = () => {
           <SignIn />
         )}
       </main>
+
+      {/* Signed out, the first screen staff see: who makes it. */}
+      {session === null && (
+        <footer
+          className={clsx(
+            "mt-auto flex items-center justify-center gap-2",
+            "text-xs text-muted-foreground",
+          )}
+        >
+          <NinetyNineStudLogo className="h-5" />
+          Powered by 99Stud
+        </footer>
+      )}
     </div>
   );
 };

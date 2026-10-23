@@ -39,13 +39,17 @@ Every table has `org_id` and row level security. Rules worth knowing:
 - **A booth never touches these tables.** Its JWT carries `booth_id` in `app_metadata` (never `user_metadata`, which users can edit), and an Edge Function writes with the service role after checking it.
 - **No `security definer` functions in `public`**: Postgres lets every role call them.
 
-## Production settings `config.toml` doesn't reach
+## Production settings come from `config.toml`
 
-The deploy applies migrations and Edge Functions, not `config.toml`. Set these once in the `dither-hub` dashboard, under Authentication:
+The deploy ends with `supabase config push`, which makes the project's API, database, Auth and Storage settings match `supabase/config.toml`, as Supabase recommends for email templates. `[remotes.production]` at the end of the file holds the values production needs instead of the local ones: `site_url` (Studio, `https://dither-studio.pages.dev`), no extra redirect URLs, email confirmations and TOTP on. The deploy's log shows the diff it applied.
 
-- **Sign In / Providers**: turn off **Allow new users to sign up**, and keep the **Email** provider on (staff log in with a magic link).
+So **change production settings in `config.toml`, never in the dashboard**: the next deploy puts back whatever the file says. Among them:
 
-A stranger who signed up anyway would see nothing (no org, no booth), but staff and booths are the only accounts there should be.
+- **Sign-up is off** (`[auth] enable_signup = false`) while the Email provider stays on, so staff log in with a code. A stranger who signed up anyway would see nothing (no org, no booth), but staff and booths are the only accounts there should be.
+- **Codes are 6 digits** (`otp_length`), the length Studio's code field takes.
+- **The sign-in email** is `supabase/templates/magic_link.html`, with the code in its subject.
+
+To see what a push would change without applying it, run `supabase config push --project-ref <ref>` and answer `n`. The prompt defaults to yes, so type the `n` yourself: don't pipe it in.
 
 ## How a booth registers
 

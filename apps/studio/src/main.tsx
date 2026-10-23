@@ -1,3 +1,4 @@
+import { linkBrandIcons } from "@dither-booth/ui/brand";
 import { Toaster } from "@dither-booth/ui/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import { StrictMode } from "react";
@@ -16,11 +17,9 @@ function linkManifest() {
   link.rel = "manifest";
   link.href = "/manifest.webmanifest";
   document.head.appendChild(link);
-  const icon = document.createElement("link");
-  icon.rel = "apple-touch-icon";
-  icon.href = "/icons/icon-180.png";
-  document.head.appendChild(icon);
 }
+
+linkBrandIcons({ appleTouchIcon: "/icons/icon-180.png" });
 
 linkManifest();
 
