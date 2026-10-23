@@ -48,7 +48,7 @@ Once per project:
 
 1. **Push**: the VAPID keys and `notify` set up as in [The Hub](/docs/development/hub/).
 
-The sign-in email needs no setup: the Hub deploy pushes it (see [Production settings come from `config.toml`](/docs/development/hub/#production-settings-come-from-configtoml)). The access token the deploy uses needs, for that step, Read-write on Auth Config and Read on Data API Config, Database Config and Storage Config.
+The sign-in email needs no setup: the Hub deploy pushes it (see [Production settings come from `config.toml`](/docs/development/hub/#production-settings-come-from-configtoml)). The access token the deploy uses needs, for that step, Read-write on Auth Config and on Project Settings (Supabase's "Update auth service config" requires both), and Read on Data API Config, Database Config and Storage Config. Without Project Settings Read-write, the step fails with `403 Missing required permission(s): project_admin_write`.
 
 ## Adding staff
 
