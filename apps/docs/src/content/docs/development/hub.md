@@ -41,7 +41,7 @@ Every table has `org_id` and row level security. Rules worth knowing:
 
 ## Production settings come from `config.toml`
 
-The deploy ends with `supabase config push`, which makes the project's API, database, Auth and Storage settings match `supabase/config.toml`, as Supabase recommends for email templates. `[remotes.production]` at the end of the file holds the values production needs instead of the local ones: `site_url` (Studio, `https://dither-studio.pages.dev`), no extra redirect URLs, email confirmations and TOTP on. The deploy's log shows the diff it applied.
+Every deploy (see [Releases](/docs/development/releases/)) makes the project's API, database, Auth and Storage settings match `supabase/config.toml`, as Supabase recommends for email templates. `[remotes.production]` at the end of the file holds the values production needs instead of the local ones: `site_url` (Studio, `https://dither-studio.pages.dev`), no extra redirect URLs, email confirmations and TOTP on.
 
 So **change production settings in `config.toml`, never in the dashboard**: the next deploy puts back whatever the file says. Among them:
 
@@ -49,7 +49,7 @@ So **change production settings in `config.toml`, never in the dashboard**: the 
 - **Codes are 6 digits** (`otp_length`), the length Studio's code field takes.
 - **The sign-in email** is `supabase/templates/magic_link.html`, with the code in its subject.
 
-To see what a push would change without applying it, run `supabase config push --project-ref <ref>` and answer `n`. The prompt defaults to yes, so type the `n` yourself: don't pipe it in.
+To see how production differs from the file, run `supabase config push --project-ref <ref>` from your machine and answer `n`. The prompt defaults to yes, so type the `n` yourself: don't pipe it in.
 
 ## How a booth registers
 
