@@ -19,7 +19,7 @@ The booth runs **one active event at a time**. An event has a name, a **kit** (h
 
 ## The lottery
 
-Every guest visit runs one draw when the lottery is on. The guest sees the result on the slot machine, then gets a ticket.
+Every guest visit runs one draw while the lottery is live. The guest sees the result on the slot machine, then gets a ticket.
 
 With the lottery off, guests see no lottery at all: the landing screen has no prize panel at the top right, and after the photo there is no slot machine. The photo stays in the middle of the screen while the receipt prints. The booth screen follows the switch straight away, with no reload. A guest already in a visit finishes it: if their draw ran against the lottery, the slot machine shows the result, and if you switched it off after their reels appeared, the reels land on “no prize”.
 
@@ -65,7 +65,7 @@ You can restock during the event at any time, without closing the booth.
 
 ## Draws and ticket lookup
 
-The **Draws** table lists every draw of the active event, wins and losses, newest first. To check a ticket a guest brings back, type its six digits (or scan its `STUD_DITHERBOOTH_XXXXXX` code) into the lookup: it shows the draw that ticket belongs to, or says it isn't a real draw. Test prints and sample lottery tickets use `000000` and never draw.
+The **Draws** table lists every draw of the active event, wins and losses, newest first. Visits while the lottery was off aren't draws, so they aren't listed. To check a ticket a guest brings back, type its six digits (or scan its `STUD_DITHERBOOTH_XXXXXX` code) into the lookup: it shows the draw that ticket belongs to, **No lottery** for a visit while the lottery was off, or “No visit printed this ticket number.” Test prints and sample lottery tickets use `000000` and never draw.
 
 ## Control Center
 

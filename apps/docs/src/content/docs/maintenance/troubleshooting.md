@@ -61,7 +61,7 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 | Ticket renderer (Puppeteer) unhealthy | Admin → Health → **Re-initialize Puppeteer**. Persistent: `sudo booth install` re-installs Chromium's libraries, then `booth doctor`. |
 | A PM2 process keeps restarting        | `bun run pm2:list` for the restart count, then its `-err.log`. See [Logs](/docs/maintenance/logs/).                                   |
 | `EADDRINUSE` at start                 | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.  |
-| Lottery never wins                    | Lottery is off, prizes are out of stock, or a win cooldown is running. Check the Event page's odds card.                              |
+| Lottery never wins                    | Lottery is off, prizes are out of stock, or a pause after a win is running. Check the Event page's odds card.                         |
 | Wrong look on screen or tickets       | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                          |
 | Tickets read the wrong way up         | Admin → Settings → Printing: pick the other end (**Bottom first** or **Top first**), then **Print a sample ticket** to check.         |
 

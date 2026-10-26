@@ -34,6 +34,7 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 
 import { reportEventError } from "../../Event.utils";
 
+/** `no-lottery` only comes from a lookup: a visit while the lottery was off. */
 const DrawOutcomeBadge: FC<{ outcome: string }> = ({ outcome }) =>
   outcome === "win" ? (
     <Badge
@@ -42,8 +43,12 @@ const DrawOutcomeBadge: FC<{ outcome: string }> = ({ outcome }) =>
     >
       Win
     </Badge>
-  ) : (
+  ) : outcome === "loss" ? (
     <Badge variant="outline">Loss</Badge>
+  ) : (
+    <Badge variant="outline" className={clsx("text-muted-foreground")}>
+      No lottery
+    </Badge>
   );
 
 export const EventDrawsTable: FC = () => {
@@ -147,7 +152,7 @@ export const EventDrawsTable: FC = () => {
             )}
           >
             {isLookup
-              ? "This ticket number is not on a draw."
+              ? "No visit printed this ticket number."
               : "No draws yet."}
           </p>
         ) : (

@@ -60,26 +60,53 @@ _Avoid_: shader, effect (in staff-facing text).
 
 **Event** (_campaign_ in the code): one booking of the booth. Exactly one is active at a time. Replacing an event archives the old one; events are never deleted.
 
-**Lottery**: the event's prize draw, run once per visit. It has odds, a cooldown between wins and an on/off switch.
+**Visit**: one guest's go at the booth, from the Start tap to the cut tickets. Every visit gets a ticket number and prints a photo receipt; it runs a draw only while the lottery is live.
 
-**Prize**: something a ticket can win, with a rarity and a stock.
+**Lottery**: the event's prize draw, one per visit while it is live. It has its prizes, a no-win weight, a pause after a win and a switch.
 
-**Draw**: one lottery result, win or loss, recorded with its ticket reference.
+**Live**: the lottery is switched on, so visits draw and guests see the prize panel and the slot machine. Off, visits still print their photo receipt.
+_Avoid_: enabled, active (an event is active, a lottery is live).
 
-**Ticket ref**: the six-digit reference printed on a visit's photo receipt and lottery ticket (`000001`–`999999`), unique across all events. `000000` is reserved for test prints and sample lottery tickets, which never draw.
+**Draw**: one lottery result, win or loss, recorded with its visit's ticket number. A visit while the lottery is off is not a draw: admin's **Draws** list leaves it out, and the lookup shows it as **No lottery**.
+
+**Prize**: something a draw can win, with a title, a rarity, a weight, a stock and **How to claim it** (printed on the winning lottery ticket).
+
+**Rarity**: a prize's rank, **common**, **uncommon**, **rare**, **epic** or **legendary**. It sets the prize's default weight and how the win looks.
+
+**Weight**: how much room a prize takes in the draw. It comes from the rarity unless set on the prize, and it doesn't change with stock left.
+
+**No-win weight**: the weight of “no prize” in the draw. Higher means fewer winners. New events start at 50.
+
+**Odds**: a prize's chance on one draw: its weight ÷ (the weights of every prize with stock left + the no-win weight). A prize that runs out leaves the draw, so the others' odds go up.
+
+**Pause after a win**: minutes after any win during which every draw, for every guest, is a loss. `0` lets guests win back to back.
+_Avoid_: cooldown (in staff-facing text).
+
+**Stock**: how many units of a prize are left: everything added minus every win. Each win takes one unit at the draw; stock never goes below zero.
+
+**Restock**: adding units to a prize's stock, or removing them with a negative number. Applied exactly once, even if the form retries.
+
+**Delete prize**: takes a prize out of future draws. Draws that already won it keep its title.
+
+**Loser ticket**: a lottery ticket for a loss, printed only when the lottery's **Print loser ticket** is on.
+
+**Forced draw**: a draw whose outcome a development flag fixes (`LOTTERY_FORCE_OUTCOME`, `LOTTERY_FORCE_PRIZE_ID`). It skips the odds, the pause and the switch, never the stock. Never on a booth at an event.
+
+**Ticket number** (`ticketRef` in the code): the six digits printed on a visit's photo receipt and lottery ticket (`000001`–`999999`), unique across all events. `000000` is reserved for test prints and sample lottery tickets, which never draw.
+_Avoid_: ref, reference (in staff-facing text).
 
 ## Tickets
 
 **Ticket**: any slip the printer prints and cuts. The word staff read for all of them.
 _Avoid_: receipt (on its own, in staff-facing text).
 
-**Photo receipt**: the ticket a guest visit prints first: the dithered photo in the event's kit, with its ticket items and ticket ref.
+**Photo receipt**: the ticket a guest visit prints first: the dithered photo in the event's kit, with its ticket items and ticket number.
 
-**Lottery ticket**: the ticket that shows a draw's outcome, printed right after the photo receipt with the same ticket ref: for a win, or for a loss when the lottery prints loser tickets.
+**Lottery ticket**: the ticket that shows a draw's outcome, printed right after the photo receipt with the same ticket number: for a win, or a loser ticket for a loss.
 
-**Test print**: a photo receipt printed from the Darkroom to check the print settings, with the ref `000000`. It never draws.
+**Test print**: a photo receipt printed from the Darkroom to check the print settings, with the ticket number `000000`. It never draws.
 
-**Sample lottery ticket**: a lottery ticket for a chosen prize, or a loss, printed from the Darkroom or admin's **Settings → Printing**, with the ref `000000`. It never touches the lottery.
+**Sample lottery ticket**: a lottery ticket for a chosen prize, or a loss, printed from the Darkroom or admin's **Settings → Printing**, with the ticket number `000000`. It never touches the lottery.
 
 **Print settings**: how this booth's printer turns a photo into black dots: dither mode, exposure, threshold and the rest. Device tuning, set in the Darkroom.
 
