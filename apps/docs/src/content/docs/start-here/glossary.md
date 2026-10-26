@@ -18,6 +18,7 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 **Admin**: the staff web app (`https://<booth>:3002`): Control Center, Event, Settings.
 
 **Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts, shows how each booth is doing, sets their event times and gives their registration codes. It talks to the Hub, never to a booth.
+_Avoid_: Studio for Supabase's own dashboard (call that the Supabase dashboard).
 
 **Engine**: the backend process. It is only reachable through the two web apps, which proxy `/engine/trpc` to it over loopback.
 
@@ -137,9 +138,16 @@ _Avoid_: watchdog (in staff-facing text).
 
 **Hub**: the cloud side (Supabase, in the EU) that booths report to and staff are alerted from. The booth never depends on it to run an event.
 
+**Booth**: one Dither Booth: its Pi, printer and iPad. Staff add and name it in the Studio app's **Booths**; the name can't be changed afterwards. It has one Hub registration at a time.
+
+**Team** (`org` in the code): the staff who share booths and their alerts. Staff see only their team's booths, alerts and devices.
+_Avoid_: org, organisation (in staff-facing text).
+
+**Staff**: the people who set up and run booths. On the Hub, a member of a team; it is the only role.
+
 **Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions and its maintenance state. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
 
-**Alert**: something staff must act on, opened by the Hub from a heartbeat: out of paper, a printer error or unplugged, paper low, the cover open, or a silent booth. It closes by itself when the condition clears, and staff can acknowledge it meanwhile.
+**Alert**: something staff must act on, opened by the Hub from a heartbeat or a silence: **Out of paper**, **Printer error**, **Printer not connected**, **Paper low**, **Cover open** or **Silent booth**. It closes by itself when the condition clears, and staff can acknowledge it meanwhile. **Paper low** never fires on our booth: the printer is mounted upright, where its near-end sensor must stay off.
 
 **Device**: a staff phone, iPad or computer that gets alerts as push notifications, once its owner turned them on in the Studio app (`push_subscription` in the code). A device the push service says is gone is forgotten.
 _Avoid_: subscription (in staff-facing text).
@@ -149,7 +157,7 @@ _Avoid_: subscription (in staff-facing text).
 **Acknowledge**: what staff do in the Studio app to say "I'm on it". It stops the reminders; the alert still closes by itself when the condition clears.
 _Avoid_: dismiss, mute.
 
-**Event times**: when a booth's event starts and ends, set in the Studio app (`live_from`, `live_until` in the code). Only then is a silent booth an alert.
+**Event times**: when a booth is expected to be running, set per booth in the Studio app (`live_from`, `live_until` in the code). Only then is a silent booth an alert. They live on the Hub and have nothing to do with the booth's event in admin: replacing that event leaves them as they are. Only the Hub can hold them, since a booth that never powers on can't report its own.
 _Avoid_: live window (in staff-facing text).
 
 **Silent booth**: a booth that has sent no heartbeat for three minutes between its event times. Only the Hub can notice it, since a booth that lost power or its network can't say so.
