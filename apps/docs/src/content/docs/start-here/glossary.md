@@ -55,7 +55,25 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Draw**: one lottery result, win or loss, recorded with its ticket reference.
 
-**Ticket ref**: the six-digit reference printed on a receipt (`000001`–`999999`), unique across all events. `000000` is reserved for admin test prints, which never draw.
+**Ticket ref**: the six-digit reference printed on a visit's photo receipt and lottery ticket (`000001`–`999999`), unique across all events. `000000` is reserved for test prints and sample lottery tickets, which never draw.
+
+## Tickets
+
+**Ticket**: any slip the printer prints and cuts. The word staff read for all of them.
+_Avoid_: receipt (on its own, in staff-facing text).
+
+**Photo receipt**: the ticket a guest visit prints first: the dithered photo in the event's kit, with its ticket items and ticket ref.
+
+**Lottery ticket**: the ticket that shows a draw's outcome, printed right after the photo receipt with the same ticket ref: for a win, or for a loss when the lottery prints loser tickets.
+
+**Test print**: a photo receipt printed from the Darkroom to check the print settings, with the ref `000000`. It never draws.
+
+**Sample lottery ticket**: a lottery ticket for a chosen prize, or a loss, printed from the Darkroom or admin's **Settings → Printing**, with the ref `000000`. It never touches the lottery.
+
+**Print settings**: how this booth's printer turns a photo into black dots: dither mode, exposure, threshold and the rest. Device tuning, set in the Darkroom.
+
+**Ticket orientation**: which end of a ticket leaves the printer first: **Bottom first** (the default: printed turned, so the ticket reads the right way up in the guest's hand) or **Top first**. Set in admin's **Settings → Printing**. It turns the photo receipt and the lottery ticket; setup and Wi-Fi tickets always print top first.
+_Avoid_: upside down, rotation (in staff-facing text; rotation is a print setting that turns the photo only).
 
 ## Booth state
 
@@ -70,7 +88,7 @@ _Avoid_: pause, offline, down.
 
 ## Printer
 
-**Printer status**: what the receipt printer reports, as staff read it: its conditions, whether it can print, and since when.
+**Printer status**: what the printer reports, as staff read it: its conditions, whether it can print, and since when.
 
 **Printer condition**: one thing wrong with the printer: paper low, out of paper, cover open, printer error, not connected, or checking (no status yet). Paper low is a warning: the printer still prints.
 
