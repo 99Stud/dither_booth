@@ -11,6 +11,7 @@ import type {
 } from "#domains/kiosk/kiosk.service";
 import type { NetworkDeps } from "#domains/network/network.service";
 import type { BoothPrinter } from "#domains/printer/printer.service";
+import type { Tickets } from "#domains/receipt/receipt.service";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 import type {
   PuppeteerReceiptViewerLifecycle,
@@ -46,5 +47,7 @@ export type TRPCContext = {
   puppeteerState: PuppeteerStartupState;
   /** The receipt printer, watched for as long as the engine runs. */
   printer: BoothPrinter;
+  /** Every ticket rendered by the receipt viewer, one per engine process. */
+  tickets: Tickets;
   page?: Page;
 };

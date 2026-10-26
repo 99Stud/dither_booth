@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { PreparedReceiptJob } from "./receipt-print.service";
+import type { PreparedReceiptJob } from "./tickets";
 
 import { createPreparedReceiptStore } from "./prepared-receipt.store";
 

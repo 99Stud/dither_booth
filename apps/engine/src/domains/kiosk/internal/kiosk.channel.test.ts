@@ -211,6 +211,7 @@ describe("kiosk channel through the router", () => {
       },
       puppeteerState: createInitialPuppeteerState(),
       requestOrigin,
+      tickets: new Proxy({}, { get: unreachable }) as TRPCContext["tickets"],
     } satisfies TRPCContext;
 
     return engineRouter.createCaller(context);

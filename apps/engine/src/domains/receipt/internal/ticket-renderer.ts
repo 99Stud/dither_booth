@@ -7,17 +7,49 @@ import { LOTTERY_RECEIPT_TEMPLATE } from "@dither-booth/shared/routes";
 import { TRPCError } from "@trpc/server";
 
 import type { PrintConfigRow } from "#domains/print-configuration/print-configuration.service";
-import type { TRPCContext } from "#lib/trpc/trpc.types";
+import type { PuppeteerReceiptViewerLifecycle } from "#lib/puppeteer/puppeteer.types";
 
-import { getReceiptEventSettingsForDb } from "#domains/event/event.service";
 import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
 import { screenshotToGsV0RasterCommand } from "#domains/printer/printer.service";
 
 import {
   captureLotteryTicketScreenshot,
   captureReceiptScreenshot,
-  runExclusiveReceiptViewerPageJob,
+  createReceiptViewerPageQueue,
+  type ReceiptViewerPageQueue,
 } from "./receipt-viewer-page.utils";
+
+/** What a photo receipt shows. */
+export type PhotoReceiptRender = {
+  photo: Buffer<ArrayBuffer>;
+  /** The event's kit, which picks how the ticket looks. */
+  kitId: KitId;
+  ticketItems: string[];
+  printConfiguration: PrintConfigRow;
+  /** None on the Darkroom's preview. */
+  ticketRef?: string;
+  /** Rotate 180° for the printer (`print_config.upside_down`). */
+  upsideDown: boolean;
+};
+
+/** What a lottery ticket shows. */
+export type LotteryTicketRender = {
+  /** The event's kit, which picks how the ticket looks. */
+  kitId: KitId;
+  draw: DrawResult;
+  ticketRef: string;
+  /** Rotate 180° for the printer (`print_config.upside_down`). */
+  upsideDown: boolean;
+};
+
+/**
+ * Turns a ticket into the `GS v 0` raster the printer takes: the receipt
+ * viewer page in Chromium on the booth, a fake in tests.
+ */
+export type TicketRenderer = {
+  renderPhotoReceipt: (render: PhotoReceiptRender) => Promise<Buffer>;
+  renderLotteryTicket: (render: LotteryTicketRender) => Promise<Buffer>;
+};
 
 const RECEIPT_GENERATION_FAILED_MESSAGE = "Failed to generate receipt.";
 const LOTTERY_TICKET_GENERATION_FAILED_MESSAGE =
@@ -31,80 +63,49 @@ const LOTTERY_TICKET_GENERATION_FAILED_MESSAGE =
  */
 const RECEIPT_SCREENSHOT_TIMEOUT_MS = 12_000;
 
-export async function prepareReceiptRasterCommand({
-  ctx,
-  input,
-  printConfiguration: printConfigurationOverride,
-  ticketRef,
-}: {
-  ctx: Pick<TRPCContext, "db" | "page">;
-  input: ConstructorParameters<typeof Response>[0];
-  printConfiguration?: PrintConfigRow;
-  ticketRef?: string;
-}): Promise<Buffer> {
-  const page = ctx.page;
+/**
+ * Renders on the receipt viewer page the Puppeteer lifecycle keeps open,
+ * waiting for it after a restart, one ticket at a time.
+ */
+export function createPuppeteerTicketRenderer(
+  lifecycle: Pick<PuppeteerReceiptViewerLifecycle, "whenReady">,
+): TicketRenderer {
+  const runPageJob = createReceiptViewerPageQueue();
 
-  if (!page) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Puppeteer page is not initialized.",
-    });
-  }
+  const readyPage = async () => {
+    const { page } = await lifecycle.whenReady();
 
-  const inputBuffer = Buffer.from(await new Response(input).arrayBuffer());
+    if (!page) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Puppeteer page is not initialized.",
+      });
+    }
 
-  if (inputBuffer.byteLength === 0) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Photo input was empty.",
-    });
-  }
+    return page;
+  };
 
-  const printConfiguration =
-    printConfigurationOverride ??
-    (await ctx.db.query.printConfigTable.findFirst());
+  return {
+    renderPhotoReceipt: async (render) =>
+      renderPhotoReceipt(await readyPage(), runPageJob, render),
+    renderLotteryTicket: async (render) =>
+      renderLotteryTicket(await readyPage(), runPageJob, render),
+  };
+}
 
-  if (!printConfiguration) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Print configuration not found.",
-    });
-  }
-
-  const { kitId, ticketItems } = await getReceiptEventSettingsForDb(ctx.db);
-
-  // A preview on screen, so it stays the right way up.
-  return await buildReceiptRasterCommand({
+async function renderPhotoReceipt(
+  page: Page,
+  runPageJob: ReceiptViewerPageQueue,
+  {
     kitId,
-    page,
-    photoBuffer: inputBuffer,
+    photo,
     printConfiguration,
     ticketItems,
     ticketRef,
-    upsideDown: false,
-  });
-}
-
-export async function buildReceiptRasterCommand({
-  kitId,
-  page,
-  photoBuffer,
-  printConfiguration,
-  ticketItems,
-  ticketRef,
-  upsideDown,
-}: {
-  /** The event's kit, which picks how the ticket looks. */
-  kitId: KitId;
-  page: Page;
-  photoBuffer: Buffer<ArrayBuffer>;
-  printConfiguration: PrintConfigRow;
-  ticketItems: string[];
-  ticketRef?: string;
-  /** Rotate 180° for the printer (`print_config.upside_down`). */
-  upsideDown: boolean;
-}): Promise<Buffer> {
-  const dithered = await ditherImage(photoBuffer, printConfiguration, {
+    upsideDown,
+  }: PhotoReceiptRender,
+): Promise<Buffer> {
+  const dithered = await ditherImage(photo, printConfiguration, {
     width: PRINT_WIDTH_PX,
   }).catch((error) => {
     throw new TRPCError({
@@ -119,7 +120,7 @@ export async function buildReceiptRasterCommand({
       await dithered.threshold(printConfiguration.threshold).png().toBuffer()
     ).toBase64();
 
-    const receiptScreenshot = await runExclusiveReceiptViewerPageJob(
+    const receiptScreenshot = await runPageJob(
       () =>
         captureReceiptScreenshot({
           image: {
@@ -160,23 +161,13 @@ export async function buildReceiptRasterCommand({
   }
 }
 
-export async function buildLotteryTicketRasterCommand({
-  kitId,
-  page,
-  draw,
-  ticketRef,
-  upsideDown,
-}: {
-  /** The event's kit, which picks how the ticket looks. */
-  kitId: KitId;
-  page: Page;
-  draw: DrawResult;
-  ticketRef: string;
-  /** Rotate 180° for the printer (`print_config.upside_down`). */
-  upsideDown: boolean;
-}): Promise<Buffer> {
+async function renderLotteryTicket(
+  page: Page,
+  runPageJob: ReceiptViewerPageQueue,
+  { draw, kitId, ticketRef, upsideDown }: LotteryTicketRender,
+): Promise<Buffer> {
   try {
-    const lotteryScreenshot = await runExclusiveReceiptViewerPageJob(() =>
+    const lotteryScreenshot = await runPageJob(() =>
       captureLotteryTicketScreenshot({
         page,
         search: {
