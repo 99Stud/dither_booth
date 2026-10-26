@@ -37,10 +37,10 @@ const reduce = (
   ...actions: ExperienceAction[]
 ): ExperienceState => actions.reduce(experienceReducer, state);
 
-const enterCapturing = (): ExperienceState => {
+const enterCapturing = (hasLottery = true): ExperienceState => {
   const state = reduce(
     withPhase("idle"),
-    { type: "startRequested" },
+    { type: "startRequested", hasLottery },
     { type: "cameraAnimationCompleted" },
     { type: "promptAnimationCompleted" },
     ...Array.from(
@@ -62,6 +62,7 @@ const enterPrinting = (drawResult: DrawResult = WIN_DRAW): ExperienceState => {
       type: "receiptPrepared",
       printAttemptId: 1,
       drawResult,
+      hasLottery: true,
       ticketRef: TICKET_REF,
     },
     { type: "reelsStopped" },
@@ -77,7 +78,10 @@ describe("experienceReducer", () => {
   it("runs the complete successful experience flow through the slot machine", () => {
     let state = withPhase("idle");
 
-    state = experienceReducer(state, { type: "startRequested" });
+    state = experienceReducer(state, {
+      type: "startRequested",
+      hasLottery: true,
+    });
     expect(state.phase).toBe("introExiting");
 
     state = experienceReducer(state, { type: "cameraAnimationCompleted" });
@@ -114,6 +118,7 @@ describe("experienceReducer", () => {
       type: "receiptPrepared",
       printAttemptId: 1,
       drawResult: WIN_DRAW,
+      hasLottery: true,
       ticketRef: TICKET_REF,
     });
     expect(state).toMatchObject({
@@ -161,6 +166,59 @@ describe("experienceReducer", () => {
     });
   });
 
+  it("prints straight after preparing when the visit started without a lottery", () => {
+    const state = reduce(
+      enterCapturing(false),
+      { type: "photoCaptured", printAttemptId: 1, photoUrl: PHOTO_URL },
+      {
+        type: "receiptPrepared",
+        printAttemptId: 1,
+        drawResult: LOSS_DRAW,
+        hasLottery: false,
+        ticketRef: TICKET_REF,
+      },
+    );
+
+    expect(state).toMatchObject({
+      phase: "printing",
+      hasLottery: false,
+      ticketRef: TICKET_REF,
+      activePrintAttemptId: 1,
+    });
+  });
+
+  it("brings the reels in when the engine drew against a lottery Start missed", () => {
+    const state = reduce(
+      enterCapturing(false),
+      { type: "photoCaptured", printAttemptId: 1, photoUrl: PHOTO_URL },
+      {
+        type: "receiptPrepared",
+        printAttemptId: 1,
+        drawResult: WIN_DRAW,
+        hasLottery: true,
+        ticketRef: TICKET_REF,
+      },
+    );
+
+    expect(state).toMatchObject({ phase: "spinning", hasLottery: true });
+  });
+
+  it("keeps the reels when the lottery went off after Start", () => {
+    const state = reduce(
+      enterCapturing(),
+      { type: "photoCaptured", printAttemptId: 1, photoUrl: PHOTO_URL },
+      {
+        type: "receiptPrepared",
+        printAttemptId: 1,
+        drawResult: LOSS_DRAW,
+        hasLottery: false,
+        ticketRef: TICKET_REF,
+      },
+    );
+
+    expect(state).toMatchObject({ phase: "spinning", hasLottery: true });
+  });
+
   it("starts only one print attempt for duplicate smile elapsed events", () => {
     const capturingState = enterCapturing();
     const duplicateState = experienceReducer(capturingState, {
@@ -202,6 +260,7 @@ describe("experienceReducer", () => {
         type: "receiptPrepared",
         printAttemptId: 999,
         drawResult: LOSS_DRAW,
+        hasLottery: true,
         ticketRef: TICKET_REF,
       }),
     ).toBe(preparingState);
@@ -235,6 +294,7 @@ describe("experienceReducer", () => {
       type: "receiptPrepared",
       printAttemptId: 1,
       drawResult: LOSS_DRAW,
+      hasLottery: true,
       ticketRef: TICKET_REF,
     });
 
@@ -278,6 +338,7 @@ describe("experienceReducer", () => {
       type: "receiptPrepared",
       printAttemptId: 1,
       drawResult: WIN_DRAW,
+      hasLottery: true,
       ticketRef: TICKET_REF,
     });
     const slotResultState = experienceReducer(spinningState, {
@@ -358,6 +419,7 @@ describe("experienceReducer", () => {
         type: "receiptPrepared",
         printAttemptId: 1,
         drawResult: LOSS_DRAW,
+        hasLottery: true,
         ticketRef: TICKET_REF,
       },
       { type: "printSucceeded", printAttemptId: 1 },

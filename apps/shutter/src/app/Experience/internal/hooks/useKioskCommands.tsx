@@ -64,6 +64,15 @@ export const useKioskCommands = (
       return;
     }
 
+    // Safe mid-visit too: the visit keeps the lottery state it started with,
+    // only the landing screen follows the new one.
+    if (command.type === "lottery-updated") {
+      void queryClient.invalidateQueries({
+        queryKey: trpc.booth.getLotteryStatus.queryKey(),
+      });
+      return;
+    }
+
     const next = toPendingKioskCommand(command, Date.now());
     if (next) setPending(next);
   });

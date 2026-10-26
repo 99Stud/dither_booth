@@ -3,7 +3,11 @@ import { describe, expect, it } from "bun:test";
 import type { ExperiencePhase } from "./Experience.machine";
 import type { ExperiencePhaseFlag } from "./Experience.phases";
 
-import { PROMPT_BY_PHASE } from "./Experience.copy";
+import {
+  getPrompt,
+  isPromptInSquare,
+  PROMPT_BY_PHASE,
+} from "./Experience.copy";
 import {
   PROMPT_TEXT_TRANSITION,
   PROMPT_TRANSITION,
@@ -134,6 +138,22 @@ describe("PROMPT_BY_PHASE", () => {
   it("holds the printing caption through the phases that fade the panel out", () => {
     expect(PROMPT_BY_PHASE.cameraExiting).toBe(PROMPT_BY_PHASE.printing);
     expect(PROMPT_BY_PHASE.resetting).toBe(PROMPT_BY_PHASE.printing);
+  });
+
+  it("never shows a draw caption on a visit without a lottery", () => {
+    expect(getPrompt("preparing", false)).toBe(PROMPT_BY_PHASE.printing);
+    expect(getPrompt("instructions", false)).toBe(PROMPT_BY_PHASE.printing);
+    expect(getPrompt("preparing", true)).toBe(PROMPT_BY_PHASE.preparing);
+    expect(getPrompt("smile", false)).toBe(PROMPT_BY_PHASE.smile);
+  });
+
+  // With a lottery the later captions sit above the photo and slot pair;
+  // without one the photo keeps the square, and so does every caption.
+  it("keeps every caption in the square on a visit without a lottery", () => {
+    expect(isPromptInSquare(PROMPT_BY_PHASE.countdown, true)).toBe(true);
+    expect(isPromptInSquare(PROMPT_BY_PHASE.spinning, true)).toBe(false);
+    expect(isPromptInSquare(PROMPT_BY_PHASE.printing, true)).toBe(false);
+    expect(isPromptInSquare(PROMPT_BY_PHASE.printing, false)).toBe(true);
   });
 
   // Both fade-out phases are left when the shutter closes. That has to

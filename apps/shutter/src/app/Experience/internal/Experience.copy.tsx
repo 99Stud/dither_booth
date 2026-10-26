@@ -13,17 +13,19 @@ const LUCKY_PROMPT = "prompts.feelingLucky" satisfies PromptKey;
 const INSTRUCTIONS_PROMPT = "prompts.thatsIt" satisfies PromptKey;
 const PRINTING_PROMPT = "prompts.printing" satisfies PromptKey;
 
-const CAMERA_STREAM_PROMPTS = new Set<PromptKey>([
+const LIVE_SQUARE_PROMPTS = new Set<PromptKey>([
   DEFAULT_PROMPT,
   STRIKE_A_POSE_PROMPT,
 ]);
 
 /**
- * Captions that sit inside the live square. Later lines stay above the stage.
- * Decided by which caption it is, never its text, which the event can edit.
+ * Captions that sit inside the square. With a lottery, later lines stay above
+ * the stage, over the photo and slot pair; without one the photo keeps the
+ * square, so every caption stays in it. Decided by which caption it is, never
+ * its text, which the event can edit.
  */
-export const isCameraStreamPrompt = (prompt: PromptKey) =>
-  CAMERA_STREAM_PROMPTS.has(prompt);
+export const isPromptInSquare = (prompt: PromptKey, hasLottery: boolean) =>
+  !hasLottery || LIVE_SQUARE_PROMPTS.has(prompt);
 
 /**
  * Exhaustive so the caption is a pure derivation of the phase — no latching in
@@ -61,4 +63,21 @@ export const PROMPT_BY_PHASE: Record<ExperiencePhase, PromptKey> = {
   receiptReady: DEFAULT_PROMPT,
   resettingButtonRepositioning: DEFAULT_PROMPT,
   resettingButtonRevealing: DEFAULT_PROMPT,
+};
+
+/** Captions that talk about the draw, so a visit without a lottery skips them. */
+const LOTTERY_PROMPTS = new Set<PromptKey>([LUCKY_PROMPT, INSTRUCTIONS_PROMPT]);
+
+/**
+ * The caption for a phase. Without a lottery the only draw phase the visit
+ * passes through is `preparing`, where the receipt is already on its way, so it
+ * reads as printing.
+ */
+export const getPrompt = (
+  phase: ExperiencePhase,
+  hasLottery: boolean,
+): PromptKey => {
+  const prompt = PROMPT_BY_PHASE[phase];
+
+  return !hasLottery && LOTTERY_PROMPTS.has(prompt) ? PRINTING_PROMPT : prompt;
 };
