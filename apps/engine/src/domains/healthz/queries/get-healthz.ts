@@ -66,6 +66,7 @@ type GetHealthzResponse = {
 };
 
 export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
+  const receiptViewer = ctx.puppeteerLifecycle.getCurrent();
   const [shutterOrigin, caPath] = await Promise.all([
     getShutterOrigin({ repoRoot: ENGINE_REPO_ROOT }),
     getWebTlsCaPath({ repoRoot: ENGINE_REPO_ROOT }),
@@ -96,8 +97,8 @@ export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
         ),
       ),
       checkPuppeteerDependency({
-        page: ctx.page,
-        state: ctx.puppeteerState,
+        page: receiptViewer.page,
+        state: receiptViewer.state,
       }),
       Promise.resolve().then(() =>
         checkPrinterHealthz(ctx.printer.getStatus(), {

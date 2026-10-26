@@ -28,14 +28,19 @@ apps/engine/src/
     <domain>.service.ts       # what other domains may import
     queries/ mutations/ subscriptions/   # one tRPC procedure per file
     internal/                 # everything else, private to the domain
+  internal/engine.ts          # createEngine: builds the long-lived objects, owns start and stop
+  internal/production-engine.ts  # the engine on the booth's real printer, Chromium, database and Hub
   internal/router.ts          # the router, grouped by caller
   internal/trpc.ts            # base procedures and their access checks
+  server-app.ts               # the HTTP adapter: request context, /healthz, CORS, listen and close
   db/                         # schema, migrations runner, seeds
   lib/                        # cross-domain infrastructure (Puppeteer, server, process manager)
   drizzle/                    # SQL migrations
 ```
 
 A domain imports another only through its `*.service.ts`.
+
+A procedure's context is the engine's services (`EngineServices`, one of each per process) plus the request's credentials (`ctx.request`: origin, Darkroom token, setup server token). `server-app.ts` builds it for each HTTP request; tests build it with `createTestContext` (`lib/trpc/trpc.test-utils.ts`).
 
 ## Package rules
 
