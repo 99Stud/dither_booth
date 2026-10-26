@@ -160,6 +160,7 @@ function createCaller(
       verify: (token) => token === SETUP_SERVER_TOKEN,
     },
     setupServerToken,
+    tickets: new Proxy({}, { get: unreachable }) as TRPCContext["tickets"],
   } satisfies TRPCContext;
 
   return engineRouter.createCaller(context);

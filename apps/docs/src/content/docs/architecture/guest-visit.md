@@ -53,11 +53,13 @@ The Shutter's guest flow is a reducer (`apps/shutter/src/app/Experience/internal
 
 ## Prepare: `booth.prepareReceipt`
 
+`booth.prepareReceipt` and `booth.printPreparedReceipt` each make one call into the engine's tickets module (`createTickets`, in `apps/engine/src/domains/receipt`). The same module prints test prints and sample lottery tickets and renders the Darkroom's preview. It draws every ticket through a ticket renderer: the receipt viewer page in Chromium on the booth, a fake in the tests.
+
 The photo is sent as raw bytes (`octetInputParser`), not JSON.
 
-1. **Printer gate.** `assertPrinterAvailable` refuses with `PRECONDITION_FAILED` if the printer can't print — **before the draw**, so a booth out of paper never burns a prize. With automatic maintenance off, only a disconnected printer is refused.
+1. **Printer gate.** The tickets module refuses with `PRECONDITION_FAILED` if the printer can't print — **before the draw**, so a booth out of paper never burns a prize. With automatic maintenance off, only a disconnected printer is refused.
 2. **Dither.** The photo is rotated, resized to the printer's **576 dots** (80 mm at 203 dpi) and dithered with the booth's print configuration (see [Print settings](/docs/reference/print-settings/)), then thresholded to pure black/white.
-3. **Lay out.** The headless Chromium page, which stays open on the Shutter's `/receipt-viewer`, renders the event's **kit** with the dithered photo, the ticket items and the ticket ref, and the engine screenshots it. One page serves every job, one at a time (`runExclusiveReceiptViewerPageJob`); the screenshot is capped at 12 s.
+3. **Lay out.** The headless Chromium page, which stays open on the Shutter's `/receipt-viewer`, renders the event's **kit** with the dithered photo, the ticket items and the ticket ref, and the engine screenshots it. One page serves every job, one at a time (the renderer's page queue); the screenshot is capped at 12 s.
 4. **Draw.** `executeLotteryDraw` runs inside one SQLite transaction: cooldown read, weighted pick among prizes with stock, insert of the `draw` row (which is what takes the unit of stock). A ticket-ref collision retries with a new ref, and the photo receipt is re-rendered with the ref that was actually recorded.
 5. **Lottery ticket.** Rendered for a win, or for a loss when the lottery prints loser tickets.
 6. **Raster.** Each screenshot becomes an ESC/POS `GS v 0` raster command. With `print_config.upside_down` on (the default), the 1-bit image is turned 180° before packing: the printer feeds the top of the ticket out first, so turned, it reads the right way up for the guest holding it. Doing it in the image rather than with the printer's `ESC {` keeps it independent of how the printer treats raster graphics in upside-down mode, and before the real-time byte escape, which has to see the final bytes.
@@ -75,7 +77,7 @@ A `NOT_FOUND` (job expired after 120 s, or never prepared) isn't retried.
 
 ## Print jobs on the wire
 
-All jobs go through one long-lived USB connection, serialised (`runExclusivePrinterJob`). A job is:
+All jobs go through one long-lived USB connection, one at a time (the booth printer's own queue). A job is:
 
 1. `DLE DC4 fn 8` — clear buffers, **only after a job was aborted**, since the printer may still be waiting for the rest of a cut-off raster.
 2. `ESC @` — initialise.
@@ -88,4 +90,5 @@ If the printer reports it can't print while a job is being written, the job is a
 
 - **Test prints** (`config.printReceipt`, from the Darkroom) use the same render path with the sample ref `000000` and **never draw**.
 - **Sample lottery tickets** (`config.printSampleLotteryTicket`, from the Darkroom and admin's **Settings → Printing**) render a win for a chosen prize, or a loss, under the same ref, without touching the lottery.
+- **The Darkroom's preview** (`config.generateReceipt`) renders the photo receipt the right way up, without a ticket number, and never touches the printer. Like a visit, it waits for the receipt viewer page after a Puppeteer restart.
 - **`RECEIPT_PRINT_DRY_RUN=true`** (development only) puts the preview printer in place of the USB one. Visits, test prints and sample lottery tickets take the same path, and the printer saves each raster as a PNG in `tmp/receipt-previews/` and opens it instead of printing. See [Developing without a printer](/docs/development/without-a-printer/).

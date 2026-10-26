@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   navigateReceiptViewerClientSide,
-  runExclusiveReceiptViewerPageJob,
+  createReceiptViewerPageQueue,
   withReceiptViewerSearch,
 } from "./receipt-viewer-page.utils";
 
@@ -166,12 +166,13 @@ describe("withReceiptViewerSearch", () => {
   });
 });
 
-describe("runExclusiveReceiptViewerPageJob", () => {
+describe("createReceiptViewerPageQueue", () => {
   test("serializes jobs that use the shared page", async () => {
+    const runPageJob = createReceiptViewerPageQueue();
     const events: string[] = [];
     const firstRelease = createDeferred<void>();
 
-    const firstJob = runExclusiveReceiptViewerPageJob(async () => {
+    const firstJob = runPageJob(async () => {
       events.push("first:start");
       await firstRelease.promise;
       events.push("first:end");
@@ -179,7 +180,7 @@ describe("runExclusiveReceiptViewerPageJob", () => {
 
     await flushMicrotasks();
 
-    const secondJob = runExclusiveReceiptViewerPageJob(async () => {
+    const secondJob = runPageJob(async () => {
       events.push("second:start");
     });
 
@@ -193,10 +194,11 @@ describe("runExclusiveReceiptViewerPageJob", () => {
   });
 
   test("rejects the caller on timeout without waiting for the job", async () => {
+    const runPageJob = createReceiptViewerPageQueue();
     const orphanRelease = createDeferred<void>();
     let thrown: unknown;
 
-    const timedOut = runExclusiveReceiptViewerPageJob(
+    const timedOut = runPageJob(
       async () => {
         await orphanRelease.promise;
       },
@@ -218,10 +220,11 @@ describe("runExclusiveReceiptViewerPageJob", () => {
   // shared page to its root route when it finishes. Releasing the slot at the
   // timeout would let that orphan steer the page under the following job.
   test("holds the queue until a timed-out job actually settles", async () => {
+    const runPageJob = createReceiptViewerPageQueue();
     const events: string[] = [];
     const orphanRelease = createDeferred<void>();
 
-    const timedOut = runExclusiveReceiptViewerPageJob(
+    const timedOut = runPageJob(
       async () => {
         events.push("orphan:start");
         await orphanRelease.promise;
@@ -234,7 +237,7 @@ describe("runExclusiveReceiptViewerPageJob", () => {
 
     await timedOut;
 
-    const nextJob = runExclusiveReceiptViewerPageJob(async () => {
+    const nextJob = runPageJob(async () => {
       events.push("next:start");
     });
 

@@ -55,6 +55,10 @@ import {
   createPrinterMaintenancePolicy,
   createUsbPrinterTransport,
 } from "#domains/printer/printer.service";
+import {
+  createPuppeteerTicketRenderer,
+  createTickets,
+} from "#domains/receipt/receipt.service";
 import { engineRouter } from "#internal/router";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
@@ -153,6 +157,12 @@ export async function runEngineServer(options: {
     log: (level, event, details) =>
       logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
   });
+  const tickets = createTickets({
+    db,
+    maintenance: kioskMaintenance,
+    printer,
+    renderer: createPuppeteerTicketRenderer(puppeteerLifecycle),
+  });
   const cameraPreview = createCameraPreview({
     kioskChannel,
     iceServers: CAMERA_PREVIEW_ICE_SERVERS,
@@ -222,6 +232,7 @@ export async function runEngineServer(options: {
       setupServerAccess,
       setupServerToken:
         typeof setupServerToken === "string" ? setupServerToken : undefined,
+      tickets,
     };
   };
 
