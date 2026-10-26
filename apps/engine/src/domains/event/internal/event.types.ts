@@ -35,7 +35,8 @@ export type EventDraw = {
   id: string;
   ticketRef: string | null;
   createdAt: string;
-  outcome: DrawOutcome;
+  /** `no-lottery`: a visit while the lottery was off, found only by lookup. */
+  outcome: DrawOutcome | "no-lottery";
   prizeTitle: string | null;
 };
 
