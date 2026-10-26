@@ -471,6 +471,47 @@ describe("event.service", () => {
     }
   });
 
+  test("listDraws lists only draws, and the lookup finds a visit without a lottery", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      const event = await createEventForDb(db, {
+        name: "Lottery off for a while",
+        kitId: DEFAULT_KIT_ID,
+        noWinWeight: 1,
+        winCooldownMinutes: 0,
+        printLoserTicket: false,
+        enabled: true,
+      });
+
+      await db.insert(drawTable).values([
+        {
+          campaignId: event.campaign.id,
+          lotteryId: event.lottery.id,
+          ticketRef: "111111",
+        },
+        // A visit while the lottery was off: its ticket number, no draw.
+        { campaignId: event.campaign.id, lotteryId: null, ticketRef: "222222" },
+      ]);
+
+      const latest = await listDrawsForDb(db, { limit: 50 });
+      expect(latest.draws.map((draw) => draw.ticketRef)).toEqual(["111111"]);
+
+      const lookup = await listDrawsForDb(db, {
+        limit: 50,
+        ticketRef: "222222",
+      });
+      expect(lookup.draws).toHaveLength(1);
+      expect(lookup.draws[0]).toMatchObject({
+        outcome: "no-lottery",
+        prizeTitle: null,
+        ticketRef: "222222",
+      });
+    } finally {
+      sqlite.close();
+    }
+  });
+
   test("deletePrize removes a prize that has no draws", async () => {
     const { db, sqlite } = createTestDb();
 
@@ -538,11 +579,9 @@ describe("event.service", () => {
         ticketRef: "111111",
         createdAt: new Date("2026-01-01T10:00:00.000Z"),
       });
-      // A loss recorded while the lottery was off has no lottery, and still
-      // belongs to the event.
       await db.insert(drawTable).values({
         campaignId: event.campaign.id,
-        lotteryId: null,
+        lotteryId: event.lottery.id,
         prizeId: null,
         ticketRef: "222222",
         createdAt: new Date("2026-01-01T11:00:00.000Z"),

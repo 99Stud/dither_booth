@@ -69,9 +69,9 @@ Events (`campaign`) are **never deleted**.
 - `status` is `active` or `archived`. A partial unique index, `campaign_single_active_idx`, allows **at most one** active campaign.
 - `replaceEvent` archives the active campaign and creates the next one **in the same transaction**. The archived campaign's lottery, prizes, ledger and draws stay exactly as they were.
 - Everything reads and draws through the active campaign: `getCurrentEvent`, `listDraws`, the receipt settings, the draw, `getLotteryStatus`. A lottery is drawn against only while it belongs to the active campaign **and** is enabled.
-- Every draw records `campaign_id` (the event active when it ran, null if none). `lottery_id` is set only while that event's lottery was enabled. `listDraws` lists the active event's draws, including losses recorded while its lottery was off.
+- Every **visit** inserts a `draw` row, which allocates its ticket number. It records `campaign_id` (the event active then, null if none) and `lottery_id`, set only while that event's lottery was enabled. Only rows with a `lottery_id` are **draws**: `listDraws` lists the active event's draws, and a lookup by ticket number also finds a lottery-off visit, as `outcome: "no-lottery"`. `getLotteryStatus` counts draws the same way.
 - Every event write (campaign, lottery, prizes, stock) moves `updated_at`.
-- Ticket refs stay **unique across all events**, archived included, so a ref always points at one draw.
+- Ticket numbers (`ticket_ref`) stay **unique across all events**, archived included, so one always points at one visit.
 
 ## Stock ledger
 

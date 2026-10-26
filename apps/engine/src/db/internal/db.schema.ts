@@ -147,6 +147,8 @@ export const lotteryTable = sqliteTable(
       .notNull()
       .$defaultFn(() => createId()),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    // Every write goes through the event schema, whose default is 50; this
+    // column default is never used, and changing it needs a table rebuild.
     noWinWeight: real("no_win_weight").notNull().default(1),
     winCooldownMinutes: integer("win_cooldown_minutes").notNull().default(5),
     printLoserTicket: integer("print_loser_ticket", { mode: "boolean" })
@@ -200,7 +202,11 @@ export const drawTable = sqliteTable(
       .default(sql`(unixepoch())`),
     /** The event active when the draw ran; null when there was none. */
     campaignId: text("campaign_id").references(() => campaignTable.id),
-    /** The event's lottery, set only when it was enabled for this draw. */
+    /**
+     * The event's lottery, set only when it was live for this row. Every
+     * visit gets a row for its ticket number; only rows with a lottery are
+     * draws.
+     */
     lotteryId: text("lottery_id").references(() => lotteryTable.id),
     prizeId: text("prize_id").references(() => prizeTable.id),
     // Snapshot taken at draw time so prize edits never rewrite past wins.

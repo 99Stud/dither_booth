@@ -30,13 +30,13 @@ The engine's API is tRPC (`apps/engine/src/internal/router.ts`). Browsers call i
 | `createEvent`                                 | mutation | admin    | Create event + lottery; rejects if one is active             |
 | `updateEvent`                                 | mutation | admin    | Rename, change kit                                           |
 | `replaceEvent`                                | mutation | admin    | Archive the active event and create the next one, atomically |
-| `updateLotterySettings`                       | mutation | admin    | Enabled, no-win weight, cooldown, loser tickets              |
+| `updateLotterySettings`                       | mutation | admin    | Live, no-win weight, pause after a win, loser tickets        |
 | `updateTicketItems`                           | mutation | admin    | Item names printed on the receipt                            |
 | `createPrize` / `updatePrize` / `deletePrize` | mutation | admin    | Prize CRUD                                                   |
 | `restockPrize`                                | mutation | admin    | `+N` / `−N` stock, idempotent by `adjustmentId`              |
-| `listDraws`                                   | query    | admin    | The active event's draws                                     |
+| `listDraws`                                   | query    | admin    | The active event's draws; by ticket number, any visit        |
 | `getPrintConfiguration`                       | query    | darkroom | Print tuning                                                 |
-| `updatePrintConfiguration`                    | mutation | darkroom | Print tuning, and admin's upside-down switch                 |
+| `updatePrintConfiguration`                    | mutation | darkroom | Print tuning, and admin's ticket orientation                 |
 | `dither`                                      | mutation | darkroom | Dither a photo with given settings, for the preview          |
 | `generateReceipt`                             | mutation | darkroom | Render a receipt preview                                     |
 | `printReceipt`                                | mutation | darkroom | Test print under ref `000000`; never draws                   |
