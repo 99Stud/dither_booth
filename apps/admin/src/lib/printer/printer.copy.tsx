@@ -200,7 +200,7 @@ export const getPrinterMaintenanceLine = ({
   // Only once the printer said what's wrong, not while it's still connecting.
   const hasReported = !status.conditions.includes("unknown");
   if (!automatic && !status.canPrint && hasReported) {
-    return "Automatic maintenance is off: guests can still start a visit, but their receipt won't print.";
+    return "Automatic maintenance is off: guests can still start a visit, but their tickets won't print.";
   }
   return null;
 };

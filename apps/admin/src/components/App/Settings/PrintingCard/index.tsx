@@ -120,12 +120,12 @@ export const PrintingCard = () => {
         reportKioskError(error, {
           event: "settings-test-ticket-failed",
           source: SETTINGS_LOG_SOURCE,
-          userMessage: "Couldn't print a test ticket.",
+          userMessage: "Couldn't print a sample ticket.",
         });
         return false;
       });
 
-    if (printed) notify.success("Test ticket sent to the printer.");
+    if (printed) notify.success("Sample ticket sent to the printer.");
   };
 
   return (
@@ -188,7 +188,7 @@ export const PrintingCard = () => {
             ) : (
               <Printer data-icon="inline-start" />
             )}
-            Print a test ticket
+            Print a sample ticket
           </Button>
         </div>
       </CardContent>

@@ -130,7 +130,7 @@ describe("getPrinterMaintenanceLine", () => {
         status: status(["cover-open"]),
       }),
     ).toBe(
-      "Automatic maintenance is off: guests can still start a visit, but their receipt won't print.",
+      "Automatic maintenance is off: guests can still start a visit, but their tickets won't print.",
     );
   });
 

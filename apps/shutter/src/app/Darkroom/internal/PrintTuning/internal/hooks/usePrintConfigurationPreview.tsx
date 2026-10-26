@@ -87,7 +87,7 @@ export const usePrintConfigurationPreview = ({
             : "preview-receipt-photo-capture-failed",
           tab === "dithering"
             ? "Take square photo failed."
-            : "Take square photo for receipt preview failed.",
+            : "Take square photo for the photo receipt preview failed.",
         );
         return undefined;
       });
@@ -120,7 +120,7 @@ export const usePrintConfigurationPreview = ({
         reportPrintConfigurationError(
           e,
           "preview-receipt-failed",
-          "Generate receipt preview failed.",
+          "Photo receipt preview failed.",
         );
       });
 

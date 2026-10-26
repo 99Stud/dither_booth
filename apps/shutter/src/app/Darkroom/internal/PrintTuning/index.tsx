@@ -143,7 +143,7 @@ export const PrintTuning = ({
       reportPrintConfigurationError(
         e,
         "print-receipt-failed",
-        "Print receipt failed.",
+        "Test print failed.",
       );
     }
   }, [printReceiptImage, takeSquarePhoto]);
@@ -200,7 +200,7 @@ export const PrintTuning = ({
           </TabsTrigger>
           <TabsTrigger value="receipt" className={clsx("px-4")}>
             <ReceiptText />
-            Receipt
+            Photo receipt
           </TabsTrigger>
         </TabsList>,
       )}

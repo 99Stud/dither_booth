@@ -40,7 +40,7 @@ const StatusChip: FC<{
   </Badge>
 );
 
-/** Printer, receipt renderer, engine and Shutter, refreshed every 10 s. */
+/** Printer, ticket renderer, engine and Shutter, refreshed every 10 s. */
 export const DarkroomHealthStrip: FC = () => {
   const trpc = useTRPC();
   const { data: healthz, isError } = useQuery(
@@ -63,7 +63,7 @@ export const DarkroomHealthStrip: FC = () => {
       />
       <StatusChip
         icon={<FileImage />}
-        label="Receipt renderer"
+        label="Ticket renderer"
         ok={status(healthz?.puppeteer.healthz.ok)}
       />
       <StatusChip

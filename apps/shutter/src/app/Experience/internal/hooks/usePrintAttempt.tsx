@@ -75,7 +75,7 @@ export const usePrintAttempt = ({
       reportKioskError(error, {
         event,
         source: SHUTTER_CAMERA_LOG_SOURCE,
-        userMessage: "Print receipt failed.",
+        userMessage: "Printing your tickets failed.",
       });
       dispatch({ type: "printFailed", printAttemptId });
     },
@@ -220,7 +220,7 @@ export const usePrintAttempt = ({
       reportKioskError(new Error(`Print attempt ${printAttemptId} stalled.`), {
         event: "experience-print-attempt-timed-out",
         source: SHUTTER_CAMERA_LOG_SOURCE,
-        userMessage: "Print receipt timed out.",
+        userMessage: "Printing your tickets timed out.",
       });
       dispatch({
         type: "printFailed",

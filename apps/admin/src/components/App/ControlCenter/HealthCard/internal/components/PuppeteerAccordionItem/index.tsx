@@ -209,7 +209,7 @@ export const PuppeteerAccordionItem: FC<PuppeteerAccordionItemProps> = ({
   return (
     <HealthAccordionShell
       value="puppeteer"
-      label="Receipt renderer"
+      label="Ticket renderer"
       icon={<FileImage />}
       statusDotSize="sm"
       statusVariant={getHealthStatusVariant({
@@ -239,7 +239,7 @@ export const PuppeteerAccordionItem: FC<PuppeteerAccordionItemProps> = ({
               <AlertDialogHeader>
                 <AlertDialogTitle>Restart Puppeteer?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  A receipt printing right now may fail.
+                  A ticket printing right now may fail.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
