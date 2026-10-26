@@ -285,6 +285,82 @@ describe("kiosk channel through the router", () => {
     }
   });
 
+  test("switching the lottery tells the kiosk to re-read its status", async () => {
+    const { db, sqlite } = createTestDb();
+    const kioskChannel = createKioskChannel();
+    const kioskMaintenance = createKioskMaintenance({ db, kioskChannel });
+    const kiosk = createCaller(
+      kioskChannel,
+      "https://192.168.1.10:3000",
+      kioskMaintenance,
+      db,
+    );
+    const admin = createCaller(
+      kioskChannel,
+      ADMIN_ORIGIN,
+      kioskMaintenance,
+      db,
+    );
+
+    try {
+      await admin.config.createEvent({ name: "Halloween" });
+      const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
+      const iterator = commands[Symbol.asyncIterator]();
+      await iterator.next(); // The maintenance snapshot.
+      const received = iterator.next();
+      await Bun.sleep(0);
+
+      await admin.config.updateLotterySettings({
+        enabled: true,
+        noWinWeight: 50,
+        winCooldownMinutes: 5,
+        printLoserTicket: false,
+      });
+
+      expect((await received).value).toMatchObject({
+        type: "lottery-updated",
+      });
+      expect((await kiosk.booth.getLotteryStatus()).enabled).toBe(true);
+
+      await iterator.return?.();
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("a new event has the kiosk re-read kit and lottery; a failed save, nothing", async () => {
+    const { db, sqlite } = createTestDb();
+    const channel = createKioskChannel();
+    const sent: KioskCommand["type"][] = [];
+    const kioskChannel: KioskChannel = {
+      ...channel,
+      broadcast: (command) => {
+        sent.push(command.type);
+        return channel.broadcast(command);
+      },
+    };
+    const kioskMaintenance = createKioskMaintenance({ db, kioskChannel });
+    const admin = createCaller(
+      kioskChannel,
+      ADMIN_ORIGIN,
+      kioskMaintenance,
+      db,
+    );
+
+    try {
+      await admin.config.createEvent({ name: "Halloween" });
+      expect(sent).toEqual(["kit-updated", "lottery-updated"]);
+
+      sent.length = 0;
+      await expect(
+        admin.config.deletePrize({ prizeId: "missing" }),
+      ).rejects.toThrow();
+      expect(sent).toEqual([]);
+    } finally {
+      sqlite.close();
+    }
+  });
+
   test("the admin's navigate reaches the subscribed kiosk page", async () => {
     const kioskChannel = createKioskChannel();
     const kiosk = createCaller(kioskChannel, "https://192.168.1.10:3000");

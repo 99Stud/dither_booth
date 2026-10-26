@@ -33,9 +33,14 @@ export type LotteryDrawExecution = {
   ticketRef: string;
   /** `printLoserTicket` of the lottery this draw was recorded against. */
   printLoserTicket: boolean;
+  /**
+   * Whether the draw ran against a lottery: the event's while it is on, or a
+   * forced prize's. False is a plain loss with no lottery for the guest to play.
+   */
+  hasLottery: boolean;
 };
 
-type CommittedDraw = LotteryDrawExecution & {
+type CommittedDraw = Omit<LotteryDrawExecution, "hasLottery"> & {
   campaignId: string | null;
   lotteryId: string | null;
   logEvent:
@@ -311,5 +316,6 @@ export async function executeLotteryDraw(params: {
     result: committed.result,
     ticketRef: committed.ticketRef,
     printLoserTicket: committed.printLoserTicket,
+    hasLottery: committed.lotteryId !== null,
   };
 }

@@ -6,6 +6,7 @@ import { createPreparedReceiptStore } from "./prepared-receipt.store";
 
 const createJob = (ticketRef: string): PreparedReceiptJob => ({
   draw: { outcome: "loss", prize: null },
+  hasLottery: false,
   lotteryRasterCmd: null,
   photoPrinted: false,
   receiptRasterCmd: Buffer.from([0x01]),

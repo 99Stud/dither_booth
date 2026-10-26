@@ -32,6 +32,8 @@ import { SAMPLE_LOTTERY_TICKET_REF } from "./sample-lottery-ticket";
  */
 export interface PreparedReceiptJob {
   draw: DrawResult;
+  /** The draw ran against a lottery, so the kiosk plays the slot machine. */
+  hasLottery: boolean;
   lotteryRasterCmd: Buffer | null;
   /**
    * Set once the photo receipt is out, so a retry after a lottery-ticket
@@ -214,6 +216,7 @@ export const prepareReceiptJob = async ({
   const draw = execution.result;
   const job: PreparedReceiptJob = {
     draw,
+    hasLottery: execution.hasLottery,
     lotteryRasterCmd: null,
     photoPrinted: false,
     receiptRasterCmd,
@@ -328,6 +331,7 @@ export const printTestReceiptJob = async ({
     dryRun,
     job: {
       draw: { outcome: "loss", prize: null },
+      hasLottery: false,
       lotteryRasterCmd: null,
       photoPrinted: false,
       receiptRasterCmd,

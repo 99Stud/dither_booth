@@ -12,6 +12,7 @@ import {
 
 export interface PreparedReceipt {
   draw: DrawResult;
+  hasLottery: boolean;
   ticketRef: string;
 }
 
@@ -28,5 +29,9 @@ export const prepareReceipt = boothProcedure
 
     preparedReceiptStore.put(job);
 
-    return { draw: job.draw, ticketRef: job.ticketRef };
+    return {
+      draw: job.draw,
+      hasLottery: job.hasLottery,
+      ticketRef: job.ticketRef,
+    };
   });

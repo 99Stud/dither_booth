@@ -24,6 +24,12 @@ export interface ExperienceState {
   phase: ExperiencePhase;
   countdown: number | null;
   drawResult: DrawResult | null;
+  /**
+   * Whether this visit plays the slot machine. Read at Start, so the stage is
+   * laid out before the draw; the engine's draw can only turn it on, so a prize
+   * is always revealed and the reels never vanish mid-visit.
+   */
+  hasLottery: boolean;
   /** Object URL of the captured square, shown as the frozen frame. */
   photoUrl: string | null;
   /** Ref of the receipt the engine is holding for us until the game is over. */
@@ -33,7 +39,7 @@ export interface ExperienceState {
 }
 
 export type ExperienceAction =
-  | { type: "startRequested" }
+  | { type: "startRequested"; hasLottery: boolean }
   | { type: "startButtonAnimationCompleted" }
   | { type: "cameraAnimationCompleted" }
   | { type: "promptAnimationCompleted" }
@@ -48,6 +54,8 @@ export type ExperienceAction =
       type: "receiptPrepared";
       printAttemptId: number;
       drawResult: DrawResult;
+      /** The engine drew against a lottery, whatever Start assumed. */
+      hasLottery: boolean;
       ticketRef: string;
     }
   | { type: "printSucceeded"; printAttemptId: number }
@@ -57,6 +65,7 @@ export const initialExperienceState: ExperienceState = {
   phase: "idle",
   countdown: null,
   drawResult: null,
+  hasLottery: false,
   photoUrl: null,
   ticketRef: null,
   nextPrintAttemptId: 1,
@@ -100,6 +109,7 @@ export const experienceReducer = (
         phase: "introExiting",
         countdown: null,
         drawResult: null,
+        hasLottery: action.hasLottery,
         photoUrl: null,
         ticketRef: null,
         activePrintAttemptId: null,
@@ -207,9 +217,13 @@ export const experienceReducer = (
         return state;
       }
 
+      // Without a lottery there is no draw to reveal: print straight away.
+      const hasLottery = state.hasLottery || action.hasLottery;
+
       return {
         ...state,
-        phase: "spinning",
+        hasLottery,
+        phase: hasLottery ? "spinning" : "printing",
         drawResult: action.drawResult,
         ticketRef: action.ticketRef,
       };

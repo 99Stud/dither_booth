@@ -109,6 +109,7 @@ export const usePrintAttempt = ({
           type: "receiptPrepared",
           printAttemptId,
           drawResult: prepared.draw,
+          hasLottery: prepared.hasLottery,
           ticketRef: prepared.ticketRef,
         });
         void queryClient.invalidateQueries(

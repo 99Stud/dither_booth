@@ -2,6 +2,11 @@ import clsx from "clsx";
 
 import { SPLIT_TILE_GAP_PX } from "./Experience.constants";
 
+/** The live feed's square, centered on the stage. The frozen photo takes it over when there is no slot panel. */
+export const cameraBoxClassName = clsx(
+  "absolute top-8 bottom-8 left-1/2 aspect-square -translate-x-1/2",
+);
+
 /** Shared square for the frozen photo and the slot panel. Width comes from `--split-tile`. */
 export const splitTileClassName = clsx(
   "absolute top-1/2 aspect-square w-[var(--split-tile)] -translate-y-1/2",

@@ -303,6 +303,7 @@ describe("prepareReceiptJob", () => {
 describe("printPreparedReceiptJob", () => {
   const job = () => ({
     draw: { outcome: "loss" as const, prize: null },
+    hasLottery: false,
     lotteryRasterCmd: Buffer.from("lottery"),
     photoPrinted: false,
     receiptRasterCmd: Buffer.from("photo"),

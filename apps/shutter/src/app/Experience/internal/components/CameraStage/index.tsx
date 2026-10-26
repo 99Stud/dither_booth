@@ -15,14 +15,16 @@ import { useKitCopy } from "#kits/useKit";
 import { SHUTTER_CAMERA_LOG_SOURCE } from "#lib/constants";
 import { useKioskCameraReporter } from "#lib/kiosk/kiosk-camera";
 
+import type { PromptKey } from "../../Experience.copy";
+
 import { FROZEN_PHOTO_SCALE } from "../../Experience.constants";
-import { type PromptKey, isCameraStreamPrompt } from "../../Experience.copy";
 import {
   COUNTDOWN_TRANSITION,
   PROMPT_TEXT_TRANSITION,
   PROMPT_TRANSITION,
   SHUTTER_MS,
 } from "../../Experience.motion";
+import { cameraBoxClassName } from "../../Experience.styles";
 import { CameraCrt } from "../CameraCrt/index";
 import { CameraViewfinder } from "../CameraViewfinder/index";
 
@@ -72,6 +74,8 @@ interface CameraStageProps {
   isCameraVisible: boolean;
   /** Live feed hides once the frozen capture takes its place. */
   isLiveFeedVisible: boolean;
+  /** Caption inside the square (live or frozen) rather than above the stage. */
+  isPromptInSquare: boolean;
   isPromptVisible: boolean;
   onCameraAnimationComplete: () => void;
   onSplitTile: (tilePx: number) => void;
@@ -86,6 +90,7 @@ export const CameraStage = ({
   countdown,
   isCameraVisible,
   isLiveFeedVisible,
+  isPromptInSquare,
   isPromptVisible,
   onCameraAnimationComplete,
   onPromptAnimationComplete,
@@ -98,9 +103,8 @@ export const CameraStage = ({
     reportUserMediaCameraStateChange,
   );
   const promptText = useKitCopy()[prompt];
-  const inStreamPrompt = isCameraStreamPrompt(prompt);
-  const showInStreamPrompt = isPromptVisible && inStreamPrompt;
-  const showStagePrompt = isPromptVisible && !inStreamPrompt;
+  const showInStreamPrompt = isPromptVisible && isPromptInSquare;
+  const showStagePrompt = isPromptVisible && !isPromptInSquare;
   const cameraBoxRef = useRef<HTMLDivElement>(null);
   const shutterRef = useRef<HTMLDivElement>(null);
   const shutterHasOpenedRef = useRef(false);
@@ -168,8 +172,7 @@ export const CameraStage = ({
         <div
           ref={cameraBoxRef}
           className={clsx(
-            "absolute top-8 bottom-8 left-1/2 aspect-square",
-            "-translate-x-1/2",
+            cameraBoxClassName,
             "shadow-soft",
             !isLiveFeedVisible && "invisible",
           )}
@@ -183,6 +186,11 @@ export const CameraStage = ({
             />
           </CameraCrt>
           <CameraViewfinder isVisible={isCameraVisible} />
+        </div>
+        {children}
+        {/* Outside the live box, which hides once the photo freezes, so a
+            caption can stay on a frozen photo that keeps the square. */}
+        <div className={clsx(cameraBoxClassName, "z-20")}>
           <motion.div
             initial={false}
             animate={{
@@ -191,12 +199,11 @@ export const CameraStage = ({
             }}
             transition={PROMPT_TRANSITION}
             onAnimationComplete={onPromptAnimationComplete}
-            className="absolute top-8 left-8 z-20"
+            className="absolute top-8 left-8"
           >
-            {inStreamPrompt && <PromptLine text={promptText} />}
+            {isPromptInSquare && <PromptLine text={promptText} />}
           </motion.div>
         </div>
-        {children}
       </div>
       <motion.div
         initial={false}
@@ -211,7 +218,7 @@ export const CameraStage = ({
           "flex justify-center",
         )}
       >
-        {!inStreamPrompt && <PromptLine text={promptText} />}
+        {!isPromptInSquare && <PromptLine text={promptText} />}
       </motion.div>
       <AnimatePresence initial={false} mode="popLayout">
         {countdown !== null && (

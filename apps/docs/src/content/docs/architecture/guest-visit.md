@@ -29,7 +29,7 @@ sequenceDiagram
   E->>C: lay out lottery ticket (if win, or loser tickets on)
   C-->>E: screenshot
   E->>E: rasters → GS v 0, keep job 120 s
-  E-->>S: { draw, ticketRef }
+  E-->>S: { draw, hasLottery, ticketRef }
   Note over S: slot machine lands on draw outcome
   S->>E: booth.printPreparedReceipt(ticketRef)
   E->>P: photo receipt
@@ -43,6 +43,8 @@ sequenceDiagram
 The Shutter's guest flow is a reducer (`apps/shutter/src/app/Experience/internal/Experience.machine.tsx`) with explicit phases:
 
 `idle → introExiting → promptEntering → countdown → smile → capturing → preparing → spinning → slotResult → instructions → printing → cameraExiting → receiptReady → resetting… → idle`
+
+- **Lottery on or off.** The stage is laid out at capture, before the draw, so `startRequested` carries a first guess, `hasLottery`, from `booth.getLotteryStatus` (refetched at every `idle` and on `lottery-updated`; unknown counts as off). The engine has the last word: `prepareReceipt` returns `hasLottery`, true when the draw ran against a lottery (the event's while it is on, or a forced prize). `receiptPrepared` keeps `hasLottery` if either says so, so a prize is always revealed on the reels and reels already showing never vanish (they land on the loss). Without a lottery, `receiptPrepared` goes straight from `preparing` to `printing`, skipping `spinning`, `slotResult` and `instructions`: 8.7 s shorter (2.2 s of reels stopping, `SLOT_STAGE_ENTER_MS` 500 ms then three reels 400 ms apart taking 900 ms each, plus the 2.5 s result hold and the 4 s claim hold). The slot panel never mounts, the frozen photo stays full size in the live feed's square instead of shrinking to the left, and every caption sits inside that square. The draw captions (`prompts.feelingLucky`, `prompts.thatsIt`) are replaced by `prompts.printing`. If the engine's draw turns the lottery on, the photo shrinks to the left and the reels slide in at `spinning`, as on a normal lottery visit. The landing screen hides its lottery panel whenever the status isn't `enabled`.
 
 - **Phase flags** (`Experience.phases.tsx`) declare what each phase shows and allows: camera visible, start enabled, print attempt running… The map is an exhaustive `Record<ExperiencePhase, …>`, so a new phase doesn't compile until its behaviour is decided.
 - **Animation fallbacks.** Each animated transition has a timer fallback, so a missed `animationend` event can't freeze the flow.
@@ -59,7 +61,7 @@ The photo is sent as raw bytes (`octetInputParser`), not JSON.
 4. **Draw.** `executeLotteryDraw` runs inside one SQLite transaction: cooldown read, weighted pick among prizes with stock, insert of the `draw` row (which is what takes the unit of stock). A ticket-ref collision retries with a new ref, and the photo receipt is re-rendered with the ref that was actually recorded.
 5. **Lottery ticket.** Rendered for a win, or for a loss when the lottery prints loser tickets.
 6. **Raster.** Each screenshot becomes an ESC/POS `GS v 0` raster command. With `print_config.upside_down` on (the default), the 1-bit image is turned 180° before packing: the printer feeds the top of the ticket out first, so turned, it reads the right way up for the guest holding it. Doing it in the image rather than with the printer's `ESC {` keeps it independent of how the printer treats raster graphics in upside-down mode, and before the real-time byte escape, which has to see the final bytes.
-7. **Store.** The job is kept in memory for **120 s**, keyed by ticket ref, and the draw is returned to the iPad.
+7. **Store.** The job is kept in memory for **120 s**, keyed by ticket ref, and the draw is returned to the iPad with `hasLottery`, whether it ran against a lottery.
 
 ## Print: `booth.printPreparedReceipt`
 
