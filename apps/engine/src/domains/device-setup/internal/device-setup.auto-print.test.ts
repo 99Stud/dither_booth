@@ -43,6 +43,8 @@ function setup({
   const emitter = new EventEmitter();
   let status = statusOf(canPrint);
   const printed: Buffer[] = [];
+  // Logged once the key is on disk, after the print itself resolves.
+  const recorded: string[] = [];
   let address: string | undefined = ip;
   let currentBootId = bootId;
   let current: { stop: () => void } | undefined;
@@ -60,7 +62,9 @@ function setup({
           ? undefined
           : { build: () => Buffer.from(address ?? ""), key: address },
       keyPath,
-      log: () => {},
+      log: (_level, event) => {
+        if (event === "setup-ticket-printed") recorded.push(event);
+      },
       pollMs: 5,
       printer: {
         getStatus: () => status,
@@ -81,6 +85,7 @@ function setup({
 
   return {
     printed,
+    recorded,
     start,
     setCanPrint(next: boolean) {
       status = statusOf(next);
@@ -100,7 +105,9 @@ describe("setup ticket auto-print", () => {
     const booth = setup();
 
     booth.start();
-    await waitFor(() => booth.printed.length === 1);
+    // Restart once the ticket is recorded: a process killed between the
+    // print and the record prints again, which is the safe way to fail.
+    await waitFor(() => booth.recorded.length === 1);
     booth.start();
     await Bun.sleep(20);
 
