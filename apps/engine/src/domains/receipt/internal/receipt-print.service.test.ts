@@ -63,21 +63,17 @@ const { engineRouter } = await import("#internal/router");
 
 const PHOTO = new Blob([new Uint8Array([1, 2, 3])]);
 
-const savedDryRun = process.env.RECEIPT_PRINT_DRY_RUN;
 const savedForce = [
   process.env.LOTTERY_FORCE_OUTCOME,
   process.env.LOTTERY_FORCE_PRIZE_ID,
 ] as const;
 
 beforeAll(() => {
-  delete process.env.RECEIPT_PRINT_DRY_RUN;
   delete process.env.LOTTERY_FORCE_OUTCOME;
   delete process.env.LOTTERY_FORCE_PRIZE_ID;
 });
 
 afterAll(() => {
-  if (savedDryRun !== undefined)
-    process.env.RECEIPT_PRINT_DRY_RUN = savedDryRun;
   if (savedForce[0] !== undefined)
     process.env.LOTTERY_FORCE_OUTCOME = savedForce[0];
   if (savedForce[1] !== undefined)
@@ -314,7 +310,6 @@ describe("printPreparedReceiptJob", () => {
     const prepared = job();
 
     await printPreparedReceiptJob({
-      dryRun: false,
       job: prepared,
       print: printRaster,
     });
@@ -333,7 +328,6 @@ describe("printPreparedReceiptJob", () => {
 
     await expect(
       printPreparedReceiptJob({
-        dryRun: false,
         job: prepared,
         print: printRaster,
       }),
@@ -341,7 +335,6 @@ describe("printPreparedReceiptJob", () => {
     expect(prepared.photoPrinted).toBe(true);
 
     await printPreparedReceiptJob({
-      dryRun: false,
       job: prepared,
       print: printRaster,
     });
@@ -357,7 +350,6 @@ describe("printPreparedReceiptJob", () => {
 
     await expect(
       printPreparedReceiptJob({
-        dryRun: false,
         job: prepared,
         print: printRaster,
       }),

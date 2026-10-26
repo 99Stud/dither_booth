@@ -212,13 +212,6 @@ describe("connection", () => {
     expect(hexes(fake.writes).at(-1)).toBe("1d6100");
     expect(fake.attachListenerCount).toBe(0);
   });
-
-  test("without a transport (dry run), start does nothing", () => {
-    const printer = createBoothPrinter({ log: () => {} });
-    printer.start();
-
-    expect(printer.getStatus().conditions).toEqual(["unknown"]);
-  });
 });
 
 describe("print", () => {

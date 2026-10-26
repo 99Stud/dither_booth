@@ -135,6 +135,7 @@ export function createStubPrinter({
   let current: PrinterStatus = { ...READY_STATUS, ...status };
 
   return {
+    dryRun: false,
     getStatus: () => current,
     print,
     setStatus(next) {

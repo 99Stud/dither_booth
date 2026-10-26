@@ -13,10 +13,11 @@ These flags are read from the engine's environment and **refuse to run with `NOD
 RECEIPT_PRINT_DRY_RUN=true bun run dev
 ```
 
-- No USB access at all: the printer status stays `unknown`, and maintenance never triggers.
+- No USB access at all: the engine uses the preview printer, which is always ready. Visits, test prints and sample lottery tickets go through the same checks as on a booth, and maintenance never triggers.
 - Set in `apps/engine/.env`, it can't be turned off from the command line as is: Turbo runs tasks in strict env mode and drops variables `turbo.json` doesn't declare, so the file wins. For one run, `RECEIPT_PRINT_DRY_RUN=false bun run dev --env-mode=loose`.
 - Receipts still go through the whole pipeline — Chromium must load the Shutter's `/receipt-viewer`, so the Shutter must be running.
-- The photo receipt and the lottery ticket are written as PNGs to `tmp/receipt-previews/` and opened. They are the bytes the printer would get, so with **Settings → Printing → Bottom first** (the default) they open turned 180°.
+- Each raster ticket is written as a PNG to `apps/engine/tmp/receipt-previews/` (`ticket-<time>-<n>.png`) and opened: for a visit, the photo receipt, then the lottery ticket. They are the bytes the printer would get, so with **Settings → Printing → Bottom first** (the default) they open turned 180°.
+- Setup and Wi-Fi tickets are text, not rasters: they are only logged (`printer-dry-run-text-ticket`).
 
 ## Forcing the lottery
 

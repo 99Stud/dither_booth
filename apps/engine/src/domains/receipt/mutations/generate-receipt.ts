@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { octetInputParser } from "@trpc/server/http";
 
+import { gsV0RasterCommandToPngBuffer } from "#domains/printer/printer.service";
 import { darkroomProcedure } from "#internal/trpc";
 
-import { gsV0RasterCommandToPngBuffer } from "../internal/gs-v0-raster.utils";
 import { prepareReceiptRasterCommand } from "../internal/receipt-raster.utils";
 
 export const generateReceipt = darkroomProcedure

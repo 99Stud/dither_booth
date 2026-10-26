@@ -13,7 +13,7 @@ import {
 export const printPreparedReceipt = boothProcedure
   .input(z.object({ ticketRef: boothTicketRefSchema }))
   .mutation(async ({ ctx, input }): Promise<void> => {
-    const { dryRun, print } = assertPrinterAvailable(ctx);
+    const print = assertPrinterAvailable(ctx);
     const job = preparedReceiptStore.take(input.ticketRef);
 
     if (!job) {
@@ -24,7 +24,7 @@ export const printPreparedReceipt = boothProcedure
     }
 
     try {
-      await printPreparedReceiptJob({ dryRun, job, print });
+      await printPreparedReceiptJob({ job, print });
     } catch (error) {
       // Taken out while printing so a double submit cannot print twice; put
       // back on failure so the kiosk can retry (only the unprinted parts).
