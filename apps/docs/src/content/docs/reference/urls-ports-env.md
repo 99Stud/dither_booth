@@ -59,6 +59,12 @@ These must not be set with `NODE_ENV=production`.
 
 Rules and examples: [Developing without a printer](/docs/development/without-a-printer/).
 
+### URL flags
+
+| Flag     | On      | Purpose                                                                                                                                                  |
+| -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?debug` | Shutter | Shows the three.js inspector over the background, with its raw values. For development: it also works on the booth, so never leave it in the kiosk's URL |
+
 ### CLI
 
 See [booth CLI → Environment](/docs/reference/cli/#environment).

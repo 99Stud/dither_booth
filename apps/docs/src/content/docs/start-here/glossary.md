@@ -9,7 +9,7 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 ## The apps
 
-**Shutter**: the guest-facing web app on the iPad (`https://<booth>:3000`). Its routes are the Experience (`/`), the Darkroom (`/darkroom`) and the receipt viewer (`/receipt-viewer`, only for the engine's Chromium).
+**Shutter**: the guest-facing web app on the iPad (`https://<booth>:3000`). Its routes are the Experience (`/`), the Darkroom (`/darkroom`), the receipt viewer (`/receipt-viewer`, only for the engine's Chromium) and the kit preview (`/preview`, only inside admin).
 
 **Experience**: the guest flow inside the Shutter: landing screen, countdown, photo, slot machine (only when the lottery is on), print.
 
@@ -37,11 +37,22 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Font asset**: a font added to this booth, from the font library or a woff2 file staff upload. An event can't remove one it uses.
 
-**Background**: the shader behind the booth screen (_fluid_ or _smoke_).
+**Background**: what moves behind the booth screen: **Fluid ascii** or **Charcoal smoke**. A kit picks one; an event can switch to the other and move its controls.
+_Avoid_: shader, effect (in staff-facing text).
 
-**Background preset**: a background's values as data, for one kit. Staff don't see raw values; they move **controls** (worded 0–100 sliders and switches) or pick a **look** (a saved set of control values).
+**Background preset**: every raw value of one background, as data. Each background has a built-in preset, and a kit points at one. Staff never see raw values.
 
-**Camera screen**: the CRT effect over the camera square: lines and sweep, and a colour wash.
+**Kit look**: the background as the event's kit ships it: every slider in the middle, the kit's switches and colours. For a background the kit doesn't use, that background's built-in look. **Back to the kit's look** returns to it.
+
+**Control**: one thing staff change on a background, in plain words: a 0–100 slider (50 is the kit look), a switch, or colours. Each moves several raw values at once, within limits that keep the iPad smooth.
+
+**Look**: a named set of control values, picked in one click as a starting point (**Deep sea**, **Charcoal**, **Fog**…). The first is the kit look. Once a control moves, admin shows the look as edited.
+
+**Swatch**: a named set of colours for a background's colours control (**Palette**, **Paper and ink**). Picking one changes only the colours. A look and a swatch can share a name: that look uses that swatch.
+
+**Retro effects**: the background's four switches: **Ascii screen**, **Scanlines**, **Film grain** and **CRT curve**. They cover the whole background, never the camera screen.
+
+**Camera screen**: the old-monitor effect over the live camera and the frozen photo: **CRT lines** (scanlines and a slow sweep) and a **Colour wash**, tinted to match the background or a custom colour. The printed photo never has it. Separate from the background's retro effects.
 
 **Kit preview**: admin's live preview of a kit draft. It frames the Shutter's own screens and tickets, with sample data, and never touches the camera, the lottery or the printer.
 

@@ -1,0 +1,60 @@
+---
+title: Set the event's look
+description: Pick the event's kit in admin, then change its text, fonts, background and camera screen, with a live preview.
+sidebar:
+  order: 7
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The event's **kit** sets how the booth screen and the tickets look: text, fonts, background, camera screen and tickets. Everything you change starts from the kit's own look, and only your changes are saved with the event.
+
+Where: admin → **Event** → **Kit**.
+
+## Change the look
+
+<Steps>
+
+1. **Pick the kit.** Choose it under **Kit**. Picking another kit starts the fonts, background and camera screen over from that kit; your text changes carry across.
+
+2. **Change what you need**, card by card (below). The **Live preview** shows your unsaved changes. Pick a screen to preview: **Home screen**, **Camera**, **Photo receipt**, **Lottery win** or **Lottery loss**. Hold **Compare** to see the kit's own look, and **Replay intro** to watch the home screen come in again.
+
+3. **Save** in the bar at the bottom. The booth screen updates straight away, with no reload. **Discard** drops everything since the last save.
+
+</Steps>
+
+Under **Kit**, the line under the picker says what differs from the kit. **Reset to kit defaults** drops every change at once.
+
+## Typography
+
+One font for each role: **Display**, **Body** and **Mono**. Each says where it's used. The undo button next to a font goes back to the kit's.
+
+**Font library** adds a font to this booth: search **Google Fonts**, or **Upload woff2** (up to 2 MB). The booth keeps the font, so it works without Wi-Fi. A font an event uses can't be removed.
+
+## Background
+
+What moves behind the booth screen: **Fluid ascii** or **Charcoal smoke**.
+
+- **Look**: a starting point, picked in one click. The first one is the kit's own look. Once you move a control, the look shows as **edited**.
+- **Sliders** start in the middle, which is the kit's look; each end is worded (**Calm** to **Lively**, **Thin** to **Thick**…). The reset button next to a slider returns it to the kit's look.
+- **Colours**: pick a swatch, or set each colour yourself.
+- **Retro effects**: **Ascii screen**, **Scanlines**, **Film grain** and **CRT curve**, over the whole background.
+- **Back to the kit's look** resets the background.
+
+<Aside>
+  Slider ends stay within limits that keep the iPad smooth. If the booth screen
+  stutters, move **Flow speed**, **Trail** or **Smoke amount** back toward the
+  middle.
+</Aside>
+
+## Camera screen
+
+The old-monitor effect over the live camera and the frozen photo. The printed photo never has it, and it's separate from the background's retro effects.
+
+- **CRT lines**: scanlines and a slow sweep.
+- **Colour wash**: a light tint over the picture. **Match the background** follows the background's brightest colour; **Custom** lets you pick a **Tint colour**.
+- **Strength**: how visible the lines and the wash are.
+
+## Text
+
+One card per screen or ticket: **Home screen**, **Visit prompts**, **Maintenance screen**, **Photo receipt** and **Lottery ticket**. Each line starts as the kit's text and shows **Changed** once you edit it; its undo button goes back to the kit's. Wrap words in `**` to make them bold. An optional line left empty is hidden; a required one can't be saved empty.

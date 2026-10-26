@@ -45,14 +45,14 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 
 ## Booth screen (iPad)
 
-| Symptom                                     | Check                                                                                                                                |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Shader broken, screen frozen, layout wrong  | Admin → Health → Shutter → **Reload** (when idle, or now). A tab whose JavaScript is fully frozen needs a manual reload on the iPad. |
-| “Be right back” and you didn't switch it on | The printer can't print (see Printer). Admin's Booth screen card lists the reasons.                                                  |
-| Camera item unhealthy in admin              | Safari's camera permission for the Shutter, or another app holding the camera. Reload the page.                                      |
-| Visit stuck on “printing…”                  | It gives up after 45 s and resets. Check the printer and the ticket renderer in Health.                                              |
-| Darkroom says “Too many wrong PINs”         | Wait a minute.                                                                                                                       |
-| Darkroom locked itself                      | 30 minutes without use, a PIN change, or an engine restart. Enter the PIN again.                                                     |
+| Symptom                                        | Check                                                                                                                                |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Background broken, screen frozen, layout wrong | Admin → Health → Shutter → **Reload** (when idle, or now). A tab whose JavaScript is fully frozen needs a manual reload on the iPad. |
+| “Be right back” and you didn't switch it on    | The printer can't print (see Printer). Admin's Booth screen card lists the reasons.                                                  |
+| Camera item unhealthy in admin                 | Safari's camera permission for the Shutter, or another app holding the camera. Reload the page.                                      |
+| Visit stuck on “printing…”                     | It gives up after 45 s and resets. Check the printer and the ticket renderer in Health.                                              |
+| Darkroom says “Too many wrong PINs”            | Wait a minute.                                                                                                                       |
+| Darkroom locked itself                         | 30 minutes without use, a PIN change, or an engine restart. Enter the PIN again.                                                     |
 
 ## Receipts and the engine
 
@@ -62,7 +62,7 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 | A PM2 process keeps restarting        | `bun run pm2:list` for the restart count, then its `-err.log`. See [Logs](/docs/maintenance/logs/).                                   |
 | `EADDRINUSE` at start                 | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.  |
 | Lottery never wins                    | Lottery is off, prizes are out of stock, or a win cooldown is running. Check the Event page's odds card.                              |
-| Wrong receipt look                    | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                          |
+| Wrong look on screen or tickets       | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                          |
 | Tickets read the wrong way up         | Admin → Settings → Printing: pick the other end (**Bottom first** or **Top first**), then **Print a sample ticket** to check.         |
 
 ## The Pi itself

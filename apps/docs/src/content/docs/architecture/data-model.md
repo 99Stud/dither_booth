@@ -99,7 +99,7 @@ An event's photo receipt look is its **kit**, `campaign.kit_id`.
 - A stored id this release doesn't ship (set by a newer release, or a removed kit) renders the default kit and logs `event-kit-unknown` instead of failing the visit.
 - The receipt viewer takes the kit through its `template` search param (`PHOTO_RECEIPT_TEMPLATES = KIT_IDS`).
 
-Appearance that belongs to an event (logo, shader colours) goes on the campaign next to `kit_id`, not on the lottery. The lottery stays odds and stock.
+Appearance that belongs to an event (logo, background colours) goes on the campaign next to `kit_id`, not on the lottery. The lottery stays odds and stock.
 
 ## Migrations
 
