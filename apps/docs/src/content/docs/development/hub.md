@@ -18,7 +18,7 @@ supabase test db     # the pgTAP tests in supabase/tests/database
 supabase stop
 ```
 
-The stack uses ports `56320`–`56329`, so it can run next to other Supabase projects on their default `543xx`. Sign-up is off, like production (`[auth] enable_signup`), but the email provider stays on so existing users can log in: add a user from the Studio at `http://127.0.0.1:56323`.
+The stack uses ports `56320`–`56329`, so it can run next to other Supabase projects on their default `543xx`. Sign-up is off, like production (`[auth] enable_signup`), but the email provider stays on so existing users can log in: add a user from the local Supabase dashboard at `http://127.0.0.1:56323`.
 
 For the Edge Functions, also run `supabase functions serve`; they answer on `http://127.0.0.1:56321/functions/v1/<name>`. You need [Deno](https://deno.com) for their tests.
 
