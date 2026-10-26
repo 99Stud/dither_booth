@@ -11,13 +11,13 @@ import { Aside } from "@astrojs/starlight/components";
 
 Admin's **Control Center → Health checks** is the first place to look. It checks, live:
 
-| Item                 | Healthy when                                                                                      |
-| -------------------- | ------------------------------------------------------------------------------------------------- |
-| **Engine**           | The engine answers.                                                                               |
-| **Shutter**          | The Shutter server answers. The item lists every connected kiosk page and which screen it shows.  |
-| **Camera**           | The Experience page on the iPad reports a working camera. A denied or failed camera is unhealthy. |
-| **Printer**          | The printer watch says it can print. Paper low is healthy with a warning.                         |
-| **Receipt renderer** | The headless Chromium (Puppeteer) the engine uses to lay out receipts has its page loaded.        |
+| Item                | Healthy when                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| **Engine**          | The engine answers.                                                                               |
+| **Shutter**         | The Shutter server answers. The item lists every connected kiosk page and which screen it shows.  |
+| **Camera**          | The Experience page on the iPad reports a working camera. A denied or failed camera is unhealthy. |
+| **Printer**         | The printer watch says it can print. Paper low is healthy with a warning.                         |
+| **Ticket renderer** | The headless Chromium (Puppeteer) the engine uses to lay out tickets has its page loaded.         |
 
 Each unhealthy item says why, and offers the recovery that fits: reload the kiosk page, re-initialize Puppeteer, or restart a PM2 process.
 

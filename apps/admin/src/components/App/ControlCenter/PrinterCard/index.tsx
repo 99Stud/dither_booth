@@ -268,7 +268,7 @@ export const PrinterCard = () => {
             <AlertDialogTitle>Turn off automatic maintenance?</AlertDialogTitle>
             <AlertDialogDescription>
               {status ? `${capitalize(getPrinterTrouble(status))}. ` : ""}
-              Guests will be able to start a visit, but their receipt won't
+              Guests will be able to start a visit, but their tickets won't
               print.
             </AlertDialogDescription>
           </AlertDialogHeader>
