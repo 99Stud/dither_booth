@@ -30,7 +30,7 @@ import { KitWordSlider } from "./KitWordSlider";
 interface KitCameraSectionProps {
   kitId: KitId;
   value: Partial<CameraScreen> | undefined;
-  /** The shader's brightest tone, which "Match the shader" uses. */
+  /** The background's brightest tone, which "Match the background" uses. */
   backgroundHighlight: string;
   onChange: (value: Partial<CameraScreen>) => void;
 }
@@ -100,7 +100,7 @@ export const KitCameraSection: FC<KitCameraSectionProps> = (props) => {
               {[
                 {
                   id: "background",
-                  label: "Match the shader",
+                  label: "Match the background",
                   selected: matchesShader,
                 },
                 { id: "custom", label: "Custom", selected: !matchesShader },

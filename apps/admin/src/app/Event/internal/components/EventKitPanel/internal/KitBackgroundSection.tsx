@@ -101,17 +101,17 @@ export const KitBackgroundSection: FC<KitBackgroundSectionProps> = (props) => {
           <IconBubble tone="amber">
             <Sparkles />
           </IconBubble>
-          Shader
+          Background
         </CardTitle>
         <CardDescription>
-          The moving background on the booth screen. Each slider starts in the
-          middle, which is the kit&apos;s own look.
+          What moves behind the booth screen. Each slider starts in the middle,
+          which is the kit&apos;s own look.
         </CardDescription>
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-6")}>
         <div className={clsx("flex flex-wrap items-end justify-between gap-3")}>
           <Field orientation="vertical" className={clsx("w-full sm:w-72")}>
-            <FieldLabel htmlFor="kit-shader">Shader</FieldLabel>
+            <FieldLabel htmlFor="kit-shader">Background</FieldLabel>
             {/* ds-allow-native-select */}
             <Select
               id="kit-shader"
@@ -127,7 +127,7 @@ export const KitBackgroundSection: FC<KitBackgroundSectionProps> = (props) => {
               }}
             >
               <SelectTrigger id="kit-shader" className={clsx("w-full")}>
-                <SelectValue placeholder="Choose a shader" />
+                <SelectValue placeholder="Choose a background" />
               </SelectTrigger>
               <SelectContent>
                 {BACKGROUND_IDS.map((id) => (

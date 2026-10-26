@@ -7,7 +7,7 @@ export const COPY_GROUPS = {
   landing: "Home screen",
   prompts: "Visit prompts",
   maintenance: "Maintenance screen",
-  photoTicket: "Photo ticket",
+  photoTicket: "Photo receipt",
   lotteryTicket: "Lottery ticket",
 } as const;
 
