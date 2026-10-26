@@ -51,6 +51,7 @@ import {
 } from "#domains/network/network.service";
 import {
   createBoothPrinter,
+  createPreviewPrinter,
   createPrinterMaintenancePolicy,
   createUsbPrinterTransport,
 } from "#domains/printer/printer.service";
@@ -102,9 +103,14 @@ export async function runEngineServer(options: {
   applySqliteMigrations();
   await ensureDefaultPrintConfiguration();
 
-  const receiptPrintDryRun = isReceiptPrintDryRun();
+  // Watched from the start, reconnecting on its own: a printer plugged in
+  // after boot is picked up without a restart. In dry run, the preview
+  // printer saves tickets as PNGs and never opens USB.
+  const printer = isReceiptPrintDryRun()
+    ? createPreviewPrinter()
+    : createBoothPrinter({ transport: createUsbPrinterTransport() });
 
-  if (receiptPrintDryRun) {
+  if (printer.dryRun) {
     logKioskEvent(
       "info",
       ENGINE_PRINTER_LOG_SOURCE,
@@ -112,17 +118,11 @@ export async function runEngineServer(options: {
       {
         details: {
           message:
-            "RECEIPT_PRINT_DRY_RUN is enabled; the printer is not opened or watched.",
+            "RECEIPT_PRINT_DRY_RUN is enabled; tickets are saved as previews, not printed.",
         },
       },
     );
   }
-
-  // Watched from the start, reconnecting on its own: a printer plugged in
-  // after boot is picked up without a restart.
-  const printer = createBoothPrinter({
-    transport: receiptPrintDryRun ? undefined : createUsbPrinterTransport(),
-  });
 
   const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle();
 
@@ -149,7 +149,7 @@ export async function runEngineServer(options: {
     printer,
     maintenance: kioskMaintenance,
     release: readRelease(ENGINE_REPO_ROOT),
-    dryRun: receiptPrintDryRun,
+    dryRun: printer.dryRun,
     log: (level, event, details) =>
       logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
   });
@@ -308,10 +308,10 @@ export async function runEngineServer(options: {
 
   await puppeteerLifecycle.initialize();
   printer.start();
-  if (!receiptPrintDryRun) printerMaintenance.start();
+  printerMaintenance.start();
   hubReporter.start();
   // A booth plugged in at a venue prints the way in; a laptop doesn't.
-  if (options.mode === "production" && !receiptPrintDryRun) {
+  if (options.mode === "production" && !printer.dryRun) {
     setupTicketAutoPrint.start();
   }
 

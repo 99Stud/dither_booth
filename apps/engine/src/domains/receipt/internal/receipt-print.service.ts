@@ -13,12 +13,7 @@ import {
 } from "#domains/lottery/lottery.service";
 import { PrinterUnavailableError } from "#domains/printer/printer.service";
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
-import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 
-import {
-  previewLotteryTicketRaster,
-  previewReceiptRasters,
-} from "./receipt-dry-run.utils";
 import {
   buildLotteryTicketRasterCommand,
   buildReceiptRasterCommand,
@@ -86,17 +81,15 @@ const toPrinterNotReady = (error: PrinterUnavailableError) =>
  * Checks the printer before anything is spent: the photo booth calls it
  * before the lottery draw, so a booth out of paper never burns a prize.
  * With automatic maintenance off (a sensor staff don't trust), only a
- * printer that isn't connected is refused.
+ * printer that isn't connected is refused. In dry run the preview printer
+ * is always ready.
  */
 export const assertPrinterAvailable = (
   ctx: Pick<TRPCContext, "kioskMaintenance" | "printer">,
-): { dryRun: boolean; print: PrintRaster } => {
-  const dryRun = isReceiptPrintDryRun();
+): PrintRaster => {
   const enforceStatus = ctx.kioskMaintenance.get().automatic;
   const print: PrintRaster = (raster) =>
     ctx.printer.print(raster, { enforceStatus });
-
-  if (dryRun) return { dryRun, print };
 
   const { canPrint, conditions } = ctx.printer.getStatus();
   const refused = enforceStatus
@@ -105,7 +98,7 @@ export const assertPrinterAvailable = (
 
   if (refused) throw toPrinterNotReady(new PrinterUnavailableError(conditions));
 
-  return { dryRun, print };
+  return print;
 };
 
 const toPrintError = (error: unknown, message: string) => {
@@ -250,32 +243,12 @@ export const prepareReceiptJob = async ({
 };
 
 export const printPreparedReceiptJob = async ({
-  dryRun,
   job,
   print,
 }: {
-  dryRun: boolean;
   job: PreparedReceiptJob;
   print: PrintRaster;
 }): Promise<void> => {
-  if (dryRun) {
-    try {
-      await previewReceiptRasters({
-        lotteryRasterCmd: job.lotteryRasterCmd ?? undefined,
-        photoRasterCmd: job.receiptRasterCmd,
-        ticketRef: job.ticketRef,
-      });
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to preview receipt dry-run outputs.",
-        cause: error,
-      });
-    }
-
-    return;
-  }
-
   if (!job.photoPrinted) {
     await print(job.receiptRasterCmd).catch((error) => {
       throw toPrintError(error, "Failed to print receipt.");
@@ -313,7 +286,7 @@ export const printTestReceiptJob = async ({
   >;
   input: PhotoReceiptInput;
 }): Promise<void> => {
-  const { dryRun, print } = assertPrinterAvailable(ctx);
+  const print = assertPrinterAvailable(ctx);
   const { kitId, page, photoBuffer, printConfiguration, ticketItems } =
     await loadPhotoReceiptSources({ ctx, input });
 
@@ -328,7 +301,6 @@ export const printTestReceiptJob = async ({
   });
 
   await printPreparedReceiptJob({
-    dryRun,
     job: {
       draw: { outcome: "loss", prize: null },
       hasLottery: false,
@@ -351,7 +323,7 @@ export const printSampleLotteryTicketJob = async ({
   >;
   draw: DrawResult;
 }): Promise<void> => {
-  const { dryRun, print } = assertPrinterAvailable(ctx);
+  const print = assertPrinterAvailable(ctx);
   const { page } = await ctx.puppeteerLifecycle.whenReady();
 
   if (!page) {
@@ -370,23 +342,6 @@ export const printSampleLotteryTicketJob = async ({
     ticketRef: SAMPLE_LOTTERY_TICKET_REF,
     upsideDown,
   });
-
-  if (dryRun) {
-    try {
-      await previewLotteryTicketRaster({
-        lotteryRasterCmd,
-        ticketRef: `${draw.outcome}-${SAMPLE_LOTTERY_TICKET_REF}`,
-      });
-    } catch (error) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to preview sample lottery ticket.",
-        cause: error,
-      });
-    }
-
-    return;
-  }
 
   try {
     await print(lotteryRasterCmd);

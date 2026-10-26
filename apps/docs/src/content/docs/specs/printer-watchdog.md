@@ -14,6 +14,7 @@ Status: implemented (#32) and running on the booth since 2026-10-19. Basis: meas
 - **The buffer is cleared after an aborted job.** The printer may still be waiting for the rest of a cut-off `GS v 0`. The next job therefore starts with `DLE DC4 fn 8` (clear buffers) before `ESC @`. Whether the TM-T20III honours it is still a hardware check (see [Open questions](#open-questions)).
 - **The kill switch lives in memory and also relaxes the print gate.** Automatic maintenance defaults to on in production and off in development. It isn't stored, because main has no settings table and the kits PR holds the next migrations. Turned off, printing only refuses a printer that isn't connected, so a misbehaving sensor can't block guests.
 - **The kiosk `maintenance` command is unchanged,** and guests see the usual "be right back". Printer-specific guest copy waits for kit copy (PR #30).
+- **Dry run is a preview printer.** `RECEIPT_PRINT_DRY_RUN` swaps in a printer with the same interface that never opens USB and reports ready, instead of a printer with no transport whose state stays `unknown`. Maintenance still never triggers, and it saves raster tickets as PNGs.
 - **A few rules the draft didn't settle:**
   - The first status the printer reports after a restart applies at once, so a cover left open never lets a guest in.
   - A printer that stays silent gets `GS a` again, up to 3 times.

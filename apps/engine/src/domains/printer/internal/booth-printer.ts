@@ -64,6 +64,11 @@ const defaultLog: PrinterLog = (level, event, details) =>
  * the same connection. Why it works this way: apps/docs/src/content/docs/specs/printer-watchdog.md.
  */
 export type BoothPrinter = {
+  /**
+   * True for the preview printer (`RECEIPT_PRINT_DRY_RUN`): tickets are saved
+   * as previews, nothing is printed for real, and the Hub never alerts.
+   */
+  dryRun: boolean;
   start: () => void;
   /** Turns status back off and lets go of the printer. */
   stop: () => Promise<void>;
@@ -116,8 +121,7 @@ export function createBoothPrinter({
   delays?: BoothPrinterDelays;
   log?: PrinterLog;
   now?: () => number;
-  /** None in dry run: the printer stays `unknown` and is never opened. */
-  transport?: PrinterTransport;
+  transport: PrinterTransport;
 }): BoothPrinter {
   const emitter = new EventEmitter();
   emitter.setMaxListeners(0);
@@ -290,11 +294,7 @@ export function createBoothPrinter({
     const { canPrint, conditions } = status;
 
     if (!current || conditions.includes("disconnected")) {
-      throw new PrinterUnavailableError(
-        conditions.includes("unknown") && !transport
-          ? conditions
-          : ["disconnected"],
-      );
+      throw new PrinterUnavailableError(["disconnected"]);
     }
     if (enforceStatus && !canPrint) {
       throw new PrinterUnavailableError(conditions);
@@ -350,6 +350,7 @@ export function createBoothPrinter({
   }
 
   return {
+    dryRun: false,
     getStatus: () => status,
     print(body, { content = "raster", enforceStatus = true } = {}) {
       const job = queue.then(() => runJob(body, { content, enforceStatus }));
@@ -357,7 +358,7 @@ export function createBoothPrinter({
       return job;
     },
     start() {
-      if (!transport || running) return;
+      if (running) return;
 
       running = true;
       stopAttach = transport.onAttach(() => {

@@ -61,7 +61,7 @@ stateDiagram-v2
 
 - **Reconnect** with exponential backoff from 1 s to 10 s, and immediately on a USB attach event (after 500 ms for udev to set permissions). A printer plugged in after boot is picked up without a restart.
 - **Shutdown** sends `GS a 0`, giving up after 500 ms so it can't hang the engine's exit.
-- **Dry run** (`RECEIPT_PRINT_DRY_RUN`) creates no transport: the status stays `unknown` and maintenance never triggers.
+- **Dry run** (`RECEIPT_PRINT_DRY_RUN`) replaces the booth printer with the preview printer, which has the same interface and never opens USB. It is always ready, so maintenance never triggers. It saves each raster job as a PNG in `tmp/receipt-previews/` and opens it, and only logs text tickets. Health checks report the printer watch as off, admin's Printer card shows **Dry run**, and heartbeats carry `dryRun`, so the Hub never alerts.
 
 ## Status
 

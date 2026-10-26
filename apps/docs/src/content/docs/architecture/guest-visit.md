@@ -88,4 +88,4 @@ If the printer reports it can't print while a job is being written, the job is a
 
 - **Test prints** (`config.printReceipt`, from the Darkroom) use the same render path with the sample ref `000000` and **never draw**.
 - **Sample lottery tickets** (`config.printSampleLotteryTicket`, from the Darkroom and admin's **Settings → Printing**) render a win for a chosen prize, or a loss, under the same ref, without touching the lottery.
-- **`RECEIPT_PRINT_DRY_RUN=true`** (development only) skips all USB work, writes the rasters as PNGs to `tmp/receipt-previews/` and opens them. See [Developing without a printer](/docs/development/without-a-printer/).
+- **`RECEIPT_PRINT_DRY_RUN=true`** (development only) puts the preview printer in place of the USB one. Visits, test prints and sample lottery tickets take the same path, and the printer saves each raster as a PNG in `tmp/receipt-previews/` and opens it instead of printing. See [Developing without a printer](/docs/development/without-a-printer/).
