@@ -242,8 +242,8 @@ otp_expiry = 3600
 
 # Studio signs staff in with the code, typed in the app: on an iPhone a link
 # would open Safari, not the Home Screen app. The code leads the subject, so
-# the notification alone is enough to sign in. The Hub deploy pushes this
-# template to production (`supabase config push`).
+# the notification alone is enough to sign in. Every Hub deploy applies this
+# template to production.
 [auth.email.template.magic_link]
 subject = "{{ .Token }} is your Studio code"
 content_path = "./supabase/templates/magic_link.html"
@@ -452,8 +452,10 @@ verify_jwt = false
 import_map = "./functions/deno.json"
 entrypoint = "./functions/booth-code/index.ts"
 
-# Production, as `supabase config push --project-ref` (the Hub deploy) sees it:
-# everything above, with these values in place of the local ones.
+# Production, as the Hub deploy (Supabase's GitHub integration) and
+# `supabase config push --project-ref` see it: everything above, with these
+# values in place of the local ones. Naming the project here is also what
+# lets the integration apply this file to production at all.
 [remotes.production]
 project_id = "cvxebmlzjudvxxesgpgq"
 

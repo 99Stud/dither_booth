@@ -13,23 +13,15 @@ The booth runs whatever `main` is when someone runs `sudo booth repo` on it ([Up
 
 ## The Hub: merged to `main`
 
-The [Hub](/docs/development/hub/) deploys itself. When a change under `supabase/` or `packages/protocol/` reaches `main` and the Hub checks pass, `.github/workflows/hub-deploy.yml`:
+The [Hub](/docs/development/hub/) deploys itself, through Supabase's GitHub integration ([decision 0002](/docs/decisions/0002-hub-deploy-by-supabase/)). On every push to `main`, Supabase:
 
-1. links the Supabase project,
-2. lists, then applies, the migrations it doesn't have yet (`supabase db push`),
-3. deploys every Edge Function (`supabase functions deploy`).
+1. applies `supabase/config.toml` (`[auth]`, `[api]`, `[db]`, `[storage]`), with `[remotes.production]` in place of the local values,
+2. applies the migrations it doesn't have yet,
+3. deploys the Edge Functions declared in `config.toml`.
 
-Migrations go first, so a function never runs against a schema it doesn't know. One deploy runs at a time and is never cancelled halfway. To deploy `main` again by hand, run the workflow from the Actions tab.
+Its logs are in the `dither-hub` dashboard, under Branches. GitHub holds no Supabase credential. The integration is set up once, in the dashboard (Project Settings, Integrations, GitHub): this repository, working directory the repository root, production branch `main`, **Deploy to production** on.
 
-It needs, in the `production` environment: the secrets `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`, and the variable `SUPABASE_PROJECT_ID`. The token is a personal access token scoped to the Hub's project only, with:
-
-| Permission                                  | Access     | For                                                                               |
-| ------------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
-| Project Settings, API Keys, API Key Secrets | Read       | `supabase link`                                                                   |
-| Connection Pooling                          | Read       | the pooler URL: GitHub's runners have no IPv6, the database host has nothing else |
-| Edge Functions                              | Read-write | `supabase functions deploy`                                                       |
-
-Without Connection Pooling, `link` succeeds anyway and the migrations fail on an IPv6 address; the workflow checks for it right after linking.
+It deploys as soon as a commit reaches `main`, without waiting for the Hub checks there. They run on every pull request that touches `supabase/` or `packages/protocol/`: don't merge one with a red Hub check.
 
 A migration that reached `main` can't be taken back by a revert: write a new one that undoes it.
 
