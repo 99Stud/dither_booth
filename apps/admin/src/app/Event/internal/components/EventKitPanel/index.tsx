@@ -173,7 +173,7 @@ const isMissingText = (draft: KitDraft, key: CopyKey) => {
 const CHANGED_PART_LABELS = {
   copy: "text",
   fonts: "fonts",
-  background: "shader",
+  background: "background",
   camera: "camera screen",
 } satisfies Record<keyof KitSettings, string>;
 
@@ -259,8 +259,9 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
             </CardTitle>
             <CardDescription>
               The kit sets how the booth screen and the tickets look. The fonts,
-              the shader, the camera screen and the text below start from the
-              kit&apos;s own; in the text, wrap words in ** to make them bold.
+              the background, the camera screen and the text below start from
+              the kit&apos;s own; in the text, wrap words in ** to make them
+              bold.
             </CardDescription>
           </CardHeader>
           <CardContent className={clsx("flex flex-col gap-4")}>

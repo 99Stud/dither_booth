@@ -30,7 +30,7 @@ export type KitPreviewSurface = (typeof KIT_PREVIEW_SURFACES)[number];
 export const KIT_PREVIEW_SURFACE_LABELS: Record<KitPreviewSurface, string> = {
   landing: "Home screen",
   camera: "Camera",
-  photo: "Photo ticket",
+  photo: "Photo receipt",
   lotteryWin: "Lottery win",
   lotteryLoss: "Lottery loss",
 };
