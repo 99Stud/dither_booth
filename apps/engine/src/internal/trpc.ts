@@ -2,7 +2,7 @@ import { isAllowedConfiguredOrigin } from "@dither-booth/ports/origin";
 import { TRPCError, initTRPC } from "@trpc/server";
 import z from "zod";
 
-import type { TRPCContext } from "#lib/trpc/trpc.types";
+import type { AdminOrigins, TRPCContext } from "#lib/trpc/trpc.types";
 
 const t = initTRPC.context<TRPCContext>().create({
   // Input errors carry their fields, so a client can say what to fix instead
@@ -31,12 +31,20 @@ export const router = t.router;
 
 const publicProcedure = t.procedure;
 
+/** The admin's origin, also reached by the booth's other names. */
+export const createAdminOrigins = ({
+  adminOrigin,
+  allowedHostnames,
+}: {
+  adminOrigin: string;
+  allowedHostnames: readonly string[];
+}): AdminOrigins => ({
+  allows: (origin) =>
+    isAllowedConfiguredOrigin(origin, adminOrigin, allowedHostnames),
+});
+
 const isAdminRequest = (ctx: TRPCContext) =>
-  isAllowedConfiguredOrigin(
-    ctx.requestOrigin,
-    ctx.adminOrigin,
-    ctx.allowedHostnames,
-  );
+  ctx.adminOrigins.allows(ctx.request.origin);
 
 const forbidden = () =>
   new TRPCError({
@@ -67,7 +75,10 @@ export const opsProcedure = adminOriginProcedure;
  * procedures use it; event authoring, restarts and the PIN stay admin-only.
  */
 export const darkroomProcedure = publicProcedure.use(({ ctx, next }) => {
-  if (!isAdminRequest(ctx) && !ctx.darkroomAccess.verify(ctx.darkroomToken)) {
+  if (
+    !isAdminRequest(ctx) &&
+    !ctx.darkroomAccess.verify(ctx.request.darkroomToken)
+  ) {
     throw forbidden();
   }
 
@@ -79,7 +90,7 @@ export const darkroomProcedure = publicProcedure.use(({ ctx, next }) => {
  * it serves the page to devices on the booth Wi-Fi only.
  */
 export const captiveProcedure = publicProcedure.use(({ ctx, next }) => {
-  if (!ctx.setupServerAccess.verify(ctx.setupServerToken)) {
+  if (!ctx.setupServerAccess.verify(ctx.request.setupServerToken)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Only the setup server can call this.",

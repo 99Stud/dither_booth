@@ -18,7 +18,6 @@ import type {
   BoothPrinter,
   PrinterStatus,
 } from "#domains/printer/printer.service";
-import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import {
   campaignTable,
@@ -26,8 +25,6 @@ import {
   printConfigTable,
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
-import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
-import { createHubReporterStub } from "#domains/hub/internal/hub.test-utils";
 import {
   createKioskChannel,
   createKioskMaintenance,
@@ -43,7 +40,10 @@ import {
   screenshotToGsV0RasterCommand,
 } from "#domains/printer/printer.service";
 import { engineRouter } from "#internal/router";
-import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
+import {
+  TEST_ADMIN_ORIGIN,
+  createTestContext,
+} from "#lib/trpc/trpc.test-utils";
 
 import type {
   LotteryTicketRender,
@@ -525,43 +525,22 @@ describe("previewPhotoReceipt", () => {
 
 describe("the receipt procedures", () => {
   function createCaller(db: DB, printer: BoothPrinter) {
-    const kioskChannel = createKioskChannel();
-    const kioskMaintenance = createKioskMaintenance({ db, kioskChannel });
-    const state = createInitialPuppeteerState();
-    const unreachable = () => {
-      throw new Error("The receipt procedures need none of this.");
-    };
-
-    return engineRouter.createCaller({
-      adminOrigin: "https://admin.local",
-      allowedHostnames: [],
+    const kioskMaintenance = createKioskMaintenance({
       db,
-      darkroomAccess: createDarkroomAccessStub(),
-      hubReporter: createHubReporterStub(),
-      kioskChannel,
-      kioskMaintenance,
-      cameraPreview: {} as TRPCContext["cameraPreview"],
-      mode: "production",
-      network: {} as TRPCContext["network"],
-      setupServerAccess: { verify: () => false },
-      printer,
-      processManager: "unknown",
-      puppeteerLifecycle: {
-        close: unreachable,
-        getCurrent: unreachable,
-        initialize: unreachable,
-        restart: unreachable,
-        whenReady: unreachable,
-      },
-      puppeteerState: state,
-      requestOrigin: "https://admin.local",
-      tickets: createTickets({
-        db,
-        maintenance: kioskMaintenance,
-        printer,
-        renderer: createFakeRenderer().renderer,
+      kioskChannel: createKioskChannel(),
+    });
+
+    return engineRouter.createCaller(
+      createTestContext({
+        tickets: createTickets({
+          db,
+          maintenance: kioskMaintenance,
+          printer,
+          renderer: createFakeRenderer().renderer,
+        }),
+        request: { origin: TEST_ADMIN_ORIGIN },
       }),
-    } satisfies TRPCContext);
+    );
   }
 
   test("a booth visit prepares, then prints, through the booth group", async () => {
