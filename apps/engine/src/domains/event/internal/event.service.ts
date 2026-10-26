@@ -14,7 +14,7 @@ import {
 } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 
 import type { DB, DbExecutor, DbTransaction } from "#db/internal/db.types";
 
@@ -512,7 +512,11 @@ export async function listDrawsForDb(
     .where(
       and(
         eq(drawTable.campaignId, current.campaign.id),
-        parsedTicketRef ? eq(drawTable.ticketRef, parsedTicketRef) : undefined,
+        // Every visit has a row for its ticket number; only the ones that ran
+        // against the lottery are draws. A lookup still finds the others.
+        parsedTicketRef
+          ? eq(drawTable.ticketRef, parsedTicketRef)
+          : isNotNull(drawTable.lotteryId),
       ),
     )
     .orderBy(desc(drawTable.createdAt))
@@ -524,7 +528,7 @@ export async function listDrawsForDb(
       id: row.id,
       ticketRef: row.ticketRef,
       createdAt: row.createdAt.toISOString(),
-      outcome: row.prizeId ? "win" : "loss",
+      outcome: row.prizeId ? "win" : row.lotteryId ? "loss" : "no-lottery",
       prizeTitle: row.prizeId ? row.prizeTitle : null,
     })),
   };
