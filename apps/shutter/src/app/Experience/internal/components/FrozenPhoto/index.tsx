@@ -7,6 +7,7 @@ import { useLayoutEffect, useRef } from "react";
 import { FROZEN_PHOTO_SCALE } from "../../Experience.constants";
 import { SLOT_STAGE_ENTER_MS } from "../../Experience.motion";
 import {
+  cameraBoxClassName,
   cameraFrameClassName,
   splitTileClassName,
   splitTileEdgeOffset,
@@ -14,21 +15,23 @@ import {
 import { CameraCrt } from "../CameraCrt/index";
 
 /**
- * The captured square. It starts covering the webcam box, then shrinks to the
- * shared tile size and slides to the left half of the pair. The outer div owns
+ * The captured square. It starts covering the webcam box. Beside the slot
+ * panel it then shrinks to the shared tile size and slides to the left half of
+ * the pair; without one it stays where the live feed was. The outer div owns
  * the final layout; anime.js only transforms the inner frame.
  */
 export const FrozenPhoto: FC<{
+  isBesideSlot: boolean;
   isVisible: boolean;
   photoUrl: string | null;
   tilePx: number;
 }> = (props) => {
-  const { isVisible, photoUrl, tilePx } = props;
+  const { isBesideSlot, isVisible, photoUrl, tilePx } = props;
   const rootRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    if (!isVisible || photoUrl === null) return;
+    if (!isVisible || photoUrl === null || !isBesideSlot) return;
 
     const root = rootRef.current;
     const frame = frameRef.current;
@@ -54,15 +57,18 @@ export const FrozenPhoto: FC<{
     });
 
     return () => scope.revert();
-  }, [isVisible, photoUrl, tilePx]);
+  }, [isBesideSlot, isVisible, photoUrl, tilePx]);
 
   if (!isVisible || photoUrl === null) return null;
 
   return (
     <div
       ref={rootRef}
-      style={{ left: splitTileEdgeOffset }}
-      className={clsx("z-10", splitTileClassName)}
+      style={isBesideSlot ? { left: splitTileEdgeOffset } : undefined}
+      className={clsx(
+        "z-10",
+        isBesideSlot ? splitTileClassName : cameraBoxClassName,
+      )}
     >
       <div ref={frameRef} className="relative h-full w-full shadow-soft">
         <CameraCrt>

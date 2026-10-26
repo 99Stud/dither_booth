@@ -55,6 +55,14 @@ export const KIOSK_COMMAND_SCHEMA = z.discriminatedUnion("type", [
     type: z.literal("kit-updated"),
     commandId: z.string().min(1),
   }),
+  /**
+   * The active event's lottery changed (switched on or off, prizes, stock, a
+   * new event): re-read `booth.getLotteryStatus`.
+   */
+  z.object({
+    type: z.literal("lottery-updated"),
+    commandId: z.string().min(1),
+  }),
   z.object({
     type: z.literal("camera"),
     pageId: z.string().trim().min(1).max(64),

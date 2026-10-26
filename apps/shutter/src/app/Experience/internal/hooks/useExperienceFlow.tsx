@@ -13,7 +13,7 @@ import {
   SLOT_RESULT_HOLD_MS,
   SMILE_HOLD_MS,
 } from "../Experience.constants";
-import { PROMPT_BY_PHASE } from "../Experience.copy";
+import { getPrompt, isPromptInSquare } from "../Experience.copy";
 import {
   experienceReducer,
   initialExperienceState,
@@ -49,6 +49,7 @@ export const useExperienceFlow = () => {
     activePrintAttemptId,
     countdown,
     drawResult,
+    hasLottery,
     phase,
     photoUrl,
     ticketRef,
@@ -70,10 +71,14 @@ export const useExperienceFlow = () => {
     webcamRef,
   });
 
+  // Unknown status counts as off. If the engine draws against a lottery
+  // anyway, `receiptPrepared` brings the reels in.
+  const hasLotteryAtStart = lotteryStatus?.enabled ?? false;
+
   const handleStartExperience = useCallback(() => {
     void requestKioskFullscreen();
-    dispatch({ type: "startRequested" });
-  }, []);
+    dispatch({ type: "startRequested", hasLottery: hasLotteryAtStart });
+  }, [hasLotteryAtStart]);
 
   useEffect(() => {
     if (phase !== "idle") return;
@@ -169,6 +174,8 @@ export const useExperienceFlow = () => {
     dispatch({ type: "reelsStopped" });
   }, []);
 
+  const prompt = getPrompt(phase, hasLottery);
+
   return {
     captureFlashId,
     countdown,
@@ -184,8 +191,10 @@ export const useExperienceFlow = () => {
       hasPhaseFlag(phase, "introDecorations") && !isMaintenance,
     isMaintenance,
     isPostPrintVisible: hasPhaseFlag(phase, "postPrint"),
+    isPromptInSquare: isPromptInSquare(prompt, hasLottery),
     isPromptVisible: hasPhaseFlag(phase, "promptVisible"),
-    isSlotVisible: hasPhaseFlag(phase, "slotVisible"),
+    hasLottery,
+    isSlotVisible: hasLottery && hasPhaseFlag(phase, "slotVisible"),
     isStartButtonAtOrigin: hasPhaseFlag(phase, "startButtonAtOrigin"),
     // Maintenance hides the start button and refuses a visit.
     isStartButtonVisible:
@@ -194,7 +203,7 @@ export const useExperienceFlow = () => {
     lotteryStatus,
     phase,
     photoUrl,
-    prompt: PROMPT_BY_PHASE[phase],
+    prompt,
     webcamRef,
   };
 };

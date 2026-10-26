@@ -27,8 +27,10 @@ export const Experience = () => {
     isCameraVisible,
     isFrozenPhotoVisible,
     isIntroDecorationsVisible,
+    hasLottery,
     isMaintenance,
     isPostPrintVisible,
+    isPromptInSquare,
     isPromptVisible,
     isSlotVisible,
     isStartButtonAtOrigin,
@@ -65,6 +67,7 @@ export const Experience = () => {
           countdown={countdown}
           isCameraVisible={isCameraVisible}
           isLiveFeedVisible={!isFrozenPhotoVisible}
+          isPromptInSquare={isPromptInSquare}
           isPromptVisible={isPromptVisible}
           onCameraAnimationComplete={handleCameraAnimationComplete}
           onPromptAnimationComplete={handlePromptAnimationComplete}
@@ -74,6 +77,7 @@ export const Experience = () => {
           webcamRef={webcamRef}
         >
           <FrozenPhoto
+            isBesideSlot={hasLottery}
             isVisible={isFrozenPhotoVisible}
             photoUrl={photoUrl}
             tilePx={splitTilePx}

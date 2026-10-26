@@ -37,8 +37,8 @@ A fourth piece, the **`booth` CLI**, is a standalone binary that provisions the 
 1. The iPad shows the landing screen. The guest taps **Start**.
 2. The camera opens, a prompt appears (“stay in the frame”), a countdown runs, then “smile” — and the photo is taken.
 3. The photo goes to the engine, which in one step **draws the lottery** and **renders both receipts**: Chromium lays out the photo receipt from the event's kit, the photo is dithered to 1-bit, and the result becomes a printer raster.
-4. While that happens, the iPad plays a **slot machine** whose reels land on the real outcome.
-5. Once the reels stop, the iPad asks the engine to **print**. The photo receipt comes out, then the lottery ticket.
+4. While that happens, the iPad plays a **slot machine** whose reels land on the real outcome. With the lottery off, there is no slot machine: the photo freezes in the middle of the screen and the iPad goes straight to printing.
+5. Once the reels stop, the iPad asks the engine to **print**. The photo receipt comes out, then the lottery ticket (if there is one).
 6. The screen resets for the next guest.
 
 The detailed flow, with the timing and failure rules, is in [A guest visit, end to end](/docs/architecture/guest-visit/).

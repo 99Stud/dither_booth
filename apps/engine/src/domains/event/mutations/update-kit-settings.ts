@@ -1,5 +1,4 @@
 import { logKioskEvent } from "@dither-booth/logging";
-import { createId } from "@paralleldrive/cuid2";
 
 import { configProcedure } from "#internal/trpc";
 
@@ -7,6 +6,7 @@ import {
   EVENT_LOG_SOURCE,
   updateKitSettingsInputSchema,
 } from "../internal/event.constants";
+import { notifyKiosk } from "../internal/event.kiosk";
 import { updateKitSettingsForDb } from "../internal/event.service";
 
 /**
@@ -18,11 +18,10 @@ export const updateKitSettings = configProcedure
   .input(updateKitSettingsInputSchema)
   .mutation(async ({ ctx, input }) => {
     const event = await updateKitSettingsForDb(ctx.db, input);
-    const commandId = createId();
-    const delivered = ctx.kioskChannel.broadcast({
-      type: "kit-updated",
-      commandId,
-    });
+    const { commandId, delivered } = notifyKiosk(
+      ctx.kioskChannel,
+      "kit-updated",
+    );
 
     logKioskEvent("info", EVENT_LOG_SOURCE, "event-kit-settings-saved", {
       details: { commandId, delivered, kitId: input.kitId },

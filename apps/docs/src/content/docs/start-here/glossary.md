@@ -11,7 +11,7 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Shutter**: the guest-facing web app on the iPad (`https://<booth>:3000`). Its routes are the Experience (`/`), the Darkroom (`/darkroom`) and the receipt viewer (`/receipt-viewer`, only for the engine's Chromium).
 
-**Experience**: the guest flow inside the Shutter: landing screen, countdown, photo, slot machine, print.
+**Experience**: the guest flow inside the Shutter: landing screen, countdown, photo, slot machine (only when the lottery is on), print.
 
 **Darkroom**: the staff screen inside the Shutter, behind a PIN, for print tuning, sample tickets, Wi-Fi and printer status. Opened by tapping the logo four times within two seconds.
 

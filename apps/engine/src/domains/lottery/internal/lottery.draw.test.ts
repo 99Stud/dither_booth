@@ -107,6 +107,7 @@ describe("executeLotteryDraw — weighted draw", () => {
 
     expect(execution.result).toEqual({ outcome: "loss", prize: null });
     expect(execution.printLoserTicket).toBe(false);
+    expect(execution.hasLottery).toBe(false);
     expect(execution.ticketRef).toMatch(TICKET_REF_PATTERN);
     expect(allDraws(db)).toMatchObject([
       { lotteryId: null, prizeId: null, ticketRef: execution.ticketRef },
@@ -135,6 +136,7 @@ describe("executeLotteryDraw — weighted draw", () => {
       },
       ticketRef: "123456",
       printLoserTicket: true,
+      hasLottery: true,
     });
     expect(remainingOf(db, "p1")).toBe(2);
     expect(allDraws(db)).toMatchObject([
@@ -364,9 +366,12 @@ describe("executeLotteryDraw — forced outcomes", () => {
       force: { outcome: "win", prizeId: "p1" },
     });
 
+    // A forced prize is played even with the lottery off, so the kiosk
+    // still reveals it.
     expect(first).toEqual({
       ticketRef: "123456",
       printLoserTicket: false,
+      hasLottery: true,
       result: {
         outcome: "win",
         prize: {
