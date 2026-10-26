@@ -5,7 +5,6 @@ import z from "zod";
 import { getCurrentEventForDb } from "#domains/event/event.service";
 import { darkroomProcedure } from "#internal/trpc";
 
-import { printSampleLotteryTicketJob } from "../internal/receipt-print.service";
 import { resolveSampleLotteryDraw } from "../internal/sample-lottery-ticket";
 
 export const printSampleLotteryTicket = darkroomProcedure
@@ -31,5 +30,5 @@ export const printSampleLotteryTicket = darkroomProcedure
       prizes: current.prizes,
     });
 
-    await printSampleLotteryTicketJob({ ctx, draw });
+    await ctx.tickets.printSampleLotteryTicket(draw);
   });

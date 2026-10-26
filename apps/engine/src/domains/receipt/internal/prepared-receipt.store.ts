@@ -1,4 +1,4 @@
-import type { PreparedReceiptJob } from "./receipt-print.service";
+import type { PreparedReceiptJob } from "./tickets";
 
 /**
  * Long enough to cover the slot machine plus a slow kiosk, short enough that
@@ -52,5 +52,3 @@ export const createPreparedReceiptStore = ({
     },
   };
 };
-
-export const preparedReceiptStore = createPreparedReceiptStore();
