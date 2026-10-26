@@ -25,7 +25,6 @@ import { fetchShutterHealthz } from "#domains/healthz/internal/healthz.utils";
 import { serializeKioskMaintenance } from "#domains/kiosk/kiosk.service";
 import { darkroomProcedure } from "#internal/trpc";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
-import { isReceiptPrintDryRun } from "#lib/runtime-flags/runtime-flags";
 
 type GetHealthzResponse = {
   shutter: {
@@ -102,7 +101,7 @@ export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
       }),
       Promise.resolve().then(() =>
         checkPrinterHealthz(ctx.printer.getStatus(), {
-          dryRun: isReceiptPrintDryRun(),
+          dryRun: ctx.printer.dryRun,
         }),
       ),
     ],

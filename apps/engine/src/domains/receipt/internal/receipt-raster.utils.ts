@@ -11,8 +11,8 @@ import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { getReceiptEventSettingsForDb } from "#domains/event/event.service";
 import { ditherImage } from "#domains/image-manipulation/image-manipulation.service";
+import { screenshotToGsV0RasterCommand } from "#domains/printer/printer.service";
 
-import { screenshotToGsV0RasterCommand } from "./gs-v0-raster.utils";
 import {
   captureLotteryTicketScreenshot,
   captureReceiptScreenshot,
