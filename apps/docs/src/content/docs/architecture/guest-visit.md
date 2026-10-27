@@ -94,8 +94,9 @@ The engine records every guest's **visit** in the `visit` table, through the vis
 
 - **At most one open visit.** There is one kiosk, so starting a visit, or a draw that comes without one, first closes the visit left open: `completed` if its receipt printed, otherwise `abandoned`. It ends at its last known step (print, capture or start), not when it was noticed. A page reload mid-visit is closed this way at the next **Start**.
 - **Every visit ends.** At engine start, every visit still open is closed the same way (`visits-closed-at-boot`).
-- **A draw without a visit starts one.** If `startVisit` failed or hadn't answered yet, `prepareReceipt` comes without `visitId`, or with one that already drew; the draw then starts its own visit and returns its id, which the iPad keeps. A `visitId` that can't be one (empty, or over 64 characters) is dropped the same way: it never stops the guest.
-- **A draw joins its visit even once that visit ended.** The iPad may give up on the print (45 s) before the draw answers, ending the visit `failed`; the late draw still belongs to it, so the guest counts once. After an engine restart mid-visit, the draw lands on the visit the restart closed as `abandoned`.
+- **A draw without a visit joins the one Start just opened.** If `startVisit` hadn't answered yet (or failed), `prepareReceipt` comes without `visitId`, or with one that already drew. The draw then joins the open visit that hasn't drawn, if it started less than **2 min** ago (Start to the photo takes about 10 s), and returns its id, which the iPad keeps. Otherwise it starts its own visit. A `visitId` that can't be one (empty, or over 64 characters) is dropped the same way: it never stops the guest.
+- **A draw joins its visit even once that visit ended.** The iPad may give up on the print (45 s) before the draw answers, ending the visit `failed`; the late draw still belongs to it, so the guest counts once.
+- **Printed in full means completed.** A visit whose tickets printed in full ends `completed`, whatever the iPad said or in which order: the iPad may give up on a print that still comes out, and a restart may close a visit whose print follows.
 - **No guest data.** A visit holds times, its draw and how it ended. No photo, nothing about the guest.
 
 ## Print jobs on the wire

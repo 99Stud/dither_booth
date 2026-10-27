@@ -127,18 +127,76 @@ describe("visits", () => {
     });
   });
 
-  test("a draw without a visit starts one, closing any left open", () => {
-    const { db, visits } = setup();
+  test("a draw without a visit id joins the visit Start just opened", () => {
+    const { db, tick, visits } = setup();
 
-    const { visitId: open } = visits.start();
+    // The kiosk sent the photo before startVisit's answer reached it.
+    const { visitId } = visits.start();
+    tick(10);
     const linked = draw(db, visits, null, "000001");
 
-    expect(linked).toEqual(expect.any(String));
-    expect(linked).not.toBe(open);
+    expect(linked).toBe(visitId);
     expect(rows(db)).toMatchObject([
-      { id: open, endReason: "abandoned", drawId: null },
+      { id: visitId, drawId: "draw-000001", endedAt: null },
+    ]);
+  });
+
+  test("a draw without a visit starts one when the open one is stale", () => {
+    const { db, tick, visits } = setup();
+
+    // A guest the page lost before their photo, long ago.
+    const { visitId: stale } = visits.start();
+    tick(10 * 60);
+    const linked = draw(db, visits, null, "000001");
+
+    expect(linked).not.toBe(stale);
+    expect(rows(db)).toMatchObject([
+      { id: stale, endReason: "abandoned", drawId: null },
       { id: linked, drawId: "draw-000001", endedAt: null },
     ]);
+  });
+
+  test("printed tickets make a visit completed, whatever the kiosk said", () => {
+    const { db, tick, visits } = setup();
+
+    // The kiosk gave up first, then the print came out.
+    const late = visits.start().visitId!;
+    draw(db, visits, late, "000001");
+    visits.end(late, "failed");
+    visits.printed("000001", true);
+    // The print came out first, then the kiosk's timeout said failed.
+    tick(60);
+    const slow = visits.start().visitId!;
+    draw(db, visits, slow, "000002");
+    visits.printed("000002", true);
+    visits.end(slow, "failed");
+
+    expect(rows(db)).toMatchObject([
+      { id: late, endReason: "completed" },
+      { id: slow, endReason: "completed" },
+    ]);
+  });
+
+  test("a restart mid-visit, then the print: completed", () => {
+    const { db, visits } = setup();
+
+    const { visitId } = visits.start();
+    visits.closeStale();
+    draw(db, visits, visitId, "000001");
+    visits.printed("000001", true);
+
+    expect(rows(db)).toMatchObject([{ id: visitId, endReason: "completed" }]);
+  });
+
+  test("a failed print leaves a failed visit failed", () => {
+    const { db, visits } = setup();
+
+    const { visitId } = visits.start();
+    draw(db, visits, visitId, "000001");
+    visits.printed("000001", false);
+    visits.end(visitId!, "failed");
+
+    expect(rows(db)).toMatchObject([{ endReason: "failed", printedAt: null }]);
   });
 
   test("a second draw for the same visit gets a visit of its own", () => {

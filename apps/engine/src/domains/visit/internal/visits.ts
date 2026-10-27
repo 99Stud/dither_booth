@@ -1,6 +1,6 @@
 import { getKioskErrorDiagnostics } from "@dither-booth/logging";
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 
 import type { DB, DbExecutor, DbTransaction } from "#db/internal/db.types";
 import type { RecordedDraw } from "#domains/lottery/lottery.service";
@@ -50,6 +50,20 @@ export type Visits = {
 };
 
 /**
+ * How recent an open visit without a draw must be for a draw that came
+ * without a visit id to join it. Start to the photo takes about 10 s; an
+ * older one is a guest the page lost (a reload), not this one.
+ */
+const OPEN_VISIT_JOIN_WINDOW_MS = 2 * 60_000;
+
+/**
+ * Tickets printed in full make a visit completed, whatever the kiosk saw: it
+ * may give up on a print (45 s) that still comes out.
+ */
+const completedIfPrinted = (reason: VisitEndReason) =>
+  sql<VisitEndReason>`case when ${visitTable.printedAt} is not null then 'completed' else ${reason} end`;
+
+/**
  * Ends every open visit: completed if its receipt printed (the kiosk never
  * said so), otherwise abandoned. It ends at its last known step, not when it
  * was noticed.
@@ -59,7 +73,7 @@ const closeOpenVisits = (executor: DbExecutor, at: Date) =>
     .update(visitTable)
     .set({
       endedAt: sql`coalesce(${visitTable.printedAt}, ${visitTable.capturedAt}, ${visitTable.startedAt})`,
-      endReason: sql`case when ${visitTable.printedAt} is not null then 'completed' else 'abandoned' end`,
+      endReason: completedIfPrinted("abandoned"),
       updatedAt: at,
     })
     .where(isNull(visitTable.endedAt))
@@ -142,6 +156,32 @@ export function createVisits({
             if (linked) return visitId;
           }
 
+          // Without a visit to link, the draw is most likely this guest's
+          // visit whose Start answer hasn't reached the kiosk yet: join the
+          // open visit that hasn't drawn, if it is recent.
+          const joined = savepoint
+            .update(visitTable)
+            .set({
+              campaignId: draw.campaignId,
+              capturedAt: at,
+              drawId: draw.id,
+              updatedAt: at,
+            })
+            .where(
+              and(
+                isNull(visitTable.endedAt),
+                isNull(visitTable.drawId),
+                gte(
+                  visitTable.startedAt,
+                  new Date(at.getTime() - OPEN_VISIT_JOIN_WINDOW_MS),
+                ),
+              ),
+            )
+            .returning({ id: visitTable.id })
+            .get();
+
+          if (joined) return joined.id;
+
           const startedVisitId = createId();
           closeOpenVisits(savepoint, at);
           savepoint
@@ -174,7 +214,14 @@ export function createVisits({
         db.update(visitTable)
           .set({
             printAttempts: sql`${visitTable.printAttempts} + 1`,
-            ...(ok ? { printedAt: at } : {}),
+            ...(ok
+              ? {
+                  printedAt: at,
+                  // Already ended (the kiosk gave up, or a restart closed
+                  // it): the tickets came out, so it completed.
+                  endReason: sql<VisitEndReason>`case when ${visitTable.endReason} is null then null else 'completed' end`,
+                }
+              : {}),
             updatedAt: at,
           })
           .where(
@@ -197,7 +244,11 @@ export function createVisits({
         const at = now();
 
         db.update(visitTable)
-          .set({ endedAt: at, endReason: reason, updatedAt: at })
+          .set({
+            endedAt: at,
+            endReason: completedIfPrinted(reason),
+            updatedAt: at,
+          })
           .where(and(eq(visitTable.id, visitId), isNull(visitTable.endedAt)))
           .run();
       } catch (error) {
