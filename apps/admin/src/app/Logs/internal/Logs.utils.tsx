@@ -86,6 +86,25 @@ export function getLogServiceLabel(entry: LogEntry) {
 }
 
 /**
+ * An entry's error as one block: the message, the cause, then the stack.
+ * A stack that already starts with the message keeps it once.
+ */
+export function getLogErrorText(error: NonNullable<LogEntry["error"]>) {
+  const heading = error.name
+    ? `${error.name}: ${error.message}`
+    : error.message;
+  const repeatsHeading = error.stack?.startsWith(heading) ?? false;
+
+  return [
+    repeatsHeading ? undefined : heading,
+    error.cause && `Cause: ${error.cause}`,
+    error.stack,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/**
  * The short text after the event name: the error message, else the
  * details on one line. Plain-text lines show their raw text instead.
  */

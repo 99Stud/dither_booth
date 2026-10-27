@@ -10,6 +10,7 @@ import { LOG_SERVICE_LABELS } from "../../Logs.constants";
 import {
   copyLogText,
   formatLogTime,
+  getLogErrorText,
   getLogServiceLabel,
 } from "../../Logs.utils";
 import { LogLevelLabel } from "../LogLevelLabel";
@@ -67,17 +68,7 @@ export const LogDetails: FC<{ entry: LogEntry }> = ({ entry }) => (
     </dl>
     {entry.error && (
       <Section title="Error">
-        <pre className={PRE_CLASS_NAME}>
-          {[
-            entry.error.name
-              ? `${entry.error.name}: ${entry.error.message}`
-              : entry.error.message,
-            entry.error.cause && `Cause: ${entry.error.cause}`,
-            entry.error.stack,
-          ]
-            .filter(Boolean)
-            .join("\n\n")}
-        </pre>
+        <pre className={PRE_CLASS_NAME}>{getLogErrorText(entry.error)}</pre>
       </Section>
     )}
     {entry.details && Object.keys(entry.details).length > 0 && (

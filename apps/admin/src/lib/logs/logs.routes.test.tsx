@@ -295,7 +295,7 @@ describe("the /admin/logs socket", () => {
     expect(client.lastHistory()!.done).toBe(true);
   });
 
-  it("turns plain-text and multi-line chunks into entries", async () => {
+  it("turns plain-text and multi-line chunks into entries, a stack trace staying one entry", async () => {
     const { connect, logs } = await setUp();
     await logs.write(
       "engine",
@@ -333,13 +333,7 @@ describe("the /admin/logs socket", () => {
       {
         event: undefined,
         level: "error",
-        raw: "TypeError: boom",
-        stream: "err",
-      },
-      {
-        event: undefined,
-        level: "error",
-        raw: "    at run (server.js:1:1)",
+        raw: "TypeError: boom\n    at run (server.js:1:1)",
         stream: "err",
       },
       {

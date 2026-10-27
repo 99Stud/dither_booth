@@ -129,6 +129,31 @@ function parseJson(text: string): unknown {
   }
 }
 
+/**
+ * Folds indented lines into the plain-text line before them, so a crash's
+ * stack trace reads as one entry. Kiosk lines are one line each and never
+ * take continuations.
+ */
+function joinContinuationLines(lines: string[]): string[] {
+  const joined: string[] = [];
+
+  for (const line of lines) {
+    const previous = joined.at(-1);
+
+    if (
+      previous !== undefined &&
+      /^\s/.test(line) &&
+      !previous.startsWith(KIOSK_PREFIX)
+    ) {
+      joined[joined.length - 1] = `${previous}\n${line}`;
+    } else {
+      joined.push(line);
+    }
+  }
+
+  return joined;
+}
+
 function parseOutputLine({
   id,
   service,
@@ -243,19 +268,20 @@ function parsePm2Record({
     .map((line) => line.envelope?.message ?? "")
     .join("");
 
-  return message
-    .split("\n")
-    .map((text) => text.replace(/\r$/, ""))
-    .filter((text) => text.trim() !== "")
-    .map((text, index) =>
-      parseOutputLine({
-        id: idOf(index),
-        service,
-        stream: type,
-        text,
-        timestamp,
-      }),
-    );
+  return joinContinuationLines(
+    message
+      .split("\n")
+      .map((text) => text.replace(/\r$/, ""))
+      .filter((text) => text.trim() !== ""),
+  ).map((text, index) =>
+    parseOutputLine({
+      id: idOf(index),
+      service,
+      stream: type,
+      text,
+      timestamp,
+    }),
+  );
 }
 
 /** Complete lines in `[from, until)`, oldest first. */
