@@ -25,6 +25,8 @@ const APT_PACKAGES = [
   "ca-certificates",
   // Counts devices on the booth Wi-Fi (`booth network watch`).
   "iw",
+  // Rotates the PM2 log files (`booth service` installs the rule).
+  "logrotate",
   // Chromium/Puppeteer runtime libraries commonly required on Raspberry Pi OS.
   "libatk1.0-0",
   "libatk-bridge2.0-0",

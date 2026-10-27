@@ -7,16 +7,18 @@ sidebar:
 
 ## Where logs go
 
-| Source                                                    | Where                                                                                     | Read with                                   |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Engine, Shutter server, Admin server                      | PM2 log files in `/opt/dither-booth/logs/pm2/` (`<process>-out.log`, `<process>-err.log`) | `tail -f` or PM2, below                     |
-| Browsers: the Shutter on the iPad, admin on staff phones  | Warnings and errors only, in the log of the server that served the page                   | [Browser reports](#browser-reports), below  |
-| `ditherbooth.service` (start, stop, certificate re-issue) | journald                                                                                  | `journalctl -u ditherbooth.service`         |
-| Network watch (booth Wi-Fi, mDNS name)                    | journald                                                                                  | `journalctl -u ditherbooth-network.service` |
-| NetworkManager (Wi-Fi joins, failures)                    | journald                                                                                  | `journalctl -u NetworkManager`              |
-| Kernel (USB plug/unplug, under-voltage)                   | journald                                                                                  | `journalctl -k` or `dmesg`                  |
+| Source                                                    | Where                                                                           | Read with                                   |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------- |
+| Engine, Shutter server, Admin server                      | PM2 log files in `/opt/dither-booth/logs/pm2/` (`<process>.log`), rotated daily | `tail -f` or PM2, below                     |
+| Browsers: the Shutter on the iPad, admin on staff phones  | Warnings and errors only, in the log of the server that served the page         | [Browser reports](#browser-reports), below  |
+| `ditherbooth.service` (start, stop, certificate re-issue) | journald                                                                        | `journalctl -u ditherbooth.service`         |
+| Network watch (booth Wi-Fi, mDNS name)                    | journald                                                                        | `journalctl -u ditherbooth-network.service` |
+| NetworkManager (Wi-Fi joins, failures)                    | journald                                                                        | `journalctl -u NetworkManager`              |
+| Kernel (USB plug/unplug, under-voltage)                   | journald                                                                        | `journalctl -k` or `dmesg`                  |
 
 The PM2 process names are `dither-booth-engine`, `dither-booth-shutter` and `dither-booth-admin`.
+
+`booth service` adds `pi` to the `systemd-journal` group, so `pi` and the apps PM2 runs as `pi` can read the whole journal without `sudo`.
 
 ## Reading PM2 logs
 
@@ -29,20 +31,33 @@ bun run pm2:logs                         # all processes, live
 bun run pm2:logs-app dither-booth-engine # one process
 ```
 
-Or read the files directly:
+Or read the files directly. Each process writes **one file**, `logs/pm2/<process>.log`, holding both its stdout and its stderr. Each line is one JSON object:
 
-```bash
-tail -f /opt/dither-booth/logs/pm2/dither-booth-engine-out.log
+```text
+{"message":"[kiosk] {\"loggedAt\":\"2026-10-27T14:56:33.510Z\",\"level\":\"error\",…}\n","timestamp":"2026-10-27T14:56:33.512Z","type":"err","process_id":0,"app_name":"dither-booth-engine"}
 ```
 
-Info events go to `-out.log`; warnings and errors go to `-err.log`.
+| Field       | What                                                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| `message`   | What the process printed, as PM2 received it: one or more lines, newline and all. See [Line format](#line-format) |
+| `timestamp` | When PM2 received it, ISO time in UTC                                                                             |
+| `type`      | `out` (stdout: info events) or `err` (stderr: warnings and errors)                                                |
+| `app_name`  | The PM2 process name                                                                                              |
+
+```bash
+tail -f /opt/dither-booth/logs/pm2/dither-booth-engine.log
+```
+
+One entry is never split across two lines. A burst of output can arrive as one entry with several lines in its `message`.
+
+Booths updated from an older release still have `<process>-out.log` and `<process>-err.log` next to the new files. PM2 no longer writes them and rotation leaves them alone; delete them once you no longer need them.
 
 ## Line format
 
-Each log event is **one line**: PM2's timestamp (`time: true` in `pm2.config.js`), the `[kiosk]` prefix, then the event as compact JSON.
+Each log event is **one line** in `message`: the `[kiosk]` prefix, then the event as compact JSON.
 
 ```text
-2026-10-27T14:56:33: [kiosk] {"loggedAt":"2026-10-27T14:56:33.510Z","level":"error","source":"engine.device-setup","event":"wifi-join-failed","details":{"ssid":"BoothNet","password":"[redacted]"},"error":{"name":"Error","message":"Secrets were required","stack":"Error: Secrets were required\n    at …"}}
+[kiosk] {"loggedAt":"2026-10-27T14:56:33.510Z","level":"error","source":"engine.device-setup","event":"wifi-join-failed","details":{"ssid":"BoothNet","password":"[redacted]"},"error":{"name":"Error","message":"Secrets were required","stack":"Error: Secrets were required\n    at …"}}
 ```
 
 | Field      | What it holds                                                    |
@@ -62,36 +77,51 @@ Before a line is written:
 - **Secrets are redacted.** A detail whose key contains the word `password`, `passphrase`, `psk`, `secret`, `token` or `pin` (any case, at any depth: `wifiPassword`, `darkroom_pin`, `accessToken`) shows `"[redacted]"`.
 - **Odd values are made safe.** Big integers become strings, byte arrays (such as a printer's `raw` status packet) become arrays of numbers, and a reference back to a parent object becomes `"[circular]"`. If the details still can't be written, they become `"[unserializable: <reason>]"` and the event is kept.
 
-Lines without the `[kiosk]` prefix are plain text from elsewhere: a crash trace, Bun or a library. Read those as they are. Events written before this format spread one event over many lines, each with its own timestamp.
+Lines without the `[kiosk]` prefix are plain text from elsewhere: a crash trace, Bun or a library. Read those as they are. Events written before this format, in the old `-out.log` and `-err.log` files, spread one event over many lines, each with its own timestamp.
 
 Pages in the browser (the Shutter and admin) log the same events as objects to the browser's console, not as JSON lines. Their warnings and errors also reach the server: see [Browser reports](#browser-reports).
+
+### Grep recipes
+
+In the file, the event sits inside the `message` string, so its quotes are escaped (`\"`). Search with `grep -F` and the escaped form. Each event is on one line, so `grep` always returns whole events:
+
+```bash
+cd /opt/dither-booth/logs/pm2
+grep -F '\"level\":\"error\"' dither-booth-*.log | tail                        # recent errors, every process
+grep -F '\"source\":\"engine.printer\"' dither-booth-engine.log | tail         # one part of the engine
+grep -F '\"event\":\"printer-status-changed\"' dither-booth-engine.log | tail -5
+tail -1 dither-booth-engine.log | jq -r .message                               # bare line, ready to paste (sudo apt install jq)
+```
 
 ## Browser reports
 
 The Shutter on the iPad and admin on staff phones send each **warning and error** they log to the server that served the page, which writes it to its own log. Info events stay in the browser's console.
 
 - **What's sent.** Errors the page reports to staff, uncaught errors (`window-error`) and unhandled promise rejections (`unhandled-promise-rejection`), with their source, event, details and error. Secrets are redacted in the browser, before sending.
-- **Where it lands.** Reports from the Shutter go to `dither-booth-shutter`'s log; reports from admin go to `dither-booth-admin`'s. Warnings land in `-err.log` like any other warning.
+- **Where it lands.** Reports from the Shutter go to `dither-booth-shutter`'s log; reports from admin go to `dither-booth-admin`'s. Like any other warning or error, they are `"type":"err"` entries.
 - **How to tell them apart.** A browser line carries `"origin":"browser"`, the reporting device's `deviceId`, and its `runId` (which page load on that device). The line's `loggedAt` is when the server received it.
 - **Limits.** The server keeps at most **30 reports a minute from one device** and drops the rest, so a page stuck in an error loop can't fill the disk. A report over **16 KB** is sent without its details and with its stack cut to 4 KB; one still too big isn't sent.
 
 ```bash
-grep '"origin":"browser"' dither-booth-shutter-*.log | tail          # errors from the iPad
-grep '"deviceId":"<id>"' dither-booth-admin-*.log | tail              # one phone
+cd /opt/dither-booth/logs/pm2
+grep -F '\"origin\":\"browser\"' dither-booth-shutter.log | tail    # warnings and errors from the iPad
+grep -F '\"deviceId\":\"<id>\"' dither-booth-admin.log | tail       # one phone
 ```
 
 How the route checks reports: [Access control → Browser reports](/docs/architecture/access-control/#browser-reports).
 
-### Grep recipes
+## Rotation
 
-Each event is one line, so `grep` always returns whole events:
+logrotate rotates the three files, with the rule `booth service` installs at `/etc/logrotate.d/ditherbooth`:
+
+- **When:** once a day, and also when a file is over **20 MB** at logrotate's run. Raspberry Pi OS runs logrotate once a day (`logrotate.timer`), so a file can pass 20 MB before that run.
+- **How many:** the last **7** rotated files per process, gzip-compressed (`dither-booth-engine.log.1.gz` … `.7.gz`). Older ones are deleted.
+- **How:** copy, then truncate in place (`copytruncate`), as `pi`. PM2 keeps writing to the same file, with no restart. A line written during the copy can be lost.
+
+Rotation works offline, with the Pi's own logrotate. `booth doctor` fails when the rule is missing. To rotate now, for example on a full disk:
 
 ```bash
-cd /opt/dither-booth/logs/pm2
-grep '"level":"error"' dither-booth-*-err.log | tail                     # recent errors, every process
-grep '"source":"engine.printer"' dither-booth-engine-*.log | tail        # one part of the engine
-grep '"event":"printer-status-changed"' dither-booth-engine-out.log | tail -5
-grep -h '\[kiosk\]' dither-booth-engine-out.log | sed 's/^.*\[kiosk\] //' | tail -1 # bare JSON, ready to paste
+sudo logrotate --force /etc/logrotate.d/ditherbooth
 ```
 
 ## Log events
@@ -109,13 +139,13 @@ The apps log structured events: a level, a **source** and an **event name**, plu
 | `engine.event`        | `event-kit-unknown`: an event names a kit this release doesn't ship; the default kit prints instead                                                                                                                                                                                               |
 | `engine.lottery`      | draw and lottery-ticket failures                                                                                                                                                                                                                                                                  |
 
-To follow one thing across a visit, grep by source: `grep '"source":"engine.printer"' dither-booth-engine-*.log`.
+To follow one thing across a visit, grep by source: `grep -F '\"source\":\"engine.printer\"' dither-booth-engine.log`.
 
 ## Process restarts
 
 PM2 restarts a process that crashes, with exponential backoff, up to 10 times in a row (a process must stay up 10 s to count as started). It also restarts a process that grows past its memory cap: **1 GB** for the engine (Chromium lives in it), **256 MB** for each web server.
 
-A process that keeps restarting shows a high restart count in `bun run pm2:list`. Its `-err.log` tells you why.
+A process that keeps restarting shows a high restart count in `bun run pm2:list`. Its log's last `"type":"err"` lines tell you why.
 
 ```bash
 journalctl -u ditherbooth.service --since "1 hour ago"
