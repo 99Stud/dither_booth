@@ -439,6 +439,116 @@ describe("the /admin/logs socket", () => {
     );
   });
 
+  it("keeps a stack trace PM2 wrote in two chunks as one entry, both ways", async () => {
+    const { connect, logs } = await setUp();
+    await logs.write(
+      "engine",
+      engineEvent(1, "e1"),
+      pm2Envelope({
+        service: "engine",
+        timestamp: at(2),
+        type: "err",
+        message: "TypeError: boom\n",
+      }),
+      pm2Envelope({
+        service: "engine",
+        timestamp: at(2),
+        type: "err",
+        message: "    at run (server.js:1:1)\n    at main (server.js:9:1)\n",
+      }),
+      engineEvent(3, "e3"),
+    );
+    const trace =
+      "TypeError: boom\n    at run (server.js:1:1)\n    at main (server.js:9:1)";
+
+    const client = connect();
+    client.send({ type: "history", filter: {}, limit: 10 });
+    await eventually(() => expect(client.lastHistory()).toBeDefined());
+    expect(client.lastHistory()!.entries.map((entry) => entry.raw)).toEqual([
+      expect.stringContaining('"e1"'),
+      trace,
+      expect.stringContaining('"e3"'),
+    ]);
+
+    // Backward, one entry per page: the trace still comes back whole.
+    client.send({ type: "history", filter: {}, limit: 1 });
+    await eventually(() => expect(client.histories()).toHaveLength(2));
+    client.send({
+      type: "history",
+      filter: {},
+      limit: 1,
+      before: client.lastHistory()!.cursor,
+    });
+    await eventually(() => expect(client.histories()).toHaveLength(3));
+    expect(client.lastHistory()!.entries.map((entry) => entry.raw)).toEqual([
+      trace,
+    ]);
+  });
+
+  it("keeps a stack trace whole when its rest arrives live", async () => {
+    const { connect, logs } = await setUp({ continuationGraceMs: 2000 });
+    await logs.write("engine");
+
+    const client = connect();
+    client.send({ type: "history", filter: {}, limit: 10 });
+    await eventually(() => expect(client.lastHistory()).toBeDefined());
+
+    const now = new Date().toISOString();
+    await logs.append(
+      "engine",
+      pm2Envelope({
+        service: "engine",
+        timestamp: now,
+        type: "err",
+        message: "TypeError: boom\n",
+      }),
+    );
+    await Bun.sleep(50);
+    await logs.append(
+      "engine",
+      pm2Envelope({
+        service: "engine",
+        timestamp: now,
+        type: "err",
+        message: "    at run (server.js:1:1)\n",
+      }),
+    );
+
+    await eventually(() =>
+      expect(client.appended().map((entry) => entry.raw)).toEqual([
+        "TypeError: boom\n    at run (server.js:1:1)",
+      ]),
+    );
+  });
+
+  it("keeps Bun's code frame with the error it points at", async () => {
+    const { connect, logs } = await setUp();
+    await logs.write(
+      "engine",
+      pm2Envelope({
+        service: "engine",
+        timestamp: at(1),
+        type: "err",
+        message: "bun: listening\n",
+      }),
+      pm2Envelope({
+        service: "engine",
+        timestamp: at(2),
+        type: "err",
+        message:
+          '1 | const a = 1;\n2 | throw new Error("boom");\n          ^\nerror: boom\n      at /app/x.ts:2:7\n',
+      }),
+    );
+
+    const client = connect();
+    client.send({ type: "history", filter: {}, limit: 10 });
+    await eventually(() => expect(client.lastHistory()).toBeDefined());
+    expect(client.lastHistory()!.entries.map((entry) => entry.raw)).toEqual([
+      "bun: listening",
+      '1 | const a = 1;\n2 | throw new Error("boom");\n          ^\nerror: boom\n      at /app/x.ts:2:7',
+    ]);
+  });
+
   it("sends a cut line on its own once nothing continues it", async () => {
     const { connect, logs } = await setUp({ continuationGraceMs: 100 });
     await logs.write("engine");

@@ -65,7 +65,7 @@ type Pm2Record = {
   lines: ParsedFileLine[];
   start: number;
   end: number;
-  /** It ends the read, cut mid-line: the next envelope may continue it. */
+  /** It ends the read, cut mid-line or in crash output: the next envelope may continue it. */
   isOpen: boolean;
 };
 
@@ -111,10 +111,28 @@ function toIsoTimestamp(value: string | undefined) {
   return Number.isNaN(time) ? undefined : new Date(time).toISOString();
 }
 
+/** A line of Bun's code frame, before the error it points at: `12 | code`. */
+const CODE_FRAME_LINE = /^\d+ \| /;
+/** The caret under a code frame. */
+const CARET_LINE = /^\s*\^+\s*$/;
+
 /**
- * Folds indented lines into the plain-text line before them, so a crash's
- * stack trace reads as one entry. Kiosk lines are one line each and never
- * take continuations.
+ * Whether `line` carries on the plain-text crash output `previousLine`
+ * belongs to: an indented stack line, or the line after a code frame or its
+ * caret. Kiosk lines are one line each and never take continuations.
+ */
+function continuesTrace(previousLine: string, line: string) {
+  return (
+    !previousLine.startsWith(KIOSK_LOG_PREFIX) &&
+    (/^\s/.test(line) ||
+      CODE_FRAME_LINE.test(previousLine) ||
+      CARET_LINE.test(previousLine))
+  );
+}
+
+/**
+ * Folds each crash's lines into one, so a stack trace (and Bun's code frame
+ * above it) reads as one entry.
  */
 function joinContinuationLines(lines: string[]): string[] {
   const joined: string[] = [];
@@ -124,8 +142,7 @@ function joinContinuationLines(lines: string[]): string[] {
 
     if (
       previous !== undefined &&
-      /^\s/.test(line) &&
-      !previous.startsWith(KIOSK_LOG_PREFIX)
+      continuesTrace(previous.slice(previous.lastIndexOf("\n") + 1), line)
     ) {
       joined[joined.length - 1] = `${previous}\n${line}`;
     } else {
@@ -197,9 +214,45 @@ function isCut(line: ParsedFileLine) {
   return line.envelope !== undefined && !line.envelope.message.endsWith("\n");
 }
 
-/** Whether `next` carries on the output line `previous` was cut in. */
+/** The non-blank lines of an envelope's message. */
+function getMessageLines(line: ParsedFileLine) {
+  return (line.envelope?.message ?? "")
+    .split("\n")
+    .map((text) => text.replace(/\r$/, ""))
+    .filter((text) => text.trim() !== "");
+}
+
+/**
+ * Whether the next envelope may belong with `line`: it was cut mid-line, or
+ * it ends in plain text a stack trace may carry on.
+ */
+function mayContinue(line: ParsedFileLine) {
+  const last = getMessageLines(line).at(-1);
+
+  return (
+    isCut(line) || (last !== undefined && !last.startsWith(KIOSK_LOG_PREFIX))
+  );
+}
+
+/**
+ * Whether `next` belongs with `previous`: it carries on the output line
+ * `previous` was cut in, or the crash output `previous` ended with.
+ */
 function continues(previous: ParsedFileLine, next: ParsedFileLine) {
-  return isCut(previous) && previous.envelope!.type === next.envelope?.type;
+  if (previous.envelope?.type !== next.envelope?.type || !next.envelope) {
+    return false;
+  }
+
+  if (isCut(previous)) {
+    return true;
+  }
+
+  const last = getMessageLines(previous).at(-1);
+  const first = getMessageLines(next)[0];
+
+  return (
+    last !== undefined && first !== undefined && continuesTrace(last, first)
+  );
 }
 
 function toRecord(lines: ParsedFileLine[], isOpen = false): Pm2Record {
@@ -405,7 +458,7 @@ async function* readRecordsForward(
   }
 
   if (run.length > 0) {
-    yield toRecord(run, isCut(run.at(-1)!));
+    yield toRecord(run, mayContinue(run.at(-1)!));
   }
 }
 
@@ -495,13 +548,13 @@ async function findLineAlignedEnd(handle: FileHandle, size: number) {
 }
 
 /**
- * Whether `record` ends cut mid-line, written less than `graceMs` ago: the
- * rest of its line is likely on its way.
+ * Whether `record` may still be continued (cut mid-line, or ending in crash
+ * output), written less than `graceMs` ago: the rest is likely on its way.
  */
 function isAwaitingRest(record: Pm2Record, graceMs: number) {
   const last = record.lines.at(-1)!;
 
-  if (!isCut(last)) {
+  if (!mayContinue(last)) {
     return false;
   }
 
