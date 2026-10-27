@@ -28,7 +28,7 @@ flowchart LR
 | Protocol        | `logs.protocol.tsx` | zod schemas for every message and for a log entry. The page validates with the same ones |
 | Filter          | `logs.utils.tsx`    | `matchesLogFilter`: one predicate for history on the server and live lines on the page   |
 | Log source      | `logs.types.tsx`    | The `LogSource` interface every source implements                                        |
-| PM2 file source | `logs.server.tsx`   | Follows and pages one PM2 combined file                                                  |
+| PM2 file source | `logs.pm2.tsx`      | Follows and pages one PM2 combined file                                                  |
 | Journal source  | `logs.journal.tsx`  | Follows and pages the system journal through `journalctl`, as the `system` service       |
 | Log hub         | `logs.hub.tsx`      | One follower per source for every open page; merges sources by time; batches live lines  |
 | Route           | `logs.routes.tsx`   | The socket: validates requests, tracks each page's cursor, holds live lines while needed |

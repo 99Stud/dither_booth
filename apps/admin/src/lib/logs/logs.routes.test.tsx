@@ -4,7 +4,7 @@ import type { LogEntry, LogSource } from "./logs.types";
 
 import { createLogHub } from "./logs.hub";
 import { createLogsRoute } from "./logs.routes";
-import { createPm2LogSources } from "./logs.server";
+import { createPm2LogSources } from "./logs.pm2";
 import {
   createFakeLogSource,
   createTestLogsSocket,
