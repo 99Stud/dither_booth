@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { Pm2ProcessNames } from "./logs.pm2";
-
 import type {
   LogEntry,
   LogService,
@@ -27,7 +26,6 @@ export const TEST_PM2_PROCESS_NAMES: Pm2ProcessNames = {
   engine: "dither-booth-engine",
   shutter: "dither-booth-shutter",
 };
-
 
 /** A socket that records what the route sends and whether it closed. */
 export function createTestLogsSocket() {

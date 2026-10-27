@@ -1,10 +1,10 @@
 import type { FileHandle } from "node:fs/promises";
 
+import { PM2_LOG_RELATIVE_DIR } from "@dither-booth/shared/booth-system";
 import { type FSWatcher, watch } from "node:fs";
 import { open } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { PM2_LOG_RELATIVE_DIR } from "@dither-booth/shared/booth-system";
 import z from "zod";
 
 import type {

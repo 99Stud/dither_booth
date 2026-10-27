@@ -71,7 +71,7 @@ Both web servers (Shutter on 3000, Admin on 3002) take **`POST /client-log`**: t
 | `Origin` isn't the server's own origin, on one of the booth's hostnames or its IP                                           | 403          |
 | Body over **16 KB** (read no further than that)                                                                             | 413          |
 | Not a valid report (zod: `level` `warn` or `error`, `deviceId`, `runId`, `source`, `event`, optional `details` and `error`) | 400          |
-| More than **30 reports a minute** of one level (`warn` or `error`) from the same `deviceId`                                  | 429          |
+| More than **30 reports a minute** of one level (`warn` or `error`) from the same `deviceId`                                 | 429          |
 
 An accepted report answers 204 and is re-logged once through the shared logger, marked `"origin":"browser"` with its `deviceId` and `runId`. The server's logger redacts secrets again. Nothing is ever read back through this route.
 

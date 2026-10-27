@@ -141,13 +141,13 @@ Admin's Logs page (`/logs`, `apps/admin/src/app/Logs/`) is the socket's only cli
 
 **The list** is `react-virtuoso` (MIT), only the visible rows in the DOM:
 
-| Behaviour              | How                                                                                                                                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Follow while at bottom | `followOutput` scrolls to new lines when the list was within **48 px** of the bottom, and no line is open                                                                                          |
-| “N new lines” pill     | Off the bottom for **300 ms** counts as scrolled up (new lines push the list off for a frame before it follows). The pill counts visible lines added since; it and **End** scroll to the last line |
-| Older lines at the top | `startReached` sends `before: <last cursor>`. `firstItemIndex` starts at 1,000,000 and drops by the visible lines prepended, so the reader's line doesn't move                                     |
+| Behaviour              | How                                                                                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Follow while at bottom | `followOutput` scrolls to new lines when the list was within **48 px** of the bottom, and no line is open                                                                                             |
+| “N new lines” pill     | Off the bottom for **300 ms** counts as scrolled up (new lines push the list off for a frame before it follows). The pill counts visible lines added since; it and **End** scroll to the last line    |
+| Older lines at the top | `startReached` sends `before: <last cursor>`. `firstItemIndex` starts at 1,000,000 and drops by the visible lines prepended, so the reader's line doesn't move                                        |
 | Restart divider        | A server's `server-started` event is drawn as a divider instead of a line. `matchesLogFilter` lets it through the level, source and text filters (not the services), on the server and the page alike |
-| Rotation divider       | Drawn when a `rotated` status arrives                                                                                                                                                              |
+| Rotation divider       | Drawn when a `rotated` status arrives                                                                                                                                                                 |
 
 **Pause** keeps the socket and the cursor; new lines wait in a buffer (also capped at 10,000) and the badge counts them. While paused, a polite live region announces “N new errors”. The list itself is `role="log"` with `aria-live="off"`, so a screen reader isn't read every line.
 

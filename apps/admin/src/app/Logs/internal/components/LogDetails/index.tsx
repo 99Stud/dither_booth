@@ -6,12 +6,12 @@ import { Braces, Copy } from "lucide-react";
 
 import type { LogEntry } from "#lib/logs/logs.types";
 
+import { LOG_SERVICE_LABELS } from "../../Logs.constants";
 import {
   copyLogText,
   formatLogTime,
   getLogServiceLabel,
 } from "../../Logs.utils";
-import { LOG_SERVICE_LABELS } from "../../Logs.constants";
 import { LogLevelLabel } from "../LogLevelLabel";
 
 const PRE_CLASS_NAME = clsx(

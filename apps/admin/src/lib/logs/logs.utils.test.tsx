@@ -82,9 +82,9 @@ describe("matchesLogFilter", () => {
     };
 
     expect(matchesLogFilter(restart, narrow)).toBe(true);
-    expect(
-      matchesLogFilter(restart, { ...narrow, services: ["engine"] }),
-    ).toBe(true);
+    expect(matchesLogFilter(restart, { ...narrow, services: ["engine"] })).toBe(
+      true,
+    );
     expect(
       matchesLogFilter(restart, { ...narrow, services: ["shutter"] }),
     ).toBe(false);

@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it } from "bun:test";
 import type { LogEntry, LogSource } from "./logs.types";
 
 import { createLogHub } from "./logs.hub";
-import { createLogsRoute } from "./logs.routes";
 import { createPm2LogSources } from "./logs.pm2";
+import { createLogsRoute } from "./logs.routes";
 import {
   createFakeLogSource,
   createTestLogsSocket,
@@ -417,10 +417,7 @@ describe("the /admin/logs socket", () => {
     const resumed = connect();
     resumed.send({ type: "history", filter: {}, limit: 10, after: cursor });
     await eventually(() => expect(resumed.lastHistory()?.done).toBe(true));
-    expect(eventsAndDone(resumed.lastHistory()!).events).toEqual([
-      "big",
-      "e3",
-    ]);
+    expect(eventsAndDone(resumed.lastHistory()!).events).toEqual(["big", "e3"]);
   });
 
   it("re-joins a split event as it is written live, even across start", async () => {

@@ -7,14 +7,14 @@ sidebar:
 
 ## Where logs go
 
-| Source                                                    | Where                                                                           | Read with                                   |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------- |
+| Source                                                    | Where                                                                                         | Read with                                   |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | Engine, Shutter server, Admin server                      | PM2 log files in `/opt/dither-booth/logs/pm2/` (`<process>.log`), rotated daily or past 20 MB | `tail -f` or PM2, below                     |
-| Browsers: the Shutter on the iPad, admin on staff phones  | Warnings and errors only, in the log of the server that served the page         | [Browser reports](#browser-reports), below  |
-| `ditherbooth.service` (start, stop, certificate re-issue) | journald                                                                        | `journalctl -u ditherbooth.service`         |
-| Network watch (booth Wi-Fi, mDNS name)                    | journald                                                                        | `journalctl -u ditherbooth-network.service` |
-| NetworkManager (Wi-Fi joins, failures)                    | journald                                                                        | `journalctl -u NetworkManager`              |
-| Kernel (USB plug/unplug, under-voltage)                   | journald                                                                        | `journalctl -k` or `dmesg`                  |
+| Browsers: the Shutter on the iPad, admin on staff phones  | Warnings and errors only, in the log of the server that served the page                       | [Browser reports](#browser-reports), below  |
+| `ditherbooth.service` (start, stop, certificate re-issue) | journald                                                                                      | `journalctl -u ditherbooth.service`         |
+| Network watch (booth Wi-Fi, mDNS name)                    | journald                                                                                      | `journalctl -u ditherbooth-network.service` |
+| NetworkManager (Wi-Fi joins, failures)                    | journald                                                                                      | `journalctl -u NetworkManager`              |
+| Kernel (USB plug/unplug, under-voltage)                   | journald                                                                                      | `journalctl -k` or `dmesg`                  |
 
 The PM2 process names are `dither-booth-engine`, `dither-booth-shutter` and `dither-booth-admin`.
 
