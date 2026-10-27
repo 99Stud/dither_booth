@@ -77,7 +77,7 @@ An accepted report answers 204 and is re-logged once through the shared logger, 
 
 Why these numbers: a report is one event, a few KB with its stack; 16 KB leaves room and bounds what one request can write. A page stuck in an error loop on one device stops at 30 lines a minute instead of filling the disk. Warnings and errors have separate budgets of 30 each, so a chatty warning loop can't get real errors refused. The limit is per device and level, in memory, and resets with the server; a device that forges ids can still only write 16 KB a request, from an allowed origin.
 
-Code: `packages/browser-server/src/internal/client-log.routes.ts`; the report schema and limits are in `packages/logging/src/client-log/`.
+Code: `packages/browser-server/src/internal/client-log.routes.ts`; the report schema and limits are in `packages/logging/src/isomorphic/client-log.ts`.
 
 ## Engine exposure
 
