@@ -18,6 +18,8 @@ sidebar:
 
 The PM2 process names are `dither-booth-engine`, `dither-booth-shutter` and `dither-booth-admin`.
 
+The admin server reads the three PM2 files and streams them to admin's Logs page over `/admin/logs`: see [Logging](/docs/architecture/logging/).
+
 `booth service` adds `pi` to the `systemd-journal` group, so `pi` and the apps PM2 runs as `pi` can read the whole journal without `sudo`.
 
 ## Reading PM2 logs

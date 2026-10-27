@@ -134,6 +134,8 @@ _Avoid_: upside down, rotation (in staff-facing text; rotation is a print settin
 
 ## Logs
 
+**Log source**: one place the Logs page reads lines from, followed by the admin server: each PM2 process's log file (Engine, Shutter, Admin), and the system journal. A source is available, unavailable (no file yet, no journal), or rotated (its file started over).
+
 **Browser report**: a warning or error logged by a page in a browser (the Shutter on the iPad, admin on a staff phone) and sent to the server that served it, which writes it to its log marked as coming from the browser, with the device's id.
 
 ## Booth state

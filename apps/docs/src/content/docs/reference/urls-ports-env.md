@@ -19,6 +19,7 @@ sidebar:
 | Engine           | `http://127.0.0.1:3001`                              | Loopback only. Browsers use `/engine/trpc` on the Shutter or Admin origin         |
 | Health           | `/healthz` on each of the above ports                | JSON                                                                              |
 | Browser reports  | `POST /client-log` on 3000 and 3002                  | Write-only. [Browser reports](/docs/architecture/access-control/#browser-reports) |
+| Logs socket      | `wss://<hostname>.local:3002/admin/logs`             | The Logs page's live logs. [Logging](/docs/architecture/logging/)                 |
 
 On the booth Wi-Fi, the booth is always `10.42.0.1`.
 
