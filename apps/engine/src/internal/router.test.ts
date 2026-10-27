@@ -24,9 +24,11 @@ const GROUPS = {
     "lockDarkroom",
     "onKioskCommand",
     "prepareReceipt",
+    "endVisit",
     "printPreparedReceipt",
     "reportKioskStatus",
     "sendKioskCameraSignal",
+    "startVisit",
     "unlockDarkroom",
   ],
   config: [
@@ -45,6 +47,7 @@ const GROUPS = {
     "getHubRegistration",
     "getNetworkStatus",
     "getPrintConfiguration",
+    "getVisitStats",
     "installLibraryFont",
     "listFontAssets",
     "listDraws",
@@ -165,6 +168,7 @@ function createCaller(
     },
     setupServerToken,
     tickets: new Proxy({}, { get: unreachable }) as TRPCContext["tickets"],
+    visits: new Proxy({}, { get: unreachable }) as TRPCContext["visits"],
   } satisfies TRPCContext;
 
   return engineRouter.createCaller(context);

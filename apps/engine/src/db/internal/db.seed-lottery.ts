@@ -9,6 +9,7 @@ import {
   lotteryTable,
   prizeTable,
   stockAdjustmentTable,
+  visitTable,
 } from "#db/internal/db.schema";
 
 import { ENGINE_DB_MIGRATE_LOG_SOURCE } from "./db.constants";
@@ -66,6 +67,8 @@ export type SeedDevLotteryResult =
     };
 
 async function clearLotteryData() {
+  // Visits point at draws and campaigns, so they go first.
+  await db.delete(visitTable);
   await db.delete(drawTable);
   await db.delete(stockAdjustmentTable);
   await db

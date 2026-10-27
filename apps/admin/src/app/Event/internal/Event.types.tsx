@@ -17,6 +17,9 @@ export type CurrentEvent = NonNullable<
   inferOutput<ConfigProcedures["getCurrentEvent"]>
 >;
 export type EventPrize = CurrentEvent["prizes"][number];
+export type VisitStats = NonNullable<
+  inferOutput<ConfigProcedures["getVisitStats"]>
+>;
 
 export type EventTab = "overview" | "kit" | "lottery" | "prizes" | "draws";
 

@@ -52,6 +52,7 @@ function createTestCaller(
     puppeteerState: state,
     requestOrigin,
     tickets: {} as TRPCContext["tickets"],
+    visits: {} as TRPCContext["visits"],
   } satisfies TRPCContext;
 
   return {
