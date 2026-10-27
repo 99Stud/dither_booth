@@ -20,6 +20,11 @@ export type BrowserKioskLoggingState = {
 };
 
 export type KioskLogContext = {
+  /**
+   * Set by a server re-logging a browser report: the line is marked
+   * `origin: "browser"` and carries the reporting device's ids.
+   */
+  browser?: BrowserKioskLogContext;
   details?: KioskLogDetails;
   error?: KioskErrorDiagnostics;
 };

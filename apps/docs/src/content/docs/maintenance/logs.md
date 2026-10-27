@@ -10,6 +10,7 @@ sidebar:
 | Source                                                    | Where                                                                                     | Read with                                   |
 | --------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------- |
 | Engine, Shutter server, Admin server                      | PM2 log files in `/opt/dither-booth/logs/pm2/` (`<process>-out.log`, `<process>-err.log`) | `tail -f` or PM2, below                     |
+| Browsers: the Shutter on the iPad, admin on staff phones  | Warnings and errors only, in the log of the server that served the page                   | [Browser reports](#browser-reports), below  |
 | `ditherbooth.service` (start, stop, certificate re-issue) | journald                                                                                  | `journalctl -u ditherbooth.service`         |
 | Network watch (booth Wi-Fi, mDNS name)                    | journald                                                                                  | `journalctl -u ditherbooth-network.service` |
 | NetworkManager (Wi-Fi joins, failures)                    | journald                                                                                  | `journalctl -u NetworkManager`              |
@@ -52,6 +53,9 @@ Each log event is **one line**: PM2's timestamp (`time: true` in `pm2.config.js`
 | `event`    | The event name, e.g. `printer-status-changed`                    |
 | `details`  | Optional. The event's details                                    |
 | `error`    | Optional. `name`, `message`, `cause` and `stack` (one JSON line) |
+| `origin`   | Only on [browser reports](#browser-reports): `"browser"`         |
+| `deviceId` | Only on browser reports: the reporting iPad or phone             |
+| `runId`    | Only on browser reports: which page load on that device (1, 2…)  |
 
 Before a line is written:
 
@@ -60,7 +64,23 @@ Before a line is written:
 
 Lines without the `[kiosk]` prefix are plain text from elsewhere: a crash trace, Bun or a library. Read those as they are. Events written before this format spread one event over many lines, each with its own timestamp.
 
-Pages in the browser (the Shutter and admin) log the same events as objects to the browser's console, not as JSON lines.
+Pages in the browser (the Shutter and admin) log the same events as objects to the browser's console, not as JSON lines. Their warnings and errors also reach the server: see [Browser reports](#browser-reports).
+
+## Browser reports
+
+The Shutter on the iPad and admin on staff phones send each **warning and error** they log to the server that served the page, which writes it to its own log. Info events stay in the browser's console.
+
+- **What's sent.** Errors the page reports to staff, uncaught errors (`window-error`) and unhandled promise rejections (`unhandled-promise-rejection`), with their source, event, details and error. Secrets are redacted in the browser, before sending.
+- **Where it lands.** Reports from the Shutter go to `dither-booth-shutter`'s log; reports from admin go to `dither-booth-admin`'s. Warnings land in `-err.log` like any other warning.
+- **How to tell them apart.** A browser line carries `"origin":"browser"`, the reporting device's `deviceId`, and its `runId` (which page load on that device). The line's `loggedAt` is when the server received it.
+- **Limits.** The server keeps at most **30 reports a minute from one device** and drops the rest, so a page stuck in an error loop can't fill the disk. A report over **16 KB** is sent without its details and with its stack cut to 4 KB; one still too big isn't sent.
+
+```bash
+grep '"origin":"browser"' dither-booth-shutter-*.log | tail          # errors from the iPad
+grep '"deviceId":"<id>"' dither-booth-admin-*.log | tail              # one phone
+```
+
+How the route checks reports: [Access control → Browser reports](/docs/architecture/access-control/#browser-reports).
 
 ### Grep recipes
 

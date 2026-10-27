@@ -1,3 +1,4 @@
+import { CLIENT_LOG_ROUTE_PATH } from "@dither-booth/logging/client-log";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
 import { serve } from "bun";
 import { resolve } from "node:path";
@@ -20,6 +21,7 @@ import {
   getPublicAssetRoutes,
   getStaticRoutesFromManifests,
 } from "./internal/browser-server.utils";
+import { createClientLogRoute } from "./internal/client-log.routes";
 
 export async function runBrowserServer(options: RunBrowserServerOptions) {
   const isProduction = options.mode === "production";
@@ -33,6 +35,7 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     options.trpcProxyPath,
     `${options.trpcProxyPath}/*`,
     "/healthz",
+    CLIENT_LOG_ROUTE_PATH,
     "/",
     "/*",
   ]);
@@ -137,6 +140,10 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
     mode: options.mode,
     service: options.healthz.service,
   });
+  const clientLogRoute = createClientLogRoute({
+    allowedHostnames: options.allowedHostnames,
+    publicOrigin: options.publicOrigin,
+  });
   const webSocketUpgradeRoutes = Object.fromEntries(
     Object.entries(webSocketRoutes).map(([routePath, handler]) => [
       routePath,
@@ -163,6 +170,7 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
       ...webSocketUpgradeRoutes,
       ...staticRoutes,
       "/healthz": healthzRoute,
+      [CLIENT_LOG_ROUTE_PATH]: clientLogRoute,
       "/": spaFallback,
       "/*": spaFallback,
     },
