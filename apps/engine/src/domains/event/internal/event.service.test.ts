@@ -15,7 +15,7 @@ import {
   prizeTable,
   stockAdjustmentTable,
 } from "#db/internal/db.schema";
-import { createTestDb } from "#db/internal/db.test-utils";
+import { createTestDb, sqliteRefusal } from "#db/internal/db.test-utils";
 import { executeLotteryDraw } from "#domains/lottery/lottery.service";
 
 import { updateKitSettingsInputSchema } from "./event.constants";
@@ -410,7 +410,7 @@ describe("event.service", () => {
       // Draws only ever use the active event's lottery, so other lotteries
       // keep their flags as a record.
       const orphan = await db.query.lotteryTable.findFirst({
-        where: eq(lotteryTable.id, "orphan_lottery"),
+        where: { id: "orphan_lottery" },
       });
       expect(orphan?.enabled).toBe(true);
     } finally {
@@ -452,7 +452,7 @@ describe("event.service", () => {
       expect(next.prizes).toEqual([]);
 
       const stored = await db.query.prizeTable.findFirst({
-        where: eq(prizeTable.id, prizeId),
+        where: { id: prizeId },
       });
       expect(stored).toMatchObject({
         removed: true,
@@ -538,7 +538,7 @@ describe("event.service", () => {
       expect(next.prizes).toEqual([]);
 
       const stored = await db.query.prizeTable.findFirst({
-        where: eq(prizeTable.id, prizeId),
+        where: { id: prizeId },
       });
       expect(stored).toBeUndefined();
       // Its ledger goes with it.
@@ -772,7 +772,7 @@ describe("event.service — kiosk concurrency and history", () => {
 
       expect(() =>
         db.delete(prizeTable).where(eq(prizeTable.id, prize.id)).run(),
-      ).toThrow(/FOREIGN KEY/);
+      ).toThrow(sqliteRefusal(/FOREIGN KEY/));
       expect(() =>
         db
           .insert(drawTable)
@@ -780,7 +780,7 @@ describe("event.service — kiosk concurrency and history", () => {
           // prize is stopped earlier by the out-of-stock trigger.
           .values({ lotteryId: "no-such-lottery", ticketRef: "777777" })
           .run(),
-      ).toThrow(/FOREIGN KEY/);
+      ).toThrow(sqliteRefusal(/FOREIGN KEY/));
     } finally {
       sqlite.close();
     }
@@ -967,7 +967,7 @@ describe("event.service — kiosk concurrency and history", () => {
     try {
       expect(() =>
         db.insert(campaignTable).values({ name: "Twin" }).run(),
-      ).toThrow(/UNIQUE constraint failed: campaign.status/);
+      ).toThrow(sqliteRefusal(/UNIQUE constraint failed: campaign.status/));
       db.insert(campaignTable)
         .values([
           { name: "Old", status: "archived" },

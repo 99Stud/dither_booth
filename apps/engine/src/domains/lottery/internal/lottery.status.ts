@@ -1,7 +1,7 @@
 import type { LotteryStatus, Rarity } from "@dither-booth/shared/lottery";
 
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
-import { and, count, desc, eq, isNotNull } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 
 import type { DB } from "#db/internal/db.types";
 
@@ -62,11 +62,8 @@ export async function getLotteryStatusForDb(db: DB): Promise<LotteryStatus> {
   const rarityBreakdown = buildRarityBreakdown(prizes);
 
   const lastWin = await db.query.drawTable.findFirst({
-    where: and(
-      eq(drawTable.lotteryId, lottery.id),
-      isNotNull(drawTable.prizeId),
-    ),
-    orderBy: [desc(drawTable.createdAt)],
+    where: { lotteryId: lottery.id, prizeId: { isNotNull: true } },
+    orderBy: { createdAt: "desc" },
   });
 
   const [drawCountRow] = await db

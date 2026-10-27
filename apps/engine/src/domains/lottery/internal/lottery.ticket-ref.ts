@@ -1,3 +1,5 @@
+import { DrizzleQueryError } from "drizzle-orm";
+
 export const TICKET_REF_ALLOCATION_ATTEMPTS = 8;
 
 /**
@@ -8,7 +10,10 @@ export const createBoothTicketRef = (
   random: () => number = Math.random,
 ): string => (Math.floor(random() * 999_999) + 1).toString().padStart(6, "0");
 
-export const isUniqueTicketRefConstraintError = (error: unknown): boolean => {
+export const isUniqueTicketRefConstraintError = (thrown: unknown): boolean => {
+  // Drizzle wraps the SQLite error, and its own message holds the whole
+  // query, which names `ticket_ref` whatever the conflict was.
+  const error = thrown instanceof DrizzleQueryError ? thrown.cause : thrown;
   if (!(error instanceof Error)) {
     return false;
   }
