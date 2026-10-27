@@ -633,6 +633,20 @@ describe("the receipt procedures", () => {
     expect(visit.visitId).toEqual(expect.any(String));
   });
 
+  test("prepareReceipt drops a visit id that can't be one and still draws", async () => {
+    const db = setupDb({ outcome: "win" });
+    const caller = createCaller(db, createRecordingPrinter().printer);
+    const form = new FormData();
+    form.set("photo", PHOTO);
+    form.set("visitId", "x".repeat(65));
+
+    const visit = await caller.booth.prepareReceipt(form);
+
+    expect(visit.visitId).toEqual(expect.any(String));
+    expect(visit.visitId).not.toBe("x".repeat(65));
+    expect(db.select().from(drawTable).all()).toHaveLength(1);
+  });
+
   test("prepareReceipt refuses a form without a photo", async () => {
     const caller = createCaller(
       setupDb({ outcome: "win" }),

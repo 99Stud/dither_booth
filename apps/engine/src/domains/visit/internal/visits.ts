@@ -124,6 +124,8 @@ export function createVisits({
         return tx.transaction((savepoint) => {
           const at = now();
 
+          // An ended visit still takes its draw: the kiosk may have given up
+          // on the print first. Starting another would count the guest twice.
           if (visitId !== null) {
             const linked = savepoint
               .update(visitTable)

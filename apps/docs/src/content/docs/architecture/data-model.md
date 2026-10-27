@@ -56,6 +56,7 @@ erDiagram
   }
   visit {
     text id
+    text campaign_id "event at Start, then at the draw"
     text hub_event_id "null until the booth knows it"
     int started_at
     int captured_at

@@ -1,4 +1,4 @@
-export { VISIT_LOG_SOURCE } from "./internal/visit.constants";
+export { VISIT_LOG_SOURCE, visitIdSchema } from "./internal/visit.constants";
 export { getVisitStatsForDb, type VisitStats } from "./internal/visit.stats";
 export {
   createVisits,

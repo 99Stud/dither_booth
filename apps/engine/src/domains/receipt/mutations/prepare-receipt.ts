@@ -1,9 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 
+import { visitIdSchema } from "#domains/visit/visit.service";
 import { boothProcedure } from "#internal/trpc";
-
-const visitIdSchema = z.string().min(1).max(64).nullable();
 
 /**
  * First half of a booth visit: commit the draw and render both tickets while
@@ -17,10 +16,12 @@ export const prepareReceipt = boothProcedure
     if (!(photo instanceof Blob)) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Photo missing." });
     }
+    // Analytics never stop a guest: a visit id that can't be one is dropped,
+    // and the draw starts its own visit.
     const visitId = visitIdSchema.safeParse(input.get("visitId"));
-    if (!visitId.success) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid visit." });
-    }
 
-    return ctx.tickets.prepareVisit(photo, visitId.data);
+    return ctx.tickets.prepareVisit(
+      photo,
+      visitId.success ? visitId.data : null,
+    );
   });

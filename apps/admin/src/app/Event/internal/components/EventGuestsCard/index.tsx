@@ -105,11 +105,11 @@ const Headline: FC<{ stats: VisitStats }> = ({ stats }) => (
     >
       {stats.visits}
     </p>
-    {stats.wins > 0 && (
-      <p className={clsx("mt-1 text-sm text-muted-foreground")}>
-        {stats.wins} won a prize
-      </p>
-    )}
+    <p className={clsx("mt-1 text-sm text-muted-foreground")}>
+      {/* A visit completes when its tickets print: completed is prints. */}
+      {stats.completed} printed
+      {stats.wins > 0 && ` · ${stats.wins} won a prize`}
+    </p>
   </div>
 );
 

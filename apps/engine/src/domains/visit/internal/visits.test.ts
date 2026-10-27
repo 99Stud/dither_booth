@@ -155,6 +155,21 @@ describe("visits", () => {
     ]);
   });
 
+  test("a draw that comes after its visit ended still joins it", () => {
+    const { db, visits } = setup();
+
+    // The kiosk gave up on the print before the draw answered: the guest
+    // still counts once, with the draw on their visit.
+    const { visitId } = visits.start();
+    visits.end(visitId!, "failed");
+    const linked = draw(db, visits, visitId, "000001");
+
+    expect(linked).toBe(visitId);
+    expect(rows(db)).toMatchObject([
+      { id: visitId, drawId: "draw-000001", endReason: "failed" },
+    ]);
+  });
+
   test("a failed link keeps the draw and logs", () => {
     const { db, logged, visits } = setup();
 

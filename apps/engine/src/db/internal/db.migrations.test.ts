@@ -456,7 +456,10 @@ describe("runSqliteMigrations", () => {
       "INSERT INTO draw (id, created_at, campaign_id, ticket_ref) VALUES ('d1', 1000, 'c1', '000001'), ('d2', 2000, NULL, '000002')",
     );
 
-    runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
+    // The backfill's references hold: no foreign key violation after it.
+    expect(
+      runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite }),
+    ).toEqual([]);
 
     expect(
       sqlite
