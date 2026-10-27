@@ -81,7 +81,7 @@ Exports reflect the scope: `./formatting` → `src/isomorphic/formatting.ts`, `.
 | `@dither-booth/protocol`          | What a booth and the Hub say to each other: runtime-agnostic Zod schemas (zod only), read by Bun and by Deno, with fixtures         |
 | `@dither-booth/ports`             | Ports, bind hosts, origins, the TLS manifest, allowed hostnames                                                                     |
 | `@dither-booth/browser-server`    | The Bun HTTPS server for Shutter and admin: static manifest, cache headers, SPA fallback, `/engine/trpc` proxy                      |
-| `@dither-booth/logging`           | `logKioskEvent` and error diagnostics                                                                                               |
+| `@dither-booth/logging`           | `logKioskEvent` (one JSON line per server event, secrets redacted) and error diagnostics                                            |
 | `@dither-booth/ui`                | Shared React components                                                                                                             |
 | `@dither-booth/typescript-config` | Base `tsconfig`s                                                                                                                    |
 

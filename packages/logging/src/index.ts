@@ -8,9 +8,12 @@ import type {
   ReportKioskErrorOptions,
 } from "./internal/logging.types";
 
+import { KIOSK_LOG_PREFIX } from "./internal/logging.constants";
+import { serializeLogPayload } from "./internal/logging.serialize";
 import {
   getBrowserLoggingContext,
   getConsoleMethod,
+  isBrowserRuntime,
 } from "./internal/logging.utils";
 
 export const getKioskErrorDiagnostics = (
@@ -48,8 +51,7 @@ export const logKioskEvent = (
   context: KioskLogContext = {},
 ) => {
   const { details, error } = context;
-
-  getConsoleMethod(level)("[kiosk]", {
+  const payload = {
     loggedAt: new Date().toISOString(),
     level,
     source,
@@ -57,7 +59,16 @@ export const logKioskEvent = (
     ...getBrowserLoggingContext(),
     ...(hasDetails(details) ? { details } : {}),
     ...(error ? { error } : {}),
-  });
+  };
+
+  if (isBrowserRuntime()) {
+    getConsoleMethod(level)(KIOSK_LOG_PREFIX, payload);
+    return;
+  }
+
+  getConsoleMethod(level)(
+    `${KIOSK_LOG_PREFIX} ${serializeLogPayload(payload)}`,
+  );
 };
 
 export type { ReportKioskErrorOptions };

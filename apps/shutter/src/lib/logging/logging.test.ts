@@ -39,10 +39,11 @@ describe("reportKioskError", () => {
     console.error = errorSpy as typeof console.error;
     toast.error = toastSpy as unknown as typeof toast.error;
 
+    // The shutter runs in the browser, which logs the object form.
     Object.defineProperty(globalThis, "window", {
       configurable: true,
       writable: true,
-      value: undefined,
+      value: {},
     });
 
     reportKioskError(new Error("SQLITE_BUSY: database is locked"), {

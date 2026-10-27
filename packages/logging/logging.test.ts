@@ -115,9 +115,7 @@ describe("getKioskErrorDiagnostics", () => {
 
 describe("logKioskEvent", () => {
   it("keeps reserved fields at the top level and nests caller payload", () => {
-    const infoSpy = mock<(...args: [string, unknown]) => void>(
-      (..._args) => undefined,
-    );
+    const infoSpy = mock<(...args: [string]) => void>((..._args) => undefined);
 
     console.info = infoSpy as typeof console.info;
     setTestWindow(undefined);
@@ -133,9 +131,12 @@ describe("logKioskEvent", () => {
 
     expect(infoSpy).toHaveBeenCalledTimes(1);
 
-    const [prefix, payload] = infoSpy.mock.calls[0]!;
+    const [line] = infoSpy.mock.calls[0]!;
 
-    expect(prefix).toBe("[kiosk]");
+    expect(line.startsWith("[kiosk] ")).toBe(true);
+
+    const payload: unknown = JSON.parse(line.slice("[kiosk] ".length));
+
     expect(payload).toMatchObject({
       event: "camera-state-changed",
       level: "info",
