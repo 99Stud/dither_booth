@@ -18,7 +18,10 @@ import {
 import { createTestDb, sqliteRefusal } from "#db/internal/db.test-utils";
 import { executeLotteryDraw } from "#domains/lottery/lottery.service";
 
-import { updateKitSettingsInputSchema } from "./event.constants";
+import {
+  updateEventInputSchema,
+  updateKitSettingsInputSchema,
+} from "./event.constants";
 import {
   createEventForDb,
   createPrizeForDb,
@@ -843,10 +846,91 @@ describe("event.service — kiosk concurrency and history", () => {
     const { db, sqlite } = await setupLiveEvent();
 
     try {
-      const updated = await updateEventForDb(db, { name: "Renamed" });
+      const updated = await updateEventForDb(db, {
+        name: "Renamed",
+        startsAt: null,
+        endsAt: null,
+      });
 
       expect(updated).toEqual((await getCurrentEventForDb(db))!);
       expect(updated.campaign.name).toBe("Renamed");
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("an event starts with no start or end; updateEvent sets and clears them", async () => {
+    const { db, sqlite } = await setupLiveEvent();
+
+    try {
+      const before = await getCurrentEventForDb(db);
+      expect(before?.campaign).toMatchObject({ startsAt: null, endsAt: null });
+
+      const timed = await updateEventForDb(db, {
+        name: "Halloween",
+        startsAt: "2026-10-31T18:00:00.000Z",
+        endsAt: "2026-11-01T01:00:00.000Z",
+      });
+      expect(timed.campaign).toMatchObject({
+        startsAt: "2026-10-31T18:00:00.000Z",
+        endsAt: "2026-11-01T01:00:00.000Z",
+      });
+
+      const cleared = await updateEventForDb(db, {
+        name: "Halloween",
+        startsAt: null,
+        endsAt: null,
+      });
+      expect(cleared.campaign).toMatchObject({ startsAt: null, endsAt: null });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("createEvent takes the event's start and end", async () => {
+    const { db, sqlite } = createTestDb();
+
+    try {
+      const created = await createEventForDb(db, {
+        name: "Halloween",
+        kitId: DEFAULT_KIT_ID,
+        noWinWeight: 50,
+        winCooldownMinutes: 5,
+        printLoserTicket: false,
+        enabled: false,
+        startsAt: "2026-10-31T18:00:00.000Z",
+        endsAt: null,
+      });
+
+      expect(created.campaign).toMatchObject({
+        startsAt: "2026-10-31T18:00:00.000Z",
+        endsAt: null,
+      });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("an event can't end before it starts", async () => {
+    const { db, sqlite } = await setupLiveEvent();
+
+    try {
+      const times = {
+        name: "Halloween",
+        startsAt: "2026-10-31T18:00:00.000Z",
+        endsAt: "2026-10-31T18:00:00.000Z",
+      };
+      expect(updateEventInputSchema.safeParse(times).success).toBe(false);
+      // The database refuses it too, whoever writes.
+      expect(() =>
+        db
+          .update(campaignTable)
+          .set({
+            startsAt: new Date("2026-10-31T18:00:00.000Z"),
+            endsAt: new Date("2026-10-31T17:00:00.000Z"),
+          })
+          .run(),
+      ).toThrow();
     } finally {
       sqlite.close();
     }
@@ -1018,7 +1102,9 @@ describe("event.service — kiosk concurrency and history", () => {
     const { db, sqlite } = createTestDb();
 
     try {
-      await expect(updateEventForDb(db, { name: "x" })).rejects.toMatchObject({
+      await expect(
+        updateEventForDb(db, { name: "x", startsAt: null, endsAt: null }),
+      ).rejects.toMatchObject({
         code: "NOT_FOUND",
       });
       await expect(

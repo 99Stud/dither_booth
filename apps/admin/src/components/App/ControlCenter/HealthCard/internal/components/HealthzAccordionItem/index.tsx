@@ -27,7 +27,7 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { Server, Tablet } from "lucide-react";
 
-import type { HealthzResponse } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.types";
+import type { HealthzResponse } from "#lib/healthz/healthz.types";
 import type {
   Pm2RestartProgressEvent,
   Pm2RestartService,

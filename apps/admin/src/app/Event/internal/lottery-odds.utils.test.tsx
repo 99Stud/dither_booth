@@ -90,6 +90,24 @@ describe("formatOneIn", () => {
 describe("forecastPrizes", () => {
   const prizes = [prize({ id: "a", weight: 1, remainingQuantity: 10 })];
 
+  test("says when each prize runs out, the scarce one first", () => {
+    const forecast = forecastPrizes({
+      prizes: [
+        prize({ id: "common", weight: 1, remainingQuantity: 10 }),
+        prize({ id: "last", weight: 1, remainingQuantity: 1 }),
+        prize({ id: "gone", weight: 1, remainingQuantity: 0 }),
+      ],
+      noWinWeight: 0,
+      cooldownMinutes: 0,
+      guestsPerHour: 60,
+    });
+
+    const { common, last } = forecast.prizeRunsOutAfterMinutes;
+    expect(last).toBeLessThan(common!);
+    expect(common).toBe(forecast.runsOutAfterMinutes!);
+    expect(forecast.prizeRunsOutAfterMinutes.gone).toBeUndefined();
+  });
+
   test("without cooldown, wins per hour = guests per hour × win chance", () => {
     const forecast = forecastPrizes({
       prizes,

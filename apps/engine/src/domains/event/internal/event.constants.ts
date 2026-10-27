@@ -9,18 +9,43 @@ import z from "zod";
 
 export const EVENT_LOG_SOURCE = "engine.event";
 
-export const createEventInputSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  kitId: kitIdSchema.default(DEFAULT_KIT_ID),
-  noWinWeight: z.number().min(0).default(50),
-  winCooldownMinutes: z.number().int().min(0).default(5),
-  printLoserTicket: z.boolean().default(false),
-  enabled: z.boolean().default(false),
-});
+const eventTimeSchema = z.iso.datetime({ offset: true }).nullable();
 
-export const updateEventInputSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-});
+/** An event can't end before it starts; either side may be left open. */
+const endsAfterStart = (startEnd: {
+  startsAt: string | null;
+  endsAt: string | null;
+}) =>
+  startEnd.startsAt === null ||
+  startEnd.endsAt === null ||
+  new Date(startEnd.endsAt) > new Date(startEnd.startsAt);
+
+const END_BEFORE_START = {
+  message: "The event has to end after it starts.",
+  path: ["endsAt"],
+};
+
+export const createEventInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    kitId: kitIdSchema.default(DEFAULT_KIT_ID),
+    noWinWeight: z.number().min(0).default(50),
+    winCooldownMinutes: z.number().int().min(0).default(5),
+    printLoserTicket: z.boolean().default(false),
+    enabled: z.boolean().default(false),
+    startsAt: eventTimeSchema.default(null),
+    endsAt: eventTimeSchema.default(null),
+  })
+  .refine(endsAfterStart, END_BEFORE_START);
+
+/** The event's details. Times are always sent, so a rename can't drop them. */
+export const updateEventInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    startsAt: eventTimeSchema,
+    endsAt: eventTimeSchema,
+  })
+  .refine(endsAfterStart, END_BEFORE_START);
 
 /** The kit and what the event changes on it, saved together. */
 export const updateKitSettingsInputSchema = z.object({
@@ -85,7 +110,9 @@ export const listDrawsInputSchema = z.object({
   limit: z.number().int().min(1).max(100).default(50),
 });
 
-export type CreateEventInput = z.infer<typeof createEventInputSchema>;
+/** Times are optional here: an event created without them is open. */
+export type CreateEventInput = z.input<typeof createEventInputSchema> &
+  Omit<z.infer<typeof createEventInputSchema>, "startsAt" | "endsAt">;
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
 export type UpdateKitSettingsInput = z.infer<
   typeof updateKitSettingsInputSchema

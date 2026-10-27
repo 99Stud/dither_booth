@@ -16,6 +16,7 @@ import clsx from "clsx";
 import { Activity, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 
+import type { HealthzResponse } from "#lib/healthz/healthz.types";
 import type {
   Pm2RestartProgressEvent,
   Pm2RestartService,
@@ -24,10 +25,9 @@ import type {
 import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
 import { StatusDot } from "#components/Misc/StatusDot/index";
 import { notify } from "#lib/feedback/notify";
+import { getKioskCameraHealth } from "#lib/healthz/healthz.utils";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { useTRPC } from "#lib/trpc/trpc.client";
-
-import type { HealthzResponse } from "./internal/HealthCard.types";
 
 import { CameraAccordionItem } from "./internal/components/CameraAccordionItem";
 import { HealthzAccordionItem } from "./internal/components/HealthzAccordionItem";
@@ -39,10 +39,7 @@ import {
   KIOSK_RELOAD_HEALTHZ_REFETCH_DELAY_MS,
   RESTART_HEALTHZ_REFETCH_DELAY_MS,
 } from "./internal/HealthCard.constants";
-import {
-  getKioskCameraHealth,
-  requestPm2ServiceRestart,
-} from "./internal/HealthCard.utils";
+import { requestPm2ServiceRestart } from "./internal/HealthCard.utils";
 
 const extractUnhealthyServicesCount = (healthz: HealthzResponse) => {
   let unhealthyServicesCount = 0;

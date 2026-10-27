@@ -22,24 +22,46 @@
     scroll-padding-bottom: calc(var(--keyboard-inset, 0px) + 6rem);
   }
 
-  /* Buttons: 44 pt, 40 for small ones, square icon buttons. */
-  html.saas [data-slot="button"]:not([data-variant="link"]) {
+  /* Buttons: 44 pt, 40 for small ones, square icon buttons. A Button used
+     as a menu or popover trigger carries the trigger's `data-slot` instead,
+     so it is matched there by the variant only a Button sets. */
+  html.saas
+    :is(
+      [data-slot="button"],
+      [data-slot="dropdown-menu-trigger"][data-variant],
+      [data-slot="popover-trigger"][data-variant]
+    ):not([data-variant="link"]) {
     min-height: 2.75rem;
     border-radius: 9999px;
     padding-inline: 1.125rem;
     font-size: 0.9375rem;
   }
-  html.saas [data-slot="button"]:is([data-size="sm"], [data-size="xs"]) {
+  html.saas
+    :is(
+      [data-slot="button"],
+      [data-slot="dropdown-menu-trigger"][data-variant],
+      [data-slot="popover-trigger"][data-variant]
+    ):is([data-size="sm"], [data-size="xs"]) {
     min-height: 2.5rem;
     padding-inline: 0.875rem;
     font-size: 0.875rem;
   }
-  html.saas [data-slot="button"][data-size^="icon"] {
+  html.saas
+    :is(
+      [data-slot="button"],
+      [data-slot="dropdown-menu-trigger"][data-variant],
+      [data-slot="popover-trigger"][data-variant]
+    )[data-size^="icon"] {
     min-width: 2.75rem;
     min-height: 2.75rem;
     padding-inline: 0;
   }
-  html.saas [data-slot="button"]:active:not(:disabled) {
+  html.saas
+    :is(
+      [data-slot="button"],
+      [data-slot="dropdown-menu-trigger"][data-variant],
+      [data-slot="popover-trigger"][data-variant]
+    ):active:not(:disabled) {
     transform: scale(0.97);
   }
 
@@ -62,6 +84,16 @@
     ) {
     min-height: 2.75rem;
     font-size: 0.9375rem;
+  }
+
+  /* Calendar days are buttons, so they turn round: their cells (today's
+     tint, a range) follow, and today's tint leaves the picked day, or a
+     square shows behind its circle. */
+  html.saas .rdp-root {
+    --cell-radius: 9999px;
+  }
+  html.saas .rdp-root .rdp-today[data-selected="true"] {
+    background-color: transparent;
   }
 
   /* Segmented controls, chips and tabs. */

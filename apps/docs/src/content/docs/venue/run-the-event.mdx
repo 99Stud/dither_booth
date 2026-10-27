@@ -14,16 +14,35 @@ Admin is at `https://<booth>.local:3002` (or `https://<booth IP>:3002`). It has 
 The booth runs **one active event at a time**. An event has a name, a **kit** (how the booth screen and the tickets look: [Set the event's look](/docs/venue/set-the-look/)), the **ticket items** printed on the photo receipt, a **lottery** and its **prizes**.
 
 - **Create event** when none is active.
-- **Rename**, next to the event's name at the top of the Event page, changes its name.
-- **Replace event**, next to **Rename**, for the next booking. The current event is **archived**, never deleted: its lottery, prizes, stock history and draws stay on record. Ticket numbers stay unique across all events.
-- Renaming the event or changing its kit is an edit, not a replacement.
+- **Edit details**, next to the event's name at the top of the Event page, changes its name, when it **Starts** and when it **Ends**. Set both before the doors open: only guests who tap **Start** in between count in the Overview, so your setup tests and packing up don't. Pick each day from its calendar, then type the time. **Clear starts** or **Clear ends**, at the bottom of the calendar, leaves that side open. An event with neither counts every guest.
+- **Replace event**, in the three-dot menu next to **Edit details**, for the next booking. The current event is **archived**, never deleted: its lottery, prizes, stock history and draws stay on record. Ticket numbers stay unique across all events.
+- Changing the event's name, start, end or kit is an edit, not a replacement.
 
-The Event page's **Overview** shows the night at a glance, updated every 10 s.
+The Event page's **Overview** shows the night at a glance, updated every 10 s. From the top:
 
-- **Guests**: every guest of the event so far, how many got their tickets printed, and how many won a prize. A guest counts from their **Start** tap, so one who walks away mid-visit still counts.
-- **Guests per hour**: a bar for each of the last 12 hours, the current one on the right. Touch a bar for its count.
-- Under the chart: **Last guest** (how long ago), **Average visit** (minutes:seconds, from **Start** to the receipt), **Busiest hour**, and **Printing failed** when a guest's tickets didn't print. A long **Last guest** during the night is worth a look at the booth.
-- **Lottery**: live or off, the prizes left, and the pause after a win. **Lottery settings** opens the Lottery tab.
+- Where the event stands, **Upcoming**, **On now** or **Ended** (once it has a start or an end), its start and end (or its first guest when it has neither), and one sentence on how it's going:
+  - before the start, when it starts;
+  - then **Busy right now** (5 guests or more in the last 15 minutes), **Going well**, or **Quiet for now** (no guest for 30 minutes, worth a look at the booth). Before the first guest it says **No guests yet**;
+  - after the end, how many guests came.
+
+  Under it, how many visits outside the start and end aren't counted.
+
+- Four numbers, shown from before the first guest so nothing moves when guests arrive:
+  - **Guests**: every guest of the event so far between its start and end, and how many came in the last 15 minutes. A guest counts from their **Start** tap, so one who walks away mid-visit still counts.
+  - **Photos printed**, with the share of guests that got one.
+  - **Prizes won**, once the lottery has drawn, and how many guests drew for each win ("1 in 3 guests won").
+  - **Time at the booth**: the average from **Start** to the receipt, as "1 min 20 s".
+- How guests went through: **Started**, **Took a photo**, **Got their ticket**, and **Walked away** (guests who left before the end).
+- **Guests per hour** from the event's start (or its first guest) to now, or to its end, one bar per hour up to the last 24, with **Busiest** and its count above. The hour still running is the lighter bar, labelled **Now**; after the end, no bar is. Touch a bar for its count.
+- **Needs a look**: what to act on now, one row each with its button:
+  - a ticket that didn't print, with its ticket number and time. **Look up ticket** opens **Draws** on that ticket, to find the guest and see if they won. Without a number, **Control center**;
+  - a booth problem: paper running low or out, printer cover, booth screen, camera, or tickets that can't be prepared (**Control center**);
+  - a prize that ran out, has 1 left, or could run out within the hour at tonight's pace (**Restock**). Only while the lottery is live;
+  - an event with no start or end yet (**Set start and end**).
+
+  When there's nothing, it says the screen, camera and printer are fine.
+
+- **Lottery**: **Off** says guests get their photo with no prize draw, with **Turn on** (or **Add prizes** when there are none). **Live** lists the prizes left by rarity, until when they should last at this pace and, during a pause after a win, when the next win can come. During the first hour the pace is your estimate from the Lottery tab; after that it's the booth's own over the hours on the chart. **Lottery settings** opens the Lottery tab.
 
 ## The lottery
 

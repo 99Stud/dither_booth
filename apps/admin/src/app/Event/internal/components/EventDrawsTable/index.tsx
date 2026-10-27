@@ -51,10 +51,21 @@ const DrawOutcomeBadge: FC<{ outcome: string }> = ({ outcome }) =>
     </Badge>
   );
 
-export const EventDrawsTable: FC = () => {
+/**
+ * The event's draws, newest first, or one ticket looked up by its number.
+ * `initialTicketRef` opens on that ticket's lookup (from a failed print on
+ * the Overview); give the table a new `key` to look up another.
+ */
+export const EventDrawsTable: FC<{ initialTicketRef?: string }> = ({
+  initialTicketRef,
+}) => {
   const trpc = useTRPC();
-  const [draft, setDraft] = useState("");
-  const [ticketRef, setTicketRef] = useState<string | undefined>(undefined);
+  const [draft, setDraft] = useState(
+    initialTicketRef ? formatBoothTicketNumber(initialTicketRef) : "",
+  );
+  const [ticketRef, setTicketRef] = useState<string | undefined>(
+    initialTicketRef,
+  );
 
   const listDrawsQuery = useQuery(
     trpc.config.listDraws.queryOptions(

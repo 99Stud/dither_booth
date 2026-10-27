@@ -18,7 +18,7 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { RotateCw } from "lucide-react";
 
-import type { HealthzResponse } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.types";
+import type { HealthzResponse } from "#lib/healthz/healthz.types";
 
 import { HealthDetailRow } from "#components/App/ControlCenter/HealthCard/internal/components/HealthDetailRow/index";
 

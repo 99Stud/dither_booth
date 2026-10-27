@@ -24,20 +24,39 @@ import type {
   UpdateEventFormValues,
 } from "./Event.types";
 
+import { fromTimeInput, isEndAfterStart, toTimeInput } from "./start-end.utils";
+
 export const EVENT_LOG_SOURCE = "admin.event";
 
-export const CREATE_EVENT_FORM_SCHEMA = z.object({
-  name: z.string().trim().min(1).max(120),
-  kitId: kitIdSchema,
-  noWinWeight: z.number().min(0),
-  winCooldownMinutes: z.number().int().min(0),
-  printLoserTicket: z.boolean(),
-  enabled: z.boolean(),
-});
+/** The date-time fields hold local `2026-10-31T19:00`, or "" for open. */
+const START_END_FORM_FIELDS = {
+  startsAt: z.string(),
+  endsAt: z.string(),
+};
 
-export const UPDATE_EVENT_FORM_SCHEMA = z.object({
-  name: z.string().trim().min(1).max(120),
-});
+const END_AFTER_START = {
+  message: "The event has to end after it starts.",
+  path: ["endsAt"],
+};
+
+export const CREATE_EVENT_FORM_SCHEMA = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    kitId: kitIdSchema,
+    noWinWeight: z.number().min(0),
+    winCooldownMinutes: z.number().int().min(0),
+    printLoserTicket: z.boolean(),
+    enabled: z.boolean(),
+    ...START_END_FORM_FIELDS,
+  })
+  .refine(isEndAfterStart, END_AFTER_START);
+
+export const UPDATE_EVENT_FORM_SCHEMA = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    ...START_END_FORM_FIELDS,
+  })
+  .refine(isEndAfterStart, END_AFTER_START);
 
 export const TICKET_ITEMS_FORM_SCHEMA = z.object({
   names: ticketItemNamesSchema,
@@ -91,6 +110,8 @@ export const DEFAULT_CREATE_EVENT_FORM_VALUES: CreateEventFormValues = {
   winCooldownMinutes: 5,
   printLoserTicket: false,
   enabled: false,
+  startsAt: "",
+  endsAt: "",
 };
 
 export const DEFAULT_PRIZE_FORM_VALUES: PrizeFormValues = {
@@ -119,9 +140,20 @@ export const getLotterySettingsFormValues = (event: {
 });
 
 export const getUpdateEventFormValues = (event: {
-  campaign: UpdateEventFormValues;
+  campaign: { name: string; startsAt: string | null; endsAt: string | null };
 }): UpdateEventFormValues => ({
   name: event.campaign.name,
+  startsAt: toTimeInput(event.campaign.startsAt),
+  endsAt: toTimeInput(event.campaign.endsAt),
+});
+
+/** The form's start and end as the engine takes them: ISO, or null when empty. */
+export const toStartEnd = <T extends { startsAt: string; endsAt: string }>(
+  values: T,
+) => ({
+  ...values,
+  startsAt: fromTimeInput(values.startsAt),
+  endsAt: fromTimeInput(values.endsAt),
 });
 
 export const getTicketItemsFormValues = (event: {

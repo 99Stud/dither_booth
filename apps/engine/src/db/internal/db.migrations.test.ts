@@ -161,6 +161,54 @@ describe("runSqliteMigrations", () => {
     ).toContain("prize_title");
   });
 
+  test("event_start_end keeps every event, with no start or end, and refuses an end before the start", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    // Up to and including 0023 (visit): the last schema without event times.
+    runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(24), sqlite });
+    sqlite.run("INSERT INTO lottery (id, enabled) VALUES ('l1', 1)");
+    sqlite.run(
+      "INSERT INTO campaign (id, name, lottery_id, status) VALUES ('c1', 'Halloween', 'l1', 'active'), ('c0', 'Last week', NULL, 'archived')",
+    );
+    sqlite.run(
+      "INSERT INTO draw (id, campaign_id, lottery_id, ticket_ref) VALUES ('d1', 'c1', 'l1', '000001')",
+    );
+
+    const violations = runSqliteMigrations({
+      db,
+      migrationsFolder: MIGRATIONS_FOLDER,
+      sqlite,
+    });
+
+    expect(violations).toEqual([]);
+    expect(
+      sqlite
+        .query(
+          "SELECT id, name, status, starts_at, ends_at FROM campaign ORDER BY id",
+        )
+        .all(),
+    ).toEqual([
+      {
+        id: "c0",
+        name: "Last week",
+        status: "archived",
+        starts_at: null,
+        ends_at: null,
+      },
+      {
+        id: "c1",
+        name: "Halloween",
+        status: "active",
+        starts_at: null,
+        ends_at: null,
+      },
+    ]);
+    expect(() =>
+      sqlite.run(
+        "UPDATE campaign SET starts_at = 200, ends_at = 100 WHERE id = 'c1'",
+      ),
+    ).toThrow(/CHECK constraint failed/);
+  });
+
   test("is idempotent", () => {
     const { sqlite, db } = openDb({ foreignKeys: true });
     const run = () =>
@@ -172,8 +220,8 @@ describe("runSqliteMigrations", () => {
 
   test("takes over a booth migrated by drizzle 0.x without re-running", () => {
     const { sqlite, db } = openDb({ foreignKeys: false });
-    // Up to and including 0022: the booth is one migration behind.
-    migrateLikeDrizzleV0(sqlite, 23);
+    // Up to and including 0023 (visit): the booth is one migration behind.
+    migrateLikeDrizzleV0(sqlite, 24);
     sqlite.run("INSERT INTO campaign (id, name) VALUES ('c1', 'Halloween')");
 
     const violations = runSqliteMigrations({

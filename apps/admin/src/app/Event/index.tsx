@@ -1,4 +1,10 @@
 import { Button } from "@dither-booth/ui/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@dither-booth/ui/components/ui/dropdown-menu";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { Tabs, TabsContent } from "@dither-booth/ui/components/ui/tabs";
 import clsx from "clsx";
@@ -7,6 +13,7 @@ import {
   Gift,
   History,
   LayoutDashboard,
+  MoreHorizontal,
   Palette,
   PencilLine,
   RefreshCw,
@@ -24,6 +31,7 @@ import {
 import type { EventPrize, EventTab } from "./internal/Event.types";
 
 import { EventCreateDialog } from "./internal/components/EventCreateDialog";
+import { EventDetailsDialog } from "./internal/components/EventDetailsDialog";
 import { EventDrawsTable } from "./internal/components/EventDrawsTable";
 import { EventEmptyState } from "./internal/components/EventEmptyState";
 import { EventKitPanel } from "./internal/components/EventKitPanel";
@@ -31,10 +39,10 @@ import { EventLotteryForm } from "./internal/components/EventLotteryForm";
 import { EventOverviewPanel } from "./internal/components/EventOverviewPanel";
 import { EventPrizeDialog } from "./internal/components/EventPrizeDialog";
 import { EventPrizesTable } from "./internal/components/EventPrizesTable";
-import { EventRenameDialog } from "./internal/components/EventRenameDialog";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";
 import { EventTicketItemsCard } from "./internal/components/EventTicketItemsCard";
+import { toStartEnd } from "./internal/Event.constants";
 import { useEventQueries } from "./internal/hooks/useEventQueries";
 
 export const Event = () => {
@@ -54,7 +62,7 @@ export const Event = () => {
 
   const [tab, setTab] = useState<EventTab>("overview");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isReplaceConfirmOpen, setIsReplaceConfirmOpen] = useState(false);
   const [isReplaceFormOpen, setIsReplaceFormOpen] = useState(false);
   const [prizeDialogMode, setPrizeDialogMode] = useState<"create" | "edit">(
@@ -63,6 +71,8 @@ export const Event = () => {
   const [isPrizeDialogOpen, setIsPrizeDialogOpen] = useState(false);
   const [editingPrize, setEditingPrize] = useState<EventPrize | null>(null);
   const [restockPrize, setRestockPrize] = useState<EventPrize | null>(null);
+  // A failed print's ticket, looked up in Draws from the Overview.
+  const [lookedUpTicketRef, setLookedUpTicketRef] = useState<string>();
 
   const event = currentEventQuery.data ?? null;
   const isLoading = currentEventQuery.isLoading;
@@ -84,19 +94,32 @@ export const Event = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setIsRenameOpen(true)}
+                  onClick={() => setIsDetailsOpen(true)}
                 >
                   <PencilLine data-icon="inline-start" />
-                  Rename
+                  Edit details
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsReplaceConfirmOpen(true)}
-                >
-                  <RefreshCw data-icon="inline-start" />
-                  Replace event
-                </Button>
+                {/* Out of the way: replacing archives the whole event. */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={<Button variant="outline" size="icon" />}
+                  >
+                    <MoreHorizontal />
+                    <span className="sr-only">More event actions</span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={8}
+                    className="w-auto"
+                  >
+                    <DropdownMenuItem
+                      onClick={() => setIsReplaceConfirmOpen(true)}
+                    >
+                      <RefreshCw />
+                      Replace event
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             )
           }
@@ -141,6 +164,24 @@ export const Event = () => {
               <EventOverviewPanel
                 event={event}
                 onOpenLottery={() => setTab("lottery")}
+                onOpenPrizes={() => setTab("prizes")}
+                onRestock={(prize) => setRestockPrize(prize)}
+                onTurnOnLottery={async () => {
+                  const { noWinWeight, winCooldownMinutes, printLoserTicket } =
+                    event.lottery;
+                  await updateLotterySettingsMutation.mutateAsync({
+                    enabled: true,
+                    noWinWeight,
+                    winCooldownMinutes,
+                    printLoserTicket,
+                  });
+                }}
+                isTurningOnLottery={updateLotterySettingsMutation.isPending}
+                onEditDetails={() => setIsDetailsOpen(true)}
+                onLookUpTicket={(ticketRef) => {
+                  setLookedUpTicketRef(ticketRef);
+                  setTab("draws");
+                }}
               />
             </TabsContent>
             <TabsContent value="kit" className={clsx("mt-0")}>
@@ -196,20 +237,23 @@ export const Event = () => {
               />
             </TabsContent>
             <TabsContent value="draws" className={clsx("mt-0")}>
-              <EventDrawsTable />
+              <EventDrawsTable
+                key={lookedUpTicketRef ?? "latest"}
+                initialTicketRef={lookedUpTicketRef}
+              />
             </TabsContent>
           </>
         )}
       </AppPageBody>
 
       {event && (
-        <EventRenameDialog
+        <EventDetailsDialog
           event={event}
-          open={isRenameOpen}
+          open={isDetailsOpen}
           isPending={updateEventMutation.isPending}
-          onOpenChange={setIsRenameOpen}
+          onOpenChange={setIsDetailsOpen}
           onSubmit={async (values) => {
-            await updateEventMutation.mutateAsync(values);
+            await updateEventMutation.mutateAsync(toStartEnd(values));
           }}
         />
       )}
@@ -218,7 +262,7 @@ export const Event = () => {
         isPending={createEventMutation.isPending}
         onOpenChange={setIsCreateOpen}
         onSubmit={async (values) => {
-          await createEventMutation.mutateAsync(values);
+          await createEventMutation.mutateAsync(toStartEnd(values));
         }}
       />
 
@@ -230,7 +274,7 @@ export const Event = () => {
         submitLabel="Replace event"
         onOpenChange={setIsReplaceFormOpen}
         onSubmit={async (values) => {
-          await replaceEventMutation.mutateAsync(values);
+          await replaceEventMutation.mutateAsync(toStartEnd(values));
           setTab("overview");
         }}
       />

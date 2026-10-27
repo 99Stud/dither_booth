@@ -20,6 +20,9 @@ export type CurrentEvent = {
     /** What the event changes on its kit, minus anything this release can't use. */
     kitSettings: KitSettings;
     ticketItemNames: string[];
+    /** When guests are expected, as ISO; null when open on that side. */
+    startsAt: string | null;
+    endsAt: string | null;
   };
   lottery: {
     id: string;

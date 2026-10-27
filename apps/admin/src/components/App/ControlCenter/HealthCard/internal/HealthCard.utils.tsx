@@ -10,8 +10,6 @@ import {
   pm2RestartProgressEventSchema,
 } from "#lib/pm2/pm2-control.constants";
 
-import type { HealthzResponse } from "./HealthCard.types";
-
 import { PM2_RESTART_WEBSOCKET_TIMEOUT_MS } from "./HealthCard.constants";
 
 function getPm2RestartWebSocketUrl() {
@@ -162,34 +160,4 @@ export const getHealthStatusVariant = ({
   }
 
   return "neutral";
-};
-
-type KioskPage = HealthzResponse["shutter"]["kiosk"]["pages"][number];
-
-/**
- * The booth camera's health, from what the kiosk pages report: unhealthy
- * as soon as one page's camera failed, healthy once every camera that runs
- * is ready, and unknown (undefined) while none runs or one is starting.
- */
-export const getKioskCameraHealth = (
-  pages: readonly KioskPage[],
-): boolean | undefined => {
-  const cameras = pages.flatMap((page) => (page.camera ? [page.camera] : []));
-
-  if (
-    cameras.some(
-      (camera) => camera.status === "error" || camera.status === "unsupported",
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    cameras.length > 0 &&
-    cameras.every((camera) => camera.status === "ready")
-  ) {
-    return true;
-  }
-
-  return undefined;
 };

@@ -12,10 +12,13 @@ export const useEventQueries = () => {
   const currentEventQueryOptions = trpc.config.getCurrentEvent.queryOptions();
   const currentEventQuery = useQuery(currentEventQueryOptions);
 
+  // The visit stats follow the event (its start and end, or a new event), so
+  // the Overview's numbers change with the save, not at the next poll.
   const invalidateCurrentEvent = async () => {
-    await queryClient.invalidateQueries(
-      trpc.config.getCurrentEvent.queryFilter(),
-    );
+    await Promise.all([
+      queryClient.invalidateQueries(trpc.config.getCurrentEvent.queryFilter()),
+      queryClient.invalidateQueries(trpc.config.getVisitStats.queryFilter()),
+    ]);
   };
 
   const createEventMutation = useMutation({
