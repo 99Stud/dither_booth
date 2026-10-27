@@ -19,6 +19,8 @@ import { resolve } from "node:path";
 import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
 import { DOCS_DIST_RELATIVE_PATH } from "#lib/docs/docs.constants";
 import { createDocsRoutes } from "#lib/docs/docs.routes";
+import { LOGS_ROUTE_PATH } from "#lib/logs/logs.constants";
+import { createLogsRoute } from "#lib/logs/logs.routes";
 import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
 import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
@@ -57,11 +59,13 @@ export async function runAdminServer(options: {
     port: getPort("ADMIN_PORT"),
     publicOrigin: adminOrigin,
     routes: createDocsRoutes(resolve(ADMIN_REPO_ROOT, DOCS_DIST_RELATIVE_PATH)),
-    webSocketRoutes: isPm2Managed
-      ? {
-          [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute(),
-        }
-      : undefined,
+    webSocketRoutes: {
+      // Not only under PM2: without its files, each source reports unavailable.
+      [LOGS_ROUTE_PATH]: createLogsRoute(),
+      ...(isPm2Managed
+        ? { [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute() }
+        : {}),
+    },
     serverName: "runAdminServer",
     tlsCertPath,
     tlsKeyPath,
