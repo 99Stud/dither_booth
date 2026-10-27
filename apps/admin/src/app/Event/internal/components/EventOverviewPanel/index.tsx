@@ -14,19 +14,25 @@ import {
 } from "@dither-booth/ui/components/ui/card";
 import { TextField } from "@dither-booth/ui/fields/TextField";
 import { useForm } from "@tanstack/react-form";
+import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import {
   CalendarDays,
+  Clock,
   Dices,
   Gift,
   Package,
+  Printer,
   RefreshCw,
   Save,
   Timer,
+  Trophy,
+  Users,
 } from "lucide-react";
 import { useEffect } from "react";
 
 import { rarityColor } from "#components/Misc/RarityBadge/index";
+import { useTRPC } from "#lib/trpc/trpc.client";
 
 import type { CurrentEvent, UpdateEventFormValues } from "../../Event.types";
 
@@ -76,15 +82,9 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
 
   return (
     <div className={clsx("flex flex-col gap-4 md:gap-6")}>
+      <VisitStats />
       <Card size="sm" className={clsx("py-0")}>
-        {/* 1px gaps over the border colour draw the dividers, in 2×2 on
-            phones and one row on desktop. */}
-        <div
-          className={clsx(
-            "grid grid-cols-2 gap-px bg-border lg:grid-cols-4",
-            "[&>*]:bg-card",
-          )}
-        >
+        <StatStrip>
           <Stat icon={<Dices />} tone="violet" label="Lottery">
             {event.lottery.enabled ? (
               <span className={clsx("inline-flex items-center gap-1.5")}>
@@ -123,7 +123,7 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
               min
             </span>
           </Stat>
-        </div>
+        </StatStrip>
       </Card>
 
       <div className={clsx("grid items-start gap-4 md:gap-6 lg:grid-cols-2")}>
@@ -178,6 +178,66 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = (props) => {
     </div>
   );
 };
+
+/** How often the visit tiles refresh, so they follow the night live. */
+const VISIT_STATS_POLL_MS = 10_000;
+
+/** `65` → `1:05`. */
+const formatMinutesSeconds = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+
+/** The event's guests so far, counted from the booth's visits. */
+const VisitStats: FC = () => {
+  const trpc = useTRPC();
+  const { data: stats } = useQuery({
+    ...trpc.config.getVisitStats.queryOptions(),
+    refetchInterval: VISIT_STATS_POLL_MS,
+  });
+  if (!stats) return null;
+
+  return (
+    <Card size="sm" className={clsx("py-0")}>
+      <StatStrip>
+        <Stat icon={<Users />} tone="emerald" label="Visits">
+          {stats.visits}
+          <span
+            className={clsx("ml-1.5 text-sm font-normal text-muted-foreground")}
+          >
+            {stats.completed} completed
+          </span>
+        </Stat>
+        <Stat icon={<Printer />} tone="violet" label="Prints">
+          {stats.prints}
+        </Stat>
+        <Stat icon={<Trophy />} tone="rose" label="Wins">
+          {stats.wins}
+        </Stat>
+        <Stat icon={<Clock />} tone="amber" label="Average visit">
+          {stats.avgDurationS === null ? (
+            <span className={clsx("text-muted-foreground")}>–</span>
+          ) : (
+            formatMinutesSeconds(stats.avgDurationS)
+          )}
+        </Stat>
+      </StatStrip>
+    </Card>
+  );
+};
+
+/**
+ * Four stats in one card. 1px gaps over the border colour draw the
+ * dividers, in 2×2 on phones and one row on desktop.
+ */
+const StatStrip: FC<PropsWithChildren> = ({ children }) => (
+  <div
+    className={clsx(
+      "grid grid-cols-2 gap-px bg-border lg:grid-cols-4",
+      "[&>*]:bg-card",
+    )}
+  >
+    {children}
+  </div>
+);
 
 /**
  * One stat of the strip: a tinted icon, a small label and the value, on a

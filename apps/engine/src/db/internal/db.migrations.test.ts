@@ -447,6 +447,63 @@ describe("runSqliteMigrations", () => {
     );
   });
 
+  test("0023 gives every earlier draw one completed visit", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    // Up to and including 0022: the last schema without visits.
+    runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(23), sqlite });
+    sqlite.run("INSERT INTO campaign (id, name) VALUES ('c1', 'Halloween')");
+    sqlite.run(
+      "INSERT INTO draw (id, created_at, campaign_id, ticket_ref) VALUES ('d1', 1000, 'c1', '000001'), ('d2', 2000, NULL, '000002')",
+    );
+
+    runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });
+
+    expect(
+      sqlite
+        .query(
+          "SELECT id, campaign_id, started_at, captured_at, draw_id, printed_at, print_attempts, ended_at, end_reason, updated_at, reported_at FROM visit ORDER BY id",
+        )
+        .all(),
+    ).toEqual([
+      {
+        id: "backfill-d1",
+        campaign_id: "c1",
+        started_at: 1000,
+        captured_at: 1000,
+        draw_id: "d1",
+        printed_at: 1000,
+        print_attempts: 1,
+        ended_at: 1000,
+        end_reason: "completed",
+        updated_at: 1000,
+        reported_at: null,
+      },
+      {
+        id: "backfill-d2",
+        campaign_id: null,
+        started_at: 2000,
+        captured_at: 2000,
+        draw_id: "d2",
+        printed_at: 2000,
+        print_attempts: 1,
+        ended_at: 2000,
+        end_reason: "completed",
+        updated_at: 2000,
+        reported_at: null,
+      },
+    ]);
+    expect(() =>
+      sqlite.run(
+        "INSERT INTO visit (id, started_at, draw_id, updated_at) VALUES ('v', 1, 'd1', 1)",
+      ),
+    ).toThrow(/UNIQUE constraint failed/);
+    expect(() =>
+      sqlite.run(
+        "INSERT INTO visit (id, started_at, end_reason, updated_at) VALUES ('v', 1, 'gone', 1)",
+      ),
+    ).toThrow(/CHECK constraint failed/);
+  });
+
   test("leaves the stock triggers and prize checks in place", () => {
     const { sqlite, db } = openDb({ foreignKeys: true });
     runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite });

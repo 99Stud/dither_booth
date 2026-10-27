@@ -12,6 +12,7 @@ import type {
 import type { NetworkDeps } from "#domains/network/network.service";
 import type { BoothPrinter } from "#domains/printer/printer.service";
 import type { Tickets } from "#domains/receipt/receipt.service";
+import type { Visits } from "#domains/visit/visit.service";
 import type { RuntimeProcessManager } from "#lib/process-manager/process-manager.types";
 import type {
   PuppeteerReceiptViewerLifecycle,
@@ -49,5 +50,7 @@ export type TRPCContext = {
   printer: BoothPrinter;
   /** Every ticket rendered by the receipt viewer, one per engine process. */
   tickets: Tickets;
+  /** Each guest's visit, recorded for the event's counts. */
+  visits: Visits;
   page?: Page;
 };

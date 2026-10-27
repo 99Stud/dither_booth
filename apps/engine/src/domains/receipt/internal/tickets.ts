@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import type { DB } from "#db/internal/db.types";
 import type { KioskMaintenance } from "#domains/kiosk/kiosk.service";
 import type { BoothPrinter } from "#domains/printer/printer.service";
+import type { Visits } from "#domains/visit/visit.service";
 
 import { getReceiptEventSettingsForDb } from "#domains/event/event.service";
 import {
@@ -33,13 +34,15 @@ export type PreparedVisit = {
   /** The draw ran against a lottery, so the kiosk plays the slot machine. */
   hasLottery: boolean;
   ticketRef: string;
+  /** The guest's visit, or null when it couldn't be recorded. */
+  visitId: string | null;
 };
 
 /**
  * Everything the printer needs for one visit, with the draw already
  * committed, held between `prepareVisit` and `printVisit`.
  */
-export interface PreparedReceiptJob extends PreparedVisit {
+export interface PreparedReceiptJob extends Omit<PreparedVisit, "visitId"> {
   lotteryRasterCmd: Buffer | null;
   /**
    * Set once the photo receipt is out, so a retry after a lottery-ticket
@@ -60,9 +63,13 @@ export type Tickets = {
   /**
    * First half of a visit. Checks the printer before anything is spent, so
    * a booth out of paper never burns a prize, then commits the draw and
-   * renders both tickets while the Shutter plays the slot machine.
+   * renders both tickets while the Shutter plays the slot machine. The draw
+   * is linked to `visitId`, or to a visit started then when it's null.
    */
-  prepareVisit: (photo: PhotoInput) => Promise<PreparedVisit>;
+  prepareVisit: (
+    photo: PhotoInput,
+    visitId: string | null,
+  ) => Promise<PreparedVisit>;
   /**
    * Second half: prints what `prepareVisit` rendered for `ticketRef`. A
    * failed print can be retried and never prints the photo receipt twice.
@@ -130,11 +137,13 @@ export function createTickets({
   maintenance,
   printer,
   renderer,
+  visits,
 }: {
   db: DB;
   maintenance: Pick<KioskMaintenance, "get">;
   printer: Pick<BoothPrinter, "getStatus" | "print">;
   renderer: TicketRenderer;
+  visits: Pick<Visits, "captured" | "printed">;
 }): Tickets {
   const store = createPreparedReceiptStore();
 
@@ -211,7 +220,7 @@ export function createTickets({
   };
 
   return {
-    async prepareVisit(input) {
+    async prepareVisit(input, requestedVisitId) {
       checkPrinter();
 
       const receipt = await loadPhotoReceipt(input);
@@ -224,9 +233,16 @@ export function createTickets({
       });
 
       let execution;
+      let visitId: string | null = null;
 
       try {
-        execution = await executeLotteryDraw({ db, ticketRef });
+        execution = await executeLotteryDraw({
+          db,
+          ticketRef,
+          inTransaction: (tx, draw) => {
+            visitId = visits.captured(tx, requestedVisitId, draw);
+          },
+        });
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -278,7 +294,7 @@ export function createTickets({
 
       store.put(job);
 
-      return { draw, hasLottery: job.hasLottery, ticketRef };
+      return { draw, hasLottery: job.hasLottery, ticketRef, visitId };
     },
 
     async printVisit(ticketRef) {
@@ -299,8 +315,11 @@ export function createTickets({
         // put back on failure so the kiosk can retry (only the unprinted
         // parts).
         store.put(job);
+        visits.printed(ticketRef, false);
         throw error;
       }
+
+      visits.printed(ticketRef, true);
     },
 
     async printTestPrint(input) {

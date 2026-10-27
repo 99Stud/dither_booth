@@ -20,6 +20,9 @@ export type ExperiencePhase =
   | "resettingButtonRepositioning"
   | "resettingButtonRevealing";
 
+/** How a visit ended, as the kiosk reports it to the engine. */
+export type VisitEnd = "completed" | "failed";
+
 export interface ExperienceState {
   phase: ExperiencePhase;
   countdown: number | null;
@@ -36,10 +39,18 @@ export interface ExperienceState {
   ticketRef: string | null;
   nextPrintAttemptId: number;
   activePrintAttemptId: number | null;
+  /**
+   * The guest's visit on the engine: from `startVisit`, or from the draw when
+   * Start wasn't recorded. Null while unknown; the visit goes on regardless.
+   */
+  visitId: string | null;
+  /** Set once the print succeeded or failed; kept until the next Start. */
+  visitEnd: VisitEnd | null;
 }
 
 export type ExperienceAction =
   | { type: "startRequested"; hasLottery: boolean }
+  | { type: "visitStarted"; visitId: string }
   | { type: "startButtonAnimationCompleted" }
   | { type: "cameraAnimationCompleted" }
   | { type: "promptAnimationCompleted" }
@@ -57,6 +68,8 @@ export type ExperienceAction =
       /** The engine drew against a lottery, whatever Start assumed. */
       hasLottery: boolean;
       ticketRef: string;
+      /** The visit the draw was linked to, when the engine recorded it. */
+      visitId: string | null;
     }
   | { type: "printSucceeded"; printAttemptId: number }
   | { type: "printFailed"; printAttemptId: number };
@@ -70,6 +83,8 @@ export const initialExperienceState: ExperienceState = {
   ticketRef: null,
   nextPrintAttemptId: 1,
   activePrintAttemptId: null,
+  visitId: null,
+  visitEnd: null,
 };
 
 const beginReset = (state: ExperienceState): ExperienceState => ({
@@ -113,7 +128,17 @@ export const experienceReducer = (
         photoUrl: null,
         ticketRef: null,
         activePrintAttemptId: null,
+        visitId: null,
+        visitEnd: null,
       };
+    }
+
+    case "visitStarted": {
+      // Too late once the kiosk is back on the start screen, or once the
+      // draw already said which visit this is.
+      if (state.phase === "idle" || state.visitId !== null) return state;
+
+      return { ...state, visitId: action.visitId };
     }
 
     case "autoResetElapsed": {
@@ -226,6 +251,7 @@ export const experienceReducer = (
         phase: hasLottery ? "spinning" : "printing",
         drawResult: action.drawResult,
         ticketRef: action.ticketRef,
+        visitId: action.visitId ?? state.visitId,
       };
     }
 
@@ -261,6 +287,7 @@ export const experienceReducer = (
         countdown: null,
         ticketRef: null,
         activePrintAttemptId: null,
+        visitEnd: "completed",
       };
     }
 
@@ -272,7 +299,7 @@ export const experienceReducer = (
         return state;
       }
 
-      return beginReset(state);
+      return { ...beginReset(state), visitEnd: "failed" };
     }
   }
 };

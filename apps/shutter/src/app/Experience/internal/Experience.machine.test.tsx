@@ -64,6 +64,7 @@ const enterPrinting = (drawResult: DrawResult = WIN_DRAW): ExperienceState => {
       drawResult,
       hasLottery: true,
       ticketRef: TICKET_REF,
+      visitId: null,
     },
     { type: "reelsStopped" },
     { type: "slotResultElapsed" },
@@ -120,6 +121,7 @@ describe("experienceReducer", () => {
       drawResult: WIN_DRAW,
       hasLottery: true,
       ticketRef: TICKET_REF,
+      visitId: null,
     });
     expect(state).toMatchObject({
       phase: "spinning",
@@ -176,6 +178,7 @@ describe("experienceReducer", () => {
         drawResult: LOSS_DRAW,
         hasLottery: false,
         ticketRef: TICKET_REF,
+        visitId: null,
       },
     );
 
@@ -197,6 +200,7 @@ describe("experienceReducer", () => {
         drawResult: WIN_DRAW,
         hasLottery: true,
         ticketRef: TICKET_REF,
+        visitId: null,
       },
     );
 
@@ -213,6 +217,7 @@ describe("experienceReducer", () => {
         drawResult: LOSS_DRAW,
         hasLottery: false,
         ticketRef: TICKET_REF,
+        visitId: null,
       },
     );
 
@@ -262,6 +267,7 @@ describe("experienceReducer", () => {
         drawResult: LOSS_DRAW,
         hasLottery: true,
         ticketRef: TICKET_REF,
+        visitId: null,
       }),
     ).toBe(preparingState);
 
@@ -296,6 +302,7 @@ describe("experienceReducer", () => {
       drawResult: LOSS_DRAW,
       hasLottery: true,
       ticketRef: TICKET_REF,
+      visitId: null,
     });
 
     expect(
@@ -340,6 +347,7 @@ describe("experienceReducer", () => {
       drawResult: WIN_DRAW,
       hasLottery: true,
       ticketRef: TICKET_REF,
+      visitId: null,
     });
     const slotResultState = experienceReducer(spinningState, {
       type: "reelsStopped",
@@ -421,6 +429,7 @@ describe("experienceReducer", () => {
         drawResult: LOSS_DRAW,
         hasLottery: true,
         ticketRef: TICKET_REF,
+        visitId: null,
       },
       { type: "printSucceeded", printAttemptId: 1 },
       { type: "printFailed", printAttemptId: 1 },
@@ -457,5 +466,79 @@ describe("experienceReducer", () => {
     expect(
       experienceReducer(afterPrompt, { type: "promptAnimationCompleted" }),
     ).toBe(afterPrompt);
+  });
+
+  describe("the visit", () => {
+    it("keeps the visit Start recorded and ends it completed once printed", () => {
+      const started = reduce(withPhase("idle"), {
+        type: "startRequested",
+        hasLottery: true,
+      });
+      const withVisit = reduce(started, {
+        type: "visitStarted",
+        visitId: "visit-1",
+      });
+      expect(withVisit.visitId).toBe("visit-1");
+
+      const printed = reduce(
+        { ...enterPrinting(), visitId: "visit-1" },
+        { type: "printSucceeded", printAttemptId: 1 },
+      );
+      expect(printed).toMatchObject({
+        visitId: "visit-1",
+        visitEnd: "completed",
+      });
+    });
+
+    it("ends the visit failed when the print fails, through the reset", () => {
+      const failed = reduce(
+        { ...enterPrinting(), visitId: "visit-1" },
+        { type: "printFailed", printAttemptId: 1 },
+      );
+
+      expect(failed).toMatchObject({
+        phase: "resetting",
+        visitId: "visit-1",
+        visitEnd: "failed",
+      });
+    });
+
+    it("takes the draw's visit when Start wasn't recorded", () => {
+      const prepared = reduce(
+        enterCapturing(),
+        { type: "photoCaptured", printAttemptId: 1, photoUrl: PHOTO_URL },
+        {
+          type: "receiptPrepared",
+          printAttemptId: 1,
+          drawResult: LOSS_DRAW,
+          hasLottery: true,
+          ticketRef: TICKET_REF,
+          visitId: "visit-from-draw",
+        },
+      );
+
+      expect(prepared.visitId).toBe("visit-from-draw");
+      // A late answer from startVisit doesn't replace it.
+      expect(
+        reduce(prepared, { type: "visitStarted", visitId: "late" }).visitId,
+      ).toBe("visit-from-draw");
+    });
+
+    it("ignores a visit that answers once the kiosk is back on Start", () => {
+      const idle = withPhase("idle");
+
+      expect(reduce(idle, { type: "visitStarted", visitId: "late" })).toBe(
+        idle,
+      );
+    });
+
+    it("forgets the last visit at the next Start", () => {
+      const restarted = reduce(
+        withPhase("idle", { visitId: "visit-1", visitEnd: "completed" }),
+        { type: "startRequested", hasLottery: false },
+      );
+
+      expect(restarted).toMatchObject({ visitId: null, visitEnd: null });
+    });
   });
 });
