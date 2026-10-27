@@ -28,5 +28,6 @@ Changes under `supabase/` or `packages/protocol/` also run `.github/workflows/hu
 
 - **Pure decisions as pure functions.** The network watch's `decideNetworkAction`, the printer maintenance policy, the ASB parser, the Experience reducer: each is a function of its inputs, unit-tested with fake time.
 - **Access control.** `apps/engine/src/internal/router.test.ts` checks every procedure from the allowed and the refused side. A new procedure goes in it.
+- **Procedures through the router.** `createTestContext` (`apps/engine/src/lib/trpc/trpc.test-utils.ts`) builds a context from only the services a test passes and the request it makes. Every other service throws when touched, so a test states what it uses.
 - **Migrations.** `db.migrations.test.ts` checks what drizzle-kit doesn't model, such as the stock triggers.
 - **Hardware behaviour** that can't be tested in CI goes in a spec's acceptance criteria, checked on the booth.

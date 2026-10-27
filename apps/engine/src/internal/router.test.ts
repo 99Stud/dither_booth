@@ -1,14 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
-import type { KioskChannel } from "#domains/kiosk/kiosk.service";
-import type { TRPCContext } from "#lib/trpc/trpc.types";
-
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
-import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
+import {
+  TEST_ADMIN_ORIGIN,
+  createTestContext,
+} from "#lib/trpc/trpc.test-utils";
 
 import { engineRouter } from "./router";
 
-const ADMIN_ORIGIN = "https://admin.local";
 const KIOSK_ORIGIN = "https://192.168.1.10:3000";
 const DARKROOM_TOKEN = "darkroom-token";
 
@@ -111,63 +110,21 @@ function groupPaths(group: keyof typeof GROUPS) {
 }
 
 function createCaller(
-  requestOrigin?: string,
+  origin?: string,
   darkroomToken?: string,
   setupServerToken?: string,
 ) {
-  const state = createInitialPuppeteerState();
-  const unreachable = () => {
-    throw new Error("A guarded procedure ran past its origin check.");
-  };
-
-  // Every dependency throws: a rejected origin must stop the call before any
-  // of them is touched.
-  const context = {
-    adminOrigin: ADMIN_ORIGIN,
-    allowedHostnames: [],
-    darkroomAccess: createDarkroomAccessStub(DARKROOM_TOKEN),
-    darkroomToken,
-    db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
-    hubReporter: new Proxy(
-      {},
-      {
-        get: unreachable,
+  // Every other dependency throws: a rejected origin must stop the call before
+  // any of them is touched.
+  return engineRouter.createCaller(
+    createTestContext({
+      darkroomAccess: createDarkroomAccessStub(DARKROOM_TOKEN),
+      setupServerAccess: {
+        verify: (token) => token === SETUP_SERVER_TOKEN,
       },
-    ) as TRPCContext["hubReporter"],
-    kioskChannel: new Proxy({}, { get: unreachable }) as KioskChannel,
-    cameraPreview: new Proxy(
-      {},
-      { get: unreachable },
-    ) as TRPCContext["cameraPreview"],
-    kioskMaintenance: new Proxy(
-      {},
-      { get: unreachable },
-    ) as TRPCContext["kioskMaintenance"],
-    mode: "production",
-    network: {
-      later: unreachable,
-      nmcli: unreachable,
-      onJoinFailed: unreachable,
-    },
-    printer: new Proxy({}, { get: unreachable }) as TRPCContext["printer"],
-    processManager: "unknown",
-    puppeteerLifecycle: {
-      close: unreachable,
-      getCurrent: unreachable,
-      initialize: unreachable,
-      restart: unreachable,
-      whenReady: unreachable,
-    },
-    puppeteerState: state,
-    requestOrigin,
-    setupServerAccess: {
-      verify: (token) => token === SETUP_SERVER_TOKEN,
-    },
-    setupServerToken,
-    tickets: new Proxy({}, { get: unreachable }) as TRPCContext["tickets"],
-  } satisfies TRPCContext;
-
-  return engineRouter.createCaller(context);
+      request: { origin, darkroomToken, setupServerToken },
+    }),
+  );
 }
 
 type AnyProcedureCall = (input?: unknown) => Promise<unknown>;
@@ -268,7 +225,7 @@ describe("engineRouter", () => {
     for (const path of groupPaths("captive")) {
       test(`${path} refuses the admin and the Darkroom`, async () => {
         for (const caller of [
-          createCaller(ADMIN_ORIGIN),
+          createCaller(TEST_ADMIN_ORIGIN),
           createCaller(KIOSK_ORIGIN, DARKROOM_TOKEN),
           createCaller(KIOSK_ORIGIN, undefined, "guessed"),
         ]) {
@@ -303,7 +260,7 @@ describe("engineRouter", () => {
 
     // Past the access check, the procedure reaches the (throwing) database.
     await expect(call(undefined)).rejects.toThrow(
-      "A guarded procedure ran past its origin check.",
+      "db is not set up for this test.",
     );
   });
 });

@@ -90,7 +90,9 @@ The engine is organised by domain under `apps/engine/src/domains/`. Each has `qu
 1. systemd starts `ditherbooth.service` after `network-online.target` (and the SSD mount when the repo is on it).
 2. `ExecStartPre`: `booth cert --if-changed` re-issues the leaf certificate if the LAN IP changed. A failure doesn't block the start.
 3. `ExecStart`: `bun run pm2:start` launches PM2 with `pm2.config.js`: engine, admin, shutter.
-4. The engine applies pending migrations, seeds the default print configuration, opens the printer, launches Chromium on `/receipt-viewer`, and starts the setup-ticket auto-print.
+4. The engine applies pending migrations and seeds the default print configuration. It then binds `127.0.0.1:3001`, so the web servers' proxies aren't refused while Chromium starts. After that it launches Chromium on `/receipt-viewer`, opens the printer, starts the printer maintenance policy and the Hub reporter, and, in production with a real printer, starts the setup-ticket auto-print.
+
+On `SIGINT` or `SIGTERM` the engine stops in reverse: the HTTP server, the Hub reporter, Chromium, then the printer (auto-print, maintenance policy, then the USB connection). A step that fails is logged as `server-shutdown-failed` and the remaining steps still run. `createEngine` (`apps/engine/src/internal/engine.ts`) holds this order, and `engine.test.ts` checks it.
 
 A NetworkManager dispatcher hook (`/etc/NetworkManager/dispatcher.d/90-ditherbooth`) restarts the service whenever the booth gets an address that doesn't match its certificate — except on the booth Wi-Fi, whose `10.42.0.1` is always in the certificate.
 

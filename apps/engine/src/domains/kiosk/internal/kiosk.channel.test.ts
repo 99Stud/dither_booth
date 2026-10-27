@@ -5,11 +5,11 @@ import { describe, expect, test } from "bun:test";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createTestDb } from "#db/internal/db.test-utils";
-import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
-import { createHubReporterStub } from "#domains/hub/internal/hub.test-utils";
-import { createStubPrinter } from "#domains/printer/internal/printer.test-utils";
 import { engineRouter } from "#internal/router";
-import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
+import {
+  TEST_ADMIN_ORIGIN,
+  createTestContext,
+} from "#lib/trpc/trpc.test-utils";
 
 import {
   type CameraPreview,
@@ -159,8 +159,6 @@ describe("createKioskChannel", () => {
 });
 
 describe("kiosk channel through the router", () => {
-  const ADMIN_ORIGIN = "https://admin.local";
-
   // One live view registry per channel, as the engine has one per process.
   const cameraPreviews = new WeakMap<KioskChannel, CameraPreview>();
   const cameraPreviewFor = (kioskChannel: KioskChannel) => {
@@ -178,49 +176,28 @@ describe("kiosk channel through the router", () => {
 
   function createCaller(
     kioskChannel: KioskChannel,
-    requestOrigin: string,
+    origin: string,
     kioskMaintenance = createKioskMaintenance({
       db: createTestDb().db,
       kioskChannel,
     }),
     db?: TRPCContext["db"],
   ) {
-    const unreachable = () => {
-      throw new Error("The kiosk channel needs none of this.");
-    };
-    const context = {
-      adminOrigin: ADMIN_ORIGIN,
-      allowedHostnames: [],
-      db: db ?? (new Proxy({}, { get: unreachable }) as TRPCContext["db"]),
-      darkroomAccess: createDarkroomAccessStub(),
-      hubReporter: createHubReporterStub(),
-      kioskChannel,
-      kioskMaintenance,
-      cameraPreview: cameraPreviewFor(kioskChannel),
-      mode: "production",
-      network: {} as TRPCContext["network"],
-      setupServerAccess: { verify: () => false },
-      printer: createStubPrinter(),
-      processManager: "unknown",
-      puppeteerLifecycle: {
-        close: unreachable,
-        getCurrent: unreachable,
-        initialize: unreachable,
-        restart: unreachable,
-        whenReady: unreachable,
-      },
-      puppeteerState: createInitialPuppeteerState(),
-      requestOrigin,
-      tickets: new Proxy({}, { get: unreachable }) as TRPCContext["tickets"],
-    } satisfies TRPCContext;
-
-    return engineRouter.createCaller(context);
+    return engineRouter.createCaller(
+      createTestContext({
+        ...(db ? { db } : {}),
+        kioskChannel,
+        kioskMaintenance,
+        cameraPreview: cameraPreviewFor(kioskChannel),
+        request: { origin },
+      }),
+    );
   }
 
   test("the admin's reload reaches the subscribed kiosk page", async () => {
     const kioskChannel = createKioskChannel();
     const kiosk = createCaller(kioskChannel, "https://192.168.1.10:3000");
-    const admin = createCaller(kioskChannel, ADMIN_ORIGIN);
+    const admin = createCaller(kioskChannel, TEST_ADMIN_ORIGIN);
 
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const iterator = commands[Symbol.asyncIterator]();
@@ -253,7 +230,7 @@ describe("kiosk channel through the router", () => {
     );
     const admin = createCaller(
       kioskChannel,
-      ADMIN_ORIGIN,
+      TEST_ADMIN_ORIGIN,
       kioskMaintenance,
       db,
     );
@@ -298,7 +275,7 @@ describe("kiosk channel through the router", () => {
     );
     const admin = createCaller(
       kioskChannel,
-      ADMIN_ORIGIN,
+      TEST_ADMIN_ORIGIN,
       kioskMaintenance,
       db,
     );
@@ -343,7 +320,7 @@ describe("kiosk channel through the router", () => {
     const kioskMaintenance = createKioskMaintenance({ db, kioskChannel });
     const admin = createCaller(
       kioskChannel,
-      ADMIN_ORIGIN,
+      TEST_ADMIN_ORIGIN,
       kioskMaintenance,
       db,
     );
@@ -365,7 +342,7 @@ describe("kiosk channel through the router", () => {
   test("the admin's navigate reaches the subscribed kiosk page", async () => {
     const kioskChannel = createKioskChannel();
     const kiosk = createCaller(kioskChannel, "https://192.168.1.10:3000");
-    const admin = createCaller(kioskChannel, ADMIN_ORIGIN);
+    const admin = createCaller(kioskChannel, TEST_ADMIN_ORIGIN);
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const iterator = commands[Symbol.asyncIterator]();
     await iterator.next(); // The maintenance snapshot.
@@ -444,7 +421,11 @@ describe("kiosk channel through the router", () => {
       "https://192.168.1.10:3000",
       kioskMaintenance,
     );
-    const admin = createCaller(kioskChannel, ADMIN_ORIGIN, kioskMaintenance);
+    const admin = createCaller(
+      kioskChannel,
+      TEST_ADMIN_ORIGIN,
+      kioskMaintenance,
+    );
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const iterator = commands[Symbol.asyncIterator]();
     expect((await iterator.next()).value).toMatchObject({ enabled: false });
@@ -469,7 +450,11 @@ describe("kiosk channel through the router", () => {
       db: createTestDb().db,
       kioskChannel,
     });
-    const admin = createCaller(kioskChannel, ADMIN_ORIGIN, kioskMaintenance);
+    const admin = createCaller(
+      kioskChannel,
+      TEST_ADMIN_ORIGIN,
+      kioskMaintenance,
+    );
 
     expect(
       await admin.ops.setKioskMaintenance({ enabled: true }),
@@ -480,7 +465,7 @@ describe("kiosk channel through the router", () => {
   test("a live view goes from admin to the camera page and back", async () => {
     const kioskChannel = createKioskChannel();
     const kiosk = createCaller(kioskChannel, "https://192.168.1.10:3000");
-    const admin = createCaller(kioskChannel, ADMIN_ORIGIN);
+    const admin = createCaller(kioskChannel, TEST_ADMIN_ORIGIN);
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const pageStream = commands[Symbol.asyncIterator]();
     await pageStream.next(); // The maintenance snapshot.
