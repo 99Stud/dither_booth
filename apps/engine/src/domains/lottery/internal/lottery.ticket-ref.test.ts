@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { DrizzleQueryError } from "drizzle-orm";
 
 import {
   createBoothTicketRef,
@@ -36,5 +37,28 @@ describe("isUniqueTicketRefConstraintError", () => {
       ),
     ).toBe(false);
     expect(isUniqueTicketRefConstraintError("ticket_ref")).toBe(false);
+  });
+
+  test("looks through the query error drizzle wraps it in", () => {
+    const insert = 'insert into "draw" ("id", "ticket_ref") values (?, ?)';
+
+    expect(
+      isUniqueTicketRefConstraintError(
+        new DrizzleQueryError(
+          insert,
+          undefined,
+          new Error("UNIQUE constraint failed: draw.ticket_ref"),
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      isUniqueTicketRefConstraintError(
+        new DrizzleQueryError(
+          insert,
+          undefined,
+          new Error("UNIQUE constraint failed: draw.id"),
+        ),
+      ),
+    ).toBe(false);
   });
 });

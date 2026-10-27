@@ -1,0 +1,494 @@
+{
+  "dialect": "sqlite",
+  "id": "01ae5440-3178-4431-8c83-cf8ee4c34963",
+  "prevIds": ["848c0197-87dd-4805-8be9-14f36ac1fe92"],
+  "version": "7",
+  "ddl": [
+    {
+      "name": "campaign",
+      "entityType": "tables"
+    },
+    {
+      "name": "draw",
+      "entityType": "tables"
+    },
+    {
+      "name": "lottery",
+      "entityType": "tables"
+    },
+    {
+      "name": "print_config",
+      "entityType": "tables"
+    },
+    {
+      "name": "prize",
+      "entityType": "tables"
+    },
+    {
+      "table": "campaign",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "lottery_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "lottery_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "prize_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "enabled",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "no_win_weight",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "win_cooldown_minutes",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "5",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "dither_mode_code",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "color_scheme_code",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "serpentine",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "true",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "exposure",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "saturation",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "shadows",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "highlights",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "threshold",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "128",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "rotation",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "template",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'tartines'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "lottery_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "win_description",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "weight",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "total_quantity",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "remaining_quantity",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "rarity",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'common'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "campaign_lottery_id_lottery_id_fk",
+      "columns": ["lottery_id"],
+      "tableTo": "lottery",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "draw",
+      "name": "draw_lottery_id_lottery_id_fk",
+      "columns": ["lottery_id"],
+      "tableTo": "lottery",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "draw",
+      "name": "draw_prize_id_prize_id_fk",
+      "columns": ["prize_id"],
+      "tableTo": "prize",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_lottery_id_lottery_id_fk",
+      "columns": ["lottery_id"],
+      "tableTo": "lottery",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "campaign",
+      "name": "campaign_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "draw",
+      "name": "draw_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "lottery",
+      "name": "lottery_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "lottery",
+      "name": "lottery_no_win_weight_check",
+      "value": "\"lottery\".\"no_win_weight\" >= 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "lottery",
+      "name": "lottery_win_cooldown_minutes_check",
+      "value": "\"lottery\".\"win_cooldown_minutes\" >= 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_singleton_check",
+      "value": "\"print_config\".\"id\" = 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_dither_mode_code_check",
+      "value": "\"print_config\".\"dither_mode_code\" between 0 and 9",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_color_scheme_code_check",
+      "value": "\"print_config\".\"color_scheme_code\" in (0, 5, 6, 9)",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_serpentine_check",
+      "value": "\"print_config\".\"serpentine\" in (0, 1)",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_exposure_check",
+      "value": "\"print_config\".\"exposure\" > 0 and \"print_config\".\"exposure\" <= 4",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_saturation_check",
+      "value": "\"print_config\".\"saturation\" between 0 and 4",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_shadows_check",
+      "value": "\"print_config\".\"shadows\" between 0 and 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_highlights_check",
+      "value": "\"print_config\".\"highlights\" between 0 and 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_threshold_check",
+      "value": "\"print_config\".\"threshold\" between 0 and 255",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_rotation_check",
+      "value": "\"print_config\".\"rotation\" between 0 and 360",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_template_check",
+      "value": "\"print_config\".\"template\" in ('tartines', 'heirvey')",
+      "entityType": "checks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_weight_check",
+      "value": "\"prize\".\"weight\" > 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_total_quantity_check",
+      "value": "\"prize\".\"total_quantity\" >= 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_remaining_quantity_check",
+      "value": "\"prize\".\"remaining_quantity\" between 0 and \"prize\".\"total_quantity\"",
+      "entityType": "checks"
+    }
+  ],
+  "renames": []
+}

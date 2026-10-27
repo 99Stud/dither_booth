@@ -1,0 +1,1013 @@
+{
+  "dialect": "sqlite",
+  "id": "402415b7-48d1-4995-a7fa-2052be74a0c7",
+  "prevIds": ["3eace30e-877a-4bd4-b449-8ff9283d7b13"],
+  "version": "7",
+  "ddl": [
+    {
+      "name": "campaign",
+      "entityType": "tables"
+    },
+    {
+      "name": "darkroom_access",
+      "entityType": "tables"
+    },
+    {
+      "name": "draw",
+      "entityType": "tables"
+    },
+    {
+      "name": "font_asset",
+      "entityType": "tables"
+    },
+    {
+      "name": "hub_registration",
+      "entityType": "tables"
+    },
+    {
+      "name": "kiosk_maintenance",
+      "entityType": "tables"
+    },
+    {
+      "name": "lottery",
+      "entityType": "tables"
+    },
+    {
+      "name": "print_config",
+      "entityType": "tables"
+    },
+    {
+      "name": "prize",
+      "entityType": "tables"
+    },
+    {
+      "name": "stock_adjustment",
+      "entityType": "tables"
+    },
+    {
+      "table": "campaign",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "lottery_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "ticket_item_names",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[\"99stud\",\"El Tony Mate\",\"Épicerie Ginette\"]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "kit_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "kit_settings",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'{}'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "status",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'active'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "darkroom_access",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "darkroom_access",
+      "name": "pin_hash",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "darkroom_access",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "campaign_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "lottery_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "prize_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "prize_title",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "draw",
+      "name": "ticket_ref",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "font_asset",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "font_asset",
+      "name": "family",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "font_asset",
+      "name": "source",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "font_asset",
+      "name": "license",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "font_asset",
+      "name": "files",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "font_asset",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "hub_registration",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "hub_registration",
+      "name": "hub_url",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "hub_registration",
+      "name": "booth_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "hub_registration",
+      "name": "booth_name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "hub_registration",
+      "name": "refresh_token",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "hub_registration",
+      "name": "registered_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "kiosk_maintenance",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "kiosk_maintenance",
+      "name": "enabled",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "kiosk_maintenance",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "enabled",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "no_win_weight",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "win_cooldown_minutes",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "5",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "lottery",
+      "name": "print_loser_ticket",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "dither_mode_code",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "10",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "color_scheme_code",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "serpentine",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "true",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "exposure",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "saturation",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "shadows",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "highlights",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "tone_gamma",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1.8",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "threshold",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "128",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "print_config",
+      "name": "rotation",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "lottery_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "title",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "win_instruction",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "weight",
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "rarity",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'common'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "prize",
+      "name": "removed",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "prize_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "delta",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "reason",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch())",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "campaign",
+      "name": "campaign_single_active_idx",
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": "\"campaign\".\"status\" = 'active'",
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "draw",
+      "name": "draw_ticket_ref_unique",
+      "columns": [
+        {
+          "value": "ticket_ref",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "draw",
+      "name": "draw_prize_id_idx",
+      "columns": [
+        {
+          "value": "prize_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "draw",
+      "name": "draw_campaign_id_idx",
+      "columns": [
+        {
+          "value": "campaign_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "stock_adjustment_prize_id_idx",
+      "columns": [
+        {
+          "value": "prize_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "campaign",
+      "name": "campaign_lottery_id_lottery_id_fk",
+      "columns": ["lottery_id"],
+      "tableTo": "lottery",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "draw",
+      "name": "draw_campaign_id_campaign_id_fk",
+      "columns": ["campaign_id"],
+      "tableTo": "campaign",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "draw",
+      "name": "draw_lottery_id_lottery_id_fk",
+      "columns": ["lottery_id"],
+      "tableTo": "lottery",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "draw",
+      "name": "draw_prize_id_prize_id_fk",
+      "columns": ["prize_id"],
+      "tableTo": "prize",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_lottery_id_lottery_id_fk",
+      "columns": ["lottery_id"],
+      "tableTo": "lottery",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "stock_adjustment_prize_id_prize_id_fk",
+      "columns": ["prize_id"],
+      "tableTo": "prize",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "campaign",
+      "name": "campaign_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "darkroom_access",
+      "name": "darkroom_access_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "draw",
+      "name": "draw_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "font_asset",
+      "name": "font_asset_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "hub_registration",
+      "name": "hub_registration_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "kiosk_maintenance",
+      "name": "kiosk_maintenance_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "lottery",
+      "name": "lottery_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "stock_adjustment_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "campaign",
+      "name": "campaign_status_check",
+      "value": "\"campaign\".\"status\" in ('active', 'archived')",
+      "entityType": "checks"
+    },
+    {
+      "table": "darkroom_access",
+      "name": "darkroom_access_singleton_check",
+      "value": "\"darkroom_access\".\"id\" = 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "font_asset",
+      "name": "font_asset_source_check",
+      "value": "\"font_asset\".\"source\" in ('fontsource', 'upload')",
+      "entityType": "checks"
+    },
+    {
+      "table": "hub_registration",
+      "name": "hub_registration_singleton_check",
+      "value": "\"hub_registration\".\"id\" = 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "kiosk_maintenance",
+      "name": "kiosk_maintenance_singleton_check",
+      "value": "\"kiosk_maintenance\".\"id\" = 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "lottery",
+      "name": "lottery_no_win_weight_check",
+      "value": "\"lottery\".\"no_win_weight\" >= 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "lottery",
+      "name": "lottery_win_cooldown_minutes_check",
+      "value": "\"lottery\".\"win_cooldown_minutes\" >= 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "lottery",
+      "name": "lottery_print_loser_ticket_check",
+      "value": "\"lottery\".\"print_loser_ticket\" in (0, 1)",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_singleton_check",
+      "value": "\"print_config\".\"id\" = 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_dither_mode_code_check",
+      "value": "\"print_config\".\"dither_mode_code\" between 0 and 10",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_color_scheme_code_check",
+      "value": "\"print_config\".\"color_scheme_code\" in (0, 5, 6, 9)",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_serpentine_check",
+      "value": "\"print_config\".\"serpentine\" in (0, 1)",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_exposure_check",
+      "value": "\"print_config\".\"exposure\" > 0 and \"print_config\".\"exposure\" <= 4",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_saturation_check",
+      "value": "\"print_config\".\"saturation\" between 0 and 4",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_shadows_check",
+      "value": "\"print_config\".\"shadows\" between 0 and 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_highlights_check",
+      "value": "\"print_config\".\"highlights\" between 0 and 1",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_tone_gamma_check",
+      "value": "\"print_config\".\"tone_gamma\" between 1 and 3",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_threshold_check",
+      "value": "\"print_config\".\"threshold\" between 0 and 255",
+      "entityType": "checks"
+    },
+    {
+      "table": "print_config",
+      "name": "print_config_rotation_check",
+      "value": "\"print_config\".\"rotation\" between 0 and 360",
+      "entityType": "checks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_weight_check",
+      "value": "\"prize\".\"weight\" > 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "prize",
+      "name": "prize_removed_check",
+      "value": "\"prize\".\"removed\" in (0, 1)",
+      "entityType": "checks"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "stock_adjustment_delta_check",
+      "value": "\"stock_adjustment\".\"delta\" <> 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "stock_adjustment",
+      "name": "stock_adjustment_reason_check",
+      "value": "\"stock_adjustment\".\"reason\" in ('initial', 'restock', 'correction')",
+      "entityType": "checks"
+    }
+  ],
+  "renames": []
+}

@@ -5,7 +5,7 @@ sidebar:
   order: 8
 ---
 
-The engine owns one SQLite database, `apps/engine/data/dither-booth.sqlite`, which on the booth is a symlink to `/mnt/ssd/dither-booth/data/`. The schema is Drizzle (`apps/engine/src/db/internal/db.schema.ts`); migrations are plain SQL in `apps/engine/drizzle/`.
+The engine owns one SQLite database, `apps/engine/data/dither-booth.sqlite`, which on the booth is a symlink to `/mnt/ssd/dither-booth/data/`. The schema is Drizzle (`apps/engine/src/db/internal/db.schema.ts`); migrations are plain SQL in `apps/engine/drizzle/`, one folder per migration.
 
 ## Tables
 
@@ -105,7 +105,7 @@ Prize stock is **never stored as a number**. `stock_adjustment` is append-only:
 
 Deltas commute with kiosk wins: a restock never needs to know the current stock, and an admin form can't go stale.
 
-**Triggers.** `drizzle/0011_stock_ledger.sql` creates two triggers that refuse an adjustment or a win that would take stock below zero. drizzle-kit doesn't track triggers, and rebuilding `draw` or `stock_adjustment` would drop them; `db.migrations.test.ts` fails if they go missing.
+**Triggers.** The `stock_ledger` migration (`drizzle/20261015092502_stock_ledger/migration.sql`) creates two triggers that refuse an adjustment or a win that would take stock below zero. drizzle-kit doesn't track triggers, and rebuilding `draw` or `stock_adjustment` would drop them; `db.migrations.test.ts` fails if they go missing.
 
 ## Visits
 
@@ -116,7 +116,7 @@ Deltas commute with kiosk wins: a restock never needs to know the current stock,
 - `draw_id` is unique: a draw belongs to one visit at most.
 - `getVisitStats` counts the active event's visits: visits, completed, failed, wins (visits whose draw won), the average length of a completed visit (Start to end, in seconds), when the last visit started, and visits started in each of the last 12 hours (`hourly`, empty hours included, the current one last). Hours are cut on epoch hours, which are the booth's own wherever its time zone is a whole number of hours from UTC.
 - **Outbox.** A visit is due to be reported to the Hub while `reported_at` is null or older than `updated_at`; `visit_pending_idx` (`reported_at`, `updated_at`) serves that read. Nothing reports visits yet, and `hub_event_id` stays null until the booth learns its Hub event.
-- `0023_visit` backfilled one visit per earlier draw, with deterministic ids (`backfill-<draw id>`): `completed`, printed, and every time set to the draw's. They count in the totals but have no length, so the average leaves them out.
+- The `visit` migration (`drizzle/20261027100945_visit/`) backfilled one visit per earlier draw, with deterministic ids (`backfill-<draw id>`): `completed`, printed, and every time set to the draw's. They count in the totals but have no length, so the average leaves them out.
 
 ## Kits
 
@@ -144,3 +144,11 @@ Appearance that belongs to an event (logo, background colours) goes on the campa
 The engine **applies pending migrations at every start**, so an update needs no separate migration step. Migrations are forward-only: back up before an update that ships one.
 
 When a migration needs something drizzle-kit doesn't model (triggers, partial indexes, data moves), write it by hand in the generated SQL file and cover it in `db.migrations.test.ts`.
+
+The engine runs Drizzle v1 ([decision 0004](/docs/decisions/0004-drizzle-v1/)).
+
+- **Layout.** Each migration is a folder named `<UTC timestamp>_<name>`, holding `migration.sql` and `snapshot.json`. There is no journal: the migrator applies, in name order, every folder not yet recorded. Before Drizzle v1 a migration was called by its index (`0011_stock_ledger`); `db.migrations.test.ts` still names its tests that way, where `0011` is the twelfth folder.
+- **Record.** `__drizzle_migrations` holds one row per applied migration: its hash, `created_at`, `name` (the folder) and `applied_at`.
+- **Booths migrated before Drizzle v1.** Their record has no `name`. At the first start on v1, Drizzle adds `name` and `applied_at` and names each row after the folder whose timestamp has the same second as the row's `created_at`, or else whose `migration.sql` has the same hash. Nothing is re-applied, and `applied_at` stays empty on those rows. Drizzle refuses to start while a row matches no folder, which happens on a database that ran a migration that was later regenerated or never merged. `runSqliteMigrations` moves those rows to `__drizzle_migrations_retired` first, so the booth still starts.
+- **Rolling back** to a release from before Drizzle v1 works: the older migrator ignores the new columns and finds nothing to apply.
+- **CHECK text.** Drizzle v1 writes CHECK expressions without the table name (`"weight" > 0`); migrations made before it wrote `"prize"."weight" > 0`. The latest snapshot was rewritten to the v1 form, so `db:generate` doesn't rebuild every table with a CHECK. Booth databases keep the old text, which SQLite reads the same way.

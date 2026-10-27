@@ -7,7 +7,7 @@ import {
   lotteryTable,
   stockAdjustmentTable,
 } from "#db/internal/db.schema";
-import { createTestDb } from "#db/internal/db.test-utils";
+import { createTestDb, sqliteRefusal } from "#db/internal/db.test-utils";
 
 import { applyStockAdjustment, getPrizeStock } from "./lottery.stock";
 import { insertPrizeWithStock } from "./lottery.test-utils";
@@ -137,14 +137,14 @@ describe("database triggers", () => {
         .insert(stockAdjustmentTable)
         .values({ id: "raw", prizeId: "p1", delta: -2, reason: "correction" })
         .run(),
-    ).toThrow(/negative/);
+    ).toThrow(sqliteRefusal(/negative/));
   });
 
   test("reject a win on a prize with no stock left", () => {
     const { db } = setup(1);
     win(db, "000001");
 
-    expect(() => win(db, "000002")).toThrow(/out of stock/);
+    expect(() => win(db, "000002")).toThrow(sqliteRefusal(/out of stock/));
     expect(db.select().from(drawTable).all()).toHaveLength(1);
   });
 
