@@ -1,7 +1,5 @@
 import type { LogFilterService, LogLevel } from "#lib/logs/logs.types";
 
-export const LOGS_PAGE_LOG_SOURCE = "admin.logs";
-
 /** Lines asked for per history page: the first one, and each older one. */
 export const LOGS_PAGE_HISTORY_LIMIT = 500;
 /** Most lines the page keeps in memory; the oldest are dropped past it. */
