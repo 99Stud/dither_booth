@@ -97,7 +97,11 @@ An event's photo receipt look is its **kit**, `campaign.kit_id`.
 - `KIT_IDS` in `packages/shared/src/isomorphic/kits.ts` lists the kits this release ships. `DEFAULT_KIT_ID` (`tartines`) is used when an event names none.
 - `kit_id` is free text, no CHECK and no default, validated in code: `createEvent` and `updateEvent` accept shipped kits only. **Adding a kit needs no migration.**
 - A stored id this release doesn't ship (set by a newer release, or a removed kit) renders the default kit and logs `event-kit-unknown` instead of failing the visit.
-- The receipt viewer takes the kit through its `template` search param (`PHOTO_RECEIPT_TEMPLATES = KIT_IDS`).
+- The receipt viewer takes the kit through its `kit` search param, next to `template` (`photo` or `lottery`).
+- A kit's code lives in `apps/shutter/src/kits/<id>`: its photo ticket, and optionally a lottery ticket (without one, the default lottery ticket prints). `halloween-2026` prints the Bal des Vampires logo over the photo, cut out by a brush-stroke mask, above Tartines' ticket body (`TartinesTicketBody`).
+- A ticket image that CSS loads, such as a mask, is imported from the ticket's module and passed through a CSS variable (`mask-(--photo-mask)`). Bun's CSS bundler can't resolve a `url()` written in a class name.
+- `campaign.kit_settings` holds what the event changes on its kit, and its **partners**: up to 4 logo ids, in print order (`kitPartnersSchema`, `packages/shared/src/isomorphic/kit-partners.ts`). An older release that can't read a key drops it and logs it (`readKitSettings`), so partners never break an older booth's tickets.
+- A partner's logo is a `logo_asset` row (`id`, `name`, `width`, `height`) and its PNG in `apps/engine/data/logos/<id>.png`, already black and white as it prints ([decision 0003](/docs/decisions/0003-print-ready-logos/)). `deleteLogoAsset` refuses a logo the active event prints; a stored partner whose logo is gone is left out of the row when the kit is read (`withInstalledLogos`). Fonts follow the same pattern: `font_asset` and `data/fonts/`.
 
 Appearance that belongs to an event (logo, background colours) goes on the campaign next to `kit_id`, not on the lottery. The lottery stays odds and stock.
 

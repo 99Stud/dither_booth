@@ -26,6 +26,7 @@ import {
   stockAdjustmentTable,
 } from "#db/internal/db.schema";
 import { withInstalledFonts } from "#domains/font-library/font-library.service";
+import { withInstalledLogos } from "#domains/logo-library/logo-library.service";
 import {
   applyStockAdjustment,
   prizeStockColumns,
@@ -126,7 +127,10 @@ export async function getKitForDb(db: DB): Promise<ResolvedKit> {
   }
   return resolveKit(
     readKitId(campaign),
-    withInstalledFonts(db, readCampaignKitSettings(campaign)),
+    withInstalledLogos(
+      db,
+      withInstalledFonts(db, readCampaignKitSettings(campaign)),
+    ),
   );
 }
 

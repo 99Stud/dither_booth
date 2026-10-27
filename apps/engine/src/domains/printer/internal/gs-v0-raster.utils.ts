@@ -84,7 +84,7 @@ const loadGrayImage = async (
  * letters look ragged. Pixels already at 0 or 255 (the pre-dithered photo)
  * fall on either side of the cutoff, so the photo is unchanged.
  */
-const GRAPHICS_BLACK_CUTOFF = 210;
+export const GRAPHICS_BLACK_CUTOFF = 210;
 
 const snapGrayPixels = (image: GrayImage): Uint8Array => {
   const output = new Uint8Array(image.data.length);

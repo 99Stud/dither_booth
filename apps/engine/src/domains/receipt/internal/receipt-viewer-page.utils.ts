@@ -2,15 +2,19 @@ import type { KitId } from "@dither-booth/shared/kits";
 import type { ReceiptViewerSearch } from "@dither-booth/shared/routes";
 import type { ElementHandle, Page } from "puppeteer";
 
+import { logKioskEvent } from "@dither-booth/logging";
 import { withTimeout } from "@dither-booth/shared/async";
 import {
   RECEIPT_ELEMENT_SELECTOR,
   RECEIPT_TICKET_READY_SELECTOR,
+  loadReceiptImagesInPage,
   isReceiptViewerRouteStateCommittedViaBridgeInPage,
   navigateReceiptViewerViaBridgeInPage,
 } from "@dither-booth/shared/browser/receipt-viewer";
 import { PHOTO_RECEIPT_TEMPLATE } from "@dither-booth/shared/routes";
 import { TRPCError } from "@trpc/server";
+
+import { ENGINE_BROWSER_LOG_SOURCE } from "#lib/browser/browser.constants";
 
 type AttemptResult<T> =
   | {
@@ -236,6 +240,20 @@ async function screenshotReceiptElement(
         cause: error,
       });
     });
+
+  // A logo or mask that won't load is left off; the guest still gets a print.
+  const failedImages = await page.evaluate(
+    loadReceiptImagesInPage,
+    RECEIPT_ELEMENT_SELECTOR,
+  );
+  if (failedImages.length > 0) {
+    logKioskEvent("warn", ENGINE_BROWSER_LOG_SOURCE, "receipt-image-failed", {
+      details: {
+        // A partner logo is a data URL: its start is enough to tell which.
+        sources: failedImages.map((source) => source.slice(0, 80)),
+      },
+    });
+  }
 
   return await receiptHandle
     .screenshot({
