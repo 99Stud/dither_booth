@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import type { LogEntry } from "./logs.types";
 
-import { matchesLogFilter } from "./logs.utils";
+import { isLogServiceShown, matchesLogFilter } from "./logs.utils";
 
 const entry = (overrides: Partial<LogEntry> = {}): LogEntry => ({
   id: "engine::0:0",
@@ -15,6 +15,15 @@ const entry = (overrides: Partial<LogEntry> = {}): LogEntry => ({
   raw: '[kiosk] {"event":"print-started","details":{"ticket":"A-42"}}',
   origin: "server",
   ...overrides,
+});
+
+describe("isLogServiceShown", () => {
+  it("shows every service without a services list, else only those listed", () => {
+    expect(isLogServiceShown({}, "system")).toBe(true);
+    expect(isLogServiceShown({ services: ["engine"] }, "engine")).toBe(true);
+    expect(isLogServiceShown({ services: ["engine"] }, "browser")).toBe(false);
+    expect(isLogServiceShown({ services: [] }, "engine")).toBe(false);
+  });
 });
 
 describe("matchesLogFilter", () => {

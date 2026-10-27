@@ -11,6 +11,7 @@ import { notify } from "#lib/feedback/notify";
 import { LOG_FILTER_SERVICES, LOG_LEVELS } from "#lib/logs/logs.constants";
 import {
   getLogFilterService,
+  isLogServiceShown,
   isRestartEntry,
   matchesLogFilter,
 } from "#lib/logs/logs.utils";
@@ -25,7 +26,7 @@ export function isLogsItemVisible(item: LogsTimelineItem, filter: LogFilter) {
     case "entry":
       return matchesLogFilter(item.entry, filter);
     case "rotated":
-      return !filter.services || filter.services.includes(item.service);
+      return isLogServiceShown(filter, item.service);
     case "reconnect":
       return true;
   }

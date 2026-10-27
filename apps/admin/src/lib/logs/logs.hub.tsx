@@ -13,7 +13,7 @@ import {
   LOGS_APPEND_BATCH_MAX_ENTRIES,
   LOGS_APPEND_BATCH_MS,
 } from "./logs.constants";
-import { matchesLogFilter } from "./logs.utils";
+import { isLogServiceShown, matchesLogFilter } from "./logs.utils";
 
 /*
  * The log hub: one follower per source, shared by every open Logs page.
@@ -105,9 +105,7 @@ function mergeByTime<T>(lists: T[][], getEntry: (item: T) => LogEntry): T[] {
 /** Whether a source can hold entries the filter's services let through. */
 function isSourceWanted(filter: LogFilter, service: LogService) {
   return (
-    !filter.services ||
-    filter.services.includes(service) ||
-    filter.services.includes("browser")
+    isLogServiceShown(filter, service) || isLogServiceShown(filter, "browser")
   );
 }
 
