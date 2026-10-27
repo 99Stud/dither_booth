@@ -146,7 +146,7 @@ The Shutter on the iPad and admin on staff phones send each **warning and error*
 - **What's sent.** Errors the page reports to staff, uncaught errors (`window-error`) and unhandled promise rejections (`unhandled-promise-rejection`), with their source, event, details and error. Secrets are redacted in the browser, before sending.
 - **Where it lands.** Reports from the Shutter go to `dither-booth-shutter`'s log; reports from admin go to `dither-booth-admin`'s. Like any other warning or error, they are `"type":"err"` entries.
 - **How to tell them apart.** A browser line carries `"origin":"browser"`, the reporting device's `deviceId`, and its `runId` (which page load on that device). The line's `loggedAt` is when the server received it.
-- **Limits.** The server keeps at most **30 reports a minute from one device** and drops the rest, so a page stuck in an error loop can't fill the disk. A report over **16 KB** is sent without its details and with its stack cut to 4 KB; one still too big isn't sent.
+- **Limits.** The server keeps at most **30 errors and 30 warnings a minute from one device** and drops the rest (warnings can't use up the errors' share), so a page stuck in an error loop can't fill the disk. A report over **16 KB** is sent without its details and with its stack cut to 4 KB; one still too big isn't sent.
 
 ```bash
 cd /opt/dither-booth/logs/pm2

@@ -71,11 +71,11 @@ Both web servers (Shutter on 3000, Admin on 3002) take **`POST /client-log`**: t
 | `Origin` isn't the server's own origin, on one of the booth's hostnames or its IP                                           | 403          |
 | Body over **16 KB** (read no further than that)                                                                             | 413          |
 | Not a valid report (zod: `level` `warn` or `error`, `deviceId`, `runId`, `source`, `event`, optional `details` and `error`) | 400          |
-| More than **30 reports a minute** from the same `deviceId`                                                                  | 429          |
+| More than **30 reports a minute** of one level (`warn` or `error`) from the same `deviceId`                                  | 429          |
 
 An accepted report answers 204 and is re-logged once through the shared logger, marked `"origin":"browser"` with its `deviceId` and `runId`. The server's logger redacts secrets again. Nothing is ever read back through this route.
 
-Why these numbers: a report is one event, a few KB with its stack; 16 KB leaves room and bounds what one request can write. A page stuck in an error loop on one device stops at 30 lines a minute instead of filling the disk. The limit is per device, in memory, and resets with the server; a device that forges ids can still only write 16 KB a request, from an allowed origin.
+Why these numbers: a report is one event, a few KB with its stack; 16 KB leaves room and bounds what one request can write. A page stuck in an error loop on one device stops at 30 lines a minute instead of filling the disk. Warnings and errors have separate budgets of 30 each, so a chatty warning loop can't get real errors refused. The limit is per device and level, in memory, and resets with the server; a device that forges ids can still only write 16 KB a request, from an allowed origin.
 
 Code: `packages/browser-server/src/internal/client-log.routes.ts`; the report schema and limits are in `packages/logging/src/client-log/`.
 
