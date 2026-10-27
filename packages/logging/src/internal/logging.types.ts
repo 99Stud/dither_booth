@@ -1,4 +1,8 @@
-export type KioskLogLevel = "error" | "info" | "warn";
+import type { z } from "zod";
+
+import type { kioskLogLevelSchema } from "../isomorphic/kiosk-line";
+
+export type KioskLogLevel = z.infer<typeof kioskLogLevelSchema>;
 
 export type KioskLogDetails = Record<string, unknown>;
 

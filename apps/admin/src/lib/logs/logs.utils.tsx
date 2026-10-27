@@ -3,9 +3,9 @@
  * lines), so both always agree. Keep this file free of server-only imports.
  */
 
-import type { LogEntry, LogFilter, LogFilterService } from "./logs.types";
+import { SERVER_STARTED_EVENT } from "@dither-booth/logging/kiosk-line";
 
-import { LOGS_RESTART_EVENT } from "./logs.constants";
+import type { LogEntry, LogFilter, LogFilterService } from "./logs.types";
 
 /** The service chip an entry belongs to: browser lines have their own. */
 export function getLogFilterService(entry: LogEntry): LogFilterService {
@@ -22,7 +22,7 @@ export function isLogServiceShown(
 
 /** A server's start: a restart divider on the page, not a line. */
 export function isRestartEntry(entry: LogEntry) {
-  return entry.event === LOGS_RESTART_EVENT && entry.origin === "server";
+  return entry.event === SERVER_STARTED_EVENT && entry.origin === "server";
 }
 
 /**

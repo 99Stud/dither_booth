@@ -8,7 +8,6 @@ import type {
   ReportKioskErrorOptions,
 } from "./internal/logging.types";
 
-import { KIOSK_LOG_PREFIX } from "./internal/logging.constants";
 import { sendBrowserReport } from "./internal/logging.report";
 import { serializeLogPayload } from "./internal/logging.serialize";
 import {
@@ -16,6 +15,7 @@ import {
   getConsoleMethod,
   isBrowserRuntime,
 } from "./internal/logging.utils";
+import { KIOSK_LOG_PREFIX } from "./isomorphic/kiosk-line";
 
 export const getKioskErrorDiagnostics = (
   error: unknown,

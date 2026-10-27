@@ -1,3 +1,4 @@
+import { kioskLogErrorSchema } from "@dither-booth/logging/kiosk-line";
 import z from "zod";
 /*
  * The messages of the `/admin/logs` socket. The admin server and the Logs
@@ -22,12 +23,8 @@ export const logStreamSchema = z.enum(LOG_STREAMS);
 export const logOriginSchema = z.enum(LOG_ORIGINS);
 export const logSourceStateSchema = z.enum(LOG_SOURCE_STATES);
 
-export const logEntryErrorSchema = z.object({
-  cause: z.string().optional(),
-  message: z.string(),
-  name: z.string().optional(),
-  stack: z.string().optional(),
-});
+/** The error of a kiosk event, as the shared logger writes it. */
+export const logEntryErrorSchema = kioskLogErrorSchema;
 
 /** One log line, whatever its source. */
 export const logEntrySchema = z.object({

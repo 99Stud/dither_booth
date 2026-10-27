@@ -17,3 +17,12 @@ export const getValueType = (value: unknown) => {
 
   return typeof value;
 };
+
+/** `JSON.parse` that returns `undefined` instead of throwing. */
+export const tryParseJson = (text: string): unknown => {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return undefined;
+  }
+};

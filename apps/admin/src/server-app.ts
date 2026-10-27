@@ -1,5 +1,6 @@
 import { runBrowserServer } from "@dither-booth/browser-server";
 import { logKioskEvent } from "@dither-booth/logging";
+import { SERVER_STARTED_EVENT } from "@dither-booth/logging/kiosk-line";
 import {
   ADMIN_BIND_HOST,
   getAdminOrigin,
@@ -55,7 +56,7 @@ export async function runAdminServer(options: {
     },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {
-      logKioskEvent("info", ADMIN_SERVER_LOG_SOURCE, "server-started", {
+      logKioskEvent("info", ADMIN_SERVER_LOG_SOURCE, SERVER_STARTED_EVENT, {
         details,
       });
     },

@@ -30,12 +30,6 @@ export const LOG_SOURCE_STATES = [
   "rotated",
 ] as const;
 
-/**
- * A server's start event. The page draws it as a restart divider, and
- * filters let it through whatever the level, source or text.
- */
-export const LOGS_RESTART_EVENT = "server-started";
-
 /** Most entries one history page may ask for. */
 export const LOGS_HISTORY_MAX_LIMIT = 1000;
 

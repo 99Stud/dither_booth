@@ -1,4 +1,3 @@
-export const KIOSK_LOG_PREFIX = "[kiosk]";
 export const CIRCULAR_MARKER = "[circular]";
 export const REDACTED_MARKER = "[redacted]";
 

@@ -174,3 +174,36 @@ describe("logKioskEvent output", () => {
     });
   });
 });
+
+describe("parseKioskLogLine", () => {
+  it("reads back exactly what the logger writes, browser fields included", async () => {
+    const { stderr } = await runLogger(`
+      logKioskEvent("error", "web.browser", "window-error", {
+        browser: { deviceId: "a1b2c3", runId: 4 },
+        details: { route: "/" },
+        error: { name: "TypeError", message: "boom", stack: "TypeError: boom" },
+      });
+    `);
+    const { parseKioskLogLine } = await import("./src/isomorphic/kiosk-line");
+
+    expect(parseKioskLogLine(getLines(stderr)[0]!)).toEqual({
+      deviceId: "a1b2c3",
+      details: { route: "/" },
+      error: { message: "boom", name: "TypeError", stack: "TypeError: boom" },
+      event: "window-error",
+      level: "error",
+      loggedAt: expect.any(String),
+      origin: "browser",
+      runId: 4,
+      source: "web.browser",
+    });
+  });
+
+  it("returns nothing for a line that isn't a kiosk event", async () => {
+    const { parseKioskLogLine } = await import("./src/isomorphic/kiosk-line");
+
+    expect(parseKioskLogLine("error: uncaught exception")).toBeUndefined();
+    expect(parseKioskLogLine("[kiosk] {not json")).toBeUndefined();
+    expect(parseKioskLogLine('[kiosk] {"level":"loud"}')).toBeUndefined();
+  });
+});

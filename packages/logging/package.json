@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./browser": "./src/browser/index.ts",
-    "./client-log": "./src/isomorphic/client-log.ts"
+    "./client-log": "./src/isomorphic/client-log.ts",
+    "./kiosk-line": "./src/isomorphic/kiosk-line.ts"
   },
   "scripts": {
     "update": "bun update -i",

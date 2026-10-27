@@ -7,6 +7,7 @@ import {
   clientLogReportSchema,
 } from "@dither-booth/logging/client-log";
 import { isAllowedConfiguredOrigin } from "@dither-booth/ports/origin";
+import { tryParseJson } from "@dither-booth/shared/runtime";
 
 import type { RouteHandler } from "./browser-server.types";
 
@@ -47,14 +48,6 @@ async function readBodyWithLimit(req: Request, maxBytes: number) {
   }
 
   return new TextDecoder().decode(Buffer.concat(chunks));
-}
-
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
 }
 
 /**
@@ -127,7 +120,7 @@ export function createClientLogRoute({
       return new Response("Report too large.", { status: 413 });
     }
 
-    const report = clientLogReportSchema.safeParse(parseJson(body));
+    const report = clientLogReportSchema.safeParse(tryParseJson(body));
 
     if (!report.success) {
       return new Response("Invalid report.", { status: 400 });

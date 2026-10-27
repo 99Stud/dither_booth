@@ -1,6 +1,11 @@
 import type { FileHandle } from "node:fs/promises";
 
+import {
+  KIOSK_LOG_PREFIX,
+  parseKioskLogLine,
+} from "@dither-booth/logging/kiosk-line";
 import { PM2_LOG_RELATIVE_DIR } from "@dither-booth/shared/booth-system";
+import { tryParseJson } from "@dither-booth/shared/runtime";
 import { type FSWatcher, watch } from "node:fs";
 import { open } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
@@ -25,7 +30,6 @@ import {
   LOG_SERVICES,
 } from "./logs.constants";
 import { InvalidLogPositionError } from "./logs.hub";
-import { logEntryErrorSchema, logLevelSchema } from "./logs.protocol";
 
 /*
  * A log source over one PM2 combined file (`logs/pm2/<process>.log`). Each
@@ -66,7 +70,6 @@ type Pm2Record = {
   isOpen: boolean;
 };
 
-const KIOSK_PREFIX = "[kiosk] ";
 const GENERATION_PROBE_BYTES = 4096;
 const EPOCH = new Date(0).toISOString();
 
@@ -74,18 +77,6 @@ const pm2EnvelopeSchema = z.object({
   message: z.string(),
   timestamp: z.string(),
   type: z.enum(["out", "err"]),
-});
-
-const kioskPayloadSchema = z.object({
-  loggedAt: z.string().optional(),
-  level: logLevelSchema,
-  source: z.string(),
-  event: z.string(),
-  details: z.record(z.string(), z.unknown()).optional(),
-  error: logEntryErrorSchema.optional(),
-  origin: z.literal("browser").optional(),
-  deviceId: z.string().optional(),
-  runId: z.number().optional(),
 });
 
 function formatPosition({ generation, index, offset }: Pm2Position) {
@@ -121,14 +112,6 @@ function toIsoTimestamp(value: string | undefined) {
   return Number.isNaN(time) ? undefined : new Date(time).toISOString();
 }
 
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * Folds indented lines into the plain-text line before them, so a crash's
  * stack trace reads as one entry. Kiosk lines are one line each and never
@@ -143,7 +126,7 @@ function joinContinuationLines(lines: string[]): string[] {
     if (
       previous !== undefined &&
       /^\s/.test(line) &&
-      !previous.startsWith(KIOSK_PREFIX)
+      !previous.startsWith(KIOSK_LOG_PREFIX)
     ) {
       joined[joined.length - 1] = `${previous}\n${line}`;
     } else {
@@ -167,30 +150,24 @@ function parseOutputLine({
   text: string;
   timestamp: string;
 }): LogEntry {
-  if (text.startsWith(KIOSK_PREFIX)) {
-    const payload = kioskPayloadSchema.safeParse(
-      parseJson(text.slice(KIOSK_PREFIX.length)),
-    );
+  const data = parseKioskLogLine(text);
 
-    if (payload.success) {
-      const { data } = payload;
-
-      return {
-        id,
-        timestamp: toIsoTimestamp(data.loggedAt) ?? timestamp,
-        service,
-        stream,
-        level: data.level,
-        source: data.source,
-        event: data.event,
-        ...(data.details ? { details: data.details } : {}),
-        ...(data.error ? { error: data.error } : {}),
-        raw: text,
-        origin: data.origin ?? "server",
-        ...(data.deviceId ? { deviceId: data.deviceId } : {}),
-        ...(data.runId !== undefined ? { runId: data.runId } : {}),
-      };
-    }
+  if (data) {
+    return {
+      id,
+      timestamp: toIsoTimestamp(data.loggedAt) ?? timestamp,
+      service,
+      stream,
+      level: data.level,
+      source: data.source,
+      event: data.event,
+      ...(data.details ? { details: data.details } : {}),
+      ...(data.error ? { error: data.error } : {}),
+      raw: text,
+      origin: data.origin ?? "server",
+      ...(data.deviceId ? { deviceId: data.deviceId } : {}),
+      ...(data.runId !== undefined ? { runId: data.runId } : {}),
+    };
   }
 
   return {
@@ -206,7 +183,7 @@ function parseOutputLine({
 
 function parseFileLine(line: FileLine): ParsedFileLine {
   const text = line.bytes.toString("utf8");
-  const envelope = pm2EnvelopeSchema.safeParse(parseJson(text));
+  const envelope = pm2EnvelopeSchema.safeParse(tryParseJson(text));
 
   return {
     start: line.start,

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { kioskLogErrorSchema } from "./kiosk-line";
+
 /*
  * Browser reports: what the browser logger sends to `POST /client-log`,
  * and the limits the server that receives them enforces.
@@ -33,14 +35,7 @@ export const CLIENT_LOG_TRIMMED_TEXT_LENGTH = 1024;
 export const clientLogReportSchema = z.strictObject({
   deviceId: z.string().min(1).max(128),
   details: z.record(z.string(), z.unknown()).optional(),
-  error: z
-    .strictObject({
-      cause: z.string().optional(),
-      message: z.string(),
-      name: z.string().optional(),
-      stack: z.string().optional(),
-    })
-    .optional(),
+  error: z.strictObject(kioskLogErrorSchema.shape).optional(),
   event: z.string().min(1).max(128),
   level: z.enum(["error", "warn"]),
   runId: z.number().int().positive(),

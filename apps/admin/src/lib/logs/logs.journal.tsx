@@ -1,3 +1,4 @@
+import { tryParseJson } from "@dither-booth/shared/runtime";
 import z from "zod";
 
 import type {
@@ -482,17 +483,9 @@ function levelOf(priority: string | undefined): LogLevel {
   return value === 4 ? "warn" : "info";
 }
 
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return undefined;
-  }
-}
-
 /** One `journalctl --output=json` line as an entry, or undefined if it isn't a journal record. */
 export function parseJournalLine(line: string): JournalLine | undefined {
-  const parsed = journalRecordSchema.safeParse(parseJson(line));
+  const parsed = journalRecordSchema.safeParse(tryParseJson(line));
 
   if (!parsed.success) {
     return undefined;
