@@ -1,0 +1,370 @@
+import { afterEach, describe, expect, test } from "bun:test";
+
+import type { DB } from "#db/internal/db.types";
+
+import { campaignTable, drawTable, visitTable } from "#db/internal/db.schema";
+import { createTestDb } from "#db/internal/db.test-utils";
+
+import { getVisitStatsForDb, VISIT_STATS_HOURS } from "./visit.stats";
+import { createVisits } from "./visits";
+
+const openDbs: Array<{ close: () => void }> = [];
+
+afterEach(() => {
+  while (openDbs.length > 0) openDbs.pop()?.close();
+});
+
+/** Visits on a test database, with a clock the test moves in seconds. */
+function setup({ campaign = true }: { campaign?: boolean } = {}) {
+  const { db, sqlite } = createTestDb();
+  openDbs.push(sqlite);
+
+  if (campaign) {
+    db.insert(campaignTable).values({ id: "c1", name: "Halloween" }).run();
+  }
+
+  let seconds = 1_000;
+  const logged: string[] = [];
+  const visits = createVisits({
+    db,
+    log: (_level, event) => logged.push(event),
+    now: () => new Date(seconds * 1000),
+  });
+
+  return {
+    db,
+    logged,
+    visits,
+    tick: (by: number) => {
+      seconds += by;
+    },
+  };
+}
+
+/** A draw row and the visit linked to it, the way the lottery records one. */
+function draw(
+  db: DB,
+  visits: ReturnType<typeof createVisits>,
+  visitId: string | null,
+  ticketRef: string,
+) {
+  return db.transaction((tx) => {
+    tx.insert(drawTable)
+      .values({ id: `draw-${ticketRef}`, campaignId: "c1", ticketRef })
+      .run();
+    return visits.captured(tx, visitId, {
+      id: `draw-${ticketRef}`,
+      campaignId: "c1",
+    });
+  });
+}
+
+const rows = (db: DB) =>
+  db.select().from(visitTable).orderBy(visitTable.startedAt).all();
+
+describe("visits", () => {
+  test("a visit runs from Start to its end", () => {
+    const { db, tick, visits } = setup();
+
+    const { visitId } = visits.start();
+    tick(20);
+    draw(db, visits, visitId, "000001");
+    tick(30);
+    visits.printed("000001", true);
+    tick(5);
+    visits.end(visitId!, "completed");
+
+    expect(rows(db)).toEqual([
+      expect.objectContaining({
+        id: visitId,
+        campaignId: "c1",
+        startedAt: new Date(1_000_000),
+        capturedAt: new Date(1_020_000),
+        drawId: "draw-000001",
+        printedAt: new Date(1_050_000),
+        printAttempts: 1,
+        endedAt: new Date(1_055_000),
+        endReason: "completed",
+        updatedAt: new Date(1_055_000),
+        reportedAt: null,
+      }),
+    ]);
+  });
+
+  test("starting a visit closes the one left open", () => {
+    const { db, tick, visits } = setup();
+
+    const first = visits.start();
+    tick(10);
+    draw(db, visits, first.visitId, "000001");
+    tick(60);
+    const second = visits.start();
+
+    expect(rows(db)).toMatchObject([
+      // Ends where it was last seen, not when the next guest came.
+      {
+        id: first.visitId,
+        endReason: "abandoned",
+        endedAt: new Date(1_010_000),
+      },
+      { id: second.visitId, endedAt: null },
+    ]);
+  });
+
+  test("a visit left open after its receipt printed counts as completed", () => {
+    const { db, tick, visits } = setup();
+
+    const { visitId } = visits.start();
+    draw(db, visits, visitId, "000001");
+    tick(30);
+    visits.printed("000001", true);
+    tick(60);
+    visits.start();
+
+    expect(rows(db)[0]).toMatchObject({
+      endReason: "completed",
+      endedAt: new Date(1_030_000),
+    });
+  });
+
+  test("a draw without a visit id joins the visit Start just opened", () => {
+    const { db, tick, visits } = setup();
+
+    // The kiosk sent the photo before startVisit's answer reached it.
+    const { visitId } = visits.start();
+    tick(10);
+    const linked = draw(db, visits, null, "000001");
+
+    expect(linked).toBe(visitId);
+    expect(rows(db)).toMatchObject([
+      { id: visitId, drawId: "draw-000001", endedAt: null },
+    ]);
+  });
+
+  test("a draw without a visit starts one when the open one is stale", () => {
+    const { db, tick, visits } = setup();
+
+    // A guest the page lost before their photo, long ago.
+    const { visitId: stale } = visits.start();
+    tick(10 * 60);
+    const linked = draw(db, visits, null, "000001");
+
+    expect(linked).not.toBe(stale);
+    expect(rows(db)).toMatchObject([
+      { id: stale, endReason: "abandoned", drawId: null },
+      { id: linked, drawId: "draw-000001", endedAt: null },
+    ]);
+  });
+
+  test("printed tickets make a visit completed, whatever the kiosk said", () => {
+    const { db, tick, visits } = setup();
+
+    // The kiosk gave up first, then the print came out.
+    const late = visits.start().visitId!;
+    draw(db, visits, late, "000001");
+    visits.end(late, "failed");
+    visits.printed("000001", true);
+    // The print came out first, then the kiosk's timeout said failed.
+    tick(60);
+    const slow = visits.start().visitId!;
+    draw(db, visits, slow, "000002");
+    visits.printed("000002", true);
+    visits.end(slow, "failed");
+
+    expect(rows(db)).toMatchObject([
+      { id: late, endReason: "completed" },
+      { id: slow, endReason: "completed" },
+    ]);
+  });
+
+  test("a restart mid-visit, then the print: completed", () => {
+    const { db, visits } = setup();
+
+    const { visitId } = visits.start();
+    visits.closeStale();
+    draw(db, visits, visitId, "000001");
+    visits.printed("000001", true);
+
+    expect(rows(db)).toMatchObject([{ id: visitId, endReason: "completed" }]);
+  });
+
+  test("a failed print leaves a failed visit failed", () => {
+    const { db, visits } = setup();
+
+    const { visitId } = visits.start();
+    draw(db, visits, visitId, "000001");
+    visits.printed("000001", false);
+    visits.end(visitId!, "failed");
+
+    expect(rows(db)).toMatchObject([{ endReason: "failed", printedAt: null }]);
+  });
+
+  test("a second draw for the same visit gets a visit of its own", () => {
+    const { db, visits } = setup();
+
+    const { visitId } = visits.start();
+    draw(db, visits, visitId, "000001");
+    const second = draw(db, visits, visitId, "000002");
+
+    expect(second).not.toBe(visitId);
+    expect(rows(db).map((row) => row.drawId)).toEqual([
+      "draw-000001",
+      "draw-000002",
+    ]);
+  });
+
+  test("a draw that comes after its visit ended still joins it", () => {
+    const { db, visits } = setup();
+
+    // The kiosk gave up on the print before the draw answered: the guest
+    // still counts once, with the draw on their visit.
+    const { visitId } = visits.start();
+    visits.end(visitId!, "failed");
+    const linked = draw(db, visits, visitId, "000001");
+
+    expect(linked).toBe(visitId);
+    expect(rows(db)).toMatchObject([
+      { id: visitId, drawId: "draw-000001", endReason: "failed" },
+    ]);
+  });
+
+  test("a failed link keeps the draw and logs", () => {
+    const { db, logged, visits } = setup();
+
+    const linked = db.transaction((tx) => {
+      tx.insert(drawTable)
+        .values({ id: "d1", campaignId: "c1", ticketRef: "000001" })
+        .run();
+      // No such draw: the visit's foreign key refuses it.
+      return visits.captured(tx, null, { id: "missing", campaignId: "c1" });
+    });
+
+    expect(linked).toBeNull();
+    expect(logged).toEqual(["visit-capture-failed"]);
+    expect(db.select().from(drawTable).all()).toHaveLength(1);
+    expect(rows(db)).toEqual([]);
+  });
+
+  test("only the first end counts", () => {
+    const { db, tick, visits } = setup();
+
+    const { visitId } = visits.start();
+    tick(10);
+    visits.end(visitId!, "failed");
+    tick(10);
+    visits.end(visitId!, "completed");
+
+    expect(rows(db)).toMatchObject([
+      { endReason: "failed", endedAt: new Date(1_010_000) },
+    ]);
+  });
+
+  test("a failed print counts an attempt without printing", () => {
+    const { db, visits } = setup();
+
+    const { visitId } = visits.start();
+    draw(db, visits, visitId, "000001");
+    visits.printed("000001", false);
+
+    expect(rows(db)).toMatchObject([{ printAttempts: 1, printedAt: null }]);
+  });
+
+  test("boot closes every visit still open", () => {
+    const { db, logged, visits } = setup();
+
+    visits.start();
+    visits.closeStale();
+
+    expect(rows(db)).toMatchObject([{ endReason: "abandoned" }]);
+    expect(logged).toEqual(["visits-closed-at-boot"]);
+  });
+
+  test("a visit with no event records none", () => {
+    const { db, visits } = setup({ campaign: false });
+
+    visits.start();
+
+    expect(rows(db)).toMatchObject([{ campaignId: null }]);
+  });
+});
+
+describe("getVisitStatsForDb", () => {
+  test("is null without an active event", () => {
+    const { db } = setup({ campaign: false });
+
+    expect(getVisitStatsForDb(db)).toBeNull();
+  });
+
+  test("counts the active event's visits", () => {
+    const { db, tick, visits } = setup();
+    db.insert(drawTable)
+      .values({ id: "won", campaignId: "c1", ticketRef: "000009" })
+      .run();
+    // A backfilled visit: one time for everything, so no length.
+    db.insert(visitTable)
+      .values({
+        id: "backfill-won",
+        campaignId: "c1",
+        startedAt: new Date(0),
+        drawId: "won",
+        printedAt: new Date(0),
+        endedAt: new Date(0),
+        endReason: "completed",
+        updatedAt: new Date(0),
+      })
+      .run();
+
+    const completed = visits.start().visitId!;
+    draw(db, visits, completed, "000001");
+    visits.printed("000001", true);
+    tick(40);
+    visits.end(completed, "completed");
+    const failed = visits.start().visitId!;
+    visits.end(failed, "failed");
+    visits.start();
+
+    expect(getVisitStatsForDb(db, new Date(1_040_000))).toMatchObject({
+      visits: 4,
+      completed: 2,
+      failed: 1,
+      wins: 0,
+      avgDurationS: 40,
+      lastVisitAt: new Date(1_040_000).toISOString(),
+    });
+  });
+
+  test("counts visits per hour over the last 12 hours, empty hours included", () => {
+    const { db, tick, visits } = setup();
+    // The clock starts at 1 000 s; 3 600 s is the start of the second hour.
+    visits.start();
+    tick(3_000);
+    visits.start();
+    visits.start();
+
+    const { hourly } = getVisitStatsForDb(db, new Date(4_000_000))!;
+
+    expect(hourly).toHaveLength(VISIT_STATS_HOURS);
+    expect(hourly.at(-1)).toEqual({
+      hour: new Date(3_600_000).toISOString(),
+      visits: 2,
+    });
+    expect(hourly.at(-2)).toEqual({
+      hour: new Date(0).toISOString(),
+      visits: 1,
+    });
+    expect(hourly.slice(0, -2).every((entry) => entry.visits === 0)).toBe(true);
+  });
+
+  test("leaves visits older than 12 hours out of the hours, not the totals", () => {
+    const { db, visits } = setup();
+    visits.start();
+
+    const stats = getVisitStatsForDb(
+      db,
+      new Date((1_000 + 13 * 3_600) * 1000),
+    )!;
+
+    expect(stats.visits).toBe(1);
+    expect(stats.hourly.every((entry) => entry.visits === 0)).toBe(true);
+  });
+});

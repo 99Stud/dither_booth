@@ -19,22 +19,25 @@ sequenceDiagram
   participant P as Printer
 
   G->>S: Tap Start
+  S->>E: booth.startVisit()
+  E-->>S: { visitId }
   Note over S: countdown → smile → capture
-  S->>E: booth.prepareReceipt(photo bytes)
+  S->>E: booth.prepareReceipt(FormData: photo, visitId)
   E->>E: printer can print? (else PRECONDITION_FAILED)
   E->>E: dither photo to 576 px, threshold
   E->>C: lay out photo receipt (event kit, ticket items, ref)
   C-->>E: screenshot
-  E->>E: lottery draw (transaction)
+  E->>E: lottery draw + link the visit (transaction)
   E->>C: lay out lottery ticket (if win, or loser tickets on)
   C-->>E: screenshot
   E->>E: rasters → GS v 0, keep job 120 s
-  E-->>S: { draw, hasLottery, ticketRef }
+  E-->>S: { draw, hasLottery, ticketRef, visitId }
   Note over S: slot machine lands on draw outcome
   S->>E: booth.printPreparedReceipt(ticketRef)
   E->>P: photo receipt
   E->>P: lottery ticket
   E-->>S: ok
+  S->>E: booth.endVisit(visitId, completed)
   Note over S: receipt ready → reset
 ```
 
@@ -49,21 +52,22 @@ The Shutter's guest flow is a reducer (`apps/shutter/src/app/Experience/internal
 - **Phase flags** (`Experience.phases.tsx`) declare what each phase shows and allows: camera visible, start enabled, print attempt running… The map is an exhaustive `Record<ExperiencePhase, …>`, so a new phase doesn't compile until its behaviour is decided.
 - **Animation fallbacks.** Each animated transition has a timer fallback, so a missed `animationend` event can't freeze the flow.
 - **Print attempts** carry an id. A late `printSucceeded` or `printFailed` from an earlier attempt is ignored.
+- **The visit** is recorded on the engine (see [Visits](#visits) below). The machine keeps `visitId` and `visitEnd`; `startRequested` clears both.
 - Kiosk commands (reload when idle, maintenance, open the Darkroom) wait for `idle`, so a visit is never cut off. They apply after 90 s anyway, because a stuck flow never gets back to idle.
 
 ## Prepare: `booth.prepareReceipt`
 
 `booth.prepareReceipt` and `booth.printPreparedReceipt` each make one call into the engine's tickets module (`createTickets`, in `apps/engine/src/domains/receipt`). The same module prints test prints and sample lottery tickets and renders the Darkroom's preview. It draws every ticket through a ticket renderer: the receipt viewer page in Chromium on the booth, a fake in the tests.
 
-The photo is sent as raw bytes (`octetInputParser`), not JSON.
+The photo is sent as FormData, not JSON: `photo`, and `visitId` when the iPad has one.
 
 1. **Printer gate.** The tickets module refuses with `PRECONDITION_FAILED` if the printer can't print — **before the draw**, so a booth out of paper never burns a prize. With automatic maintenance off, only a disconnected printer is refused.
 2. **Dither.** The photo is rotated, resized to the printer's **576 dots** (80 mm at 203 dpi) and dithered with the booth's print configuration (see [Print settings](/docs/reference/print-settings/)), then thresholded to pure black/white.
 3. **Lay out.** The headless Chromium page, which stays open on the Shutter's `/receipt-viewer`, renders the event's **kit** with the dithered photo, the ticket items and the ticket ref, and the engine screenshots it. Before it navigates, the page fetches the kit's added fonts and the partner logos. Before the screenshot the engine waits for the photo to decode and for every other image on the ticket to load: each `<img>` (a partner logo) and each CSS image (a kit's mask or background), because they are fetched when the ticket first renders. An image that won't load is left off and logged (`receipt-image-failed`): the guest still gets a print. One page serves every job, one at a time (the renderer's page queue); the screenshot is capped at 12 s.
-4. **Draw.** `executeLotteryDraw` runs inside one SQLite transaction: cooldown read, weighted pick among prizes with stock, insert of the `draw` row (which is what takes the unit of stock). A ticket-ref collision retries with a new ref, and the photo receipt is re-rendered with the ref that was actually recorded.
+4. **Draw.** `executeLotteryDraw` runs inside one SQLite transaction: cooldown read, weighted pick among prizes with stock, insert of the `draw` row (which is what takes the unit of stock). The draw's visit is linked in the same transaction, so a draw always has its visit. A ticket-ref collision retries with a new ref, and the photo receipt is re-rendered with the ref that was actually recorded.
 5. **Lottery ticket.** Rendered for a win, or for a loss when the lottery prints loser tickets.
 6. **Raster.** Each screenshot becomes an ESC/POS `GS v 0` raster command. With `print_config.upside_down` on (the default), the 1-bit image is turned 180° before packing: the printer feeds the top of the ticket out first, so turned, it reads the right way up for the guest holding it. Doing it in the image rather than with the printer's `ESC {` keeps it independent of how the printer treats raster graphics in upside-down mode, and before the real-time byte escape, which has to see the final bytes.
-7. **Store.** The job is kept in memory for **120 s**, keyed by ticket ref, and the draw is returned to the iPad with `hasLottery`, whether it ran against a lottery.
+7. **Store.** The job is kept in memory for **120 s**, keyed by ticket ref, and the draw is returned to the iPad with `hasLottery`, whether it ran against a lottery, and the `visitId` it was linked to.
 
 ## Print: `booth.printPreparedReceipt`
 
@@ -74,6 +78,26 @@ The photo is sent as raw bytes (`octetInputParser`), not JSON.
 5. The whole printing phase has a **45 s** budget on the iPad. Past it, or after the retries, the visit resets.
 
 A `NOT_FOUND` (job expired after 120 s, or never prepared) isn't retried.
+
+Each print that runs counts one `print_attempts` on the visit; the one that prints in full sets `printed_at`.
+
+## Visits
+
+The engine records every guest's **visit** in the `visit` table, through the visits module (`createVisits`, in `apps/engine/src/domains/visit`). Visits feed the Event page's tiles, and later the Hub's analytics. Recording never gets in a guest's way: each step logs its failure (`engine.visit`) and the visit goes on.
+
+| Step               | Who                                                                        | Writes                                                   |
+| ------------------ | -------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `booth.startVisit` | the iPad, when the intro leaves after **Start**                            | a new visit, after closing the one left open             |
+| capture            | `prepareReceipt`, inside the draw's transaction                            | `captured_at`, `draw_id`, the event the draw ran against |
+| print              | `printPreparedReceipt`, on success and on failure                          | `print_attempts + 1`; `printed_at` on success            |
+| `booth.endVisit`   | the iPad: `completed` once printed, `failed` after the final `printFailed` | `ended_at`, `end_reason`. Only the first end counts.     |
+
+- **At most one open visit.** There is one kiosk, so starting a visit, or a draw that comes without one, first closes the visit left open: `completed` if its receipt printed, otherwise `abandoned`. It ends at its last known step (print, capture or start), not when it was noticed. A page reload mid-visit is closed this way at the next **Start**.
+- **Every visit ends.** At engine start, every visit still open is closed the same way (`visits-closed-at-boot`).
+- **A draw without a visit joins the one Start just opened.** If `startVisit` hadn't answered yet (or failed), `prepareReceipt` comes without `visitId`, or with one that already drew. The draw then joins the open visit that hasn't drawn, if it started less than **2 min** ago (Start to the photo takes about 10 s), and returns its id, which the iPad keeps. Otherwise it starts its own visit. A `visitId` that can't be one (empty, or over 64 characters) is dropped the same way: it never stops the guest.
+- **A draw joins its visit even once that visit ended.** The iPad may give up on the print (45 s) before the draw answers, ending the visit `failed`; the late draw still belongs to it, so the guest counts once.
+- **Printed in full means completed.** A visit whose tickets printed in full ends `completed`, whatever the iPad said or in which order: the iPad may give up on a print that still comes out, and a restart may close a visit whose print follows.
+- **No guest data.** A visit holds times, its draw and how it ended. No photo, nothing about the guest.
 
 ## Print jobs on the wire
 

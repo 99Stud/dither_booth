@@ -59,6 +59,7 @@ import {
   createPuppeteerTicketRenderer,
   createTickets,
 } from "#domains/receipt/receipt.service";
+import { createVisits, VISIT_LOG_SOURCE } from "#domains/visit/visit.service";
 import { engineRouter } from "#internal/router";
 import { ENGINE_REPO_ROOT } from "#lib/constants";
 import { ENGINE_PRINTER_LOG_SOURCE } from "#lib/printer/printer.constants";
@@ -106,6 +107,13 @@ export async function runEngineServer(options: {
 
   applySqliteMigrations();
   await ensureDefaultPrintConfiguration();
+
+  const visits = createVisits({
+    db,
+    log: (level, event, details) =>
+      logKioskEvent(level, VISIT_LOG_SOURCE, event, { details }),
+  });
+  visits.closeStale();
 
   // Watched from the start, reconnecting on its own: a printer plugged in
   // after boot is picked up without a restart. In dry run, the preview
@@ -162,6 +170,7 @@ export async function runEngineServer(options: {
     maintenance: kioskMaintenance,
     printer,
     renderer: createPuppeteerTicketRenderer(puppeteerLifecycle),
+    visits,
   });
   const cameraPreview = createCameraPreview({
     kioskChannel,
@@ -233,6 +242,7 @@ export async function runEngineServer(options: {
       setupServerToken:
         typeof setupServerToken === "string" ? setupServerToken : undefined,
       tickets,
+      visits,
     };
   };
 

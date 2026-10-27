@@ -24,6 +24,7 @@ interface UsePrintAttemptOptions {
   phase: ExperiencePhase;
   photoUrl: string | null;
   ticketRef: string | null;
+  visitId: string | null;
   webcamRef: RefObject<WebcamHandle | null>;
 }
 
@@ -41,9 +42,16 @@ export const usePrintAttempt = ({
   phase,
   photoUrl,
   ticketRef,
+  visitId,
   webcamRef,
 }: UsePrintAttemptOptions) => {
   const trpc = useTRPC();
+
+  // Read when the photo is sent, not a reason to start the attempt over.
+  const visitIdRef = useRef(visitId);
+  useEffect(() => {
+    visitIdRef.current = visitId;
+  }, [visitId]);
 
   const { mutateAsync: prepareReceipt } = useMutation(
     trpc.booth.prepareReceipt.mutationOptions(),
@@ -101,7 +109,10 @@ export const usePrintAttempt = ({
           photoUrl: URL.createObjectURL(squarePhoto),
         });
 
-        const prepared = await prepareReceipt(squarePhoto);
+        const form = new FormData();
+        form.set("photo", squarePhoto);
+        if (visitIdRef.current) form.set("visitId", visitIdRef.current);
+        const prepared = await prepareReceipt(form);
 
         if (cancelled) return;
 
@@ -111,6 +122,7 @@ export const usePrintAttempt = ({
           drawResult: prepared.draw,
           hasLottery: prepared.hasLottery,
           ticketRef: prepared.ticketRef,
+          visitId: prepared.visitId,
         });
         void queryClient.invalidateQueries(
           trpc.booth.getLotteryStatus.queryFilter(),

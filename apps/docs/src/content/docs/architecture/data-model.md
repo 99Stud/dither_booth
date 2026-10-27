@@ -17,6 +17,8 @@ erDiagram
   campaign ||--o{ draw : "recorded during"
   lottery ||--o{ draw : ""
   prize ||--o{ draw : "won"
+  campaign ||--o{ visit : "during"
+  draw |o--o| visit : "of"
   campaign {
     text id
     text name
@@ -52,6 +54,20 @@ erDiagram
     text prize_title "kept when prize changes"
     int created_at
   }
+  visit {
+    text id
+    text campaign_id "event at Start, then at the draw"
+    text hub_event_id "null until the booth knows it"
+    int started_at
+    int captured_at
+    text draw_id "unique"
+    int printed_at
+    int print_attempts
+    int ended_at
+    text end_reason "completed | abandoned | failed"
+    int updated_at
+    int reported_at
+  }
 ```
 
 Plus three singletons (one row, `id = 1`, enforced by a CHECK):
@@ -70,6 +86,7 @@ Events (`campaign`) are **never deleted**.
 - `replaceEvent` archives the active campaign and creates the next one **in the same transaction**. The archived campaign's lottery, prizes, ledger and draws stay exactly as they were.
 - Everything reads and draws through the active campaign: `getCurrentEvent`, `listDraws`, the receipt settings, the draw, `getLotteryStatus`. A lottery is drawn against only while it belongs to the active campaign **and** is enabled.
 - Every **visit** inserts a `draw` row, which allocates its ticket number. It records `campaign_id` (the event active then, null if none) and `lottery_id`, set only while that event's lottery was enabled. Only rows with a `lottery_id` are **draws**: `listDraws` lists the active event's draws, and a lookup by ticket number also finds a lottery-off visit, as `outcome: "no-lottery"`. `getLotteryStatus` counts draws the same way.
+- Every visit also has a `visit` row ([Visits](#visits)).
 - Every event write (campaign, lottery, prizes, stock) moves `updated_at`.
 - Ticket numbers (`ticket_ref`) stay **unique across all events**, archived included, so one always points at one visit.
 
@@ -89,6 +106,17 @@ Prize stock is **never stored as a number**. `stock_adjustment` is append-only:
 Deltas commute with kiosk wins: a restock never needs to know the current stock, and an admin form can't go stale.
 
 **Triggers.** `drizzle/0011_stock_ledger.sql` creates two triggers that refuse an adjustment or a win that would take stock below zero. drizzle-kit doesn't track triggers, and rebuilding `draw` or `stock_adjustment` would drop them; `db.migrations.test.ts` fails if they go missing.
+
+## Visits
+
+`visit` records one guest's pass through the booth, written only by the visits module (`apps/engine/src/domains/visit`). How each column is filled is in [A guest visit](/docs/architecture/guest-visit/#visits).
+
+- Times are in **seconds**, like `draw.created_at`.
+- `campaign_id` is the event active at **Start**, then the event the draw ran against.
+- `draw_id` is unique: a draw belongs to one visit at most.
+- `getVisitStats` counts the active event's visits: visits, completed, failed, wins (visits whose draw won), the average length of a completed visit (Start to end, in seconds), when the last visit started, and visits started in each of the last 12 hours (`hourly`, empty hours included, the current one last). Hours are cut on epoch hours, which are the booth's own wherever its time zone is a whole number of hours from UTC.
+- **Outbox.** A visit is due to be reported to the Hub while `reported_at` is null or older than `updated_at`; `visit_pending_idx` (`reported_at`, `updated_at`) serves that read. Nothing reports visits yet, and `hub_event_id` stays null until the booth learns its Hub event.
+- `0023_visit` backfilled one visit per earlier draw, with deterministic ids (`backfill-<draw id>`): `completed`, printed, and every time set to the draw's. They count in the totals but have no length, so the average leaves them out.
 
 ## Kits
 

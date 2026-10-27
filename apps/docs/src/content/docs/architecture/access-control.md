@@ -13,13 +13,13 @@ Code: `apps/engine/src/internal/trpc.ts`. `apps/engine/src/internal/router.test.
 
 The router is split by caller, and each group is built on one base procedure that carries its access check:
 
-| Group / base                                  | Access                                    | Used for                                                                                                                              |
-| --------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `booth.*` — `boothProcedure`                  | **Any origin**                            | What the kiosk needs during a visit: prepare and print, lottery status, the kiosk stream, camera signalling, unlock/lock the Darkroom |
-| `config.*` — `configProcedure`                | **Admin origin only**                     | Event, lottery and prize authoring, draws, the Darkroom PIN                                                                           |
-| `ops.*` — `opsProcedure`                      | **Admin origin only**                     | Recovery and control: reload, maintenance, booth screen, restarts, printer watch, camera live view                                    |
-| `darkroomProcedure` (in `config.*` / `ops.*`) | Admin origin **or** a live Darkroom token | Print tuning and the checks around it, Wi-Fi, device setup, health                                                                    |
-| `captive.*` — `captiveProcedure`              | **Setup server token** only               | The captive page's status and join                                                                                                    |
+| Group / base                                  | Access                                    | Used for                                                                                                                                                       |
+| --------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `booth.*` — `boothProcedure`                  | **Any origin**                            | What the kiosk needs during a visit: start and end the visit, prepare and print, lottery status, the kiosk stream, camera signalling, unlock/lock the Darkroom |
+| `config.*` — `configProcedure`                | **Admin origin only**                     | Event, lottery and prize authoring, draws, the Darkroom PIN                                                                                                    |
+| `ops.*` — `opsProcedure`                      | **Admin origin only**                     | Recovery and control: reload, maintenance, booth screen, restarts, printer watch, camera live view                                                             |
+| `darkroomProcedure` (in `config.*` / `ops.*`) | Admin origin **or** a live Darkroom token | Print tuning and the checks around it, Wi-Fi, device setup, health                                                                                             |
+| `captive.*` — `captiveProcedure`              | **Setup server token** only               | The captive page's status and join                                                                                                                             |
 
 A new procedure goes in the group of whoever calls it, on that group's base. The full list is in [Engine API](/docs/reference/engine-api/).
 

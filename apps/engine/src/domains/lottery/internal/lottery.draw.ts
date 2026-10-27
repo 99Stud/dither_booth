@@ -1,6 +1,7 @@
 import type { DrawResult } from "@dither-booth/shared/lottery";
 
 import { logKioskEvent } from "@dither-booth/logging";
+import { createId } from "@paralleldrive/cuid2";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 
 import type { DB, DbTransaction } from "#db/internal/db.types";
@@ -40,7 +41,11 @@ export type LotteryDrawExecution = {
   hasLottery: boolean;
 };
 
+/** The draw row just inserted, for writes that must commit with it. */
+export type RecordedDraw = { id: string; campaignId: string | null };
+
 type CommittedDraw = Omit<LotteryDrawExecution, "hasLottery"> & {
+  drawId: string;
   campaignId: string | null;
   lotteryId: string | null;
   logEvent:
@@ -58,13 +63,15 @@ function insertDraw(
     prize: { id: string; title: string } | null;
     ticketRef?: string;
   },
-): string {
+): { drawId: string; ticketRef: string } {
+  const drawId = createId();
   let ticketRef = params.ticketRef ?? createBoothTicketRef();
 
   for (let attempt = 0; attempt < TICKET_REF_ALLOCATION_ATTEMPTS; attempt++) {
     try {
       tx.insert(drawTable)
         .values({
+          id: drawId,
           campaignId: params.campaignId,
           lotteryId: params.lotteryId,
           prizeId: params.prize?.id ?? null,
@@ -72,7 +79,7 @@ function insertDraw(
           ticketRef,
         })
         .run();
-      return ticketRef;
+      return { drawId, ticketRef };
     } catch (error) {
       if (
         !isUniqueTicketRefConstraintError(error) ||
@@ -102,7 +109,7 @@ function recordLoss(
   const campaignId = params.active?.campaignId ?? null;
   const lottery = enabledLotteryOf(params.active);
   const lotteryId = lottery?.id ?? null;
-  const ticketRef = insertDraw(tx, {
+  const { drawId, ticketRef } = insertDraw(tx, {
     campaignId,
     lotteryId,
     prize: null,
@@ -111,6 +118,7 @@ function recordLoss(
 
   return {
     result: { outcome: "loss", prize: null },
+    drawId,
     ticketRef,
     printLoserTicket: lottery?.printLoserTicket ?? false,
     campaignId,
@@ -147,7 +155,7 @@ function runForcedWin(
     throw new Error(`Forced lottery prize is out of stock: ${params.prizeId}`);
   }
 
-  const ticketRef = insertDraw(tx, {
+  const { drawId, ticketRef } = insertDraw(tx, {
     campaignId: active.campaignId,
     lotteryId: prize.lotteryId,
     prize,
@@ -164,6 +172,7 @@ function runForcedWin(
         winInstruction: prize.winInstruction,
       },
     },
+    drawId,
     ticketRef,
     printLoserTicket: active.lottery.printLoserTicket,
     campaignId: active.campaignId,
@@ -246,7 +255,7 @@ function runWeightedDraw(
     });
   }
 
-  const ticketRef = insertDraw(tx, {
+  const { drawId, ticketRef } = insertDraw(tx, {
     campaignId: active.campaignId,
     lotteryId: lottery.id,
     prize: drawResult.prize,
@@ -255,6 +264,7 @@ function runWeightedDraw(
 
   return {
     result: drawResult,
+    drawId,
     ticketRef,
     printLoserTicket: lottery.printLoserTicket,
     campaignId: active.campaignId,
@@ -267,10 +277,12 @@ function runWeightedDraw(
  * Records one draw. Everything from the cooldown read to the draw insert runs
  * in a single synchronous transaction, so concurrent visits cannot both win
  * inside one cooldown window or take the same last unit of stock.
+ * `inTransaction` runs last inside it, so what it writes commits with the draw.
  */
 export async function executeLotteryDraw(params: {
   db: DB;
   force?: LotteryForceConfig | null;
+  inTransaction?: (tx: DbTransaction, draw: RecordedDraw) => void;
   now?: Date;
   random?: () => number;
   ticketRef?: string;
@@ -280,7 +292,7 @@ export async function executeLotteryDraw(params: {
     params.force === undefined ? getLotteryForceConfig() : params.force;
   const now = params.now ?? new Date();
 
-  const committed = db.transaction((tx): CommittedDraw => {
+  const runDraw = (tx: DbTransaction): CommittedDraw => {
     if (force?.outcome === "loss") {
       return recordLoss(tx, {
         active: getActiveEventLottery(tx),
@@ -294,6 +306,15 @@ export async function executeLotteryDraw(params: {
     }
 
     return runWeightedDraw(tx, { now, random: params.random, ticketRef });
+  };
+
+  const committed = db.transaction((tx): CommittedDraw => {
+    const draw = runDraw(tx);
+    params.inTransaction?.(tx, {
+      id: draw.drawId,
+      campaignId: draw.campaignId,
+    });
+    return draw;
   });
 
   if (committed.logEvent) {

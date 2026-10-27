@@ -6,7 +6,7 @@ import type {
   KitId,
   KitSettings,
 } from "@dither-booth/shared/kits";
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 
 import {
   applyBackgroundControls,
@@ -205,6 +205,11 @@ interface EventKitPanelProps {
   event: CurrentEvent;
   isSaving: boolean;
   onSave: (input: { kitId: KitId; settings: KitSettings }) => Promise<void>;
+  /**
+   * The photo receipt's ticket items, after the partners: what else the
+   * event prints. They save on their own, not with the kit.
+   */
+  ticketItems?: ReactNode;
 }
 
 /**
@@ -213,7 +218,7 @@ interface EventKitPanelProps {
  * the booth until Save.
  */
 export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
-  const { event, isSaving, onSave } = props;
+  const { event, isSaving, onSave, ticketItems } = props;
   const saved = toDraft(event);
   const [draft, setDraft] = useState<KitDraft>(saved);
   const [isResetOpen, setIsResetOpen] = useState(false);
@@ -358,6 +363,7 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
             setDraft((current) => ({ ...current, partners }))
           }
         />
+        {ticketItems}
 
         {COPY_KEYS_BY_GROUP.map(({ group, keys }) => {
           const GroupIcon = GROUP_ICONS[group];

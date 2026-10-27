@@ -70,7 +70,7 @@ _Avoid_: shader, effect (in staff-facing text).
 
 **Event** (_campaign_ in the code): one booking of the booth. Exactly one is active at a time. Replacing an event archives the old one; events are never deleted.
 
-**Visit**: one guest's go at the booth, from the Start tap to the cut tickets. Every visit gets a ticket number and prints a photo receipt; it runs a draw only while the lottery is live.
+**Visit**: one guest's go at the booth, from the Start tap to the cut tickets or to giving up. Every visit gets a ticket number and prints a photo receipt; it runs a draw only while the lottery is live. The booth records each one, and it ends **completed** (the receipt printed), **failed** (printing failed) or **abandoned** (the guest or the page left before the end). The Event page's Overview counts them as **Guests**: a guest who comes back counts twice.
 
 **Lottery**: the event's prize draw, one per visit while it is live. It has its prizes, a no-win weight, a pause after a win and a switch.
 

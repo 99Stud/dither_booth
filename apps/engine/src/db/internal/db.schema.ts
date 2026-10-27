@@ -220,6 +220,50 @@ export const drawTable = sqliteTable(
   ],
 );
 
+export const VISIT_END_REASONS = ["completed", "abandoned", "failed"] as const;
+
+const VISIT_END_REASON_CHECK_VALUES = VISIT_END_REASONS.map(
+  (reason) => `'${reason}'`,
+).join(", ");
+
+/**
+ * One guest's pass through the booth, from Start to the receipt or to giving
+ * up. Only `domains/visit` writes it. Times are in seconds, like `draw`. It
+ * doubles as the outbox of the Hub's visit reports: a row is due while
+ * `reported_at` is null or older than `updated_at`.
+ */
+export const visitTable = sqliteTable(
+  "visit",
+  {
+    id: text()
+      .primaryKey()
+      .notNull()
+      .$defaultFn(() => createId()),
+    /** The event active when the visit started or drew; null when there was none. */
+    campaignId: text("campaign_id").references(() => campaignTable.id),
+    /** The Hub's event, once the booth learns it from the Hub. */
+    hubEventId: text("hub_event_id"),
+    startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+    capturedAt: integer("captured_at", { mode: "timestamp" }),
+    drawId: text("draw_id").references(() => drawTable.id),
+    printedAt: integer("printed_at", { mode: "timestamp" }),
+    printAttempts: integer("print_attempts").notNull().default(0),
+    endedAt: integer("ended_at", { mode: "timestamp" }),
+    endReason: text("end_reason", { enum: VISIT_END_REASONS }),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+    reportedAt: integer("reported_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    uniqueIndex("visit_draw_id_unique").on(table.drawId),
+    index("visit_campaign_id_idx").on(table.campaignId),
+    index("visit_pending_idx").on(table.reportedAt, table.updatedAt),
+    check(
+      "visit_end_reason_check",
+      sql`${table.endReason} in (${sql.raw(VISIT_END_REASON_CHECK_VALUES)})`,
+    ),
+  ],
+);
+
 export const STOCK_ADJUSTMENT_REASONS = [
   "initial",
   "restock",
@@ -378,6 +422,7 @@ export const dbSchema = {
   lotteryTable,
   prizeTable,
   drawTable,
+  visitTable,
   stockAdjustmentTable,
   darkroomAccessTable,
   kioskMaintenanceTable,

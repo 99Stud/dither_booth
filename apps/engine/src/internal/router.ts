@@ -14,6 +14,7 @@ import { network } from "#domains/network/index";
 import { printConfiguration } from "#domains/print-configuration/index";
 import { printer } from "#domains/printer/index";
 import { receipt } from "#domains/receipt/index";
+import { visit, visitBooth } from "#domains/visit/index";
 
 import { router } from "./trpc";
 
@@ -27,6 +28,8 @@ export const engineRouter = router({
     getLotteryStatus: lottery.getLotteryStatus,
     prepareReceipt: receipt.prepareReceipt,
     printPreparedReceipt: receipt.printPreparedReceipt,
+    startVisit: visitBooth.startVisit,
+    endVisit: visitBooth.endVisit,
     onKioskCommand: kiosk.onKioskCommand,
     reportKioskStatus: kiosk.reportKioskStatus,
     sendKioskCameraSignal: kiosk.sendKioskCameraSignal,
@@ -48,6 +51,7 @@ export const engineRouter = router({
     printSetupTicket: deviceSetup.printSetupTicket,
     ...network,
     ...hub,
+    ...visit,
   }),
   captive: router({
     ...captive,

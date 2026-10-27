@@ -24,6 +24,7 @@ import {
   campaignTable,
   drawTable,
   printConfigTable,
+  visitTable,
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
@@ -42,6 +43,7 @@ import {
   PrinterUnavailableError,
   screenshotToGsV0RasterCommand,
 } from "#domains/printer/printer.service";
+import { createVisits } from "#domains/visit/visit.service";
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
@@ -196,16 +198,42 @@ function setup({
     maintenance,
     printer: printer.printer,
     renderer: fake.renderer,
+    visits: createVisits({ db, log: () => {} }),
   });
 
   return { db, fake, maintenance, printer, tickets };
 }
 
 describe("prepareVisit and printVisit", () => {
+  test("links the draw to the visit and counts each print", async () => {
+    const printer = createRecordingPrinter();
+    const { db, tickets } = setup({ printer });
+    const visits = createVisits({ db, log: () => {} });
+    const { visitId } = visits.start();
+
+    const visit = await tickets.prepareVisit(PHOTO, visitId);
+    printer.failNext(new Error("paper jam"));
+    await expect(tickets.printVisit(visit.ticketRef)).rejects.toThrow();
+    await tickets.printVisit(visit.ticketRef);
+
+    const [draw] = db.select().from(drawTable).all();
+    expect(visit.visitId).toBe(visitId);
+    expect(db.select().from(visitTable).all()).toMatchObject([
+      {
+        id: visitId,
+        drawId: draw?.id,
+        capturedAt: expect.any(Date),
+        printedAt: expect.any(Date),
+        printAttempts: 2,
+        endedAt: null,
+      },
+    ]);
+  });
+
   test("a win commits the draw, then prints the photo receipt and the lottery ticket", async () => {
     const { db, printer, tickets } = setup();
 
-    const visit = await tickets.prepareVisit(PHOTO);
+    const visit = await tickets.prepareVisit(PHOTO, null);
     expect(printer.printed).toEqual([]);
     await tickets.printVisit(visit.ticketRef);
 
@@ -221,11 +249,11 @@ describe("prepareVisit and printVisit", () => {
 
   test("renders both tickets upside down unless the booth turned it off", async () => {
     const turned = setup();
-    await turned.tickets.prepareVisit(PHOTO);
+    await turned.tickets.prepareVisit(PHOTO, null);
     const db = setupDb({ outcome: "win" });
     db.update(printConfigTable).set({ upsideDown: false }).run();
     const upright = setup({ db });
-    await upright.tickets.prepareVisit(PHOTO);
+    await upright.tickets.prepareVisit(PHOTO, null);
 
     for (const [fake, upsideDown] of [
       [turned.fake, true],
@@ -242,7 +270,7 @@ describe("prepareVisit and printVisit", () => {
 
   test("a loss prints no lottery ticket unless printLoserTicket is on", async () => {
     const quiet = setup({ db: setupDb({ outcome: "loss" }) });
-    const quietVisit = await quiet.tickets.prepareVisit(PHOTO);
+    const quietVisit = await quiet.tickets.prepareVisit(PHOTO, null);
     await quiet.tickets.printVisit(quietVisit.ticketRef);
 
     expect(quietVisit.draw.outcome).toBe("loss");
@@ -252,7 +280,7 @@ describe("prepareVisit and printVisit", () => {
     const loud = setup({
       db: setupDb({ outcome: "loss", printLoserTicket: true }),
     });
-    const loudVisit = await loud.tickets.prepareVisit(PHOTO);
+    const loudVisit = await loud.tickets.prepareVisit(PHOTO, null);
     await loud.tickets.printVisit(loudVisit.ticketRef);
 
     expect(loud.printer.printed).toEqual([
@@ -265,7 +293,7 @@ describe("prepareVisit and printVisit", () => {
     const { db, fake, printer, tickets } = setup();
     fake.failLotteryRenders(new Error("navigation timeout"));
 
-    const visit = await tickets.prepareVisit(PHOTO);
+    const visit = await tickets.prepareVisit(PHOTO, null);
     await tickets.printVisit(visit.ticketRef);
 
     expect(visit.draw.outcome).toBe("win");
@@ -286,7 +314,7 @@ describe("prepareVisit and printVisit", () => {
       .mockReturnValueOnce(0.25);
 
     try {
-      const visit = await tickets.prepareVisit(PHOTO);
+      const visit = await tickets.prepareVisit(PHOTO, null);
       await tickets.printVisit(visit.ticketRef);
 
       expect(visit.ticketRef).toBe("250000");
@@ -307,7 +335,7 @@ describe("prepareVisit and printVisit", () => {
       .run();
     const { fake, tickets } = setup({ db });
 
-    await tickets.prepareVisit(PHOTO);
+    await tickets.prepareVisit(PHOTO, null);
 
     expect(fake.photoRenders[0]).toMatchObject({
       kitId: "tartines",
@@ -319,7 +347,7 @@ describe("prepareVisit and printVisit", () => {
   test("renders the default kit when no event is active", async () => {
     const { fake, tickets } = setup({ db: setupDb({ outcome: "no-lottery" }) });
 
-    const visit = await tickets.prepareVisit(PHOTO);
+    const visit = await tickets.prepareVisit(PHOTO, null);
 
     expect(visit).toMatchObject({
       draw: { outcome: "loss" },
@@ -334,7 +362,9 @@ describe("prepareVisit and printVisit", () => {
   test("rejects an empty photo before drawing", async () => {
     const { db, tickets } = setup();
 
-    await expect(tickets.prepareVisit(new Blob([]))).rejects.toMatchObject({
+    await expect(
+      tickets.prepareVisit(new Blob([]), null),
+    ).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
     expect(db.select().from(drawTable).all()).toEqual([]);
@@ -348,7 +378,7 @@ describe("prepareVisit and printVisit", () => {
       }),
     });
 
-    await expect(tickets.prepareVisit(PHOTO)).rejects.toMatchObject({
+    await expect(tickets.prepareVisit(PHOTO, null)).rejects.toMatchObject({
       code: "PRECONDITION_FAILED",
       message: "Printer not ready: out of paper.",
     });
@@ -358,7 +388,7 @@ describe("prepareVisit and printVisit", () => {
 
   test("a lottery-ticket print failure is retried without a second photo receipt", async () => {
     const { printer, tickets } = setup();
-    const visit = await tickets.prepareVisit(PHOTO);
+    const visit = await tickets.prepareVisit(PHOTO, null);
     printer.failNext(undefined, new Error("usb hiccup"));
 
     await expect(tickets.printVisit(visit.ticketRef)).rejects.toMatchObject({
@@ -380,7 +410,7 @@ describe("prepareVisit and printVisit", () => {
 
   test("a photo receipt failure prints nothing else and can be retried", async () => {
     const { printer, tickets } = setup();
-    const visit = await tickets.prepareVisit(PHOTO);
+    const visit = await tickets.prepareVisit(PHOTO, null);
     printer.failNext(new Error("usb gone"));
 
     await expect(tickets.printVisit(visit.ticketRef)).rejects.toMatchObject({
@@ -398,7 +428,7 @@ describe("prepareVisit and printVisit", () => {
 
   test("a printer fault mid-print says not ready and keeps the visit to retry", async () => {
     const { printer, tickets } = setup();
-    const visit = await tickets.prepareVisit(PHOTO);
+    const visit = await tickets.prepareVisit(PHOTO, null);
     printer.failNext(new PrinterUnavailableError(["cover-open"]));
 
     await expect(tickets.printVisit(visit.ticketRef)).rejects.toMatchObject({
@@ -423,7 +453,7 @@ describe("prepareVisit and printVisit", () => {
     });
     maintenance.setAutomatic(false);
 
-    const visit = await tickets.prepareVisit(PHOTO);
+    const visit = await tickets.prepareVisit(PHOTO, null);
     await tickets.printVisit(visit.ticketRef);
 
     expect(printer.printed).toHaveLength(2);
@@ -528,6 +558,7 @@ describe("the receipt procedures", () => {
     const kioskChannel = createKioskChannel();
     const kioskMaintenance = createKioskMaintenance({ db, kioskChannel });
     const state = createInitialPuppeteerState();
+    const visits = createVisits({ db, log: () => {} });
     const unreachable = () => {
       throw new Error("The receipt procedures need none of this.");
     };
@@ -560,25 +591,71 @@ describe("the receipt procedures", () => {
         maintenance: kioskMaintenance,
         printer,
         renderer: createFakeRenderer().renderer,
+        visits,
       }),
+      visits,
     } satisfies TRPCContext);
   }
 
-  test("a booth visit prepares, then prints, through the booth group", async () => {
+  test("a booth visit starts, prepares, prints and ends through the booth group", async () => {
     const { printer, printed } = createRecordingPrinter();
-    const caller = createCaller(setupDb({ outcome: "win" }), printer);
+    const db = setupDb({ outcome: "win" });
+    const caller = createCaller(db, printer);
 
-    const visit = await caller.booth.prepareReceipt(
-      // createCaller skips the HTTP adapter, so it gets the ReadableStream the
-      // octet parser checks for rather than the client-side Blob type.
-      PHOTO.stream() as unknown as Blob,
-    );
+    const { visitId } = await caller.booth.startVisit();
+    const form = new FormData();
+    form.set("photo", PHOTO);
+    form.set("visitId", visitId!);
+    const visit = await caller.booth.prepareReceipt(form);
     await caller.booth.printPreparedReceipt({ ticketRef: visit.ticketRef });
+    await caller.booth.endVisit({ visitId: visitId!, reason: "completed" });
 
+    expect(visit.visitId).toBe(visitId);
     expect(printed).toEqual([
       `photo:${visit.ticketRef}`,
       `lottery:${visit.ticketRef}`,
     ]);
+    expect(db.select().from(visitTable).all()).toMatchObject([
+      { id: visitId, printAttempts: 1, endReason: "completed" },
+    ]);
+  });
+
+  test("prepareReceipt without a visit id starts one at the draw", async () => {
+    const caller = createCaller(
+      setupDb({ outcome: "win" }),
+      createRecordingPrinter().printer,
+    );
+    const form = new FormData();
+    form.set("photo", PHOTO);
+
+    const visit = await caller.booth.prepareReceipt(form);
+
+    expect(visit.visitId).toEqual(expect.any(String));
+  });
+
+  test("prepareReceipt drops a visit id that can't be one and still draws", async () => {
+    const db = setupDb({ outcome: "win" });
+    const caller = createCaller(db, createRecordingPrinter().printer);
+    const form = new FormData();
+    form.set("photo", PHOTO);
+    form.set("visitId", "x".repeat(65));
+
+    const visit = await caller.booth.prepareReceipt(form);
+
+    expect(visit.visitId).toEqual(expect.any(String));
+    expect(visit.visitId).not.toBe("x".repeat(65));
+    expect(db.select().from(drawTable).all()).toHaveLength(1);
+  });
+
+  test("prepareReceipt refuses a form without a photo", async () => {
+    const caller = createCaller(
+      setupDb({ outcome: "win" }),
+      createStubPrinter(),
+    );
+
+    await expect(
+      caller.booth.prepareReceipt(new FormData()),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   test("printPreparedReceipt rejects a malformed ticket ref", async () => {

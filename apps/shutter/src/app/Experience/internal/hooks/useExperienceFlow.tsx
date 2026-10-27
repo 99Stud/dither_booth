@@ -33,6 +33,7 @@ import { useExperienceShellClass } from "./useExperienceShellClass";
 import { useKioskCommands } from "./useKioskCommands";
 import { usePhaseTimeout } from "./usePhaseTimeout";
 import { usePrintAttempt } from "./usePrintAttempt";
+import { useVisitReport } from "./useVisitReport";
 import { useWebcamPrewarm } from "./useWebcamPrewarm";
 
 export const useExperienceFlow = () => {
@@ -53,6 +54,8 @@ export const useExperienceFlow = () => {
     phase,
     photoUrl,
     ticketRef,
+    visitEnd,
+    visitId,
   } = state;
 
   const webcamRef = useRef<WebcamHandle>(null);
@@ -68,8 +71,10 @@ export const useExperienceFlow = () => {
     phase,
     photoUrl,
     ticketRef,
+    visitId,
     webcamRef,
   });
+  useVisitReport({ dispatch, phase, visitEnd, visitId });
 
   // Unknown status counts as off. If the engine draws against a lottery
   // anyway, `receiptPrepared` brings the reels in.
