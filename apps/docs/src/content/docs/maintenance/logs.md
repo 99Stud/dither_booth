@@ -18,9 +18,9 @@ sidebar:
 
 The PM2 process names are `dither-booth-engine`, `dither-booth-shutter` and `dither-booth-admin`.
 
-The admin server reads the three PM2 files and streams them to admin's Logs page over `/admin/logs`: see [Logging](/docs/architecture/logging/).
+The admin server reads the three PM2 files and the four journald rows above and streams them to admin's Logs page over `/admin/logs`: see [Logging](/docs/architecture/logging/). The journald rows are the **System** service there; each line's source is its unit (`NetworkManager.service`) or `kernel`, and journald's priority sets its level (emergency to error → error, warning → warn, the rest → info). On a machine without `journalctl`, such as a Mac in development, System shows as unavailable.
 
-`booth service` adds `pi` to the `systemd-journal` group, so `pi` and the apps PM2 runs as `pi` can read the whole journal without `sudo`.
+`booth service` adds `pi` to the `systemd-journal` group, so `pi` and the apps PM2 runs as `pi` can read the whole journal without `sudo`. Without it, System is unavailable on the Logs page: run `sudo booth service`, then restart the booth so the admin picks up the group.
 
 ## Reading PM2 logs
 

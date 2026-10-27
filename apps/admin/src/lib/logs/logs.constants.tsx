@@ -52,6 +52,18 @@ export const LOGS_FELL_BEHIND_CLOSE_CODE = 1013;
 
 /** PM2's log folder, relative to the repo (`pm2.config.js`). */
 export const LOGS_PM2_LOG_RELATIVE_DIR = "logs/pm2";
+/**
+ * The system source's units; must match the CLI's `SERVICE_NAME` and
+ * `NETWORK_SERVICE_NAME`. Kernel messages are read too.
+ */
+export const LOGS_JOURNAL_UNITS = [
+  "ditherbooth.service",
+  "ditherbooth-network.service",
+  "NetworkManager.service",
+] as const;
+/** A `journalctl --follow` that exits is started again after this long. */
+export const LOGS_JOURNAL_RESTART_DELAY_MS = 5000;
+
 /** PM2 process per service; must match `PM2_PROCESS_NAMES` in `pm2.config.js`. */
 export const LOGS_PM2_PROCESS_NAMES = {
   engine: "dither-booth-engine",
