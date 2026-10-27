@@ -108,6 +108,8 @@ export type PrizeForecast = {
   cooldownCapPerHour: number | null;
   /** When the stock is expected to run out, or null past the horizon. */
   runsOutAfterMinutes: number | null;
+  /** When each drawable prize is expected to run out, by id; absent past the horizon. */
+  prizeRunsOutAfterMinutes: Record<string, number>;
 };
 
 /**
@@ -160,6 +162,7 @@ export const forecastPrizes = ({
 
   const points = [{ minute: 0, left: totalLeft() }];
   let runsOutAfterMinutes: number | null = null;
+  const prizeRunsOutAfterMinutes: Record<string, number> = {};
 
   for (
     let minute = stepMinutes;
@@ -172,7 +175,9 @@ export const forecastPrizes = ({
 
     for (const prize of inStock) {
       const current = left.get(prize.id) ?? 0;
-      left.set(prize.id, Math.max(current - (wins * prize.weight) / weight, 0));
+      const next = Math.max(current - (wins * prize.weight) / weight, 0);
+      left.set(prize.id, next);
+      if (next < 0.5) prizeRunsOutAfterMinutes[prize.id] ??= minute;
     }
 
     const remaining = totalLeft();
@@ -195,6 +200,7 @@ export const forecastPrizes = ({
       ) * 60,
     cooldownCapPerHour: cooldownMinutes > 0 ? 60 / cooldownMinutes : null,
     runsOutAfterMinutes,
+    prizeRunsOutAfterMinutes,
   };
 };
 

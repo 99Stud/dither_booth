@@ -25,6 +25,8 @@ erDiagram
     text kit_id
     json ticket_item_names
     text status "active | archived"
+    int starts_at "null: open"
+    int ends_at "null: open"
     int created_at
     int updated_at
   }
@@ -87,6 +89,7 @@ Events (`campaign`) are **never deleted**.
 - Everything reads and draws through the active campaign: `getCurrentEvent`, `listDraws`, the receipt settings, the draw, `getLotteryStatus`. A lottery is drawn against only while it belongs to the active campaign **and** is enabled.
 - Every **visit** inserts a `draw` row, which allocates its ticket number. It records `campaign_id` (the event active then, null if none) and `lottery_id`, set only while that event's lottery was enabled. Only rows with a `lottery_id` are **draws**: `listDraws` lists the active event's draws, and a lookup by ticket number also finds a lottery-off visit, as `outcome: "no-lottery"`. `getLotteryStatus` counts draws the same way.
 - Every visit also has a `visit` row ([Visits](#visits)).
+- `starts_at` and `ends_at` are the event's **start and end**, set by staff in admin (`createEvent`, `updateEvent`) and owned by the booth ([0005](/docs/decisions/0005-event-start-and-end-on-the-booth/)). Either may be null; `campaign_times_check` refuses an end at or before the start. They only decide which visits count in the stats; the booth runs, draws and prints the same outside them.
 - Every event write (campaign, lottery, prizes, stock) moves `updated_at`.
 - Ticket numbers (`ticket_ref`) stay **unique across all events**, archived included, so one always points at one visit.
 
@@ -114,7 +117,16 @@ Deltas commute with kiosk wins: a restock never needs to know the current stock,
 - Times are in **seconds**, like `draw.created_at`.
 - `campaign_id` is the event active at **Start**, then the event the draw ran against.
 - `draw_id` is unique: a draw belongs to one visit at most.
-- `getVisitStats` counts the active event's visits: visits, completed, failed, wins (visits whose draw won), the average length of a completed visit (Start to end, in seconds), when the last visit started, and visits started in each of the last 12 hours (`hourly`, empty hours included, the current one last). Hours are cut on epoch hours, which are the booth's own wherever its time zone is a whole number of hours from UTC.
+- `getVisitStats` counts the active event's visits for admin's Overview, only those that **started between the event's start and end** (`campaign.starts_at` inclusive, `campaign.ends_at` exclusive; either side open when null, see [0005](/docs/decisions/0005-event-start-and-end-on-the-booth/)). `uncounted` says how many of the event's visits fall outside. Its names follow the Hub's planned `event_summary`, so Studio can show the same facts to clients later:
+  - `visits`, `captured` (took the photo), `prints` (completed), `failed`, `abandoned`, `wins` and `losses` (visits whose draw won or lost; a visit with the lottery off has neither);
+  - `avgDurationS`, the average length of a completed visit (Start to end, in seconds);
+  - `firstVisitAt`, `lastVisitAt`, and `recentVisits` (started in the last 15 minutes);
+  - `hourly`: visits per hour from the event's start (or its first visit's hour when it has none) to the current hour, or to the hour it ended in once it ended, empty hours included, at most the last 24 (`VISIT_STATS_HOURS`) so the chart stays readable on a phone. Empty before then;
+  - `busiestHour`, over **all** the event's visits, not just `hourly`, so it agrees with the totals. The latest hour wins a tie;
+  - `failedVisits`, the latest 5 failed visits with their ticket number when their draw row has one (`failed` counts them all), and `lastWinAt`, for the pause after a win. `lastWinAt` alone ignores the start and end: a test win still starts the pause.
+
+  Hours are cut on epoch hours, which are the booth's own wherever its time zone is a whole number of hours from UTC. Admin turns these into the Overview's sentence and its **Needs a look** rows in one pure function, `summarizeOverview` (`apps/admin/src/app/Event/internal/overview.utils.tsx`), which keeps the facts a client may see (`shareable`) apart from what only staff act on (`attention`). Its prize forecast uses the pace over the hours in `hourly` once they cover an hour, and the staff's estimate before that: a pace averaged since the first visit would be near zero for an event that ran for weeks.
+
 - **Outbox.** A visit is due to be reported to the Hub while `reported_at` is null or older than `updated_at`; `visit_pending_idx` (`reported_at`, `updated_at`) serves that read. Nothing reports visits yet, and `hub_event_id` stays null until the booth learns its Hub event.
 - The `visit` migration (`drizzle/20261027100945_visit/`) backfilled one visit per earlier draw, with deterministic ids (`backfill-<draw id>`): `completed`, printed, and every time set to the draw's. They count in the totals but have no length, so the average leaves them out.
 

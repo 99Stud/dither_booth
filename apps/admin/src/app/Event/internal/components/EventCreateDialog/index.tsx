@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@dither-booth/ui/components/ui/dialog";
+import { DateTimeField } from "@dither-booth/ui/fields/DateTimeField";
 import { NumberField } from "@dither-booth/ui/fields/NumberField";
 import { SelectField } from "@dither-booth/ui/fields/SelectField";
 import { SwitchField } from "@dither-booth/ui/fields/SwitchField";
@@ -87,6 +88,18 @@ export const EventCreateDialog: FC<EventCreateDialogProps> = (props) => {
             label="Event name"
             autoCapitalize="words"
             enterKeyHint="next"
+          />
+          <DateTimeField
+            form={form}
+            name="startsAt"
+            label="Starts"
+            defaultTime="18:00"
+          />
+          <DateTimeField
+            form={form}
+            name="endsAt"
+            label="Ends"
+            defaultTime="23:00"
           />
           <SelectField
             form={form}

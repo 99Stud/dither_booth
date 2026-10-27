@@ -4,10 +4,12 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@dither-booth/ui/components/ui/dialog";
+import { DateTimeField } from "@dither-booth/ui/fields/DateTimeField";
 import { TextField } from "@dither-booth/ui/fields/TextField";
 import { useForm } from "@tanstack/react-form";
 import clsx from "clsx";
@@ -19,7 +21,7 @@ import {
   getUpdateEventFormValues,
 } from "../../Event.constants";
 
-interface EventRenameDialogProps {
+interface EventDetailsDialogProps {
   event: CurrentEvent;
   open: boolean;
   isPending: boolean;
@@ -27,8 +29,8 @@ interface EventRenameDialogProps {
   onSubmit: (values: UpdateEventFormValues) => Promise<void>;
 }
 
-/** Renames the event: an edit, not a replacement. */
-export const EventRenameDialog: FC<EventRenameDialogProps> = (props) => {
+/** The event's name and times: an edit, not a replacement. */
+export const EventDetailsDialog: FC<EventDetailsDialogProps> = (props) => {
   const { event, open, isPending, onOpenChange, onSubmit } = props;
 
   const form = useForm({
@@ -47,14 +49,18 @@ export const EventRenameDialog: FC<EventRenameDialogProps> = (props) => {
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        // Opens on the name as stored, not on an abandoned edit.
+        // Opens on the details as stored, not on an abandoned edit.
         if (nextOpen) form.reset(getUpdateEventFormValues(event));
         onOpenChange(nextOpen);
       }}
     >
       <DialogContent className={clsx("sm:max-w-md")}>
         <DialogHeader>
-          <DialogTitle>Rename event</DialogTitle>
+          <DialogTitle>Event details</DialogTitle>
+          <DialogDescription>
+            Only visits between the start and the end count in the Overview.
+            Leave a side empty to keep it open.
+          </DialogDescription>
         </DialogHeader>
         <form
           className={clsx("flex flex-col gap-3")}
@@ -69,7 +75,19 @@ export const EventRenameDialog: FC<EventRenameDialogProps> = (props) => {
             name="name"
             label="Event name"
             autoCapitalize="words"
-            enterKeyHint="done"
+            enterKeyHint="next"
+          />
+          <DateTimeField
+            form={form}
+            name="startsAt"
+            label="Starts"
+            defaultTime="18:00"
+          />
+          <DateTimeField
+            form={form}
+            name="endsAt"
+            label="Ends"
+            defaultTime="23:00"
           />
           <DialogFooter>
             <Button

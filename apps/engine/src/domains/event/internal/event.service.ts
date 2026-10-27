@@ -193,6 +193,8 @@ function readCurrentEvent(executor: DbExecutor): CurrentEvent | null {
       kitId: readKitId(campaign),
       kitSettings: readCampaignKitSettings(campaign),
       ticketItemNames: readTicketItemNames(campaign.ticketItemNames),
+      startsAt: campaign.startsAt?.toISOString() ?? null,
+      endsAt: campaign.endsAt?.toISOString() ?? null,
     },
     lottery: {
       id: lottery.id,
@@ -299,9 +301,13 @@ function insertEvent(tx: DbTransaction, input: CreateEventInput): void {
       name: input.name,
       kitId: input.kitId,
       lotteryId,
+      startsAt: toDate(input.startsAt ?? null),
+      endsAt: toDate(input.endsAt ?? null),
     })
     .run();
 }
+
+const toDate = (iso: string | null) => (iso === null ? null : new Date(iso));
 
 export async function getCurrentEventForDb(
   db: DB,
@@ -333,7 +339,11 @@ export async function updateEventForDb(
   return writeEvent(db, (tx) => {
     const current = requireCurrentEvent(tx);
     tx.update(campaignTable)
-      .set({ name: input.name })
+      .set({
+        name: input.name,
+        startsAt: toDate(input.startsAt),
+        endsAt: toDate(input.endsAt),
+      })
       .where(eq(campaignTable.id, current.campaign.id))
       .run();
   });

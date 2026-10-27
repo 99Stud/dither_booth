@@ -72,6 +72,15 @@ _Avoid_: shader, effect (in staff-facing text).
 
 **Visit**: one guest's go at the booth, from the Start tap to the cut tickets or to giving up. Every visit gets a ticket number and prints a photo receipt; it runs a draw only while the lottery is live. The booth records each one, and it ends **completed** (the receipt printed), **failed** (printing failed) or **abandoned** (the guest or the page left before the end). The Event page's Overview counts them as **Guests**: a guest who comes back counts twice.
 
+**Start and end**: when an event begins and finishes, set by staff in admin's **Edit details**. Only guests who tap **Start** in between count in the Overview; visits outside are recorded but **uncounted** (setup tests, packing up). Either may stay empty. Not the same as Studio's **event times**.
+
+**Time at the booth**: how long a completed visit lasts on average, from **Start** to the receipt, written "1 min 20 s".
+_Avoid_: average visit, visit length (in staff-facing text).
+
+**Walked away**: guests whose visit ended **abandoned**: they or the page left before the end.
+
+**Needs a look**: the Overview's list of what staff should act on now (a ticket that didn't print, a booth problem, a prize running out). Staff only: a client never sees it.
+
 **Lottery**: the event's prize draw, one per visit while it is live. It has its prizes, a no-win weight, a pause after a win and a switch.
 
 **Live**: the lottery is switched on, so visits draw and guests see the prize panel and the slot machine. Off, visits still print their photo receipt.
@@ -166,7 +175,7 @@ _Avoid_: subscription (in staff-facing text).
 **Acknowledge**: what staff do in the Studio app to say "I'm on it". It stops the reminders; the alert still closes by itself when the condition clears.
 _Avoid_: dismiss, mute.
 
-**Event times**: when a booth is expected to be running, set per booth in the Studio app (`live_from`, `live_until` in the code). Only then is a silent booth an alert. They live on the Hub and have nothing to do with the booth's event in admin: replacing that event leaves them as they are. Only the Hub can hold them, since a booth that never powers on can't report its own.
+**Event times**: when a booth is expected to be running, set per booth in the Studio app (`live_from`, `live_until` in the code). Only then is a silent booth an alert. They live on the Hub and have nothing to do with the booth's event in admin, nor with its **start and end**: replacing that event leaves them as they are. Only the Hub can hold them, since a booth that never powers on can't report its own.
 _Avoid_: live window (in staff-facing text).
 
 **Silent booth**: a booth that has sent no heartbeat for three minutes between its event times. Only the Hub can notice it, since a booth that lost power or its network can't say so.

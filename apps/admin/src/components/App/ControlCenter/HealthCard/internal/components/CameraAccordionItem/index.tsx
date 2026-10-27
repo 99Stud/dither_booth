@@ -3,14 +3,12 @@ import type { FC } from "react";
 import { format } from "date-fns";
 import { Camera } from "lucide-react";
 
-import type { HealthzResponse } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.types";
+import type { HealthzResponse } from "#lib/healthz/healthz.types";
 
 import { HealthAccordionShell } from "#components/App/ControlCenter/HealthCard/internal/components/HealthAccordionShell/index";
 import { HealthDetailRow } from "#components/App/ControlCenter/HealthCard/internal/components/HealthDetailRow/index";
-import {
-  getHealthStatusVariant,
-  getKioskCameraHealth,
-} from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
+import { getHealthStatusVariant } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
+import { getKioskCameraHealth } from "#lib/healthz/healthz.utils";
 
 interface CameraAccordionItemProps {
   isHealthzSuccess: boolean;

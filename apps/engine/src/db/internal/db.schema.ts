@@ -120,6 +120,13 @@ export const campaignTable = sqliteTable(
     status: text("status", { enum: CAMPAIGN_STATUSES })
       .notNull()
       .default("active"),
+    /**
+     * When guests are expected, set by staff in admin. Visits outside these
+     * times are still recorded but not counted in the event's stats (setup
+     * tests, packing up). Null: open on that side. The booth owns them.
+     */
+    startsAt: integer("starts_at", { mode: "timestamp" }),
+    endsAt: integer("ends_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -132,6 +139,10 @@ export const campaignTable = sqliteTable(
     check(
       "campaign_status_check",
       sql`${table.status} in (${sql.raw(CAMPAIGN_STATUS_CHECK_VALUES)})`,
+    ),
+    check(
+      "campaign_times_check",
+      sql`${table.startsAt} is null or ${table.endsAt} is null or ${table.endsAt} > ${table.startsAt}`,
     ),
     uniqueIndex("campaign_single_active_idx")
       .on(table.status)

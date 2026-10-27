@@ -151,7 +151,9 @@ export const getPrinterActivity = (
 };
 
 /** What the printer is doing, and since when. */
-export const getPrinterStatusLine = (status: PrinterStatus): string => {
+export const getPrinterStatusLine = (
+  status: Pick<PrinterStatus, "changedAt" | "conditions">,
+): string => {
   const { changedAt, conditions } = status;
   const since = time(changedAt);
 
