@@ -18,11 +18,11 @@ sidebar:
 
 The PM2 process names are `dither-booth-engine`, `dither-booth-shutter` and `dither-booth-admin`.
 
-The admin server reads the three PM2 files and streams them to admin's [Logs page](#open-logs) over `/admin/logs`: see [Logging](/docs/architecture/logging/).
+The admin server reads the three PM2 files and the four journald rows above and streams them to admin's [Logs page](#open-logs) over `/admin/logs`: see [Logging](/docs/architecture/logging/). The journald rows are the **System** service there; each line's source is its unit (`NetworkManager.service`) or `kernel`, and journald's priority sets its level (emergency to error → error, warning → warn, the rest → info). On a machine without `journalctl`, such as a Mac in development, System shows as unavailable.
 
 ## Open Logs
 
-No SSH needed: admin's **Logs** page shows the Engine, the Shutter, the admin and the browsers' reports in one live timeline, newest at the bottom.
+No SSH needed: admin's **Logs** page shows the Engine, the Shutter, the admin, the system (Wi-Fi, USB, power) and the browsers' reports in one live timeline, newest at the bottom.
 
 - **On a laptop:** in admin's sidebar, at the bottom next to **Docs**, click **Logs**.
 - **On a phone:** tap **Settings**, then **Open Logs** on the **Logs** card.
@@ -47,7 +47,7 @@ The page is at `https://<booth>.local:3002/logs`. Its filters are in the address
 
 ### Filtering
 
-- **Service chips:** **Engine**, **Shutter**, **Admin**, **System**, **Browser**. Click one to hide or show its lines. A red number is its error count; a crossed circle means its source is unavailable (hover for why, such as not running under PM2).
+- **Service chips:** **Engine**, **Shutter**, **Admin**, **System**, **Browser**. Click one to hide or show its lines. A red number is its error count; a crossed circle means its source is unavailable (hover for why: not running under PM2, or system logs unavailable).
 - **Level toggles:** **Error**, **Warn**, **Info**, each with its count.
 - **Source:** **All sources**, or one source seen so far (`engine.printer`, `engine.lottery`…).
 - **Search:** press **/** to jump to it. Matches are marked. **Esc** clears it.
@@ -64,7 +64,7 @@ On a phone, the chips scroll sideways; levels, source and **Wrap lines** are und
 - **Wrap lines** shows long lines in full.
 - **⋯ → Download lines (.ndjson)** saves the lines shown, one JSON entry per line, for a bug report.
 
-`booth service` adds `pi` to the `systemd-journal` group, so `pi` and the apps PM2 runs as `pi` can read the whole journal without `sudo`.
+`booth service` adds `pi` to the `systemd-journal` group, so `pi` and the apps PM2 runs as `pi` can read the whole journal without `sudo`. Without it, System is unavailable on the Logs page: run `sudo booth service`, then restart the booth so the admin picks up the group.
 
 ## Reading PM2 logs
 

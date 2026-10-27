@@ -4,10 +4,7 @@ import type {
   WebSocketRouteHandler,
 } from "@dither-booth/browser-server/internal/browser-server.types";
 
-import { resolve } from "node:path";
 import z from "zod";
-
-import { ADMIN_REPO_ROOT } from "#lib/server-constants";
 
 import type { LogHub, LogHubSubscription } from "./logs.hub";
 import type {
@@ -23,11 +20,9 @@ import {
   LOGS_INTERNAL_ERROR_CLOSE_CODE,
   LOGS_INVALID_CLOSE_CODE,
   LOGS_MAX_HELD_ENTRIES,
-  LOGS_PM2_LOG_RELATIVE_DIR,
 } from "./logs.constants";
-import { InvalidLogPositionError, createLogHub } from "./logs.hub";
+import { InvalidLogPositionError } from "./logs.hub";
 import { logServiceSchema, logsClientMessageSchema } from "./logs.protocol";
-import { createPm2LogSources } from "./logs.server";
 
 /*
  * `/admin/logs`: the Logs page's one way in. Every socket shares one log
@@ -100,21 +95,14 @@ function send(ws: BrowserServerWebSocket, message: LogsServerMessage) {
   }
 }
 
-function createDefaultLogHub() {
-  return createLogHub({
-    sources: createPm2LogSources({
-      logDir: resolve(ADMIN_REPO_ROOT, LOGS_PM2_LOG_RELATIVE_DIR),
-    }),
-  });
-}
-
+/** The socket over `hub`; the admin server builds the hub from its sources. */
 export function createLogsRoute({
-  hub = createDefaultLogHub(),
+  hub,
   maxHeldEntries = LOGS_MAX_HELD_ENTRIES,
 }: {
-  hub?: LogHub;
+  hub: LogHub;
   maxHeldEntries?: number;
-} = {}): WebSocketRouteHandler {
+}): WebSocketRouteHandler {
   const sockets = new Map<BrowserServerWebSocket, SocketState>();
 
   const cursorOf = (state: SocketState) =>

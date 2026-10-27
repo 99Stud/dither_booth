@@ -1,13 +1,13 @@
 ---
 title: Logging
-description: How the admin server follows the PM2 log files and streams them to the Logs page over one WebSocket, with history paging, rotation and gap-free resume.
+description: How the admin server follows the PM2 log files and the system journal and streams them to the Logs page over one WebSocket, with history paging, rotation and gap-free resume.
 sidebar:
   order: 9
 ---
 
-The apps write one JSON line per event, PM2 keeps one combined file per process, and logrotate rotates the files ([Logs](/docs/maintenance/logs/), [ADR 0006](/docs/decisions/0006-json-line-logs/)). The **admin server** reads those files and streams them to the admin's Logs page. It is the admin, not the engine, because the engine is the process most likely to be down when someone needs its logs.
+The apps write one JSON line per event, PM2 keeps one combined file per process, and logrotate rotates the files ([Logs](/docs/maintenance/logs/), [ADR 0006](/docs/decisions/0006-json-line-logs/)). The **admin server** reads those files, and the system journal, and streams them to the admin's Logs page. It is the admin, not the engine, because the engine is the process most likely to be down when someone needs its logs.
 
-Code: `apps/admin/src/lib/logs/` for the server, `apps/admin/src/app/Logs/` for the page. The socket tests in `logs.routes.test.tsx` drive the route with a fake socket, a temp folder of PM2 files and a fake source. The page's render tests in `Logs.render.test.tsx` drive the page with a fake socket in place of `WebSocket` (`Logs.testing.tsx`).
+Code: `apps/admin/src/lib/logs/` for the server, `apps/admin/src/app/Logs/` for the page. The socket tests in `logs.routes.test.tsx` drive the route with a fake socket, a temp folder of PM2 files and a fake source; `logs.journal.test.tsx` drives it with a fake `journalctl`. The page's render tests in `Logs.render.test.tsx` drive the page with a fake socket in place of `WebSocket` (`Logs.testing.tsx`).
 
 ## The pieces
 
@@ -16,7 +16,8 @@ flowchart LR
   F1["logs/pm2/dither-booth-engine.log"] --> S1["PM2 file source"]
   F2["…-shutter.log"] --> S2["PM2 file source"]
   F3["…-admin.log"] --> S3["PM2 file source"]
-  S1 & S2 & S3 --> H["Log hub"]
+  J["journalctl --output=json"] --> S4["Journal source (system)"]
+  S1 & S2 & S3 & S4 --> H["Log hub"]
   H --> R["/admin/logs route"]
   R --> P1["Logs page"]
   R --> P2["Logs page"]
@@ -28,10 +29,11 @@ flowchart LR
 | Filter          | `logs.utils.tsx`    | `matchesLogFilter`: one predicate for history on the server and live lines on the page   |
 | Log source      | `logs.types.tsx`    | The `LogSource` interface every source implements                                        |
 | PM2 file source | `logs.server.tsx`   | Follows and pages one PM2 combined file                                                  |
+| Journal source  | `logs.journal.tsx`  | Follows and pages the system journal through `journalctl`, as the `system` service       |
 | Log hub         | `logs.hub.tsx`      | One follower per source for every open page; merges sources by time; batches live lines  |
 | Route           | `logs.routes.tsx`   | The socket: validates requests, tracks each page's cursor, holds live lines while needed |
 
-Protocol, filter, types and constants have no server-only imports, so the page imports them.
+Protocol, filter, types and constants have no server-only imports, so the page imports them. The admin server builds the hub, with its four sources, in `server-app.ts`.
 
 ## The socket
 
@@ -75,6 +77,7 @@ An entry is `{id, timestamp, service, stream, level, source?, event?, details?, 
 - **A line PM2 split across two chunks** shows as two entries. Output that size is rare: one event is one write, a few KB.
 - **The id** is `<service>:<generation>:<byte offset>:<index>`, stable however the line is read.
 - **Lines over 64 KB** are cut to 64 KB.
+- **From the journal**, see [The system journal](#the-system-journal).
 
 ## Following a file
 
@@ -109,6 +112,7 @@ The admin is restarted by PM2 above **256 MB**, so everything is bounded:
 | Live lines held for one page (below)  | **5000**; past that the socket is closed with **1013** and the page resumes |
 | One history page                      | **1000** entries                                                            |
 | A read                                | **64 KB** chunks, **64 KB** lines                                           |
+| `journalctl` processes                | One follower, plus one per history request being served                     |
 
 ## Resume without gaps or repeats
 
@@ -142,12 +146,50 @@ Admin's Logs page (`/logs`, `apps/admin/src/app/Logs/`) is the socket's only cli
 
 **Reconnecting.** When the socket closes, the page draws a “Connection lost” divider and retries after **1 s**, doubling to at most **10 s**; the browser's `online` event retries at once. The badge says **Reconnecting**, then **Offline** after **3** failed attempts in a row or while the browser is offline, with a **Retry now** banner. On the new socket it sends `after: <last cursor>` and keeps asking until a page is `done`, then marks the divider “Reconnected · no lines missed”, or “some lines may be missing” if a source rotated in between. A cursor the server refuses (**1008** while resuming) falls back to the latest page, marked as a possible gap. A **1008** on a fresh request is not retried: the banner offers **Retry now**. A **1013** (fell behind) reconnects at once.
 
-## A new source
+## The system journal
 
-The system journal joins as another `LogSource` (`logs.types.tsx`):
+The `system` service is the journal source (`logs.journal.tsx`). It runs `journalctl --output=json --no-pager` with an args array, never a shell, and reads only these entries:
+
+```text
+_SYSTEMD_UNIT=ditherbooth.service _SYSTEMD_UNIT=ditherbooth-network.service _SYSTEMD_UNIT=NetworkManager.service
++ UNIT=ditherbooth.service UNIT=ditherbooth-network.service UNIT=NetworkManager.service
++ _TRANSPORT=kernel
+```
+
+Values of one field are alternatives, and `+` ORs the three groups: the units' own output, systemd's messages about them (started, exited, restarted), and the kernel. `--unit` can't be used: journalctl ANDs it with the kernel match. Everything else in the journal stays on the booth.
+
+**Mapping.** One JSON line is one entry, `stream: "journal"`:
+
+| Entry       | From the journal                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `level`     | `PRIORITY` 0–3 → `error`, 4 → `warn`, anything else or none → `info`                                                                 |
+| `source`    | `kernel` for `_TRANSPORT=kernel`, else `UNIT`, else `_SYSTEMD_UNIT` (e.g. `NetworkManager.service`)                                  |
+| `timestamp` | `__REALTIME_TIMESTAMP`, to the millisecond                                                                                           |
+| `raw`       | `MESSAGE`. Byte arrays (non-UTF-8 text) are decoded; a field over 4096 bytes, which journalctl prints as `null`, shows a placeholder |
+| `details`   | `identifier` (`SYSLOG_IDENTIFIER`) and `pid` (`_PID`), when present                                                                  |
+| `id`        | `system:<__CURSOR>`                                                                                                                  |
+
+Journal lines aren't [kiosk] events: they have no `event` and nothing in them is redacted.
+
+**Following.** On start, `journalctl --reverse --lines=1` finds the newest matching entry: everything up to it is history. Then one `journalctl --follow --lines=all --after-cursor=<its cursor>` streams the rest (`--lines=all`, or journalctl would hold back all but 10 of a backlog until the next new entry). If that process exits, the source reports `unavailable` ("journalctl stopped"), starts it again **5 s** later after the last entry it handed on, and reports `available`: no line is lost. Stopping the source kills every `journalctl` it started.
+
+**Positions** are `a:<realtime µs>:<cursor>` (just after that entry), `b:<realtime µs>:<cursor>` (just before it), or `head` (an empty journal). Cursors are checked against journald's format before they reach an argument.
+
+**History.** Each page is one short-lived `journalctl`, killed once the page is full:
+
+- older: `--reverse --cursor=<c>` (from `a:`, the entry included) or `--reverse --after-cursor=<c>` (from `b:`);
+- newer: `--after-cursor=<c>` or `--cursor=<c>`, bounded by `--until=@<seconds>` (rounded up) and stopped exactly at the `until` entry's cursor.
+
+The filter runs on the admin, so a page of rare matches reads as far back as the journal goes. journald's own size limits bound that; there is no rotation to detect.
+
+**Unavailable.** Without `journalctl` (macOS, a dev machine), the source is `unavailable` with "No journalctl on this machine" and pages are empty. When journalctl warns that the user can't see the system journal (`pi` not in `systemd-journal`), it is `unavailable` with what to run. Neither breaks the socket.
+
+## Writing a source
+
+A source implements `LogSource` (`logs.types.tsx`):
 
 - `start(listener)` / `stop()`: follow new lines, hand them to `listener.onEntries(entries, position)`, report changes with `listener.onStatus`;
 - `getLivePosition()`, `getStatus()`;
 - `readBefore({before, limit, matches})` and `readAfter({after, until, limit, matches})`: matching entries with the positions just before and after each.
 
-Positions are strings only the source reads: byte offsets for a PM2 file, a journal cursor for journald. The hub merges any number of sources. `logs.testing.tsx` has an in-memory fake source for tests.
+Positions are strings only the source reads: byte offsets for a PM2 file, journal cursors for journald. The hub merges any number of sources. `logs.testing.tsx` has an in-memory fake source and a fake `journalctl` for tests.
