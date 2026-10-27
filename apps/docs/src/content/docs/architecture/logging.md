@@ -1,0 +1,129 @@
+---
+title: Logging
+description: How the admin server follows the PM2 log files and streams them to the Logs page over one WebSocket, with history paging, rotation and gap-free resume.
+sidebar:
+  order: 9
+---
+
+The apps write one JSON line per event, PM2 keeps one combined file per process, and logrotate rotates the files ([Logs](/docs/maintenance/logs/), [ADR 0006](/docs/decisions/0006-json-line-logs/)). The **admin server** reads those files and streams them to the admin's Logs page. It is the admin, not the engine, because the engine is the process most likely to be down when someone needs its logs.
+
+Code: `apps/admin/src/lib/logs/`. The socket tests in `logs.routes.test.tsx` drive the route with a fake socket, a temp folder of PM2 files and a fake source.
+
+## The pieces
+
+```mermaid
+flowchart LR
+  F1["logs/pm2/dither-booth-engine.log"] --> S1["PM2 file source"]
+  F2["…-shutter.log"] --> S2["PM2 file source"]
+  F3["…-admin.log"] --> S3["PM2 file source"]
+  S1 & S2 & S3 --> H["Log hub"]
+  H --> R["/admin/logs route"]
+  R --> P1["Logs page"]
+  R --> P2["Logs page"]
+```
+
+| Piece           | File                | Job                                                                                      |
+| --------------- | ------------------- | ---------------------------------------------------------------------------------------- |
+| Protocol        | `logs.protocol.tsx` | zod schemas for every message and for a log entry. The page validates with the same ones |
+| Filter          | `logs.utils.tsx`    | `matchesLogFilter`: one predicate for history on the server and live lines on the page   |
+| Log source      | `logs.types.tsx`    | The `LogSource` interface every source implements                                        |
+| PM2 file source | `logs.server.tsx`   | Follows and pages one PM2 combined file                                                  |
+| Log hub         | `logs.hub.tsx`      | One follower per source for every open page; merges sources by time; batches live lines  |
+| Route           | `logs.routes.tsx`   | The socket: validates requests, tracks each page's cursor, holds live lines while needed |
+
+Protocol, filter, types and constants have no server-only imports, so the page imports them.
+
+## The socket
+
+`wss://<booth>:3002/admin/logs`. The upgrade is origin-checked like every admin socket ([Access control → Logs socket](/docs/architecture/access-control/#logs-socket)). It is mounted whether or not the admin runs under PM2: without the files, each source just reports itself unavailable.
+
+**The page sends** one kind of message:
+
+```json
+{
+  "type": "history",
+  "filter": { "services": ["engine"], "levels": ["error"] },
+  "limit": 200
+}
+```
+
+- no cursor: the latest page;
+- `before: <cursor>`: the page just older than the cursor (scrolling up);
+- `after: <cursor>`: the page just newer than it (resuming after a reconnect).
+
+`limit` is 1 to 1000. Anything that fails validation (bad JSON, an unknown level or service, a limit over 1000, both cursors, a cursor the server can't read) gets an `error` message and the socket is closed with **1008**.
+
+**The server sends:**
+
+| Message         | Fields                        | When                                                                                              |
+| --------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `history`       | `entries`, `cursor`, `done`   | Answer to each request. Entries oldest first, **filtered on the booth**                           |
+| `append`        | `entries`, `cursor`           | New lines from every service, **unfiltered**, merged by time, at most every **200 ms**            |
+| `source-status` | `service`, `state`, `message` | For every source on the first request, then on each change: `available`, `unavailable`, `rotated` |
+| `error`         | `message`                     | Before the server closes the socket                                                               |
+
+`done` on a `before` page means nothing older is left; on an `after` page it means the page has caught up and live lines follow.
+
+**The cursor** is opaque to the page: keep the last one received, from any `history` or `append`, and send it back. Inside, it holds two positions per source: where the page's history reaches back to, and how far its live lines reach. So the same cursor works for scrolling up and for resuming.
+
+## Entries
+
+An entry is `{id, timestamp, service, stream, level, source?, event?, details?, error?, raw, origin, deviceId?, runId?}`.
+
+- **Services** are `engine`, `shutter`, `admin` and `system`. Browser is an **origin**: a [browser report](/docs/start-here/glossary/#logs) is an entry of the server that wrote it, with `origin: "browser"`. The filter's service list has a sixth value, `browser`, for those lines.
+- **From a PM2 line.** The envelope's `message` is split on newlines; each non-blank line is one entry. A `[kiosk]` line becomes a structured entry, timed by its `loggedAt`. Anything else is plain text, timed by the envelope's `timestamp`: on `err` it is an `error`, on `out` an `info`. A line that isn't an envelope at all is kept as plain text.
+- **A line PM2 split across two chunks** shows as two entries. Output that size is rare: one event is one write, a few KB.
+- **The id** is `<service>:<generation>:<byte offset>:<index>`, stable however the line is read.
+- **Lines over 64 KB** are cut to 64 KB.
+
+## Following a file
+
+Each PM2 file source:
+
+- starts at the **end of the last complete line**: older lines are history, read on request;
+- re-reads on every file-change event of `logs/pm2/` and every **1 s** anyway, because change events aren't reliable everywhere;
+- reads only complete lines, so a line being written is picked up whole on the next read;
+- hands the hub new lines in batches of at most 500.
+
+**Rotation.** logrotate copies then truncates in place. A source counts the file as rotated when it is **smaller than the position read so far**, or when its **first line changed** (its _generation_, a hash of the first line, caught when the file was truncated and refilled between two reads). It then sends `rotated`, starts again at byte 0, and reports `available`.
+
+**Missing file.** A missing file is `unavailable` with "No log file at logs/pm2/<process>.log. Is it running under PM2?". When it appears, the source reads it from the start and reports `available`.
+
+## History pages
+
+A position in a file is `<generation>:<byte offset of a line>:<entry index in that line>`, so a page can end in the middle of a multi-line chunk.
+
+- **Older pages** are read backward from the position in **64 KB** chunks, keeping only entries that match the filter, until the page is full or the file starts. Filtered history scans as far back as it must, so "all errors today" works however far back they are. Memory stays bounded: one chunk, one line and the matches.
+- **Merging.** Each source returns its newest `limit` matches; the hub merges them by timestamp (each source's own order kept) and keeps the newest `limit`. Each source's next position is its oldest kept entry, so nothing is skipped or repeated.
+- **Rotated files aren't searched.** A `before` position from an older generation, or past the end of the file, gives an empty, done page.
+
+## Fan-out and memory
+
+One hub serves every open page, with **one follower per source**. Sources start with the first page's first request and stop when the last page closes, so a booth with no Logs page open reads nothing.
+
+The admin is restarted by PM2 above **256 MB**, so everything is bounded:
+
+| What                                  | Bound                                                                       |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| Live lines waiting for the next batch | Sent early once **1000** are waiting                                        |
+| Live lines held for one page (below)  | **5000**; past that the socket is closed with **1013** and the page resumes |
+| One history page                      | **1000** entries                                                            |
+| A read                                | **64 KB** chunks, **64 KB** lines                                           |
+
+## Resume without gaps or repeats
+
+Every page's live lines start where its first request found the hub: everything before is history, everything after arrives as `append`.
+
+- **While a history request is served**, the page's live lines and status changes are **held**, then sent right after the page. A page never gets live lines it would also find in the page it is waiting for.
+- **After a reconnect**, the page sends `after: <last cursor>` on the new socket. The server reads from there up to where this socket's live lines start, one page at a time, holding live lines until a page says `done`. The page ends up with every line once, in order.
+- If a file was rotated since the cursor, the server sends `rotated` for it and reads the new file from the start: the lines written between the cursor and the rotation may be missing, and the page can say so.
+
+## A new source
+
+The system journal joins as another `LogSource` (`logs.types.tsx`):
+
+- `start(listener)` / `stop()`: follow new lines, hand them to `listener.onEntries(entries, position)`, report changes with `listener.onStatus`;
+- `getLivePosition()`, `getStatus()`;
+- `readBefore({before, limit, matches})` and `readAfter({after, until, limit, matches})`: matching entries with the positions just before and after each.
+
+Positions are strings only the source reads: byte offsets for a PM2 file, a journal cursor for journald. The hub merges any number of sources. `logs.testing.tsx` has an in-memory fake source for tests.

@@ -56,20 +56,20 @@ Logs: `log_type: "json"`, one combined `log_file` per process at `logs/pm2/<proc
 
 Paths relative to `/opt/dither-booth` unless absolute.
 
-| Path                                                | Written by                     | Purpose                                                       |
-| --------------------------------------------------- | ------------------------------ | ------------------------------------------------------------- |
-| `apps/engine/data/` → `/mnt/ssd/dither-booth/data/` | engine                         | SQLite database, added fonts (`fonts/`) and logos (`logos/`)  |
-| `.local/tls/booth-cert.pem`, `booth-key.pem`        | `booth cert`                   | Leaf certificate and key                                      |
-| `.local/tls/booth-manifest.json`                    | `booth cert`                   | Public IP, hostnames, CA path                                 |
-| `.local/runtime/setup-server-token`                 | engine, at start               | Owner-only token for `captive.*`                              |
-| `.local/device-setup/last-ticket`                   | engine                         | Last setup ticket printed (boot id + key)                     |
-| `logs/pm2/<process>.log`                            | PM2                            | App logs, one JSON entry per line; rotated to `.1.gz`–`.7.gz` |
-| `apps/docs/dist/`                                   | `booth repo` (`bun run build`) | This site, served by admin at `/docs/`                        |
-| `/var/lib/ditherbooth/prefer-hotspot`               | engine                         | Present while staff run the event on the booth Wi-Fi          |
-| `/var/lib/ditherbooth/wifi-scan.json`               | network watch                  | Networks seen before the booth Wi-Fi took the radio           |
-| `/var/lib/ditherbooth/early-boot`                   | network watch                  | Double power-cycle marker, removed after 2 min uptime         |
-| `~pi/.pm2/`                                         | PM2                            | Daemon state, PID file                                        |
-| mkcert CAROOT (`mkcert -CAROOT`)                    | `booth cert`                   | Booth CA: `rootCA.pem`, `rootCA-key.pem`                      |
+| Path                                                | Written by                     | Purpose                                                                                                   |
+| --------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `apps/engine/data/` → `/mnt/ssd/dither-booth/data/` | engine                         | SQLite database, added fonts (`fonts/`) and logos (`logos/`)                                              |
+| `.local/tls/booth-cert.pem`, `booth-key.pem`        | `booth cert`                   | Leaf certificate and key                                                                                  |
+| `.local/tls/booth-manifest.json`                    | `booth cert`                   | Public IP, hostnames, CA path                                                                             |
+| `.local/runtime/setup-server-token`                 | engine, at start               | Owner-only token for `captive.*`                                                                          |
+| `.local/device-setup/last-ticket`                   | engine                         | Last setup ticket printed (boot id + key)                                                                 |
+| `logs/pm2/<process>.log`                            | PM2                            | App logs, one JSON entry per line; rotated to `.1.gz`–`.7.gz`; read by the admin server for the Logs page |
+| `apps/docs/dist/`                                   | `booth repo` (`bun run build`) | This site, served by admin at `/docs/`                                                                    |
+| `/var/lib/ditherbooth/prefer-hotspot`               | engine                         | Present while staff run the event on the booth Wi-Fi                                                      |
+| `/var/lib/ditherbooth/wifi-scan.json`               | network watch                  | Networks seen before the booth Wi-Fi took the radio                                                       |
+| `/var/lib/ditherbooth/early-boot`                   | network watch                  | Double power-cycle marker, removed after 2 min uptime                                                     |
+| `~pi/.pm2/`                                         | PM2                            | Daemon state, PID file                                                                                    |
+| mkcert CAROOT (`mkcert -CAROOT`)                    | `booth cert`                   | Booth CA: `rootCA.pem`, `rootCA-key.pem`                                                                  |
 
 ## Hardware
 

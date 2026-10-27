@@ -92,3 +92,11 @@ The engine binds **`127.0.0.1:3001`**. Nothing outside the Pi reaches it except 
 | `booth install` and friends | root (sudo) | Provisioning                                                                           |
 
 The polkit rule grants the service user four NetworkManager actions and nothing wider: modify system connections, network control, Wi-Fi scan, Wi-Fi sharing.
+
+## Logs socket
+
+The admin's Logs page reads every service's logs over **`wss://<booth>:3002/admin/logs`** ([Logging](/docs/architecture/logging/)). Like the rest of admin it is **network-trusted**: the upgrade only checks that `Origin` is the admin's own origin, on one of the booth's hostnames or its IP, and refuses others with 403. Anyone who can load admin can read the logs.
+
+- **Read-only.** The socket only answers history requests and streams lines; nothing a page sends reaches a file or a process.
+- **Secrets.** Lines carry what the logger wrote, which redacted secret-looking detail keys first ([Logs → Line format](/docs/maintenance/logs/#line-format)).
+- **One way in.** `createLogsRoute` in `apps/admin/src/lib/logs/logs.routes.tsx` is the only place logs leave the booth. Restricting them to tech staff later is one change there (its `validateUpgrade` hook), plus the page.
