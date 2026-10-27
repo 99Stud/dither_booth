@@ -118,6 +118,8 @@ The admin is restarted by PM2 above **256 MB**, so everything is bounded:
 
 Every page's live lines start where its first request found the hub: everything before is history, everything after arrives as `append`.
 
+Sources start together. A line a source sends while another is still starting is kept, not dropped: that source's history ends just before it, and it goes out as `append` once every source has started.
+
 - **While a history request is served**, the page's live lines and status changes are **held**, then sent right after the page. A page never gets live lines it would also find in the page it is waiting for.
 - **After a reconnect**, the page sends `after: <last cursor>` on the new socket. The server reads from there up to where this socket's live lines start, one page at a time, holding live lines until a page says `done`. The page ends up with every line once, in order.
 - If a file was rotated since the cursor, the server sends `rotated` for it and reads the new file from the start: the lines written between the cursor and the rotation may be missing, and the page can say so.

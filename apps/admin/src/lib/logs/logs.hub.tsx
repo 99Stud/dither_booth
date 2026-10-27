@@ -122,6 +122,10 @@ export function createLogHub({
   const failedStatuses = new Map<LogService, LogSourceStatus>();
   let lifecycle = Promise.resolve();
   let running = false;
+  /** Sources are starting or running: their lines are kept. */
+  let following = false;
+  /** Per source, where its lines held while starting begin. */
+  let startedAt: LogPositions = {};
   let buffered = new Map<LogService, LogEntry[]>();
   let bufferedCount = 0;
   let livePositions: LogPositions = {};
@@ -152,16 +156,29 @@ export function createLogHub({
     items: LogSourceEntry[],
     position: string,
   ) => {
-    if (!running) {
+    if (!following || items.length === 0) {
       return;
     }
 
     const list = buffered.get(service) ?? [];
+
+    // Lines that arrive while other sources start go out live once all
+    // have started: history ends where the first of them begins.
+    if (!running && list.length === 0) {
+      startedAt[service] = items[0]!.start;
+    }
+
     list.push(...items.map((item) => item.entry));
     buffered.set(service, list);
     bufferedCount += items.length;
     livePositions[service] = position;
 
+    if (running) {
+      scheduleFlush();
+    }
+  };
+
+  const scheduleFlush = () => {
     if (bufferedCount >= LOGS_APPEND_BATCH_MAX_ENTRIES) {
       flush();
       return;
@@ -171,7 +188,17 @@ export function createLogHub({
   };
 
   const receiveStatus = (source: LogSource, status: LogSourceStatus) => {
+    if (!following) {
+      return;
+    }
+
     if (!running) {
+      // The source started over while others start: its held lines are
+      // gone from where they were, and it follows from its new end.
+      bufferedCount -= buffered.get(source.service)?.length ?? 0;
+      buffered.delete(source.service);
+      delete startedAt[source.service];
+      livePositions[source.service] = source.getLivePosition();
       return;
     }
 
@@ -203,21 +230,32 @@ export function createLogHub({
       });
     }
 
-    livePositions[source.service] = source.getLivePosition();
+    if (!buffered.has(source.service)) {
+      livePositions[source.service] = source.getLivePosition();
+    }
   };
 
   const reconcile = () => {
     lifecycle = lifecycle.then(async () => {
       if (subscribers.size > 0 && !running) {
         livePositions = {};
+        startedAt = {};
+        following = true;
         await Promise.all(sources.map(startSource));
-        flushedPositions = { ...livePositions };
+        flushedPositions = { ...livePositions, ...startedAt };
         running = true;
+
+        // Not at once: the first subscriber gets its positions first.
+        if (bufferedCount > 0) {
+          flushTimer ??= setTimeout(flush, batchMs);
+        }
+
         return;
       }
 
       if (subscribers.size === 0 && running) {
         running = false;
+        following = false;
         clearTimeout(flushTimer);
         flushTimer = undefined;
         buffered = new Map();

@@ -678,6 +678,61 @@ describe("the /admin/logs socket", () => {
     expect(client.closes[0]!.code).toBe(1008);
   });
 
+  it("keeps lines a source sends while another source is still starting", async () => {
+    const engine = createFakeLogSource({
+      service: "engine",
+      entries: [systemEntry("old", at(0), { service: "engine" })],
+    });
+    const system = createFakeLogSource({ service: "system" });
+    let releaseSystem!: () => void;
+    const systemStarted = new Promise<void>((resolve) => {
+      releaseSystem = resolve;
+    });
+    let engineStarted = false;
+    const route = createLogsRoute({
+      hub: createLogHub({
+        batchMs: 10,
+        sources: [
+          {
+            ...engine.source,
+            start: async (listener) => {
+              await engine.source.start(listener);
+              engine.push(systemEntry("during", at(1), { service: "engine" }));
+              engineStarted = true;
+            },
+          },
+          {
+            ...system.source,
+            start: async (listener) => {
+              await systemStarted;
+              await system.source.start(listener);
+            },
+          },
+        ],
+      }),
+    });
+    const client = createTestLogsSocket();
+    route.open?.(client.socket);
+    cleanups.push(() => route.close?.(client.socket, 1000, ""));
+
+    route.message?.(
+      client.socket,
+      JSON.stringify({ type: "history", filter: {}, limit: 10 }),
+    );
+    await eventually(() => expect(engineStarted).toBe(true));
+    engine.push(systemEntry("after", at(2), { service: "engine" }));
+    releaseSystem();
+
+    await eventually(() => expect(client.lastHistory()).toBeDefined());
+    await eventually(() =>
+      expect(
+        [...client.lastHistory()!.entries, ...client.appended()].map(
+          (entry) => entry.id,
+        ),
+      ).toEqual(["old", "during", "after"]),
+    );
+  });
+
   it("starts each source with the first page and stops it with the last", async () => {
     const system = createFakeLogSource({ service: "system" });
     const { connect, route } = await setUp({ extraSources: [system.source] });
