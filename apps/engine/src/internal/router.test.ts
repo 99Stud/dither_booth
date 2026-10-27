@@ -19,6 +19,7 @@ const GROUPS = {
   booth: [
     "getFontAsset",
     "getKit",
+    "getLogoAsset",
     "getLotteryStatus",
     "lockDarkroom",
     "onKioskCommand",
@@ -32,6 +33,7 @@ const GROUPS = {
     "createEvent",
     "createPrize",
     "deleteFontAsset",
+    "deleteLogoAsset",
     "deletePrize",
     "dither",
     "forgetHubRegistration",
@@ -46,6 +48,7 @@ const GROUPS = {
     "installLibraryFont",
     "listFontAssets",
     "listDraws",
+    "listLogoAssets",
     "printReceipt",
     "printSampleLotteryTicket",
     "printSetupTicket",
@@ -63,6 +66,7 @@ const GROUPS = {
     "updatePrize",
     "updateTicketItems",
     "uploadFont",
+    "uploadLogo",
   ],
   ops: [
     "getHealthz",

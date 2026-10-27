@@ -335,6 +335,24 @@ export const fontAssetTable = sqliteTable(
 );
 
 /**
+ * A logo added to the booth from admin, for an event's partner row. Kept as
+ * it prints: a black and white PNG at `<logo dir>/<id>.png` on the SSD.
+ */
+export const logoAssetTable = sqliteTable("logo_asset", {
+  id: text()
+    .primaryKey()
+    .notNull()
+    .$defaultFn(() => createId()),
+  /** What staff called it, to find it again in the library. */
+  name: text("name").notNull(),
+  width: integer("width").notNull(),
+  height: integer("height").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+/**
  * The booth's registration with the Hub, made with a one-time code. One row
  * or none. The refresh token is the booth's only credential on the Hub: it
  * is single use, so every refresh stores the next one here.

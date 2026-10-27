@@ -27,13 +27,33 @@ export type ReceiptViewerRouteStateOptions = ReceiptViewerSearch & {
 
 type ReceiptViewerElement = {
   getAttribute: (attribute: string) => string | null;
+  /** Set on `<img>` elements. */
+  tagName?: string;
+  complete?: boolean;
+  addEventListener?: (
+    type: "load" | "error",
+    listener: () => void,
+    options: { once: true },
+  ) => void;
+};
+
+type ReceiptViewerImage = {
+  src: string;
+  onload: (() => void) | null;
+  onerror: (() => void) | null;
 };
 
 type ReceiptViewerPageWindow = {
   __ditherReceiptViewer?: ReceiptViewerNavigationBridge;
   document: {
     querySelector: (selector: string) => ReceiptViewerElement | null;
+    querySelectorAll: (selector: string) => Iterable<ReceiptViewerElement>;
   };
+  getComputedStyle: (element: ReceiptViewerElement) => {
+    backgroundImage: string;
+    maskImage: string;
+  };
+  Image: new () => ReceiptViewerImage;
   location: {
     pathname: string;
     search: string;
@@ -231,6 +251,69 @@ export function isReceiptViewerRouteStateCommittedViaBridgeInPage(
   }
 
   return receiptViewer.isRouteStateCommitted(options);
+}
+
+/**
+ * Puppeteer-safe: only touches `window` + the selector arg (no module
+ * closures). Resolves once every image on the ticket has loaded or failed:
+ * each `<img>`, such as a partner logo, and each CSS image (mask,
+ * background). A screenshot waits for the photo it sets, not for these, and
+ * they are fetched when the ticket first renders. Returns the sources that
+ * failed, so the ticket still prints and the caller can log them. Waits on
+ * `load`, not `decode()`: decode can stay pending while the page isn't
+ * painting.
+ */
+export async function loadReceiptImagesInPage(
+  receiptSelector: string,
+): Promise<string[]> {
+  const urls = new Set<string>();
+  // Each resolves to the image's source when it failed, or null once loaded.
+  const pendingImages: Promise<string | null>[] = [];
+  const elements = window.document.querySelectorAll(
+    `${receiptSelector}, ${receiptSelector} *`,
+  );
+
+  for (const element of elements) {
+    if (element.tagName === "IMG" && element.complete === false) {
+      pendingImages.push(
+        new Promise<string | null>((resolve) => {
+          element.addEventListener?.("load", () => resolve(null), {
+            once: true,
+          });
+          element.addEventListener?.(
+            "error",
+            () => resolve(element.getAttribute("src") ?? "<img>"),
+            { once: true },
+          );
+        }),
+      );
+    }
+
+    const style = window.getComputedStyle(element);
+
+    for (const value of [style.maskImage, style.backgroundImage]) {
+      for (const match of value.matchAll(/url\("?([^")]+)"?\)/gu)) {
+        if (match[1]) {
+          urls.add(match[1]);
+        }
+      }
+    }
+  }
+
+  const results = await Promise.all([
+    ...pendingImages,
+    ...[...urls].map(
+      (url) =>
+        new Promise<string | null>((resolve) => {
+          const image = new window.Image();
+          image.onload = () => resolve(null);
+          image.onerror = () => resolve(url);
+          image.src = url;
+        }),
+    ),
+  ]);
+
+  return results.filter((url): url is string => url !== null);
 }
 
 export type { ReceiptTemplate };

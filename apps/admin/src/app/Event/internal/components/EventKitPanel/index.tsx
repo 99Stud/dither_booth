@@ -1,5 +1,6 @@
 import type { KitCopyOverrides } from "@dither-booth/shared/kit-copy";
 import type { KitFontOverrides } from "@dither-booth/shared/kit-fonts";
+import type { KitPartners } from "@dither-booth/shared/kit-partners";
 import type {
   CameraScreen,
   KitId,
@@ -80,6 +81,7 @@ import { KitBackgroundSection } from "./internal/KitBackgroundSection";
 import { KitCameraSection } from "./internal/KitCameraSection";
 import { KitCopyField } from "./internal/KitCopyField";
 import { KitFontsSection } from "./internal/KitFontsSection";
+import { KitPartnersSection } from "./internal/KitPartnersSection";
 import { KitPreviewPane } from "./internal/KitPreviewPane";
 
 /** What the tab edits, in the shape it is saved in. */
@@ -89,6 +91,8 @@ type KitDraft = {
   fonts?: KitFontOverrides;
   background?: BackgroundSettings;
   camera?: Partial<CameraScreen>;
+  /** The event's, not the kit's: kept through a change of kit or a reset. */
+  partners: KitPartners;
 };
 
 const toDraft = (event: CurrentEvent): KitDraft => ({
@@ -97,6 +101,7 @@ const toDraft = (event: CurrentEvent): KitDraft => ({
   fonts: event.campaign.kitSettings.fonts,
   background: event.campaign.kitSettings.background,
   camera: event.campaign.kitSettings.camera,
+  partners: event.campaign.kitSettings.partners ?? [],
 });
 
 /** Only the shader controls that moved away from the look they start from. */
@@ -158,6 +163,7 @@ const toSettings = (draft: KitDraft): KitSettings => {
     ...(Object.keys(fonts).length > 0 ? { fonts } : {}),
     ...(background ? { background } : {}),
     ...(Object.keys(camera).length > 0 ? { camera } : {}),
+    ...(draft.partners.length > 0 ? { partners: draft.partners } : {}),
   };
 };
 
@@ -170,12 +176,17 @@ const isMissingText = (draft: KitDraft, key: CopyKey) => {
   return !("optional" in field) && draft.copy[key]?.trim() === "";
 };
 
+/** Partners aren't listed: they are the event's, the kit has none. */
 const CHANGED_PART_LABELS = {
   copy: "text",
   fonts: "fonts",
   background: "background",
   camera: "camera screen",
-} satisfies Record<keyof KitSettings, string>;
+} satisfies Record<Exclude<keyof KitSettings, "partners">, string>;
+
+const isChangedPart = (
+  part: string,
+): part is keyof typeof CHANGED_PART_LABELS => part in CHANGED_PART_LABELS;
 
 const GROUP_ICONS = {
   landing: MonitorSmartphone,
@@ -210,9 +221,9 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
   const defaults = KIT_MANIFESTS[draft.kitId].copy;
   const isDirty = !sameSettings(draft, saved);
   const missingKeys = COPY_KEYS.filter((key) => isMissingText(draft, key));
-  const changedParts = Object.keys(toSettings(draft)).map(
-    (part) => CHANGED_PART_LABELS[part as keyof KitSettings],
-  );
+  const changedParts = Object.keys(toSettings(draft))
+    .filter(isChangedPart)
+    .map((part) => CHANGED_PART_LABELS[part]);
   const shaderPreview = applyBackgroundControls(
     getBackgroundBase(
       draft.kitId,
@@ -277,10 +288,12 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
                 onValueChange={(value) => {
                   if (value) {
                     // Fonts, shader and camera start from a kit's look, so a
-                    // new kit starts them over; the text edits carry across.
+                    // new kit starts them over; the text edits and the
+                    // partners carry across.
                     setDraft((current) => ({
                       kitId: value as KitId,
                       copy: current.copy,
+                      partners: current.partners,
                     }));
                   }
                 }}
@@ -338,6 +351,12 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
           value={draft.camera}
           backgroundHighlight={getBackgroundHighlight(shaderPreview)}
           onChange={(camera) => setDraft((current) => ({ ...current, camera }))}
+        />
+        <KitPartnersSection
+          value={draft.partners}
+          onChange={(partners) =>
+            setDraft((current) => ({ ...current, partners }))
+          }
         />
 
         {COPY_KEYS_BY_GROUP.map(({ group, keys }) => {
@@ -437,7 +456,11 @@ export const EventKitPanel: FC<EventKitPanelProps> = (props) => {
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
-                setDraft((current) => ({ kitId: current.kitId, copy: {} }));
+                setDraft((current) => ({
+                  kitId: current.kitId,
+                  copy: {},
+                  partners: current.partners,
+                }));
                 setIsResetOpen(false);
               }}
             >

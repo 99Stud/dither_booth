@@ -24,6 +24,7 @@ import {
   type KitFonts,
   type ResolvedKitFonts,
 } from "#isomorphic/kit-fonts";
+import { kitPartnersSchema, type KitPartners } from "#isomorphic/kit-partners";
 
 /**
  * Kits compiled into this release. An event stores its kit as free text
@@ -138,6 +139,7 @@ export const kitSettingsSchema = z
     fonts: kitFontOverridesSchema.optional(),
     background: backgroundSettingsSchema.optional(),
     camera: cameraScreenOverridesSchema.optional(),
+    partners: kitPartnersSchema.optional(),
   })
   .strict();
 
@@ -146,6 +148,7 @@ export type KitSettings = {
   fonts?: KitFontOverrides;
   background?: BackgroundSettings;
   camera?: Partial<CameraScreen>;
+  partners?: KitPartners;
 };
 
 /** The camera CRT as it renders, its tint resolved to a colour. */
@@ -160,6 +163,7 @@ export type ResolvedKit = {
   fonts: ResolvedKitFonts;
   background: BackgroundPreset;
   camera: ResolvedCameraScreen;
+  partners: KitPartners;
 };
 
 /**
@@ -214,10 +218,8 @@ export function readKitSettings(stored: unknown): {
     return { settings: {}, rejectedKeys: [] };
   }
 
-  const { copy, fonts, background, camera, ...rest } = stored as Record<
-    string,
-    unknown
-  >;
+  const { copy, fonts, background, camera, partners, ...rest } =
+    stored as Record<string, unknown>;
   const settings: KitSettings = {};
   const rejectedKeys = Object.keys(rest);
 
@@ -241,6 +243,12 @@ export function readKitSettings(stored: unknown): {
     const readCamera = cameraScreenOverridesSchema.safeParse(camera);
     if (readCamera.success) settings.camera = readCamera.data;
     else rejectedKeys.push("camera");
+  }
+
+  if (partners !== undefined) {
+    const readPartners = kitPartnersSchema.safeParse(partners);
+    if (readPartners.success) settings.partners = readPartners.data;
+    else rejectedKeys.push("partners");
   }
 
   return { settings, rejectedKeys };
@@ -268,5 +276,6 @@ export function resolveKit(kitId: KitId, settings: KitSettings): ResolvedKit {
           ? getBackgroundHighlight(background)
           : camera.tint,
     },
+    partners: settings.partners ?? [],
   };
 }
