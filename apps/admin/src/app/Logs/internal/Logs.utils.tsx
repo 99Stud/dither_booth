@@ -123,7 +123,7 @@ export function splitOnMatches(text: string, needle: string | undefined) {
 }
 
 type LogCounts = {
-  /** Error lines per service chip, whatever the service and level filters. */
+  /** Error lines per service chip, whatever the service and level filters. The chips show it only while the service and errors show. */
   errorsByService: Record<LogFilterService, number>;
   /** Lines per level under the rest of the filter. */
   byLevel: Record<LogLevel, number>;

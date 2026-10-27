@@ -47,8 +47,8 @@ The page is at `https://<booth>.local:3002/logs`. Its filters are in the address
 
 ### Filtering
 
-- **Service chips:** **Engine**, **Shutter**, **Admin**, **System**, **Browser**. Click one to hide or show its lines. A red number is its error count; a crossed circle means its source is unavailable (hover for why: not running under PM2, or system logs unavailable).
-- **Level toggles:** **Error**, **Warn**, **Info**, each with its count.
+- **Service chips:** **Engine**, **Shutter**, **Admin**, **System**, **Browser**. Click one to hide or show its lines. A red number is its error count, among the lines loaded; a hidden service, or any service while **Error** is off, shows no number; a crossed circle means its source is unavailable (hover for why: not running under PM2, or system logs unavailable).
+- **Level toggles:** **Error**, **Warn**, **Info**, each with its count while it is on. A level that is off shows no number: its lines aren't loaded.
 - **Source:** **All sources**, or one source seen so far (`engine.printer`, `engine.lottery`…).
 - **Search:** press **/** to jump to it. Matches are marked. **Esc** clears it.
 - **⋯ → Clear filters**, or **Clear filters** on the “No lines match” screen, shows everything again.

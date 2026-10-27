@@ -23,6 +23,11 @@ interface LogsServiceChipsProps {
   /** The services shown; `undefined` shows them all. */
   selected?: LogFilterService[];
   errorsByService: Record<LogFilterService, number>;
+  /**
+   * Error lines show. Counts only cover lines the page holds, and history
+   * only holds what shows, so a hidden service or level gets no count.
+   */
+  areErrorsShown: boolean;
   statuses: Partial<Record<LogService, LogSourceStatus>>;
   onToggle: (service: LogFilterService) => void;
 }
@@ -31,12 +36,14 @@ const isSourceService = (service: LogFilterService): service is LogService =>
   service !== "browser";
 
 /**
- * One chip per service: pressed when its lines show, with its error count,
- * and a mark when its log source is unavailable (hover for why).
+ * One chip per service: pressed when its lines show, with its error count
+ * while it and errors show, and a mark when its log source is unavailable
+ * (hover for why).
  */
 export const LogsServiceChips: FC<LogsServiceChipsProps> = ({
   selected,
   errorsByService,
+  areErrorsShown,
   statuses,
   onToggle,
 }) => (
@@ -47,7 +54,7 @@ export const LogsServiceChips: FC<LogsServiceChipsProps> = ({
   >
     {LOG_FILTER_SERVICES.map((service) => {
       const isPressed = !selected || selected.includes(service);
-      const errors = errorsByService[service];
+      const errors = isPressed && areErrorsShown ? errorsByService[service] : 0;
       const status = isSourceService(service) ? statuses[service] : undefined;
       const isUnavailable = status?.state === "unavailable";
 

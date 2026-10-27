@@ -297,6 +297,43 @@ describe("Logs page", () => {
     expect(screen.getByRole("button", { name: "Shutter" })).toBeDefined();
   });
 
+  test("hidden services and levels show no count, not a misleading one", async () => {
+    const { socket } = await openLogs("/logs?services=engine&levels=warn,info");
+    socket.history([logEntry({ service: "engine", level: "warn" })]);
+    await screen.findByRole("button", { name: /^Engine/ });
+
+    // Lines of hidden services and levels arrive live, unfiltered.
+    socket.append([
+      logEntry({ service: "shutter", level: "error" }),
+      logEntry({ service: "engine", level: "error" }),
+      logEntry({ service: "engine", level: "info" }),
+    ]);
+
+    const levels = screen.getByRole("group", { name: "Levels" });
+    await waitFor(() =>
+      expect(
+        within(levels).getByRole("button", { name: /Info/ }).textContent,
+      ).toBe("Info1"),
+    );
+    expect(
+      within(levels).getByRole("button", { name: /Error/ }).textContent,
+    ).toBe("Error");
+    // Errors are hidden: no chip counts them.
+    expect(screen.getByRole("button", { name: "Shutter" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Engine" })).toBeDefined();
+  });
+
+  test("a hidden service's chip shows no error count", async () => {
+    const { socket } = await openLogs("/logs?services=engine");
+    socket.history([logEntry({ service: "engine", level: "error" })]);
+    socket.append([logEntry({ service: "shutter", level: "error" })]);
+
+    expect(
+      await screen.findByRole("button", { name: "Engine 1 error" }),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Shutter" })).toBeDefined();
+  });
+
   test("the connection badge follows the socket, and a reconnect resumes with no gap", async () => {
     renderLogs();
     expect(
