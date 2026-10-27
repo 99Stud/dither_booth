@@ -3,6 +3,7 @@ import {
   CLIENT_LOG_MAX_BODY_BYTES,
   CLIENT_LOG_RATE_LIMIT,
   CLIENT_LOG_RATE_WINDOW_MS,
+  type ClientLogReport,
   clientLogReportSchema,
 } from "@dither-booth/logging/client-log";
 import { isAllowedConfiguredOrigin } from "@dither-booth/ports/origin";
@@ -57,13 +58,16 @@ function parseJson(text: string): unknown {
 }
 
 /**
- * Counts reports per device in fixed windows. Windows that have ended are
- * dropped on the next report, so the map holds only devices seen recently.
+ * Counts reports per device and level in fixed windows: warnings and errors
+ * have their own budgets, so a warning loop can't crowd out errors. Windows
+ * that have ended are dropped on the next report, so the map holds only
+ * devices seen recently.
  */
 function createDeviceRateLimiter(now: () => number) {
   const windows = new Map<string, { count: number; startedAt: number }>();
 
-  return (deviceId: string) => {
+  return (deviceId: string, level: ClientLogReport["level"]) => {
+    const key = JSON.stringify([deviceId, level]);
     const time = now();
 
     for (const [id, window] of windows) {
@@ -72,14 +76,14 @@ function createDeviceRateLimiter(now: () => number) {
       }
     }
 
-    const window = windows.get(deviceId) ?? { count: 0, startedAt: time };
+    const window = windows.get(key) ?? { count: 0, startedAt: time };
 
     if (window.count >= CLIENT_LOG_RATE_LIMIT) {
       return false;
     }
 
     window.count += 1;
-    windows.set(deviceId, window);
+    windows.set(key, window);
     return true;
   };
 }
@@ -89,7 +93,7 @@ function createDeviceRateLimiter(now: () => number) {
  * with a beacon, is re-logged on this server's own log marked
  * `origin: "browser"`. Refused, and never logged: a foreign origin (403), a
  * body over 16 KB (413), an invalid report (400), and a device's reports
- * past 30 a minute (429).
+ * past 30 a minute per level (429).
  */
 export function createClientLogRoute({
   allowedHostnames = [],
@@ -132,7 +136,7 @@ export function createClientLogRoute({
     const { deviceId, details, error, event, level, runId, source } =
       report.data;
 
-    if (!takeDeviceReport(deviceId)) {
+    if (!takeDeviceReport(deviceId, level)) {
       return new Response("Too many reports.", { status: 429 });
     }
 

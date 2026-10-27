@@ -1,8 +1,10 @@
 import type { FileHandle } from "node:fs/promises";
 
+import { PM2_LOG_RELATIVE_DIR } from "@dither-booth/shared/booth-system";
 import { type FSWatcher, watch } from "node:fs";
 import { open } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import z from "zod";
 
 import type {
@@ -15,11 +17,12 @@ import type {
 } from "./logs.types";
 
 import {
+  LOGS_CONTINUATION_GRACE_MS,
+  LOGS_MAX_JOINED_CHUNKS,
   LOGS_MAX_LINE_BYTES,
-  LOGS_PM2_LOG_RELATIVE_DIR,
-  LOGS_PM2_PROCESS_NAMES,
   LOGS_POLL_INTERVAL_MS,
   LOGS_READ_CHUNK_BYTES,
+  LOG_SERVICES,
 } from "./logs.constants";
 import { InvalidLogPositionError } from "./logs.hub";
 import { logEntryErrorSchema, logLevelSchema } from "./logs.protocol";
@@ -27,19 +30,41 @@ import { logEntryErrorSchema, logLevelSchema } from "./logs.protocol";
 /*
  * A log source over one PM2 combined file (`logs/pm2/<process>.log`). Each
  * file line is one PM2 JSON envelope; its `message` holds one or more
- * output lines, each one entry.
+ * output lines, each one entry. PM2 writes one envelope per chunk it reads,
+ * so a long output line can be cut across envelopes: a *record* is an
+ * envelope plus the envelopes that continue its last line (next in the
+ * file, same `type`, the one before not ending in a newline), read as one.
  *
- * Position: `<generation>:<byte offset of a file line>:<entry index in it>`.
+ * Position: `<generation>:<byte offset of a record>:<entry index in it>`.
  * The generation is a hash of the file's first line, so a position from
  * before a copy-and-truncate rotation is recognised even once the new file
  * has grown past it.
  */
 
-type Pm2Service = keyof typeof LOGS_PM2_PROCESS_NAMES;
+type Pm2Service = Exclude<LogService, "system">;
+
+/** The PM2 process of each service, as `pm2.config.js` names them. */
+export type Pm2ProcessNames = Record<Pm2Service, string>;
 
 type Pm2Position = { generation: string; offset: number; index: number };
 
 type FileLine = { bytes: Buffer; start: number; end: number };
+
+type ParsedFileLine = {
+  start: number;
+  end: number;
+  text: string;
+  envelope?: z.infer<typeof pm2EnvelopeSchema>;
+};
+
+/** File lines read as one: an envelope and those that continue it. */
+type Pm2Record = {
+  lines: ParsedFileLine[];
+  start: number;
+  end: number;
+  /** It ends the read, cut mid-line: the next envelope may continue it. */
+  isOpen: boolean;
+};
 
 const KIOSK_PREFIX = "[kiosk] ";
 const GENERATION_PROBE_BYTES = 4096;
@@ -154,40 +179,69 @@ function parseOutputLine({
   };
 }
 
+function parseFileLine(line: FileLine): ParsedFileLine {
+  const text = line.bytes.toString("utf8");
+  const envelope = pm2EnvelopeSchema.safeParse(parseJson(text));
+
+  return {
+    start: line.start,
+    end: line.end,
+    text,
+    ...(envelope.success ? { envelope: envelope.data } : {}),
+  };
+}
+
+/** Whether `line` was cut mid-line: the next envelope may continue it. */
+function isCut(line: ParsedFileLine) {
+  return line.envelope !== undefined && !line.envelope.message.endsWith("\n");
+}
+
+/** Whether `next` carries on the output line `previous` was cut in. */
+function continues(previous: ParsedFileLine, next: ParsedFileLine) {
+  return isCut(previous) && previous.envelope!.type === next.envelope?.type;
+}
+
+function toRecord(lines: ParsedFileLine[], isOpen = false): Pm2Record {
+  return { lines, start: lines[0]!.start, end: lines.at(-1)!.end, isOpen };
+}
+
 /**
- * The entries of one file line: its envelope's message split on newlines,
- * blank lines dropped. A line that isn't an envelope is one plain entry.
+ * The entries of one record: its envelopes' messages joined, then split on
+ * newlines, blank lines dropped. A line that isn't an envelope is one plain
+ * entry.
  */
-export function parsePm2FileLine({
+function parsePm2Record({
   generation,
-  line,
-  offset,
+  record,
   service,
 }: {
   generation: string;
-  line: string;
-  offset: number;
+  record: Pm2Record;
   service: LogService;
 }): LogEntry[] {
-  const envelope = pm2EnvelopeSchema.safeParse(parseJson(line));
-  const idOf = (index: number) => `${service}:${generation}:${offset}:${index}`;
+  const first = record.lines[0]!;
+  const idOf = (index: number) =>
+    `${service}:${generation}:${record.start}:${index}`;
 
-  if (!envelope.success) {
-    return line.trim() === ""
+  if (!first.envelope) {
+    return first.text.trim() === ""
       ? []
       : [
           parseOutputLine({
             id: idOf(0),
             service,
             stream: "out",
-            text: line,
+            text: first.text,
             timestamp: EPOCH,
           }),
         ];
   }
 
-  const { message, type } = envelope.data;
-  const timestamp = toIsoTimestamp(envelope.data.timestamp) ?? EPOCH;
+  const { type } = first.envelope;
+  const timestamp = toIsoTimestamp(first.envelope.timestamp) ?? EPOCH;
+  const message = record.lines
+    .map((line) => line.envelope?.message ?? "")
+    .join("");
 
   return message
     .split("\n")
@@ -302,6 +356,102 @@ async function* readLinesBackward(
   }
 }
 
+/*
+ * A run of continued envelopes longer than `LOGS_MAX_JOINED_CHUNKS` isn't
+ * joined at all, so reading forward and backward cut the same records.
+ */
+
+/** Records starting in `[from, until)`, oldest first. */
+async function* readRecordsForward(
+  handle: FileHandle,
+  from: number,
+  until: number,
+): AsyncGenerator<Pm2Record> {
+  let run: ParsedFileLine[] = [];
+  let isRunTooLong = false;
+  let previous: ParsedFileLine | undefined;
+
+  for await (const fileLine of readLinesForward(handle, from, until)) {
+    const line = parseFileLine(fileLine);
+    const isContinuation = previous !== undefined && continues(previous, line);
+    previous = line;
+
+    if (!isContinuation) {
+      if (run.length > 0) {
+        yield toRecord(run);
+      }
+
+      run = [];
+      isRunTooLong = false;
+    }
+
+    if (isRunTooLong) {
+      yield toRecord([line]);
+      continue;
+    }
+
+    run.push(line);
+
+    if (run.length > LOGS_MAX_JOINED_CHUNKS) {
+      for (const runLine of run) {
+        yield toRecord([runLine]);
+      }
+
+      run = [];
+      isRunTooLong = true;
+    }
+  }
+
+  if (run.length > 0) {
+    yield toRecord(run, isCut(run.at(-1)!));
+  }
+}
+
+/** Records ending at or before `before`, newest first. */
+async function* readRecordsBackward(
+  handle: FileHandle,
+  before: number,
+): AsyncGenerator<Pm2Record> {
+  let run: ParsedFileLine[] = [];
+  let isRunTooLong = false;
+  let next: ParsedFileLine | undefined;
+
+  for await (const fileLine of readLinesBackward(handle, before)) {
+    const line = parseFileLine(fileLine);
+    const isContinued = next !== undefined && continues(line, next);
+    next = line;
+
+    if (!isContinued) {
+      if (run.length > 0) {
+        yield toRecord(run);
+      }
+
+      run = [];
+      isRunTooLong = false;
+    }
+
+    if (isRunTooLong) {
+      yield toRecord([line]);
+      continue;
+    }
+
+    run.unshift(line);
+
+    if (run.length > LOGS_MAX_JOINED_CHUNKS) {
+      for (const runLine of run.toReversed()) {
+        yield toRecord([runLine]);
+      }
+
+      run = [];
+      isRunTooLong = true;
+    }
+  }
+
+  if (run.length > 0) {
+    yield toRecord(run);
+  }
+}
+
 async function openIfExists(filePath: string) {
   try {
     return await open(filePath, "r");
@@ -342,32 +492,70 @@ async function findLineAlignedEnd(handle: FileHandle, size: number) {
   return 0;
 }
 
+/**
+ * Whether `record` ends cut mid-line, written less than `graceMs` ago: the
+ * rest of its line is likely on its way.
+ */
+function isAwaitingRest(record: Pm2Record, graceMs: number) {
+  const last = record.lines.at(-1)!;
+
+  if (!isCut(last)) {
+    return false;
+  }
+
+  const age = Date.now() - Date.parse(last.envelope!.timestamp);
+
+  return Math.abs(age) < graceMs;
+}
+
+/**
+ * Where following starts in a file of `size` bytes: the end of its last
+ * complete line, or the start of a record just cut there, to read it whole
+ * once the rest is written.
+ */
+async function findLiveStart(
+  handle: FileHandle,
+  size: number,
+  graceMs: number,
+) {
+  const end = await findLineAlignedEnd(handle, size);
+
+  for await (const record of readRecordsBackward(handle, end)) {
+    return isAwaitingRest(record, graceMs) ? record.start : end;
+  }
+
+  return end;
+}
+
 function toSourceEntries(
   entries: LogEntry[],
-  line: FileLine,
+  record: Pm2Record,
   generation: string,
 ): LogSourceEntry[] {
   return entries.map((entry, index) => ({
     entry,
-    start: formatPosition({ generation, offset: line.start, index }),
+    start: formatPosition({ generation, offset: record.start, index }),
     end:
       index + 1 < entries.length
-        ? formatPosition({ generation, offset: line.start, index: index + 1 })
-        : formatPosition({ generation, offset: line.end, index: 0 }),
+        ? formatPosition({ generation, offset: record.start, index: index + 1 })
+        : formatPosition({ generation, offset: record.end, index: 0 }),
   }));
 }
 
 /** Follows and pages one PM2 combined log file. */
 export function createPm2LogSource({
+  continuationGraceMs = LOGS_CONTINUATION_GRACE_MS,
   filePath,
   pollIntervalMs = LOGS_POLL_INTERVAL_MS,
   service,
 }: {
+  /** How long a cut line at the end waits for the envelope continuing it. */
+  continuationGraceMs?: number;
   filePath: string;
   pollIntervalMs?: number;
   service: Pm2Service;
 }): LogSource {
-  const fileLabel = `${LOGS_PM2_LOG_RELATIVE_DIR}/${basename(filePath)}`;
+  const fileLabel = `${PM2_LOG_RELATIVE_DIR}/${basename(filePath)}`;
   const availableStatus: LogSourceStatus = {
     state: "available",
     message: `Reading ${fileLabel}.`,
@@ -386,16 +574,11 @@ export function createPm2LogSource({
   let reading: Promise<void> | undefined;
   let readAgain = false;
 
-  const parseLine = (line: FileLine, lineGeneration: string) =>
+  const parseRecord = (record: Pm2Record, recordGeneration: string) =>
     toSourceEntries(
-      parsePm2FileLine({
-        generation: lineGeneration,
-        line: line.bytes.toString("utf8"),
-        offset: line.start,
-        service,
-      }),
-      line,
-      lineGeneration,
+      parsePm2Record({ generation: recordGeneration, record, service }),
+      record,
+      recordGeneration,
     );
 
   const setStatus = (next: LogSourceStatus) => {
@@ -446,9 +629,14 @@ export function createPm2LogSource({
 
       let batch: LogSourceEntry[] = [];
 
-      for await (const line of readLinesForward(handle, offset, size)) {
-        batch.push(...parseLine(line, generation));
-        offset = line.end;
+      for await (const record of readRecordsForward(handle, offset, size)) {
+        // Read it whole on a later tick, once its next chunk is written.
+        if (record.isOpen && isAwaitingRest(record, continuationGraceMs)) {
+          break;
+        }
+
+        batch.push(...parseRecord(record, generation));
+        offset = record.end;
 
         if (batch.length >= 500) {
           listener?.onEntries(
@@ -499,7 +687,7 @@ export function createPm2LogSource({
         try {
           const { size } = await handle.stat();
           generation = await readGeneration(handle);
-          offset = await findLineAlignedEnd(handle, size);
+          offset = await findLiveStart(handle, size, continuationGraceMs);
           status = availableStatus;
         } finally {
           await handle.close();
@@ -570,22 +758,25 @@ export function createPm2LogSource({
         };
 
         if (position.index > 0) {
-          for await (const line of readLinesForward(
+          for await (const record of readRecordsForward(
             handle,
             position.offset,
             size,
           )) {
-            take(parseLine(line, fileGeneration).slice(0, position.index));
+            take(parseRecord(record, fileGeneration).slice(0, position.index));
             break;
           }
         }
 
-        for await (const line of readLinesBackward(handle, position.offset)) {
+        for await (const record of readRecordsBackward(
+          handle,
+          position.offset,
+        )) {
           if (page.length >= limit) {
             return { entries: page, done: false };
           }
 
-          take(parseLine(line, fileGeneration));
+          take(parseRecord(record, fileGeneration));
         }
 
         const oldest = page[0];
@@ -618,22 +809,26 @@ export function createPm2LogSource({
         const start = rotated ? { offset: 0, index: 0 } : from;
         const page: LogSourceEntry[] = [];
 
-        for await (const line of readLinesForward(handle, start.offset, size)) {
+        for await (const record of readRecordsForward(
+          handle,
+          start.offset,
+          size,
+        )) {
           if (
-            line.start > to.offset ||
-            (line.start === to.offset && to.index === 0)
+            record.start > to.offset ||
+            (record.start === to.offset && to.index === 0)
           ) {
             break;
           }
 
-          const entries = parseLine(line, fileGeneration);
+          const entries = parseRecord(record, fileGeneration);
 
           for (const [index, item] of entries.entries()) {
-            if (line.start === start.offset && index < start.index) {
+            if (record.start === start.offset && index < start.index) {
               continue;
             }
 
-            if (line.start === to.offset && index >= to.index) {
+            if (record.start === to.offset && index >= to.index) {
               break;
             }
 
@@ -655,17 +850,46 @@ export function createPm2LogSource({
   };
 }
 
+const pm2ProcessNamesSchema = z.object({
+  engine: z.string().trim().min(1),
+  shutter: z.string().trim().min(1),
+  admin: z.string().trim().min(1),
+});
+
+/**
+ * Each service's PM2 process, read from `PM2_PROCESS_NAMES` in the repo's
+ * `pm2.config.js`, the one place they are named.
+ */
+export async function readPm2ProcessNames(
+  repoRoot: string,
+): Promise<Pm2ProcessNames> {
+  const config = (await import(
+    pathToFileURL(join(repoRoot, "pm2.config.js")).href
+  )) as { PM2_PROCESS_NAMES?: unknown };
+
+  return pm2ProcessNamesSchema.parse(config.PM2_PROCESS_NAMES);
+}
+
 /** One source per PM2 process, reading `<logDir>/<process>.log`. */
 export function createPm2LogSources({
+  continuationGraceMs,
   logDir,
   pollIntervalMs,
+  processNames,
 }: {
+  continuationGraceMs?: number;
   logDir: string;
   pollIntervalMs?: number;
+  processNames: Pm2ProcessNames;
 }): LogSource[] {
-  return (Object.keys(LOGS_PM2_PROCESS_NAMES) as Pm2Service[]).map((service) =>
+  const services = LOG_SERVICES.filter(
+    (service): service is Pm2Service => service !== "system",
+  );
+
+  return services.map((service) =>
     createPm2LogSource({
-      filePath: join(logDir, `${LOGS_PM2_PROCESS_NAMES[service]}.log`),
+      continuationGraceMs,
+      filePath: join(logDir, `${processNames[service]}.log`),
       pollIntervalMs,
       service,
     }),

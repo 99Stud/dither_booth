@@ -9,7 +9,7 @@ import {
   CLIENT_LOG_ROUTE_PATH,
   CLIENT_LOG_TRIMMED_STACK_LENGTH,
   CLIENT_LOG_TRIMMED_TEXT_LENGTH,
-} from "../client-log/client-log.constants";
+} from "../isomorphic/client-log";
 import { serializeLogPayload } from "./logging.serialize";
 
 type BrowserReport = BrowserKioskLogContext & {

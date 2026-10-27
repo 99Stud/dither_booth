@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { buildPolkitRule } from "./network";
 import {
   buildLogrotateRule,
+  buildLogrotateTimerDropIn,
   buildNetworkDispatcher,
   buildUnit,
 } from "./service";
@@ -45,6 +46,16 @@ describe("PM2 log rotation", () => {
 
   test("rotates as the service user, who owns the log folder", () => {
     expect(directives).toContain("su pi pi");
+  });
+
+  test("makes logrotate run hourly, so 20 MB is checked every hour", () => {
+    const lines = buildLogrotateTimerDropIn()
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith("#"));
+
+    // An empty OnCalendar= clears Debian's daily schedule first.
+    expect(lines).toEqual(["[Timer]", "OnCalendar=", "OnCalendar=hourly"]);
   });
 });
 

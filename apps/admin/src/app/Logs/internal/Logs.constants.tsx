@@ -1,7 +1,5 @@
 import type { LogFilterService, LogLevel } from "#lib/logs/logs.types";
 
-export const LOGS_PAGE_LOG_SOURCE = "admin.logs";
-
 /** Lines asked for per history page: the first one, and each older one. */
 export const LOGS_PAGE_HISTORY_LIMIT = 500;
 /** Most lines the page keeps in memory; the oldest are dropped past it. */
@@ -27,9 +25,6 @@ export const LOGS_SEARCH_DEBOUNCE_MS = 250;
  * it, and it must stay positive, so it starts high.
  */
 export const LOGS_FIRST_ITEM_INDEX = 1_000_000;
-
-/** A server's start event, shown as a restart divider. */
-export const LOGS_RESTART_EVENT = "server-started";
 
 export const LOG_SERVICE_LABELS: Record<LogFilterService, string> = {
   engine: "Engine",

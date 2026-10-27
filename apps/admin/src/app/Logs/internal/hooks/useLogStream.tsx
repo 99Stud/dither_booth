@@ -447,6 +447,12 @@ export function useLogStream(filter: LogFilter) {
         controller.cursor = undefined;
       }
 
+      if (event.code === LOGS_FELL_BEHIND_CLOSE_CODE) {
+        // Catching up again could fall behind again: load the latest lines
+        // instead, marked as a possible gap.
+        controller.cursor = undefined;
+      }
+
       const current = stateRef.current;
 
       if (current.isLoaded && !controller.reconnectMarkerId) {
@@ -477,13 +483,10 @@ export function useLogStream(filter: LogFilter) {
         connection: isOffline ? "offline" : "reconnecting",
       });
 
-      const delay =
-        event.code === LOGS_FELL_BEHIND_CLOSE_CODE
-          ? 0
-          : Math.min(
-              LOGS_RECONNECT_FIRST_DELAY_MS * 2 ** controller.attempts,
-              LOGS_RECONNECT_MAX_DELAY_MS,
-            );
+      const delay = Math.min(
+        LOGS_RECONNECT_FIRST_DELAY_MS * 2 ** controller.attempts,
+        LOGS_RECONNECT_MAX_DELAY_MS,
+      );
       controller.attempts += 1;
       controller.retryTimer = setTimeout(connect, delay);
     });

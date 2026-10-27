@@ -236,4 +236,27 @@ describe("createClientLogRoute", () => {
     expect(nextMinute?.status).toBe(204);
     expect(loggedLines()).toHaveLength(32);
   });
+
+  it("counts warnings and errors apart, so a warning loop can't refuse errors", async () => {
+    const route = createRoute();
+
+    for (let index = 0; index < 30; index += 1) {
+      await route(postReport(validReport({ level: "warn" })));
+    }
+
+    const extraWarning = await route(
+      postReport(validReport({ level: "warn" })),
+    );
+    expect(extraWarning?.status).toBe(429);
+
+    for (let index = 0; index < 30; index += 1) {
+      const response = await route(postReport(validReport()));
+
+      expect(response?.status).toBe(204);
+    }
+
+    const extraError = await route(postReport(validReport()));
+    expect(extraError?.status).toBe(429);
+    expect(loggedLines()).toHaveLength(60);
+  });
 });

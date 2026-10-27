@@ -27,21 +27,21 @@ The Darkroom shows a compact version of the same checks in its **Booth status** 
 
 Over SSH, `booth doctor` checks the whole Pi, in this order:
 
-| Check                                 | Fails or warns when                                                                   | Fix                                                                            |
-| ------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| SSD mounted at `/mnt/ssd`             | Not mounted                                                                           | `sudo booth ssd`; check `lsblk -f`                                             |
-| Data symlink                          | `apps/engine/data` doesn't point to `/mnt/ssd/dither-booth/data`                      | `sudo booth ssd`                                                               |
-| Bun installed                         | No Bun at `~pi/.bun/bin/bun`                                                          | `sudo booth bun`                                                               |
-| Cert IP                               | No TLS manifest, or the certificate was issued for another IP (warn)                  | `booth cert` (or wait for the next service start)                              |
-| `ditherbooth.service` enabled         | Not enabled                                                                           | `sudo booth service`                                                           |
-| PM2 processes                         | A process isn't `online`, or the service isn't running                                | See [Logs](/docs/maintenance/logs/), then `sudo systemctl restart ditherbooth` |
-| PM2 logs rotated                      | No `/etc/logrotate.d/ditherbooth`, or it's older than the software (warn)             | `sudo booth service`                                                           |
-| `pi` can read the system journal      | `pi` isn't in `systemd-journal` (warn)                                                | `sudo booth service`                                                           |
-| engine, shutter, admin `healthz`      | Unreachable or invalid payload                                                        | Same as above                                                                  |
-| Setup page                            | `http://<ip>:3003/healthz` unreachable                                                | It's served by the Shutter: restart the service                                |
-| `ditherbooth-network.service` running | Not running (warn: no booth Wi-Fi fallback)                                           | `sudo booth network setup`                                                     |
-| Network setup up to date              | The booth Wi-Fi's captive DNS or Wi-Fi permissions are older than the software (warn) | `sudo booth network setup`                                                     |
-| Reachable as `<hostname>.local`       | avahi not answering, or the booth was renamed (warn)                                  | `sudo systemctl restart avahi-daemon`                                          |
+| Check                                 | Fails or warns when                                                                                         | Fix                                                                            |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| SSD mounted at `/mnt/ssd`             | Not mounted                                                                                                 | `sudo booth ssd`; check `lsblk -f`                                             |
+| Data symlink                          | `apps/engine/data` doesn't point to `/mnt/ssd/dither-booth/data`                                            | `sudo booth ssd`                                                               |
+| Bun installed                         | No Bun at `~pi/.bun/bin/bun`                                                                                | `sudo booth bun`                                                               |
+| Cert IP                               | No TLS manifest, or the certificate was issued for another IP (warn)                                        | `booth cert` (or wait for the next service start)                              |
+| `ditherbooth.service` enabled         | Not enabled                                                                                                 | `sudo booth service`                                                           |
+| PM2 processes                         | A process isn't `online`, or the service isn't running                                                      | See [Logs](/docs/maintenance/logs/), then `sudo systemctl restart ditherbooth` |
+| PM2 logs rotated                      | No `/etc/logrotate.d/ditherbooth`, or it's older than the software (warn), or logrotate isn't hourly (warn) | `sudo booth service`                                                           |
+| `pi` can read the system journal      | `pi` isn't in `systemd-journal` (warn)                                                                      | `sudo booth service`                                                           |
+| engine, shutter, admin `healthz`      | Unreachable or invalid payload                                                                              | Same as above                                                                  |
+| Setup page                            | `http://<ip>:3003/healthz` unreachable                                                                      | It's served by the Shutter: restart the service                                |
+| `ditherbooth-network.service` running | Not running (warn: no booth Wi-Fi fallback)                                                                 | `sudo booth network setup`                                                     |
+| Network setup up to date              | The booth Wi-Fi's captive DNS or Wi-Fi permissions are older than the software (warn)                       | `sudo booth network setup`                                                     |
+| Reachable as `<hostname>.local`       | avahi not answering, or the booth was renamed (warn)                                                        | `sudo systemctl restart avahi-daemon`                                          |
 
 `doctor` exits with code `1` if any check **fails**; warnings don't fail it. Run it with `sudo` to include the root-only checks (the polkit rule).
 

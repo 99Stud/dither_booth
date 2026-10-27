@@ -23,7 +23,7 @@ Diagnosing a booth meant SSH and `tail` on raw PM2 files ([spec, issue #95](http
 
 - **Line format.** The shared logger writes each server-side event as its `[kiosk]` prefix followed by compact JSON, one line per event.
 - **PM2 files.** `pm2.config.js` sets `log_type: "json"` and one combined `log_file` per process, `logs/pm2/<process>.log`. `out_file` and `error_file` are `/dev/null`, so PM2 writes nothing else. `time: true` is gone: the envelope carries the timestamp. Each stdout or stderr chunk becomes one line, `{"message", "timestamp", "type": "out" | "err", "process_id", "app_name"}` (PM2 7.0.3, `lib/God/ForkMode.js`). Old `-out.log` and `-err.log` files stay where they are.
-- **Rotation.** `booth service` installs `/etc/logrotate.d/ditherbooth`: the three files by name, daily, `maxsize 20M`, `rotate 7`, `compress`, `copytruncate`, as `pi`. Copy-and-truncate keeps PM2's open file handle valid, so rotation needs no PM2 signal or restart.
+- **Rotation.** `booth service` installs `/etc/logrotate.d/ditherbooth`: the three files by name, daily, `maxsize 20M`, `rotate 7`, `compress`, `copytruncate`, as `pi`, checked hourly. Copy-and-truncate keeps PM2's open file handle valid, so rotation needs no PM2 signal or restart.
 - **Journal access.** `booth service` adds `pi` to `systemd-journal`. The apps run as `pi`, so they can read the whole journal without root.
 - **Who reads.** The admin server reads the PM2 files and the journal and serves them to the Logs page. It already controls PM2, and it stays up when the engine doesn't.
 - **Checked.** `booth doctor` fails when the rotation rule is missing and warns when it is out of date or `pi` can't read the journal.
@@ -39,7 +39,7 @@ Diagnosing a booth meant SSH and `tail` on raw PM2 files ([spec, issue #95](http
 
 - `grep` and scripts find whole entries: one entry is one line. A chunk can still hold several lines or a partial one, so a reader splits `message` on newlines and joins a partial line with the next chunk.
 - A line written during logrotate's copy can be lost. Logs are a diagnostic aid, not a record, so that's accepted.
-- logrotate runs once a day on Raspberry Pi OS, so `maxsize 20M` only acts at that run: a file can grow past 20 MB within a day, but no longer grows without bound.
+- logrotate runs once a day on Raspberry Pi OS, so `maxsize 20M` alone would only act at that run. `booth service` adds a drop-in that makes `logrotate.timer` hourly, so a file passes 20 MB by at most an hour's output.
 - A new PM2 process must be added to `PM2_PROCESS_NAMES` in the CLI, or its file isn't rotated.
 - Membership of `systemd-journal` lets every app read the whole journal, which can hold other services' details. The admin server must filter what it serves, and restricting the Logs page to tech staff later stays one change at the admin's single access point.
 - Rolling back is a config revert: the old two-file format comes back, and the old files were never touched.

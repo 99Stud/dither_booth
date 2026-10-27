@@ -23,6 +23,8 @@ import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
 import type { LogEntry } from "#lib/logs/logs.types";
 
+import { isRestartEntry } from "#lib/logs/logs.utils";
+
 import type { LogsTimelineItem } from "../../Logs.types";
 
 import {
@@ -34,7 +36,6 @@ import {
   formatLogDividerTime,
   formatLogTime,
   getLogServiceLabel,
-  isRestartEntry,
 } from "../../Logs.utils";
 import { LogDetails } from "../LogDetails";
 import { LogRow } from "../LogRow";

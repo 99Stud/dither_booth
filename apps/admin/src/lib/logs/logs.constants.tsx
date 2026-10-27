@@ -3,6 +3,11 @@
  * server-only imports.
  */
 
+import {
+  BOOTH_NETWORK_SERVICE_UNIT,
+  BOOTH_SERVICE_UNIT,
+} from "@dither-booth/shared/booth-system";
+
 /** The Logs page's WebSocket route on the admin server. */
 export const LOGS_ROUTE_PATH = "/admin/logs";
 
@@ -25,6 +30,12 @@ export const LOG_SOURCE_STATES = [
   "rotated",
 ] as const;
 
+/**
+ * A server's start event. The page draws it as a restart divider, and
+ * filters let it through whatever the level, source or text.
+ */
+export const LOGS_RESTART_EVENT = "server-started";
+
 /** Most entries one history page may ask for. */
 export const LOGS_HISTORY_MAX_LIMIT = 1000;
 
@@ -45,28 +56,23 @@ export const LOGS_POLL_INTERVAL_MS = 1000;
 export const LOGS_READ_CHUNK_BYTES = 64 * 1024;
 /** A longer file line is cut to this many bytes. */
 export const LOGS_MAX_LINE_BYTES = 64 * 1024;
+/**
+ * Most PM2 envelopes joined into one record when an output line was cut
+ * across chunks. A longer run isn't joined at all.
+ */
+export const LOGS_MAX_JOINED_CHUNKS = 8;
+/** How long a cut line at the end of a file waits for its next chunk. */
+export const LOGS_CONTINUATION_GRACE_MS = 1000;
 
 export const LOGS_INVALID_CLOSE_CODE = 1008;
 export const LOGS_INTERNAL_ERROR_CLOSE_CODE = 1011;
 export const LOGS_FELL_BEHIND_CLOSE_CODE = 1013;
 
-/** PM2's log folder, relative to the repo (`pm2.config.js`). */
-export const LOGS_PM2_LOG_RELATIVE_DIR = "logs/pm2";
-/**
- * The system source's units; must match the CLI's `SERVICE_NAME` and
- * `NETWORK_SERVICE_NAME`. Kernel messages are read too.
- */
+/** The system source's units. Kernel messages are read too. */
 export const LOGS_JOURNAL_UNITS = [
-  "ditherbooth.service",
-  "ditherbooth-network.service",
+  BOOTH_SERVICE_UNIT,
+  BOOTH_NETWORK_SERVICE_UNIT,
   "NetworkManager.service",
 ] as const;
 /** A `journalctl --follow` that exits is started again after this long. */
 export const LOGS_JOURNAL_RESTART_DELAY_MS = 5000;
-
-/** PM2 process per service; must match `PM2_PROCESS_NAMES` in `pm2.config.js`. */
-export const LOGS_PM2_PROCESS_NAMES = {
-  engine: "dither-booth-engine",
-  shutter: "dither-booth-shutter",
-  admin: "dither-booth-admin",
-} as const;

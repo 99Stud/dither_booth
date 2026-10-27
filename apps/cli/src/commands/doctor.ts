@@ -14,7 +14,10 @@ import {
   buildPolkitRule,
   readAvahiHostName,
 } from "#commands/network";
-import { buildLogrotateRule } from "#commands/service";
+import {
+  buildLogrotateRule,
+  buildLogrotateTimerDropIn,
+} from "#commands/service";
 import { printCommandBanner } from "#internal/banner";
 import {
   CAPTIVE_DNSMASQ_PATH,
@@ -24,7 +27,9 @@ import {
   ENGINE_DATA_RELATIVE,
   ENGINE_DB_RELATIVE,
   JOURNAL_GROUP,
+  LOGROTATE_MAX_SIZE_MB,
   LOGROTATE_RULE_PATH,
+  LOGROTATE_TIMER_DROP_IN_PATH,
   NETWORK_SERVICE_NAME,
   PM2_PROCESS_NAMES,
   SERVICE_BUN,
@@ -330,12 +335,15 @@ async function checkMdnsName(results: CheckResult[]): Promise<void> {
   }
 }
 
-/** `installed` is the rule file's content, undefined when it is missing. */
+/**
+ * `installed` holds the logrotate rule's and the timer drop-in's content,
+ * each undefined when it is missing.
+ */
 export function logRotationCheck(
-  installed: string | undefined,
+  installed: { rule: string | undefined; timerDropIn: string | undefined },
   repoRoot: string,
 ): CheckResult {
-  if (installed === undefined) {
+  if (installed.rule === undefined) {
     return {
       status: "fail",
       label: "PM2 logs not rotated",
@@ -343,7 +351,7 @@ export function logRotationCheck(
     };
   }
 
-  if (installed !== buildLogrotateRule(repoRoot)) {
+  if (installed.rule !== buildLogrotateRule(repoRoot)) {
     return {
       status: "warn",
       label: `Log rotation rule out of date (${LOGROTATE_RULE_PATH})`,
@@ -351,7 +359,18 @@ export function logRotationCheck(
     };
   }
 
-  return { status: "pass", label: "PM2 logs rotated daily or at 20 MB" };
+  if (installed.timerDropIn !== buildLogrotateTimerDropIn()) {
+    return {
+      status: "warn",
+      label: `logrotate not made hourly (${LOGROTATE_TIMER_DROP_IN_PATH})`,
+      detail: `A PM2 log can pass ${LOGROTATE_MAX_SIZE_MB} MB until the next day. Run \`sudo booth service\`.`,
+    };
+  }
+
+  return {
+    status: "pass",
+    label: `PM2 logs rotated daily, or past ${LOGROTATE_MAX_SIZE_MB} MB (checked hourly)`,
+  };
 }
 
 /** `groups` is `id -nG <service user>`, undefined when it failed. */
@@ -378,11 +397,20 @@ async function checkLogRotation(
   results: CheckResult[],
   repoRoot: string,
 ): Promise<void> {
-  const installed = await Bun.file(LOGROTATE_RULE_PATH)
-    .text()
-    .catch(() => undefined);
+  const read = (path: string) =>
+    Bun.file(path)
+      .text()
+      .catch(() => undefined);
 
-  results.push(logRotationCheck(installed, repoRoot));
+  results.push(
+    logRotationCheck(
+      {
+        rule: await read(LOGROTATE_RULE_PATH),
+        timerDropIn: await read(LOGROTATE_TIMER_DROP_IN_PATH),
+      },
+      repoRoot,
+    ),
+  );
 }
 
 async function checkJournalGroup(results: CheckResult[]): Promise<void> {

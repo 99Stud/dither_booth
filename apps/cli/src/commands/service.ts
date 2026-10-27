@@ -1,6 +1,7 @@
 import { BOOTH_WIFI_IP, getWebTlsManifestPath } from "@dither-booth/ports";
 import { defineCommand } from "citty";
-import { chmod } from "node:fs/promises";
+import { chmod, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 
 import type { BoothContext } from "#internal/context";
 
@@ -8,7 +9,9 @@ import { requireRoot } from "#internal/args";
 import {
   BOOTH_BIN,
   JOURNAL_GROUP,
+  LOGROTATE_MAX_SIZE_MB,
   LOGROTATE_RULE_PATH,
+  LOGROTATE_TIMER_DROP_IN_PATH,
   NETWORK_DISPATCHER_PATH,
   PM2_LOG_RELATIVE,
   PM2_PROCESS_NAMES,
@@ -100,8 +103,8 @@ exit 0
 /**
  * PM2 never rotates its files. logrotate copies then truncates each one, so
  * PM2 keeps writing through the handle it already holds. `maxsize` rotates a
- * file over 20 MB even when it was already rotated that day; Debian's
- * logrotate.timer decides how often that is checked (daily by default).
+ * file over 20 MB even when it was already rotated that day, checked each
+ * time logrotate.timer runs: hourly, with the drop-in below.
  * Files are named, not globbed: the old `-out.log`/`-err.log` stay as they are.
  */
 export function buildLogrotateRule(repoRoot: string): string {
@@ -114,13 +117,27 @@ ${files}
 {
   su ${SERVICE_USER} ${SERVICE_USER}
   daily
-  maxsize 20M
+  maxsize ${LOGROTATE_MAX_SIZE_MB}M
   rotate 7
   compress
   copytruncate
   missingok
   notifempty
 }
+`;
+}
+
+/**
+ * Debian runs logrotate once a day, so `maxsize` alone lets a noisy day's
+ * log grow far past it. This drop-in runs it every hour; `daily` rules
+ * still rotate once a day, and a file past the cap within the hour.
+ */
+export function buildLogrotateTimerDropIn(): string {
+  return `# Installed by \`booth service\`. Runs logrotate hourly, so the PM2 logs'
+# ${LOGROTATE_MAX_SIZE_MB} MB cap is checked every hour, not once a day.
+[Timer]
+OnCalendar=
+OnCalendar=hourly
 `;
 }
 
@@ -176,6 +193,13 @@ export async function runServiceCommand(context: BoothContext): Promise<void> {
   await writeIfChanged(LOGROTATE_RULE_PATH, buildLogrotateRule(repoRoot));
   // logrotate skips a rule that the group or others can write.
   await chmod(LOGROTATE_RULE_PATH, 0o644);
+
+  await mkdir(dirname(LOGROTATE_TIMER_DROP_IN_PATH), { recursive: true });
+  // Picked up by the daemon-reload below.
+  await writeIfChanged(
+    LOGROTATE_TIMER_DROP_IN_PATH,
+    buildLogrotateTimerDropIn(),
+  );
 
   const wasActive = await isActive(SERVICE_NAME);
   const joinedJournal = await joinJournalGroup();

@@ -28,12 +28,14 @@ flowchart LR
 | Protocol        | `logs.protocol.tsx` | zod schemas for every message and for a log entry. The page validates with the same ones |
 | Filter          | `logs.utils.tsx`    | `matchesLogFilter`: one predicate for history on the server and live lines on the page   |
 | Log source      | `logs.types.tsx`    | The `LogSource` interface every source implements                                        |
-| PM2 file source | `logs.server.tsx`   | Follows and pages one PM2 combined file                                                  |
+| PM2 file source | `logs.pm2.tsx`      | Follows and pages one PM2 combined file                                                  |
 | Journal source  | `logs.journal.tsx`  | Follows and pages the system journal through `journalctl`, as the `system` service       |
 | Log hub         | `logs.hub.tsx`      | One follower per source for every open page; merges sources by time; batches live lines  |
 | Route           | `logs.routes.tsx`   | The socket: validates requests, tracks each page's cursor, holds live lines while needed |
 
 Protocol, filter, types and constants have no server-only imports, so the page imports them. The admin server builds the hub, with its four sources, in `server-app.ts`.
+
+**Names come from one place each.** The PM2 process names are read at start from `PM2_PROCESS_NAMES` in `pm2.config.js` (`readPm2ProcessNames`), as the PM2 restart route does. The log folder (`logs/pm2`) and the journal's booth units (`ditherbooth.service`, `ditherbooth-network.service`) are in `@dither-booth/shared/booth-system`, which the CLI imports too.
 
 ## The socket
 
@@ -72,10 +74,13 @@ Protocol, filter, types and constants have no server-only imports, so the page i
 
 An entry is `{id, timestamp, service, stream, level, source?, event?, details?, error?, raw, origin, deviceId?, runId?}`.
 
-- **Services** are `engine`, `shutter`, `admin` and `system`. Browser is an **origin**: a [browser report](/docs/start-here/glossary/#logs) is an entry of the server that wrote it, with `origin: "browser"`. The filter's service list has a sixth value, `browser`, for those lines.
+- **Services** are `engine`, `shutter`, `admin` and `system`. Browser is an **origin**: a [browser report](/docs/start-here/glossary/#logs) is an entry of the server that wrote it, with `origin: "browser"`. The filter's service list has a sixth value, `browser`, for those lines. The page shows them as **Browser** plus the first 6 characters of `deviceId`, and names the receiving server (`service`) as **Received by** in the details.
 - **From a PM2 line.** The envelope's `message` is split on newlines; each non-blank line is one entry. A `[kiosk]` line becomes a structured entry, timed by its `loggedAt`. Anything else is plain text, timed by the envelope's `timestamp`: on `err` it is an `error`, on `out` an `info`. A line that isn't an envelope at all is kept as plain text.
-- **A line PM2 split across two chunks** shows as two entries. Output that size is rare: one event is one write, a few KB.
-- **The id** is `<service>:<generation>:<byte offset>:<index>`, stable however the line is read.
+- **A line PM2 split across chunks** is joined back. PM2 writes one envelope per chunk it reads from the pipe, so a long line can end one envelope (its `message` has no final newline) and go on in the next. A _record_ is an envelope plus the envelopes that continue it: next in the file, same `type`, the one before not ending in a newline. Its messages are joined, then split into entries. Live, history and resume reads cut the same records, both directions.
+  - At most **8** envelopes are joined. A longer run (endless output with no newline) isn't joined at all, so both directions still agree.
+  - An envelope of the other stream in between ends the record: the two halves show as plain text.
+  - **Live**, a cut record at the end of the file waits up to **1 s** (by its envelope's `timestamp`) for the next chunk, then goes out as it is. A source that starts right after a cut starts before that record, to read it whole.
+- **The id** is `<service>:<generation>:<byte offset of the record>:<index>`, stable however the line is read.
 - **Lines over 64 KB** are cut to 64 KB.
 - **From the journal**, see [The system journal](#the-system-journal).
 
@@ -94,7 +99,7 @@ Each PM2 file source:
 
 ## History pages
 
-A position in a file is `<generation>:<byte offset of a line>:<entry index in that line>`, so a page can end in the middle of a multi-line chunk.
+A position in a file is `<generation>:<byte offset of a record>:<entry index in that record>`, so a page can end in the middle of a multi-line chunk, but never inside a record.
 
 - **Older pages** are read backward from the position in **64 KB** chunks, keeping only entries that match the filter, until the page is full or the file starts. Filtered history scans as far back as it must, so "all errors today" works however far back they are. Memory stays bounded: one chunk, one line and the matches.
 - **Merging.** Each source returns its newest `limit` matches; the hub merges them by timestamp (each source's own order kept) and keeps the newest `limit`. Each source's next position is its oldest kept entry, so nothing is skipped or repeated.
@@ -109,7 +114,7 @@ The admin is restarted by PM2 above **256 MB**, so everything is bounded:
 | What                                  | Bound                                                                       |
 | ------------------------------------- | --------------------------------------------------------------------------- |
 | Live lines waiting for the next batch | Sent early once **1000** are waiting                                        |
-| Live lines held for one page (below)  | **5000**; past that the socket is closed with **1013** and the page resumes |
+| Live lines held for one page (below)  | **5000**; past that the socket is closed with **1013** and the page reloads |
 | One history page                      | **1000** entries                                                            |
 | A read                                | **64 KB** chunks, **64 KB** lines                                           |
 | `journalctl` processes                | One follower, plus one per history request being served                     |
@@ -117,6 +122,8 @@ The admin is restarted by PM2 above **256 MB**, so everything is bounded:
 ## Resume without gaps or repeats
 
 Every page's live lines start where its first request found the hub: everything before is history, everything after arrives as `append`.
+
+Sources start together. A line a source sends while another is still starting is kept, not dropped: that source's history ends just before it, and it goes out as `append` once every source has started.
 
 - **While a history request is served**, the page's live lines and status changes are **held**, then sent right after the page. A page never gets live lines it would also find in the page it is waiting for.
 - **After a reconnect**, the page sends `after: <last cursor>` on the new socket. The server reads from there up to where this socket's live lines start, one page at a time, holding live lines until a page says `done`. The page ends up with every line once, in order.
@@ -134,17 +141,17 @@ Admin's Logs page (`/logs`, `apps/admin/src/app/Logs/`) is the socket's only cli
 
 **The list** is `react-virtuoso` (MIT), only the visible rows in the DOM:
 
-| Behaviour              | How                                                                                                                                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Follow while at bottom | `followOutput` scrolls to new lines when the list was within **48 px** of the bottom, and no line is open                                                                                          |
-| “N new lines” pill     | Off the bottom for **300 ms** counts as scrolled up (new lines push the list off for a frame before it follows). The pill counts visible lines added since; it and **End** scroll to the last line |
-| Older lines at the top | `startReached` sends `before: <last cursor>`. `firstItemIndex` starts at 1,000,000 and drops by the visible lines prepended, so the reader's line doesn't move                                     |
-| Restart divider        | A server's `server-started` event is drawn as a divider instead of a line                                                                                                                          |
-| Rotation divider       | Drawn when a `rotated` status arrives                                                                                                                                                              |
+| Behaviour              | How                                                                                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Follow while at bottom | `followOutput` scrolls to new lines when the list was within **48 px** of the bottom, and no line is open                                                                                             |
+| “N new lines” pill     | Off the bottom for **300 ms** counts as scrolled up (new lines push the list off for a frame before it follows). The pill counts visible lines added since; it and **End** scroll to the last line    |
+| Older lines at the top | `startReached` sends `before: <last cursor>`. `firstItemIndex` starts at 1,000,000 and drops by the visible lines prepended, so the reader's line doesn't move                                        |
+| Restart divider        | A server's `server-started` event is drawn as a divider instead of a line. `matchesLogFilter` lets it through the level, source and text filters (not the services), on the server and the page alike |
+| Rotation divider       | Drawn when a `rotated` status arrives                                                                                                                                                                 |
 
 **Pause** keeps the socket and the cursor; new lines wait in a buffer (also capped at 10,000) and the badge counts them. While paused, a polite live region announces “N new errors”. The list itself is `role="log"` with `aria-live="off"`, so a screen reader isn't read every line.
 
-**Reconnecting.** When the socket closes, the page draws a “Connection lost” divider and retries after **1 s**, doubling to at most **10 s**; the browser's `online` event retries at once. The badge says **Reconnecting**, then **Offline** after **3** failed attempts in a row or while the browser is offline, with a **Retry now** banner. On the new socket it sends `after: <last cursor>` and keeps asking until a page is `done`, then marks the divider “Reconnected · no lines missed”, or “some lines may be missing” if a source rotated in between. A cursor the server refuses (**1008** while resuming) falls back to the latest page, marked as a possible gap. A **1008** on a fresh request is not retried: the banner offers **Retry now**. A **1013** (fell behind) reconnects at once.
+**Reconnecting.** When the socket closes, the page draws a “Connection lost” divider and retries after **1 s**, doubling to at most **10 s**; the browser's `online` event retries at once. The badge says **Reconnecting**, then **Offline** after **3** failed attempts in a row or while the browser is offline, with a **Retry now** banner. On the new socket it sends `after: <last cursor>` and keeps asking until a page is `done`, then marks the divider “Reconnected · no lines missed”, or “some lines may be missing” if a source rotated in between. A cursor the server refuses (**1008** while resuming) falls back to the latest page, marked as a possible gap. A **1008** on a fresh request is not retried: the banner offers **Retry now**. A **1013** (fell behind) waits out the same backoff, then loads the latest page instead of resuming, marked as a possible gap: catching up again could fall behind again.
 
 ## The system journal
 

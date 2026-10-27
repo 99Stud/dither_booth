@@ -9,11 +9,16 @@ import type {
 
 import { notify } from "#lib/feedback/notify";
 import { LOG_FILTER_SERVICES, LOG_LEVELS } from "#lib/logs/logs.constants";
-import { getLogFilterService, matchesLogFilter } from "#lib/logs/logs.utils";
+import {
+  getLogFilterService,
+  isLogServiceShown,
+  isRestartEntry,
+  matchesLogFilter,
+} from "#lib/logs/logs.utils";
 
 import type { LogsTimelineItem } from "./Logs.types";
 
-import { LOGS_RESTART_EVENT, LOG_SERVICE_LABELS } from "./Logs.constants";
+import { LOG_SERVICE_LABELS } from "./Logs.constants";
 
 /** Whether a row shows under `filter`. Reconnect dividers always do. */
 export function isLogsItemVisible(item: LogsTimelineItem, filter: LogFilter) {
@@ -21,7 +26,7 @@ export function isLogsItemVisible(item: LogsTimelineItem, filter: LogFilter) {
     case "entry":
       return matchesLogFilter(item.entry, filter);
     case "rotated":
-      return !filter.services || filter.services.includes(item.service);
+      return isLogServiceShown(filter, item.service);
     case "reconnect":
       return true;
   }
@@ -63,9 +68,16 @@ export function formatLogDividerTime(timestamp: string) {
   return Number.isNaN(date.getTime()) ? timestamp : format(date, "HH:mm:ss");
 }
 
-/** A server's start, shown as a restart divider instead of a line. */
-export function isRestartEntry(entry: LogEntry) {
-  return entry.event === LOGS_RESTART_EVENT && entry.origin === "server";
+/**
+ * A browser line's device, short enough for a row: the first 6 characters
+ * of its id (`a1b2c3`). `undefined` for server lines.
+ */
+export function getShortDeviceId(entry: LogEntry) {
+  if (entry.origin !== "browser" || !entry.deviceId) {
+    return undefined;
+  }
+
+  return entry.deviceId.replace(/^device-/, "").slice(0, 6);
 }
 
 /** The service chip label of an entry: browser lines have their own. */
@@ -123,7 +135,7 @@ export function splitOnMatches(text: string, needle: string | undefined) {
 }
 
 type LogCounts = {
-  /** Error lines per service chip, whatever the service and level filters. */
+  /** Error lines per service chip, whatever the service and level filters. The chips show it only while the service and errors show. */
   errorsByService: Record<LogFilterService, number>;
   /** Lines per level under the rest of the filter. */
   byLevel: Record<LogLevel, number>;
@@ -154,6 +166,8 @@ export function getLogCounts(
     const { entry } = item;
 
     if (entry.source) sources.add(entry.source);
+    // A restart is a divider, not a line: it isn't counted.
+    if (isRestartEntry(entry)) continue;
     if (entry.level === "error" && matchesLogFilter(entry, withoutServices)) {
       errorsByService[getLogFilterService(entry)] += 1;
     }

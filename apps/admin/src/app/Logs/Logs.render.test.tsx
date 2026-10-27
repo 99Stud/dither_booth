@@ -190,6 +190,34 @@ describe("Logs page", () => {
     expect(screen.getByRole("button", { name: "Copy line" })).toBeDefined();
   });
 
+  test("a browser line shows its device, and which server received it", async () => {
+    const { socket } = await openLogs();
+    socket.history([
+      logEntry({
+        service: "shutter",
+        origin: "browser",
+        deviceId: "a1b2c3d4-0000-4000-8000-000000000000",
+        runId: 3,
+        level: "error",
+        source: "web.browser",
+        event: "window-error",
+      }),
+    ]);
+    const line = await screen.findByRole("button", { name: /window-error/ });
+
+    expect(line.textContent).toContain("Browser · a1b2c3");
+
+    fireEvent.click(line);
+
+    const details = within(line.parentElement!);
+    expect(details.getByText("Received by").nextSibling?.textContent).toBe(
+      "Shutter",
+    );
+    expect(details.getByText("Device").nextSibling?.textContent).toBe(
+      "a1b2c3d4-0000-4000-8000-000000000000",
+    );
+  });
+
   test("plain-text lines show their raw text", async () => {
     const { socket } = await openLogs();
     socket.history([
@@ -224,6 +252,28 @@ describe("Logs page", () => {
     expect(
       await screen.findByRole("separator", { name: /^Admin log rotated · / }),
     ).toBeDefined();
+  });
+
+  test("restart dividers show through the printer's View logs preset", async () => {
+    const { socket } = await openLogs(
+      "/logs?source=engine.printer&levels=warn,error",
+    );
+    socket.history([]);
+
+    socket.append([
+      logEntry({
+        service: "engine",
+        source: "engine.server",
+        event: "server-started",
+        timestamp: "2026-10-27T14:02:15.000Z",
+      }),
+      logEntry({ service: "engine", source: "engine.server", event: "noise" }),
+    ]);
+
+    expect(
+      await screen.findByRole("separator", { name: /^Engine restarted · / }),
+    ).toBeDefined();
+    expect(screen.queryByText("noise")).toBeNull();
   });
 
   test("says when the booth has no logs yet", async () => {
@@ -271,6 +321,43 @@ describe("Logs page", () => {
 
     expect(
       await screen.findByRole("button", { name: "Engine 2 errors" }),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Shutter" })).toBeDefined();
+  });
+
+  test("hidden services and levels show no count, not a misleading one", async () => {
+    const { socket } = await openLogs("/logs?services=engine&levels=warn,info");
+    socket.history([logEntry({ service: "engine", level: "warn" })]);
+    await screen.findByRole("button", { name: /^Engine/ });
+
+    // Lines of hidden services and levels arrive live, unfiltered.
+    socket.append([
+      logEntry({ service: "shutter", level: "error" }),
+      logEntry({ service: "engine", level: "error" }),
+      logEntry({ service: "engine", level: "info" }),
+    ]);
+
+    const levels = screen.getByRole("group", { name: "Levels" });
+    await waitFor(() =>
+      expect(
+        within(levels).getByRole("button", { name: /Info/ }).textContent,
+      ).toBe("Info1"),
+    );
+    expect(
+      within(levels).getByRole("button", { name: /Error/ }).textContent,
+    ).toBe("Error");
+    // Errors are hidden: no chip counts them.
+    expect(screen.getByRole("button", { name: "Shutter" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Engine" })).toBeDefined();
+  });
+
+  test("a hidden service's chip shows no error count", async () => {
+    const { socket } = await openLogs("/logs?services=engine");
+    socket.history([logEntry({ service: "engine", level: "error" })]);
+    socket.append([logEntry({ service: "shutter", level: "error" })]);
+
+    expect(
+      await screen.findByRole("button", { name: "Engine 1 error" }),
     ).toBeDefined();
     expect(screen.getByRole("button", { name: "Shutter" })).toBeDefined();
   });
@@ -340,6 +427,42 @@ describe("Logs page", () => {
     resumed.status("engine", "rotated", "The log file was rotated.");
     resumed.history([], { done: true });
 
+    expect(
+      await screen.findByRole("separator", {
+        name: /^Reconnected · some lines may be missing/,
+      }),
+    ).toBeDefined();
+  });
+
+  test("after falling behind, waits out the backoff and reloads the latest lines, marked as a gap", async () => {
+    const { socket } = await openLogs();
+    socket.history([logEntry({ event: "before-drop" })], { cursor: "c-1" });
+    await screen.findByText("before-drop");
+
+    socket.drop(1013);
+    await act(() => Bun.sleep(50));
+    expect(sockets.latest()).toBe(socket);
+    expect(
+      screen.getByRole("status", { name: "Connection: Reconnecting" }),
+    ).toBeDefined();
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    const reloaded = sockets.latest();
+    expect(reloaded).not.toBe(socket);
+    reloaded.open();
+
+    expect(reloaded.lastRequest()).toEqual({
+      type: "history",
+      filter: {},
+      limit: 500,
+    });
+
+    reloaded.history([logEntry({ event: "latest-line" })]);
+
+    expect(await screen.findByText("latest-line")).toBeDefined();
+    expect(screen.getByText("before-drop")).toBeDefined();
     expect(
       await screen.findByRole("separator", {
         name: /^Reconnected · some lines may be missing/,

@@ -4,6 +4,7 @@ import { appendFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import type { Pm2ProcessNames } from "./logs.pm2";
 import type {
   LogEntry,
   LogService,
@@ -19,7 +20,8 @@ import type {
  * files in a temp folder, and an in-memory log source for any service.
  */
 
-const PM2_PROCESS_NAMES: Record<Exclude<LogService, "system">, string> = {
+/** The PM2 processes the test files are named after. */
+export const TEST_PM2_PROCESS_NAMES: Pm2ProcessNames = {
   admin: "dither-booth-admin",
   engine: "dither-booth-engine",
   shutter: "dither-booth-shutter",
@@ -97,7 +99,7 @@ export function pm2Envelope({
     timestamp,
     type,
     process_id: 0,
-    app_name: PM2_PROCESS_NAMES[service],
+    app_name: TEST_PM2_PROCESS_NAMES[service],
   })}\n`;
 }
 
@@ -120,7 +122,7 @@ export function kioskMessage(payload: {
 export async function createTestPm2LogDir() {
   const logDir = await mkdtemp(join(tmpdir(), "dither-booth-logs-"));
   const pathOf = (service: Exclude<LogService, "system">) =>
-    join(logDir, `${PM2_PROCESS_NAMES[service]}.log`);
+    join(logDir, `${TEST_PM2_PROCESS_NAMES[service]}.log`);
 
   return {
     logDir,
