@@ -32,31 +32,62 @@ bun run pm2:logs-app dither-booth-engine # one process
 
 Or read the files directly. Each process writes **one file**, `logs/pm2/<process>.log`, holding both its stdout and its stderr. Each line is one JSON object:
 
-```json
-{
-  "message": "[kiosk] …\n",
-  "timestamp": "2026-10-27T15:00:18.644Z",
-  "type": "err",
-  "process_id": 0,
-  "app_name": "dither-booth-engine"
-}
+```text
+{"message":"[kiosk] {\"loggedAt\":\"2026-10-27T14:56:33.510Z\",\"level\":\"error\",…}\n","timestamp":"2026-10-27T14:56:33.512Z","type":"err","process_id":0,"app_name":"dither-booth-engine"}
 ```
 
-| Field       | What                                                                                                        |
-| ----------- | ----------------------------------------------------------------------------------------------------------- |
-| `message`   | What the process printed, as PM2 received it: one or more lines, `[kiosk]` events included, newline and all |
-| `timestamp` | When PM2 received it, ISO 8601 in UTC                                                                       |
-| `type`      | `out` (stdout) or `err` (stderr). The apps log errors and warnings to stderr                                |
-| `app_name`  | The PM2 process name                                                                                        |
+| Field       | What                                                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| `message`   | What the process printed, as PM2 received it: one or more lines, newline and all. See [Line format](#line-format) |
+| `timestamp` | When PM2 received it, ISO time in UTC                                                                             |
+| `type`      | `out` (stdout: info events) or `err` (stderr: warnings and errors)                                                |
+| `app_name`  | The PM2 process name                                                                                              |
 
 ```bash
 tail -f /opt/dither-booth/logs/pm2/dither-booth-engine.log
-grep '"type":"err"' /opt/dither-booth/logs/pm2/dither-booth-engine.log | tail
 ```
 
-A `grep` finds whole entries: one entry is never split across two lines. A burst of output can arrive as one entry with several lines in its `message`.
+One entry is never split across two lines. A burst of output can arrive as one entry with several lines in its `message`.
 
 Booths updated from an older release still have `<process>-out.log` and `<process>-err.log` next to the new files. PM2 no longer writes them and rotation leaves them alone; delete them once you no longer need them.
+
+## Line format
+
+Each log event is **one line** in `message`: the `[kiosk]` prefix, then the event as compact JSON.
+
+```text
+[kiosk] {"loggedAt":"2026-10-27T14:56:33.510Z","level":"error","source":"engine.device-setup","event":"wifi-join-failed","details":{"ssid":"BoothNet","password":"[redacted]"},"error":{"name":"Error","message":"Secrets were required","stack":"Error: Secrets were required\n    at …"}}
+```
+
+| Field      | What it holds                                                    |
+| ---------- | ---------------------------------------------------------------- |
+| `loggedAt` | When the app logged it, ISO time in UTC                          |
+| `level`    | `info`, `warn` or `error`                                        |
+| `source`   | The part of the app that logged it, e.g. `engine.printer`        |
+| `event`    | The event name, e.g. `printer-status-changed`                    |
+| `details`  | Optional. The event's details                                    |
+| `error`    | Optional. `name`, `message`, `cause` and `stack` (one JSON line) |
+
+Before a line is written:
+
+- **Secrets are redacted.** A detail whose key contains the word `password`, `passphrase`, `psk`, `secret`, `token` or `pin` (any case, at any depth: `wifiPassword`, `darkroom_pin`, `accessToken`) shows `"[redacted]"`.
+- **Odd values are made safe.** Big integers become strings, byte arrays (such as a printer's `raw` status packet) become arrays of numbers, and a reference back to a parent object becomes `"[circular]"`. If the details still can't be written, they become `"[unserializable: <reason>]"` and the event is kept.
+
+Lines without the `[kiosk]` prefix are plain text from elsewhere: a crash trace, Bun or a library. Read those as they are. Events written before this format, in the old `-out.log` and `-err.log` files, spread one event over many lines, each with its own timestamp.
+
+Pages in the browser (the Shutter and admin) log the same events as objects to the browser's console, not as JSON lines.
+
+### Grep recipes
+
+In the file, the event sits inside the `message` string, so its quotes are escaped (`\"`). Search with `grep -F` and the escaped form. Each event is on one line, so `grep` always returns whole events:
+
+```bash
+cd /opt/dither-booth/logs/pm2
+grep -F '\"level\":\"error\"' dither-booth-*.log | tail                        # recent errors, every process
+grep -F '\"source\":\"engine.printer\"' dither-booth-engine.log | tail         # one part of the engine
+grep -F '\"event\":\"printer-status-changed\"' dither-booth-engine.log | tail -5
+tail -1 dither-booth-engine.log | jq -r .message                               # bare line, ready to paste (sudo apt install jq)
+```
 
 ## Rotation
 
@@ -87,7 +118,7 @@ The apps log structured events: a level, a **source** and an **event name**, plu
 | `engine.event`        | `event-kit-unknown`: an event names a kit this release doesn't ship; the default kit prints instead                                                                                                                                                                                               |
 | `engine.lottery`      | draw and lottery-ticket failures                                                                                                                                                                                                                                                                  |
 
-To follow one thing across a visit, grep by source: `grep engine.printer …/dither-booth-engine.log`.
+To follow one thing across a visit, grep by source: `grep -F '\"source\":\"engine.printer\"' dither-booth-engine.log`.
 
 ## Process restarts
 
