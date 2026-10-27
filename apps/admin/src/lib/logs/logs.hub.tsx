@@ -272,15 +272,32 @@ export function createLogHub({
     flushedPositions[source.service] ??
     source.getLivePosition();
 
-  const readPages = async (
+  /**
+   * Reads a page of `filter`'s matches from every source it wants, and
+   * merges them by time, each entry tagged with its service.
+   */
+  const readMerged = async (
     filter: LogFilter,
-    read: (source: LogSource) => Promise<LogSourcePage>,
-  ) =>
-    await Promise.all(
+    read: (
+      source: LogSource,
+      matches: (entry: LogEntry) => boolean,
+    ) => Promise<LogSourcePage>,
+  ) => {
+    const matches = (entry: LogEntry) => matchesLogFilter(entry, filter);
+    const pages = await Promise.all(
       sources
         .filter((source) => isSourceWanted(filter, source.service))
-        .map(async (source) => ({ source, page: await read(source) })),
+        .map(async (source) => ({ source, page: await read(source, matches) })),
     );
+    const merged = mergeByTime(
+      pages.map(({ page, source }) =>
+        page.entries.map((item): Tagged => ({ service: source.service, item })),
+      ),
+      (tagged) => tagged.item.entry,
+    );
+
+    return { pages, merged };
+  };
 
   return {
     subscribe: async (subscriber) => {
@@ -301,21 +318,12 @@ export function createLogHub({
       };
     },
     readBefore: async ({ filter, limit, positions }) => {
-      const matches = (entry: LogEntry) => matchesLogFilter(entry, filter);
-      const pages = await readPages(filter, (source) =>
+      const { merged, pages } = await readMerged(filter, (source, matches) =>
         source.readBefore({
           before: positionOf(positions, source),
           limit,
           matches,
         }),
-      );
-      const merged = mergeByTime(
-        pages.map(({ page, source }) =>
-          page.entries.map(
-            (item): Tagged => ({ service: source.service, item }),
-          ),
-        ),
-        (tagged) => tagged.item.entry,
       );
       const taken = merged.slice(-limit);
       const nextPositions: LogPositions = { ...positions };
@@ -331,23 +339,14 @@ export function createLogHub({
       };
     },
     readAfter: async ({ filter, limit, positions, until }) => {
-      const matches = (entry: LogEntry) => matchesLogFilter(entry, filter);
       const untilOf = (source: LogSource) => positionOf(until, source);
-      const pages = await readPages(filter, (source) =>
+      const { merged, pages } = await readMerged(filter, (source, matches) =>
         source.readAfter({
           after: positions[source.service] ?? untilOf(source),
           until: untilOf(source),
           limit,
           matches,
         }),
-      );
-      const merged = mergeByTime(
-        pages.map(({ page, source }) =>
-          page.entries.map(
-            (item): Tagged => ({ service: source.service, item }),
-          ),
-        ),
-        (tagged) => tagged.item.entry,
       );
       const taken = merged.slice(0, limit);
       const nextPositions: LogPositions = { ...positions };
