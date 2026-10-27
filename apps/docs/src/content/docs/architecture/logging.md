@@ -35,7 +35,7 @@ flowchart LR
 
 Protocol, filter, types and constants have no server-only imports, so the page imports them. The admin server builds the hub, with its four sources, in `server-app.ts`.
 
-**Names come from one place each.** The PM2 process names are read at start from `PM2_PROCESS_NAMES` in `pm2.config.js` (`readPm2ProcessNames`), as the PM2 restart route does. The log folder (`logs/pm2`) and the journal's booth units (`ditherbooth.service`, `ditherbooth-network.service`) are in `@dither-booth/shared/booth-system`, which the CLI imports too.
+**Names live in `@dither-booth/shared/booth-system`.** The PM2 process names (`PM2_PROCESS_NAMES`), the log folder (`logs/pm2`) and the journal's booth units (`ditherbooth.service`, `ditherbooth-network.service`) are defined there, and the admin and the CLI import them. `pm2.config.js` repeats the process names and the folder, because PM2 loads it without the workspace; `booth-system.test.ts` fails if the two differ. The kiosk line itself (its `[kiosk]` prefix, its JSON shape and the `server-started` event) is defined once in `@dither-booth/logging/kiosk-line`, which the logger writes with and the admin reads with.
 
 ## The socket
 

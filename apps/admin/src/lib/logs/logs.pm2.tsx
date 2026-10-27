@@ -9,7 +9,6 @@ import { tryParseJson } from "@dither-booth/shared/runtime";
 import { type FSWatcher, watch } from "node:fs";
 import { open } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
 import z from "zod";
 
 import type {
@@ -851,26 +850,6 @@ export function createPm2LogSource({
       }
     },
   };
-}
-
-const pm2ProcessNamesSchema = z.object({
-  engine: z.string().trim().min(1),
-  shutter: z.string().trim().min(1),
-  admin: z.string().trim().min(1),
-});
-
-/**
- * Each service's PM2 process, read from `PM2_PROCESS_NAMES` in the repo's
- * `pm2.config.js`, the one place they are named.
- */
-export async function readPm2ProcessNames(
-  repoRoot: string,
-): Promise<Pm2ProcessNames> {
-  const config = (await import(
-    pathToFileURL(join(repoRoot, "pm2.config.js")).href
-  )) as { PM2_PROCESS_NAMES?: unknown };
-
-  return pm2ProcessNamesSchema.parse(config.PM2_PROCESS_NAMES);
 }
 
 /** One source per PM2 process, reading `<logDir>/<process>.log`. */

@@ -40,6 +40,6 @@ Diagnosing a booth meant SSH and `tail` on raw PM2 files ([spec, issue #95](http
 - `grep` and scripts find whole entries: one entry is one line. A chunk can still hold several lines or a partial one, so a reader splits `message` on newlines and joins a partial line with the next chunk.
 - A line written during logrotate's copy can be lost. Logs are a diagnostic aid, not a record, so that's accepted.
 - logrotate runs once a day on Raspberry Pi OS, so `maxsize 20M` alone would only act at that run. `booth service` adds a drop-in that makes `logrotate.timer` hourly, so a file passes 20 MB by at most an hour's output.
-- A new PM2 process must be added to `PM2_PROCESS_NAMES` in the CLI, or its file isn't rotated.
+- A new PM2 process must be added to `PM2_PROCESS_NAMES` in `@dither-booth/shared/booth-system` (and in `pm2.config.js`, which a test keeps equal), or its file isn't rotated or shown.
 - Membership of `systemd-journal` lets every app read the whole journal, which can hold other services' details. The admin server must filter what it serves, and restricting the Logs page to tech staff later stays one change at the admin's single access point.
 - Rolling back is a config revert: the old two-file format comes back, and the old files were never touched.

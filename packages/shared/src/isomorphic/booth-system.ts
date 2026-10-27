@@ -10,8 +10,17 @@ export const BOOTH_SERVICE_UNIT = "ditherbooth.service";
 export const BOOTH_NETWORK_SERVICE_UNIT = "ditherbooth-network.service";
 
 /**
+ * Each service's PM2 process. `pm2.config.js` repeats them, because PM2
+ * loads it without the workspace; `booth-system.test.ts` keeps the two equal.
+ */
+export const PM2_PROCESS_NAMES = {
+  engine: "dither-booth-engine",
+  admin: "dither-booth-admin",
+  shutter: "dither-booth-shutter",
+} as const;
+
+/**
  * Where PM2 writes one combined `<process>.log` per process, relative to
- * the repo. Must match `pm2LogDir` in `pm2.config.js`, which PM2 loads
- * without the workspace.
+ * the repo. `pm2.config.js` repeats it, checked by the same test.
  */
 export const PM2_LOG_RELATIVE_DIR = "logs/pm2";

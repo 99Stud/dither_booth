@@ -1,4 +1,5 @@
 import { BOOTH_WIFI_IP, getPort, getWebPublicIp } from "@dither-booth/ports";
+import { PM2_PROCESS_NAMES } from "@dither-booth/shared/booth-system";
 import {
   adminHealthzPayloadSchema,
   engineHealthzPayloadSchema,
@@ -31,7 +32,6 @@ import {
   LOGROTATE_RULE_PATH,
   LOGROTATE_TIMER_DROP_IN_PATH,
   NETWORK_SERVICE_NAME,
-  PM2_PROCESS_NAMES,
   SERVICE_BUN,
   SERVICE_NAME,
   SERVICE_USER,
@@ -198,7 +198,7 @@ async function checkPm2Processes(
     return;
   }
 
-  for (const name of PM2_PROCESS_NAMES) {
+  for (const name of Object.values(PM2_PROCESS_NAMES)) {
     const proc = processes.find((entry) => entry.name === name);
 
     if (proc?.pm2_env?.status === "online") {

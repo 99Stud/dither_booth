@@ -1,4 +1,8 @@
 import { BOOTH_WIFI_IP, getWebTlsManifestPath } from "@dither-booth/ports";
+import {
+  PM2_LOG_RELATIVE_DIR,
+  PM2_PROCESS_NAMES,
+} from "@dither-booth/shared/booth-system";
 import { defineCommand } from "citty";
 import { chmod, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -13,8 +17,6 @@ import {
   LOGROTATE_RULE_PATH,
   LOGROTATE_TIMER_DROP_IN_PATH,
   NETWORK_DISPATCHER_PATH,
-  PM2_LOG_RELATIVE,
-  PM2_PROCESS_NAMES,
   SERVICE_BUN,
   SERVICE_BUN_DIR,
   SERVICE_HOME,
@@ -108,9 +110,9 @@ exit 0
  * Files are named, not globbed: the old `-out.log`/`-err.log` stay as they are.
  */
 export function buildLogrotateRule(repoRoot: string): string {
-  const files = PM2_PROCESS_NAMES.map(
-    (name) => `${repoRoot}/${PM2_LOG_RELATIVE}/${name}.log`,
-  ).join("\n");
+  const files = Object.values(PM2_PROCESS_NAMES)
+    .map((name) => `${repoRoot}/${PM2_LOG_RELATIVE_DIR}/${name}.log`)
+    .join("\n");
 
   return `# Installed by \`booth service\`. Rotates the PM2 log files.
 ${files}

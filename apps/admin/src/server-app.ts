@@ -10,7 +10,10 @@ import {
   getWebTlsHostnames,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
-import { PM2_LOG_RELATIVE_DIR } from "@dither-booth/shared/booth-system";
+import {
+  PM2_LOG_RELATIVE_DIR,
+  PM2_PROCESS_NAMES,
+} from "@dither-booth/shared/booth-system";
 import { ADMIN_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
 import {
   TRPC_PROXY_PATH,
@@ -24,7 +27,7 @@ import { createDocsRoutes } from "#lib/docs/docs.routes";
 import { LOGS_ROUTE_PATH } from "#lib/logs/logs.constants";
 import { createLogHub } from "#lib/logs/logs.hub";
 import { createJournalLogSource } from "#lib/logs/logs.journal";
-import { createPm2LogSources, readPm2ProcessNames } from "#lib/logs/logs.pm2";
+import { createPm2LogSources } from "#lib/logs/logs.pm2";
 import { createLogsRoute } from "#lib/logs/logs.routes";
 import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
@@ -71,7 +74,7 @@ export async function runAdminServer(options: {
           sources: [
             ...createPm2LogSources({
               logDir: resolve(ADMIN_REPO_ROOT, PM2_LOG_RELATIVE_DIR),
-              processNames: await readPm2ProcessNames(ADMIN_REPO_ROOT),
+              processNames: PM2_PROCESS_NAMES,
             }),
             // Off the Pi (no journalctl), it reports unavailable.
             createJournalLogSource(),

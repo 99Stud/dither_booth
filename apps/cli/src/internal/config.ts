@@ -1,7 +1,6 @@
 import {
   BOOTH_NETWORK_SERVICE_UNIT,
   BOOTH_SERVICE_UNIT,
-  PM2_LOG_RELATIVE_DIR,
 } from "@dither-booth/shared/booth-system";
 
 // Replaced at compile time by `scripts/build.ts` with the release tag's
@@ -30,8 +29,6 @@ export const BOOTH_BIN = "/usr/local/bin/booth";
 /** Restarts the booth when the network gives it a new address. */
 export const NETWORK_DISPATCHER_PATH =
   "/etc/NetworkManager/dispatcher.d/90-ditherbooth";
-/** PM2 writes one combined `<process>.log` per process here (pm2.config.js). */
-export const PM2_LOG_RELATIVE = PM2_LOG_RELATIVE_DIR;
 /** Rotates the PM2 log folder; logrotate runs it every hour (drop-in below). */
 export const LOGROTATE_RULE_PATH = "/etc/logrotate.d/ditherbooth";
 /** A PM2 log past this many MB is rotated at logrotate's next run. */
@@ -47,12 +44,6 @@ export const SERVICE_HOME = `/home/${SERVICE_USER}`;
 // runs this binary, so every step resolves Bun here instead of from PATH.
 export const SERVICE_BUN_DIR = `${SERVICE_HOME}/.bun/bin`;
 export const SERVICE_BUN = `${SERVICE_BUN_DIR}/bun`;
-
-export const PM2_PROCESS_NAMES = [
-  "dither-booth-engine",
-  "dither-booth-admin",
-  "dither-booth-shutter",
-] as const;
 
 // Compiled binaries cannot derive the repo from import.meta.url, so the repo
 // root is resolved explicitly from the environment with a fixed default.
