@@ -8,6 +8,7 @@ import { healthz } from "#domains/healthz/index";
 import { hub } from "#domains/hub/index";
 import { imageManipulation } from "#domains/image-manipulation/index";
 import { kiosk } from "#domains/kiosk/index";
+import { logoLibrary, logoLibraryBooth } from "#domains/logo-library/index";
 import { lottery } from "#domains/lottery/index";
 import { network } from "#domains/network/index";
 import { printConfiguration } from "#domains/print-configuration/index";
@@ -22,6 +23,7 @@ export const engineRouter = router({
   booth: router({
     getKit: eventBooth.getKit,
     getFontAsset: fontLibraryBooth.getFontAsset,
+    getLogoAsset: logoLibraryBooth.getLogoAsset,
     getLotteryStatus: lottery.getLotteryStatus,
     prepareReceipt: receipt.prepareReceipt,
     printPreparedReceipt: receipt.printPreparedReceipt,
@@ -34,6 +36,7 @@ export const engineRouter = router({
   config: router({
     ...event,
     ...fontLibrary,
+    ...logoLibrary,
     ...printConfiguration,
     ...imageManipulation,
     generateReceipt: receipt.generateReceipt,

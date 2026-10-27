@@ -27,6 +27,7 @@ import {
   loadKitAssetFonts,
   waitForKitFonts,
 } from "#kits/kitFonts";
+import { prefetchPartnerLogos } from "#kits/kitPartners";
 import { installKitPreview, isKitPreview } from "#kits/kitPreview";
 import { installKioskFullscreen } from "#lib/kiosk-fullscreen";
 import { router } from "#lib/router/index";
@@ -95,7 +96,10 @@ installReceiptViewerNavigationBridge({
       staleTime: 0,
     });
     applyKitFonts(kit.fonts);
-    await loadKitAssetFonts(kit.fonts);
+    await Promise.all([
+      loadKitAssetFonts(kit.fonts),
+      prefetchPartnerLogos(kit.partners),
+    ]);
     // Function form ignores previous params so lottery fields cannot leak/stick.
     await router.navigate({
       to: RECEIPT_VIEWER_PATH,

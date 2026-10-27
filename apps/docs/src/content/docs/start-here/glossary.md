@@ -38,6 +38,15 @@ _Avoid_: Studio for Supabase's own dashboard (call that the Supabase dashboard).
 
 **Font asset**: a font added to this booth, from the font library or a woff2 file staff upload. An event can't remove one it uses.
 
+**Partners**: the logos an event prints on its photo receipt, in order, at most 4. They belong to the event, not the kit, so they stay when the kit changes or is reset.
+_Avoid_: sponsors (the row also holds the operator's and the venue's logos).
+
+**Partner row**: the row on the photo receipt that shows the partners. With none, it isn't printed.
+
+**Logo asset**: a logo added to this booth: a PNG or SVG staff upload, kept in black and white as it prints. An event can't remove one it prints.
+
+**Logo library**: the logos added to this booth, in admin's **Logo library** sheet. Staff upload logos there and pick an event's partners from it. Unlike the font library, it holds only what staff uploaded.
+
 **Background**: what moves behind the booth screen: **Fluid ascii** or **Charcoal smoke**. A kit picks one; an event can switch to the other and move its controls.
 _Avoid_: shader, effect (in staff-facing text).
 
@@ -101,7 +110,7 @@ _Avoid_: ref, reference (in staff-facing text).
 **Ticket**: any slip the printer prints and cuts. The word staff read for all of them.
 _Avoid_: receipt (on its own, in staff-facing text).
 
-**Photo receipt**: the ticket a guest visit prints first: the dithered photo in the event's kit, with its ticket items and ticket number.
+**Photo receipt**: the ticket a guest visit prints first: the dithered photo in the event's kit, with its ticket items, partner row and ticket number.
 
 **Lottery ticket**: the ticket that shows a draw's outcome, printed right after the photo receipt with the same ticket number: for a win, or a loser ticket for a loss.
 

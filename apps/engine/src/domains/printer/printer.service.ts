@@ -3,6 +3,7 @@ export {
   createBoothPrinter,
 } from "./internal/booth-printer";
 export {
+  GRAPHICS_BLACK_CUTOFF,
   gsV0RasterCommandToPngBuffer,
   screenshotToGsV0RasterCommand,
 } from "./internal/gs-v0-raster.utils";

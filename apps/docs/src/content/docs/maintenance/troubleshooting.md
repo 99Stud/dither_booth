@@ -56,14 +56,16 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 
 ## Receipts and the engine
 
-| Symptom                               | Check                                                                                                                                 |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Ticket renderer (Puppeteer) unhealthy | Admin → Health → **Re-initialize Puppeteer**. Persistent: `sudo booth install` re-installs Chromium's libraries, then `booth doctor`. |
-| A PM2 process keeps restarting        | `bun run pm2:list` for the restart count, then its `-err.log`. See [Logs](/docs/maintenance/logs/).                                   |
-| `EADDRINUSE` at start                 | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.  |
-| Lottery never wins                    | Lottery is off, prizes are out of stock, or a pause after a win is running. Check the Event page's odds card.                         |
-| Wrong look on screen or tickets       | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                          |
-| Tickets read the wrong way up         | Admin → Settings → Printing: pick the other end (**Bottom first** or **Top first**), then **Print a sample ticket** to check.         |
+| Symptom                                                   | Check                                                                                                                                                                                                                                               |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ticket renderer (Puppeteer) unhealthy                     | Admin → Health → **Re-initialize Puppeteer**. Persistent: `sudo booth install` re-installs Chromium's libraries, then `booth doctor`.                                                                                                               |
+| A PM2 process keeps restarting                            | `bun run pm2:list` for the restart count, then its `-err.log`. See [Logs](/docs/maintenance/logs/).                                                                                                                                                 |
+| `EADDRINUSE` at start                                     | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.                                                                                                                |
+| Lottery never wins                                        | Lottery is off, prizes are out of stock, or a pause after a win is running. Check the Event page's odds card.                                                                                                                                       |
+| Wrong look on screen or tickets                           | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                                                                                                                                        |
+| Tickets read the wrong way up                             | Admin → Settings → Printing: pick the other end (**Bottom first** or **Top first**), then **Print a sample ticket** to check.                                                                                                                       |
+| A partner logo or the photo mask is missing from a ticket | The ticket printed without an image that wouldn't load (`receipt-image-failed` in the logs names it). For a logo: admin → Event → Kit → **Partners**, take it out of the row, remove it from the **Logo library**, upload it again and add it back. |
+| No partner row on the photo receipt                       | The event has no partner logos. Admin → Event → Kit → **Partners** → **Add logo**.                                                                                                                                                                  |
 
 ## The Pi itself
 

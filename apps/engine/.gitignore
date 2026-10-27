@@ -38,3 +38,6 @@ data/*.sqlite*
 
 # fonts added to the booth from admin (font_asset)
 data/fonts/
+
+# logos added to the booth from admin (logo_asset)
+data/logos/
