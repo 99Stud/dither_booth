@@ -7,6 +7,7 @@ import type { HealthzResponse } from "#lib/healthz/healthz.types";
 
 import { HealthAccordionShell } from "#components/App/ControlCenter/HealthCard/internal/components/HealthAccordionShell/index";
 import { HealthDetailRow } from "#components/App/ControlCenter/HealthCard/internal/components/HealthDetailRow/index";
+import { HEALTH_LOGS_SEARCH } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.constants";
 import { getHealthStatusVariant } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
 import { getKioskCameraHealth } from "#lib/healthz/healthz.utils";
 
@@ -53,6 +54,7 @@ export const CameraAccordionItem: FC<CameraAccordionItemProps> = ({
       value="camera"
       label="Camera"
       icon={<Camera />}
+      logsSearch={HEALTH_LOGS_SEARCH.camera}
       statusDotSize="sm"
       statusVariant={getHealthStatusVariant({
         isHealthzError,

@@ -7,6 +7,8 @@ export type RouteConfig = Map<
   {
     path: string;
     component: RouteComponent;
+    /** Validates the route's search params, e.g. the Logs page's filter. */
+    validateSearch?: (search: Record<string, unknown>) => object;
   }
 >;
 

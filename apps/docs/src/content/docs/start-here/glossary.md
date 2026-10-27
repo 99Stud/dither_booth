@@ -15,7 +15,7 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Darkroom**: the staff screen inside the Shutter, behind a PIN, for print tuning, sample tickets, Wi-Fi and printer status. Opened by tapping the logo four times within two seconds.
 
-**Admin**: the staff web app (`https://<booth>:3002`): Control Center, Event, Settings.
+**Admin**: the staff web app (`https://<booth>:3002`): Control Center, Event, Settings, and the Logs page for tech staff.
 
 **Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts, shows how each booth is doing, sets their event times and gives their registration codes. It talks to the Hub, never to a booth.
 _Avoid_: Studio for Supabase's own dashboard (call that the Supabase dashboard).
@@ -133,6 +133,9 @@ _Avoid_: receipt (on its own, in staff-facing text).
 _Avoid_: upside down, rotation (in staff-facing text; rotation is a print setting that turns the photo only).
 
 ## Logs
+
+**Logs page**: admin's page (`/logs`) with every part of the booth's logs in one live timeline: the Engine, the Shutter and admin servers, the system and browser reports. It filters by service, level, source and text, and the filter is in its address, so a view is a link. Reached from the sidebar next to **Docs**, from **Settings** on a phone, and from **View logs** on each health item. Its **Live** badge means new lines are arriving, not the lottery's **Live**.
+_Avoid_: console, terminal.
 
 **Log source**: one place the Logs page reads lines from, followed by the admin server: each PM2 process's log file (Engine, Shutter, Admin), and the system journal. A source is available, unavailable (no file yet, no journal), or rotated (its file started over).
 

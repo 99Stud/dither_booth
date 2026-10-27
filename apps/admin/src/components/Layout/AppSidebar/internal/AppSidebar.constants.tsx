@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
-import { BookOpen, Gauge, Settings, Ticket } from "lucide-react";
+import { BookOpen, Gauge, ScrollText, Settings, Ticket } from "lucide-react";
 
 import { DOCS_PATH } from "#lib/docs/docs.constants";
+import { LOGS_PAGE_PATH } from "#lib/logs/logs.search";
 import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
 type AppNavLink = {
@@ -26,6 +27,16 @@ export const APP_DOCS_LINK = {
   label: "Docs",
   href: DOCS_PATH,
   icon: <BookOpen />,
+};
+
+/**
+ * The Logs page: a tech tool, next to Docs at the sidebar's foot, out of the
+ * client's way. Not in the phone's tab bar: phones reach it from Settings.
+ */
+export const APP_LOGS_LINK = {
+  label: "Logs",
+  path: LOGS_PAGE_PATH,
+  icon: <ScrollText />,
 };
 
 export const APP_SIDEBAR_MENU_LINKS: AppNavLink[] = [

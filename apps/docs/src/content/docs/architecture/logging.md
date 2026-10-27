@@ -7,7 +7,7 @@ sidebar:
 
 The apps write one JSON line per event, PM2 keeps one combined file per process, and logrotate rotates the files ([Logs](/docs/maintenance/logs/), [ADR 0006](/docs/decisions/0006-json-line-logs/)). The **admin server** reads those files, and the system journal, and streams them to the admin's Logs page. It is the admin, not the engine, because the engine is the process most likely to be down when someone needs its logs.
 
-Code: `apps/admin/src/lib/logs/`. The socket tests in `logs.routes.test.tsx` drive the route with a fake socket, a temp folder of PM2 files and a fake source; `logs.journal.test.tsx` drives it with a fake `journalctl`.
+Code: `apps/admin/src/lib/logs/` for the server, `apps/admin/src/app/Logs/` for the page. The socket tests in `logs.routes.test.tsx` drive the route with a fake socket, a temp folder of PM2 files and a fake source; `logs.journal.test.tsx` drives it with a fake `journalctl`. The page's render tests in `Logs.render.test.tsx` drive the page with a fake socket in place of `WebSocket` (`Logs.testing.tsx`).
 
 ## The pieces
 
@@ -121,6 +121,30 @@ Every page's live lines start where its first request found the hub: everything 
 - **While a history request is served**, the page's live lines and status changes are **held**, then sent right after the page. A page never gets live lines it would also find in the page it is waiting for.
 - **After a reconnect**, the page sends `after: <last cursor>` on the new socket. The server reads from there up to where this socket's live lines start, one page at a time, holding live lines until a page says `done`. The page ends up with every line once, in order.
 - If a file was rotated since the cursor, the server sends `rotated` for it and reads the new file from the start: the lines written between the cursor and the rotation may be missing, and the page can say so.
+
+## The page
+
+Admin's Logs page (`/logs`, `apps/admin/src/app/Logs/`) is the socket's only client. How staff use it: [Logs → Open Logs](/docs/maintenance/logs/#open-logs).
+
+**The filter is the URL.** The route validates four search params with zod (`lib/logs/logs.search.tsx`): `services` and `levels` as comma lists, `source`, and `q` for the text. Unknown values are dropped, and a list naming every value is the same as none, so links stay short: `/logs?source=engine.printer&levels=error,warn`. Health items link here with presets (`HEALTH_LOGS_SEARCH` in `HealthCard.constants.tsx`).
+
+**One socket, one timeline.** `useLogStream` opens the socket and asks for the latest **500** lines with the filter. Live lines arrive unfiltered; the page keeps them all and shows those that pass `matchesLogFilter`, the same predicate the server used for the history. A filter change throws the timeline away and asks again on the same socket: history was filtered for the old filter. Answers to requests sent before the change are dropped. Entries are deduplicated by id, so a live line that also lands in the page it raced is shown once.
+
+**Bounded memory.** At most **10,000** lines, the oldest dropped first. Once lines have been dropped, or an older page would pass the cap, the list stops loading older lines and says so at the top: narrow the filter to read further back.
+
+**The list** is `react-virtuoso` (MIT), only the visible rows in the DOM:
+
+| Behaviour              | How                                                                                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Follow while at bottom | `followOutput` scrolls to new lines when the list was within **48 px** of the bottom, and no line is open                                                                                          |
+| “N new lines” pill     | Off the bottom for **300 ms** counts as scrolled up (new lines push the list off for a frame before it follows). The pill counts visible lines added since; it and **End** scroll to the last line |
+| Older lines at the top | `startReached` sends `before: <last cursor>`. `firstItemIndex` starts at 1,000,000 and drops by the visible lines prepended, so the reader's line doesn't move                                     |
+| Restart divider        | A server's `server-started` event is drawn as a divider instead of a line                                                                                                                          |
+| Rotation divider       | Drawn when a `rotated` status arrives                                                                                                                                                              |
+
+**Pause** keeps the socket and the cursor; new lines wait in a buffer (also capped at 10,000) and the badge counts them. While paused, a polite live region announces “N new errors”. The list itself is `role="log"` with `aria-live="off"`, so a screen reader isn't read every line.
+
+**Reconnecting.** When the socket closes, the page draws a “Connection lost” divider and retries after **1 s**, doubling to at most **10 s**; the browser's `online` event retries at once. The badge says **Reconnecting**, then **Offline** after **3** failed attempts in a row or while the browser is offline, with a **Retry now** banner. On the new socket it sends `after: <last cursor>` and keeps asking until a page is `done`, then marks the divider “Reconnected · no lines missed”, or “some lines may be missing” if a source rotated in between. A cursor the server refuses (**1008** while resuming) falls back to the latest page, marked as a possible gap. A **1008** on a fresh request is not retried: the banner offers **Retry now**. A **1013** (fell behind) reconnects at once.
 
 ## The system journal
 

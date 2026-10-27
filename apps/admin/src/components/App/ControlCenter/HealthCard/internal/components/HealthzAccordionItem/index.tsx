@@ -40,7 +40,10 @@ import {
   type HealthTooltipItem,
   HealthTooltipList,
 } from "#components/App/ControlCenter/HealthCard/internal/components/HealthTooltipList/index";
-import { HEALTHZ_SERVICE_LABELS } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.constants";
+import {
+  HEALTH_LOGS_SEARCH,
+  HEALTHZ_SERVICE_LABELS,
+} from "#components/App/ControlCenter/HealthCard/internal/HealthCard.constants";
 import { getHealthStatusVariant } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
 
 /** `children` render after the service's health details. */
@@ -114,6 +117,7 @@ export const HealthzAccordionItem: FC<HealthzAccordionItemProps> = ({
       value={service}
       label={HEALTHZ_SERVICE_LABELS[service]}
       icon={service === "shutter" ? <Tablet /> : <Server />}
+      logsSearch={HEALTH_LOGS_SEARCH[service]}
       statusVariant={getHealthStatusVariant({
         isHealthzError,
         isHealthzPending,

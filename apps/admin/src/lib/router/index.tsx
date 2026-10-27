@@ -32,6 +32,7 @@ const routes = ROUTE_KEYS.reduce<Array<AnyRoute>>((routes, routeKey) => {
       getParentRoute: () => rootRoute,
       path: routeConfig.path,
       component: routeConfig.component,
+      validateSearch: routeConfig.validateSearch,
     });
 
     routes.push(test);

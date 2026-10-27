@@ -21,6 +21,7 @@ import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
 
 import {
   APP_DOCS_LINK,
+  APP_LOGS_LINK,
   APP_SETTINGS_LINK,
   APP_SIDEBAR_MENU_LINKS,
 } from "./internal/AppSidebar.constants";
@@ -117,6 +118,17 @@ export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
             >
               {APP_DOCS_LINK.icon}
               <span>{APP_DOCS_LINK.label}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className={clsx("h-9")}
+              isActive={pathname === APP_LOGS_LINK.path}
+              tooltip={APP_LOGS_LINK.label}
+              render={<Link to={APP_LOGS_LINK.path} onClick={closeOnMobile} />}
+            >
+              {APP_LOGS_LINK.icon}
+              <span>{APP_LOGS_LINK.label}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
