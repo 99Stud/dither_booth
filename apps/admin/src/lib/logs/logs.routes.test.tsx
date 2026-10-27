@@ -25,8 +25,13 @@ afterEach(async () => {
 
 async function setUp({
   batchMs = 10,
+  continuationGraceMs,
   extraSources = [],
-}: { batchMs?: number; extraSources?: LogSource[] } = {}) {
+}: {
+  batchMs?: number;
+  continuationGraceMs?: number;
+  extraSources?: LogSource[];
+} = {}) {
   const logs = await createTestPm2LogDir();
   cleanups.push(logs.cleanup);
 
@@ -34,7 +39,11 @@ async function setUp({
     hub: createLogHub({
       batchMs,
       sources: [
-        ...createPm2LogSources({ logDir: logs.logDir, pollIntervalMs: 10 }),
+        ...createPm2LogSources({
+          logDir: logs.logDir,
+          pollIntervalMs: 10,
+          continuationGraceMs,
+        }),
         ...extraSources,
       ],
     }),
@@ -84,6 +93,38 @@ function engineEvent(
       details: { seconds },
     }),
   });
+}
+
+/**
+ * One engine event that PM2 wrote as two envelopes, cut mid-JSON. Written
+ * `writtenAt` (default: long ago, so no live read waits for its rest).
+ */
+function splitEngineEvent(
+  seconds: number,
+  event: string,
+  writtenAt = at(seconds),
+) {
+  const message = kioskMessage({
+    loggedAt: at(seconds),
+    level: "info",
+    source: "engine.printer",
+    event,
+    details: { seconds, padding: "x".repeat(200) },
+  });
+  const cut = Math.floor(message.length / 2);
+
+  return [
+    pm2Envelope({
+      service: "engine",
+      timestamp: writtenAt,
+      message: message.slice(0, cut),
+    }),
+    pm2Envelope({
+      service: "engine",
+      timestamp: writtenAt,
+      message: message.slice(cut),
+    }),
+  ] as const;
 }
 
 function shutterEvent(seconds: number, event: string) {
@@ -310,6 +351,123 @@ describe("the /admin/logs socket", () => {
     ]);
     const ids = client.lastHistory()!.entries.map((entry) => entry.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("re-joins an event PM2 split across two chunks, in history pages both ways", async () => {
+    const { connect, logs } = await setUp();
+    const [first, second] = splitEngineEvent(2, "big");
+    await logs.write(
+      "engine",
+      engineEvent(1, "e1"),
+      first,
+      second,
+      engineEvent(3, "e3"),
+    );
+
+    const client = connect();
+    client.send({ type: "history", filter: {}, limit: 10 });
+    await eventually(() => expect(client.lastHistory()).toBeDefined());
+    const big = client.lastHistory()!.entries[1];
+
+    expect(eventsAndDone(client.lastHistory()!)).toEqual({
+      events: ["e1", "big", "e3"],
+      done: true,
+    });
+    expect(big).toMatchObject({ level: "info", details: { seconds: 2 } });
+
+    // One line per page, backward: the split event is still one entry.
+    const events: string[] = [];
+    client.send({ type: "history", filter: {}, limit: 1 });
+
+    for (let page = 2; ; page += 1) {
+      await eventually(() => expect(client.histories()).toHaveLength(page));
+      const history = client.lastHistory()!;
+      events.unshift(...history.entries.map((entry) => entry.event ?? "?"));
+
+      if (history.done) {
+        break;
+      }
+
+      client.send({
+        type: "history",
+        filter: {},
+        limit: 1,
+        before: history.cursor,
+      });
+    }
+
+    expect(events).toEqual(["e1", "big", "e3"]);
+  });
+
+  it("re-joins a split event when resuming over it", async () => {
+    const { connect, logs, route } = await setUp();
+    const [first, second] = splitEngineEvent(2, "big");
+    await logs.write("engine", engineEvent(1, "e1"));
+
+    const away = connect();
+    away.send({ type: "history", filter: {}, limit: 10 });
+    await eventually(() => expect(away.lastHistory()).toBeDefined());
+    const cursor = away.lastCursor()!;
+    await route.close?.(away.socket, 1000, "");
+
+    await logs.append("engine", first, second, engineEvent(3, "e3"));
+
+    const resumed = connect();
+    resumed.send({ type: "history", filter: {}, limit: 10, after: cursor });
+    await eventually(() => expect(resumed.lastHistory()?.done).toBe(true));
+    expect(eventsAndDone(resumed.lastHistory()!).events).toEqual([
+      "big",
+      "e3",
+    ]);
+  });
+
+  it("re-joins a split event as it is written live, even across start", async () => {
+    const { connect, logs } = await setUp({ continuationGraceMs: 2000 });
+    const now = new Date().toISOString();
+    const [firstA, secondA] = splitEngineEvent(1, "split-at-start", now);
+    const [firstB, secondB] = splitEngineEvent(2, "split-live", now);
+    await logs.write("engine", engineEvent(0, "e0"), firstA);
+
+    const client = connect();
+    client.send({ type: "history", filter: {}, limit: 10 });
+    await eventually(() => expect(client.lastHistory()).toBeDefined());
+    expect(eventsAndDone(client.lastHistory()!).events).toEqual(["e0"]);
+
+    await logs.append("engine", secondA);
+    await logs.append("engine", firstB);
+    await Bun.sleep(50);
+    await logs.append("engine", secondB);
+
+    await eventually(() =>
+      expect(client.appended().map((entry) => entry.event)).toEqual([
+        "split-at-start",
+        "split-live",
+      ]),
+    );
+  });
+
+  it("sends a cut line on its own once nothing continues it", async () => {
+    const { connect, logs } = await setUp({ continuationGraceMs: 100 });
+    await logs.write("engine");
+
+    const client = connect();
+    client.send({ type: "history", filter: {}, limit: 10 });
+    await eventually(() => expect(client.lastHistory()).toBeDefined());
+
+    await logs.append(
+      "engine",
+      pm2Envelope({
+        service: "engine",
+        timestamp: new Date().toISOString(),
+        message: "prompt> ",
+      }),
+    );
+    await Bun.sleep(50);
+    expect(client.appended()).toEqual([]);
+
+    await eventually(() =>
+      expect(client.appended().map((entry) => entry.raw)).toEqual(["prompt> "]),
+    );
   });
 
   it("keeps browser lines' origin and device", async () => {

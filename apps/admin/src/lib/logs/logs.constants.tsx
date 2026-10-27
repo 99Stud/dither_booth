@@ -51,6 +51,13 @@ export const LOGS_POLL_INTERVAL_MS = 1000;
 export const LOGS_READ_CHUNK_BYTES = 64 * 1024;
 /** A longer file line is cut to this many bytes. */
 export const LOGS_MAX_LINE_BYTES = 64 * 1024;
+/**
+ * Most PM2 envelopes joined into one record when an output line was cut
+ * across chunks. A longer run isn't joined at all.
+ */
+export const LOGS_MAX_JOINED_CHUNKS = 8;
+/** How long a cut line at the end of a file waits for its next chunk. */
+export const LOGS_CONTINUATION_GRACE_MS = 1000;
 
 export const LOGS_INVALID_CLOSE_CODE = 1008;
 export const LOGS_INTERNAL_ERROR_CLOSE_CODE = 1011;

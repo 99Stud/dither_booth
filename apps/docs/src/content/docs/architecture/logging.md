@@ -74,8 +74,11 @@ An entry is `{id, timestamp, service, stream, level, source?, event?, details?, 
 
 - **Services** are `engine`, `shutter`, `admin` and `system`. Browser is an **origin**: a [browser report](/docs/start-here/glossary/#logs) is an entry of the server that wrote it, with `origin: "browser"`. The filter's service list has a sixth value, `browser`, for those lines.
 - **From a PM2 line.** The envelope's `message` is split on newlines; each non-blank line is one entry. A `[kiosk]` line becomes a structured entry, timed by its `loggedAt`. Anything else is plain text, timed by the envelope's `timestamp`: on `err` it is an `error`, on `out` an `info`. A line that isn't an envelope at all is kept as plain text.
-- **A line PM2 split across two chunks** shows as two entries. Output that size is rare: one event is one write, a few KB.
-- **The id** is `<service>:<generation>:<byte offset>:<index>`, stable however the line is read.
+- **A line PM2 split across chunks** is joined back. PM2 writes one envelope per chunk it reads from the pipe, so a long line can end one envelope (its `message` has no final newline) and go on in the next. A _record_ is an envelope plus the envelopes that continue it: next in the file, same `type`, the one before not ending in a newline. Its messages are joined, then split into entries. Live, history and resume reads cut the same records, both directions.
+  - At most **8** envelopes are joined. A longer run (endless output with no newline) isn't joined at all, so both directions still agree.
+  - An envelope of the other stream in between ends the record: the two halves show as plain text.
+  - **Live**, a cut record at the end of the file waits up to **1 s** (by its envelope's `timestamp`) for the next chunk, then goes out as it is. A source that starts right after a cut starts before that record, to read it whole.
+- **The id** is `<service>:<generation>:<byte offset of the record>:<index>`, stable however the line is read.
 - **Lines over 64 KB** are cut to 64 KB.
 - **From the journal**, see [The system journal](#the-system-journal).
 
@@ -94,7 +97,7 @@ Each PM2 file source:
 
 ## History pages
 
-A position in a file is `<generation>:<byte offset of a line>:<entry index in that line>`, so a page can end in the middle of a multi-line chunk.
+A position in a file is `<generation>:<byte offset of a record>:<entry index in that record>`, so a page can end in the middle of a multi-line chunk, but never inside a record.
 
 - **Older pages** are read backward from the position in **64 KB** chunks, keeping only entries that match the filter, until the page is full or the file starts. Filtered history scans as far back as it must, so "all errors today" works however far back they are. Memory stays bounded: one chunk, one line and the matches.
 - **Merging.** Each source returns its newest `limit` matches; the hub merges them by timestamp (each source's own order kept) and keeps the newest `limit`. Each source's next position is its oldest kept entry, so nothing is skipped or repeated.

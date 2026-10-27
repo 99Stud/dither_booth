@@ -94,7 +94,7 @@ Or read the files directly. Each process writes **one file**, `logs/pm2/<process
 tail -f /opt/dither-booth/logs/pm2/dither-booth-engine.log
 ```
 
-One entry is never split across two lines. A burst of output can arrive as one entry with several lines in its `message`.
+One entry is never split across two lines. A burst of output can arrive as one entry with several lines in its `message`. A long output line can be the other way round: cut across two entries in a row, the first `message` without its final newline. The Logs page joins them back.
 
 Booths updated from an older release still have `<process>-out.log` and `<process>-err.log` next to the new files. PM2 no longer writes them and rotation leaves them alone; delete them once you no longer need them.
 
