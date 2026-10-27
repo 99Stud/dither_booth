@@ -77,7 +77,7 @@ Exports reflect the scope: `./formatting` → `src/isomorphic/formatting.ts`, `.
 
 | Package                           | Holds                                                                                                                               |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `@dither-booth/shared`            | Schemas and types crossing app boundaries: kiosk commands, printer status, lottery, kits, healthz payloads, network helpers, routes |
+| `@dither-booth/shared`            | Schemas and types crossing app boundaries: kiosk commands, printer status, lottery, kits, healthz payloads, network helpers, routes, the booth's systemd unit names and PM2 log folder (`./booth-system`) |
 | `@dither-booth/protocol`          | What a booth and the Hub say to each other: runtime-agnostic Zod schemas (zod only), read by Bun and by Deno, with fixtures         |
 | `@dither-booth/ports`             | Ports, bind hosts, origins, the TLS manifest, allowed hostnames                                                                     |
 | `@dither-booth/browser-server`    | The Bun HTTPS server for Shutter and admin: static manifest, cache headers, SPA fallback, `/engine/trpc` proxy, `POST /client-log` (browser reports) |

@@ -35,6 +35,8 @@ flowchart LR
 
 Protocol, filter, types and constants have no server-only imports, so the page imports them. The admin server builds the hub, with its four sources, in `server-app.ts`.
 
+**Names come from one place each.** The PM2 process names are read at start from `PM2_PROCESS_NAMES` in `pm2.config.js` (`readPm2ProcessNames`), as the PM2 restart route does. The log folder (`logs/pm2`) and the journal's booth units (`ditherbooth.service`, `ditherbooth-network.service`) are in `@dither-booth/shared/booth-system`, which the CLI imports too.
+
 ## The socket
 
 `wss://<booth>:3002/admin/logs`. The upgrade is origin-checked like every admin socket ([Access control → Logs socket](/docs/architecture/access-control/#logs-socket)). It is mounted whether or not the admin runs under PM2: without the files, each source just reports itself unavailable.

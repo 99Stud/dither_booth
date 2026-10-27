@@ -8,6 +8,7 @@ import { createPm2LogSources } from "./logs.pm2";
 import {
   createFakeLogSource,
   createTestLogsSocket,
+  TEST_PM2_PROCESS_NAMES,
   createTestPm2LogDir,
   eventually,
   kioskMessage,
@@ -43,6 +44,7 @@ async function setUp({
           logDir: logs.logDir,
           pollIntervalMs: 10,
           continuationGraceMs,
+          processNames: TEST_PM2_PROCESS_NAMES,
         }),
         ...extraSources,
       ],

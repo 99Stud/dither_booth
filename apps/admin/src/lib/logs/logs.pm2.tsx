@@ -3,6 +3,8 @@ import type { FileHandle } from "node:fs/promises";
 import { type FSWatcher, watch } from "node:fs";
 import { open } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { PM2_LOG_RELATIVE_DIR } from "@dither-booth/shared/booth-system";
 import z from "zod";
 
 import type {
@@ -18,10 +20,9 @@ import {
   LOGS_CONTINUATION_GRACE_MS,
   LOGS_MAX_JOINED_CHUNKS,
   LOGS_MAX_LINE_BYTES,
-  LOGS_PM2_LOG_RELATIVE_DIR,
-  LOGS_PM2_PROCESS_NAMES,
   LOGS_POLL_INTERVAL_MS,
   LOGS_READ_CHUNK_BYTES,
+  LOG_SERVICES,
 } from "./logs.constants";
 import { InvalidLogPositionError } from "./logs.hub";
 import { logEntryErrorSchema, logLevelSchema } from "./logs.protocol";
@@ -40,7 +41,10 @@ import { logEntryErrorSchema, logLevelSchema } from "./logs.protocol";
  * has grown past it.
  */
 
-type Pm2Service = keyof typeof LOGS_PM2_PROCESS_NAMES;
+type Pm2Service = Exclude<LogService, "system">;
+
+/** The PM2 process of each service, as `pm2.config.js` names them. */
+export type Pm2ProcessNames = Record<Pm2Service, string>;
 
 type Pm2Position = { generation: string; offset: number; index: number };
 
@@ -551,7 +555,7 @@ export function createPm2LogSource({
   pollIntervalMs?: number;
   service: Pm2Service;
 }): LogSource {
-  const fileLabel = `${LOGS_PM2_LOG_RELATIVE_DIR}/${basename(filePath)}`;
+  const fileLabel = `${PM2_LOG_RELATIVE_DIR}/${basename(filePath)}`;
   const availableStatus: LogSourceStatus = {
     state: "available",
     message: `Reading ${fileLabel}.`,
@@ -846,20 +850,46 @@ export function createPm2LogSource({
   };
 }
 
+const pm2ProcessNamesSchema = z.object({
+  engine: z.string().trim().min(1),
+  shutter: z.string().trim().min(1),
+  admin: z.string().trim().min(1),
+});
+
+/**
+ * Each service's PM2 process, read from `PM2_PROCESS_NAMES` in the repo's
+ * `pm2.config.js`, the one place they are named.
+ */
+export async function readPm2ProcessNames(
+  repoRoot: string,
+): Promise<Pm2ProcessNames> {
+  const config = (await import(
+    pathToFileURL(join(repoRoot, "pm2.config.js")).href
+  )) as { PM2_PROCESS_NAMES?: unknown };
+
+  return pm2ProcessNamesSchema.parse(config.PM2_PROCESS_NAMES);
+}
+
 /** One source per PM2 process, reading `<logDir>/<process>.log`. */
 export function createPm2LogSources({
   continuationGraceMs,
   logDir,
   pollIntervalMs,
+  processNames,
 }: {
   continuationGraceMs?: number;
   logDir: string;
   pollIntervalMs?: number;
+  processNames: Pm2ProcessNames;
 }): LogSource[] {
-  return (Object.keys(LOGS_PM2_PROCESS_NAMES) as Pm2Service[]).map((service) =>
+  const services = LOG_SERVICES.filter(
+    (service): service is Pm2Service => service !== "system",
+  );
+
+  return services.map((service) =>
     createPm2LogSource({
       continuationGraceMs,
-      filePath: join(logDir, `${LOGS_PM2_PROCESS_NAMES[service]}.log`),
+      filePath: join(logDir, `${processNames[service]}.log`),
       pollIntervalMs,
       service,
     }),

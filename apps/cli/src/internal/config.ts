@@ -1,3 +1,9 @@
+import {
+  BOOTH_NETWORK_SERVICE_UNIT,
+  BOOTH_SERVICE_UNIT,
+  PM2_LOG_RELATIVE_DIR,
+} from "@dither-booth/shared/booth-system";
+
 // Replaced at compile time by `scripts/build.ts` with the release tag's
 // version. Running from source (`bun src/index.ts`) leaves it undefined.
 declare const BOOTH_CLI_VERSION: string | undefined;
@@ -16,16 +22,16 @@ export const ENGINE_APP_RELATIVE = "apps/engine";
 export const ENGINE_DATA_RELATIVE = `${ENGINE_APP_RELATIVE}/data`;
 export const ENGINE_DB_RELATIVE = `${ENGINE_DATA_RELATIVE}/dither-booth.sqlite`;
 
-export const SERVICE_NAME = "ditherbooth.service";
+export const SERVICE_NAME = BOOTH_SERVICE_UNIT;
 export const SERVICE_PATH = `/etc/systemd/system/${SERVICE_NAME}`;
-export const NETWORK_SERVICE_NAME = "ditherbooth-network.service";
+export const NETWORK_SERVICE_NAME = BOOTH_NETWORK_SERVICE_UNIT;
 /** Where install.sh puts the CLI; the service unit calls it at boot. */
 export const BOOTH_BIN = "/usr/local/bin/booth";
 /** Restarts the booth when the network gives it a new address. */
 export const NETWORK_DISPATCHER_PATH =
   "/etc/NetworkManager/dispatcher.d/90-ditherbooth";
 /** PM2 writes one combined `<process>.log` per process here (pm2.config.js). */
-export const PM2_LOG_RELATIVE = "logs/pm2";
+export const PM2_LOG_RELATIVE = PM2_LOG_RELATIVE_DIR;
 /** Rotates the PM2 log folder; logrotate runs it every hour (drop-in below). */
 export const LOGROTATE_RULE_PATH = "/etc/logrotate.d/ditherbooth";
 /** A PM2 log past this many MB is rotated at logrotate's next run. */
