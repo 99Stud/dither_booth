@@ -27,6 +27,7 @@ import {
   type HealthTooltipItem,
   HealthTooltipList,
 } from "#components/App/ControlCenter/HealthCard/internal/components/HealthTooltipList/index";
+import { HEALTH_LOGS_SEARCH } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.constants";
 import { getHealthStatusVariant } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
 
 interface PuppeteerAccordionItemProps {
@@ -211,6 +212,7 @@ export const PuppeteerAccordionItem: FC<PuppeteerAccordionItemProps> = ({
       value="puppeteer"
       label="Ticket renderer"
       icon={<FileImage />}
+      logsSearch={HEALTH_LOGS_SEARCH.puppeteer}
       statusDotSize="sm"
       statusVariant={getHealthStatusVariant({
         isHealthzError,
