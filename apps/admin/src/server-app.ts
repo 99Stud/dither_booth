@@ -19,8 +19,14 @@ import { resolve } from "node:path";
 import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
 import { DOCS_DIST_RELATIVE_PATH } from "#lib/docs/docs.constants";
 import { createDocsRoutes } from "#lib/docs/docs.routes";
-import { LOGS_ROUTE_PATH } from "#lib/logs/logs.constants";
+import {
+  LOGS_PM2_LOG_RELATIVE_DIR,
+  LOGS_ROUTE_PATH,
+} from "#lib/logs/logs.constants";
+import { createLogHub } from "#lib/logs/logs.hub";
+import { createJournalLogSource } from "#lib/logs/logs.journal";
 import { createLogsRoute } from "#lib/logs/logs.routes";
+import { createPm2LogSources } from "#lib/logs/logs.server";
 import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
 import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
@@ -61,7 +67,17 @@ export async function runAdminServer(options: {
     routes: createDocsRoutes(resolve(ADMIN_REPO_ROOT, DOCS_DIST_RELATIVE_PATH)),
     webSocketRoutes: {
       // Not only under PM2: without its files, each source reports unavailable.
-      [LOGS_ROUTE_PATH]: createLogsRoute(),
+      [LOGS_ROUTE_PATH]: createLogsRoute({
+        hub: createLogHub({
+          sources: [
+            ...createPm2LogSources({
+              logDir: resolve(ADMIN_REPO_ROOT, LOGS_PM2_LOG_RELATIVE_DIR),
+            }),
+            // Off the Pi (no journalctl), it reports unavailable.
+            createJournalLogSource(),
+          ],
+        }),
+      }),
       ...(isPm2Managed
         ? { [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute() }
         : {}),

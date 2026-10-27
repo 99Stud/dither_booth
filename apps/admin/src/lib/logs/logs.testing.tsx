@@ -237,3 +237,203 @@ export function systemEntry(
     ...overrides,
   };
 }
+
+/** A journal record as `journalctl --output=json` prints it. */
+export function journalRecord(
+  seq: number,
+  timestamp: string,
+  fields: Record<string, unknown> = {},
+) {
+  const realtimeUs = BigInt(Date.parse(timestamp)) * 1000n;
+
+  return {
+    __CURSOR: `s=0123456789abcdef0123456789abcdef;i=${seq.toString(16)};b=fedcba9876543210fedcba9876543210;m=${seq.toString(16)};t=${realtimeUs.toString(16)};x=${(seq * 7919).toString(16)}`,
+    __REALTIME_TIMESTAMP: realtimeUs.toString(),
+    __MONOTONIC_TIMESTAMP: String(seq),
+    PRIORITY: "6",
+    _TRANSPORT: "journal",
+    _SYSTEMD_UNIT: "NetworkManager.service",
+    SYSLOG_IDENTIFIER: "NetworkManager",
+    MESSAGE: `journal line ${seq}`,
+    ...fields,
+  };
+}
+
+type JournalRecord = ReturnType<typeof journalRecord>;
+
+type FakeFollower = { end: (code: number) => void; write: JournalWriter };
+
+type JournalWriter = (record: JournalRecord) => void;
+
+/**
+ * A fake `journalctl` to inject as the journal source's `spawn`. It answers
+ * from its records the way `journalctl --output=json` does (`--cursor`,
+ * `--after-cursor`, `--reverse`, `--lines`, `--until=@<s>`, `--follow`).
+ * Matches are ignored: every record matches. Each output line is split
+ * across two chunks, as a pipe may deliver it.
+ */
+export function createFakeJournal({
+  missing = false,
+  records: initialRecords = [],
+  stderr = "",
+}: {
+  /** Spawning throws, as `Bun.spawn` does without `journalctl` on the PATH. */
+  missing?: boolean;
+  records?: JournalRecord[];
+  /** Printed on stderr by every process, e.g. a permission hint. */
+  stderr?: string;
+} = {}) {
+  const records = [...initialRecords];
+  const spawned: string[][] = [];
+  const followers = new Set<FakeFollower>();
+  const encoder = new TextEncoder();
+  let running = 0;
+
+  const valueOf = (args: string[], flag: string) =>
+    args.find((arg) => arg.startsWith(`${flag}=`))?.slice(flag.length + 1);
+  const indexOf = (cursor: string) =>
+    records.findIndex((record) => record.__CURSOR === cursor);
+
+  const select = (args: string[]) => {
+    const follow = args.includes("--follow");
+    const cursor = valueOf(args, "--cursor");
+    const afterCursor = valueOf(args, "--after-cursor");
+    const until = valueOf(args, "--until");
+    const linesArg = valueOf(args, "--lines");
+    const lines =
+      linesArg === undefined || linesArg === "all"
+        ? Infinity
+        : Number(linesArg);
+
+    if (args.includes("--reverse")) {
+      const from =
+        cursor !== undefined
+          ? indexOf(cursor)
+          : afterCursor !== undefined
+            ? indexOf(afterCursor) - 1
+            : records.length - 1;
+
+      return records
+        .slice(0, from + 1)
+        .toReversed()
+        .slice(0, lines);
+    }
+
+    const from =
+      cursor !== undefined
+        ? indexOf(cursor)
+        : afterCursor !== undefined
+          ? indexOf(afterCursor) + 1
+          : follow && lines !== Infinity
+            ? Math.max(records.length - lines, 0)
+            : 0;
+    const untilUs =
+      until === undefined ? undefined : BigInt(until.slice(1)) * 1_000_000n;
+    const selected = records
+      .slice(from)
+      .filter(
+        (record) =>
+          untilUs === undefined ||
+          BigInt(record.__REALTIME_TIMESTAMP) <= untilUs,
+      );
+
+    return follow ? selected : selected.slice(0, lines);
+  };
+
+  const spawn = (args: string[]) => {
+    spawned.push(args);
+
+    if (missing) {
+      throw Object.assign(
+        new Error('Executable not found in $PATH: "journalctl"'),
+        { code: "ENOENT" },
+      );
+    }
+
+    const selected = select(args);
+    let resolveExited!: (code: number) => void;
+    const exited = new Promise<number>((resolve) => {
+      resolveExited = resolve;
+    });
+    let ended = false;
+    let follower: FakeFollower | undefined;
+    let stdoutController!: ReadableStreamDefaultController<Uint8Array>;
+
+    const write: JournalWriter = (record) => {
+      const line = `${JSON.stringify(record)}\n`;
+      const half = Math.floor(line.length / 2);
+      stdoutController.enqueue(encoder.encode(line.slice(0, half)));
+      stdoutController.enqueue(encoder.encode(line.slice(half)));
+    };
+
+    const end = (code: number) => {
+      if (ended) {
+        return;
+      }
+
+      ended = true;
+      running -= 1;
+
+      if (follower) {
+        followers.delete(follower);
+      }
+
+      try {
+        stdoutController.close();
+      } catch {
+        // Already closed or cancelled.
+      }
+
+      resolveExited(code);
+    };
+
+    running += 1;
+
+    const stdout = new ReadableStream<Uint8Array>({
+      start: (controller) => {
+        stdoutController = controller;
+        selected.forEach(write);
+
+        if (args.includes("--follow")) {
+          follower = { end, write };
+          followers.add(follower);
+        } else {
+          setTimeout(() => end(0), 0);
+        }
+      },
+      cancel: () => end(143),
+    });
+    const stderrStream = new ReadableStream<Uint8Array>({
+      start: (controller) => {
+        if (stderr) {
+          controller.enqueue(encoder.encode(stderr));
+        }
+
+        controller.close();
+      },
+    });
+
+    return { stdout, stderr: stderrStream, exited, kill: () => end(143) };
+  };
+
+  return {
+    spawn,
+    /** The args of every spawn, in order. */
+    spawned,
+    /** Processes not yet exited or killed. */
+    running: () => running,
+    append: (...newRecords: JournalRecord[]) => {
+      records.push(...newRecords);
+
+      for (const { write } of followers) {
+        newRecords.forEach(write);
+      }
+    },
+    /** Every `--follow` process exits, as if journalctl died. */
+    endFollowers: (code = 1) => {
+      for (const { end } of [...followers]) {
+        end(code);
+      }
+    },
+  };
+}

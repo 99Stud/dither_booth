@@ -99,4 +99,5 @@ The admin's Logs page reads every service's logs over **`wss://<booth>:3002/admi
 
 - **Read-only.** The socket only answers history requests and streams lines; nothing a page sends reaches a file or a process.
 - **Secrets.** Lines carry what the logger wrote, which redacted secret-looking detail keys first ([Logs → Line format](/docs/maintenance/logs/#line-format)).
+- **System journal.** Only the booth's units, NetworkManager and the kernel are read; the rest of the journal stays on the booth. Those lines are shown as journald stored them, not redacted ([Logging → The system journal](/docs/architecture/logging/#the-system-journal)).
 - **One way in.** `createLogsRoute` in `apps/admin/src/lib/logs/logs.routes.tsx` is the only place logs leave the booth. Restricting them to tech staff later is one change there (its `validateUpgrade` hook), plus the page.
