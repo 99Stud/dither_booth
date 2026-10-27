@@ -9,6 +9,7 @@ import {
   formatLogTime,
   getLogPreview,
   getLogServiceLabel,
+  getShortDeviceId,
 } from "../../Logs.utils";
 import { LogDetails } from "../LogDetails";
 import { LogLevelLabel } from "../LogLevelLabel";
@@ -27,8 +28,8 @@ interface LogRowProps {
 }
 
 /**
- * One log line: time to the millisecond, service, level, source, event and
- * a preview of its details. Desktop: one row of columns. Phone: two lines.
+ * One log line: time to the millisecond, service (with a short device id
+ * for browser lines), level, source, event and a preview of its details. Desktop: one row of columns. Phone: two lines.
  * Error lines are tinted.
  */
 export const LogRow: FC<LogRowProps> = ({
@@ -39,6 +40,7 @@ export const LogRow: FC<LogRowProps> = ({
   onActivate,
 }) => {
   const preview = getLogPreview(entry);
+  const deviceId = getShortDeviceId(entry);
   const textClassName = isWrapped
     ? "break-all whitespace-pre-wrap"
     : "truncate";
@@ -58,7 +60,7 @@ export const LogRow: FC<LogRowProps> = ({
         className={clsx(
           "group/row w-full px-3 py-1.5 text-left font-mono text-xs md:px-4",
           "flex flex-col gap-0.5",
-          "md:grid md:grid-cols-[1rem_6.5rem_4.5rem_3.75rem_minmax(0,11rem)_minmax(0,1fr)] md:items-baseline md:gap-3",
+          "md:grid md:grid-cols-[1rem_6.5rem_6.75rem_3.75rem_minmax(0,11rem)_minmax(0,1fr)] md:items-baseline md:gap-3",
           "transition-colors outline-none hover:bg-muted/60",
           "focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset",
           isExpanded && "bg-muted/60",
@@ -80,6 +82,13 @@ export const LogRow: FC<LogRowProps> = ({
           </time>
           <span className={clsx("shrink-0 truncate font-sans font-medium")}>
             {getLogServiceLabel(entry)}
+            {deviceId && (
+              <span
+                className={clsx("font-mono font-normal text-muted-foreground")}
+              >
+                {` · ${deviceId}`}
+              </span>
+            )}
           </span>
           <LogLevelLabel
             level={entry.level}

@@ -11,6 +11,7 @@ import {
   formatLogTime,
   getLogServiceLabel,
 } from "../../Logs.utils";
+import { LOG_SERVICE_LABELS } from "../../Logs.constants";
 import { LogLevelLabel } from "../LogLevelLabel";
 
 const PRE_CLASS_NAME = clsx(
@@ -35,7 +36,7 @@ const Field: FC<{ label: string; children: ReactNode }> = ({
   children,
 }) => (
   <div className={clsx("flex min-w-0 gap-3")}>
-    <dt className={clsx("w-16 shrink-0 text-muted-foreground")}>{label}</dt>
+    <dt className={clsx("w-20 shrink-0 text-muted-foreground")}>{label}</dt>
     <dd className={clsx("min-w-0 font-mono break-all")}>{children}</dd>
   </div>
 );
@@ -52,6 +53,9 @@ export const LogDetails: FC<{ entry: LogEntry }> = ({ entry }) => (
         <span className={clsx("text-muted-foreground")}>{entry.timestamp}</span>
       </Field>
       <Field label="Service">{getLogServiceLabel(entry)}</Field>
+      {entry.origin === "browser" && (
+        <Field label="Received by">{LOG_SERVICE_LABELS[entry.service]}</Field>
+      )}
       <Field label="Level">
         <LogLevelLabel level={entry.level} />
       </Field>

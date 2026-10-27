@@ -68,6 +68,18 @@ export function formatLogDividerTime(timestamp: string) {
   return Number.isNaN(date.getTime()) ? timestamp : format(date, "HH:mm:ss");
 }
 
+/**
+ * A browser line's device, short enough for a row: the first 6 characters
+ * of its id (`a1b2c3`). `undefined` for server lines.
+ */
+export function getShortDeviceId(entry: LogEntry) {
+  if (entry.origin !== "browser" || !entry.deviceId) {
+    return undefined;
+  }
+
+  return entry.deviceId.replace(/^device-/, "").slice(0, 6);
+}
+
 /** The service chip label of an entry: browser lines have their own. */
 export function getLogServiceLabel(entry: LogEntry) {
   return LOG_SERVICE_LABELS[getLogFilterService(entry)];

@@ -190,6 +190,34 @@ describe("Logs page", () => {
     expect(screen.getByRole("button", { name: "Copy line" })).toBeDefined();
   });
 
+  test("a browser line shows its device, and which server received it", async () => {
+    const { socket } = await openLogs();
+    socket.history([
+      logEntry({
+        service: "shutter",
+        origin: "browser",
+        deviceId: "a1b2c3d4-0000-4000-8000-000000000000",
+        runId: 3,
+        level: "error",
+        source: "web.browser",
+        event: "window-error",
+      }),
+    ]);
+    const line = await screen.findByRole("button", { name: /window-error/ });
+
+    expect(line.textContent).toContain("Browser · a1b2c3");
+
+    fireEvent.click(line);
+
+    const details = within(line.parentElement!);
+    expect(details.getByText("Received by").nextSibling?.textContent).toBe(
+      "Shutter",
+    );
+    expect(details.getByText("Device").nextSibling?.textContent).toBe(
+      "a1b2c3d4-0000-4000-8000-000000000000",
+    );
+  });
+
   test("plain-text lines show their raw text", async () => {
     const { socket } = await openLogs();
     socket.history([
