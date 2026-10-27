@@ -24,6 +24,12 @@ export const BOOTH_BIN = "/usr/local/bin/booth";
 /** Restarts the booth when the network gives it a new address. */
 export const NETWORK_DISPATCHER_PATH =
   "/etc/NetworkManager/dispatcher.d/90-ditherbooth";
+/** PM2 writes one combined `<process>.log` per process here (pm2.config.js). */
+export const PM2_LOG_RELATIVE = "logs/pm2";
+/** Rotates the PM2 log folder; logrotate runs it once a day. */
+export const LOGROTATE_RULE_PATH = "/etc/logrotate.d/ditherbooth";
+/** Members read the whole system journal; the admin's Logs page needs it. */
+export const JOURNAL_GROUP = "systemd-journal";
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";
 export const SERVICE_HOME = `/home/${SERVICE_USER}`;
 // Where the official installer puts Bun for the service user. The systemd unit

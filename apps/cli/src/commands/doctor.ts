@@ -14,6 +14,7 @@ import {
   buildPolkitRule,
   readAvahiHostName,
 } from "#commands/network";
+import { buildLogrotateRule } from "#commands/service";
 import { printCommandBanner } from "#internal/banner";
 import {
   CAPTIVE_DNSMASQ_PATH,
@@ -22,10 +23,13 @@ import {
 import {
   ENGINE_DATA_RELATIVE,
   ENGINE_DB_RELATIVE,
+  JOURNAL_GROUP,
+  LOGROTATE_RULE_PATH,
   NETWORK_SERVICE_NAME,
   PM2_PROCESS_NAMES,
   SERVICE_BUN,
   SERVICE_NAME,
+  SERVICE_USER,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
 } from "#internal/config";
@@ -42,7 +46,7 @@ import { fail, heading, ok, plain, runBoothTask, warn } from "#internal/ui";
 
 type CheckStatus = "pass" | "warn" | "fail";
 
-type CheckResult = {
+export type CheckResult = {
   status: CheckStatus;
   label: string;
   detail?: string;
@@ -326,6 +330,71 @@ async function checkMdnsName(results: CheckResult[]): Promise<void> {
   }
 }
 
+/** `installed` is the rule file's content, undefined when it is missing. */
+export function logRotationCheck(
+  installed: string | undefined,
+  repoRoot: string,
+): CheckResult {
+  if (installed === undefined) {
+    return {
+      status: "fail",
+      label: "PM2 logs not rotated",
+      detail: "They grow until the disk fills. Run `sudo booth service`.",
+    };
+  }
+
+  if (installed !== buildLogrotateRule(repoRoot)) {
+    return {
+      status: "warn",
+      label: `Log rotation rule out of date (${LOGROTATE_RULE_PATH})`,
+      detail: "Run `sudo booth service`.",
+    };
+  }
+
+  return { status: "pass", label: "PM2 logs rotated daily or at 20 MB" };
+}
+
+/** `groups` is `id -nG <service user>`, undefined when it failed. */
+export function journalGroupCheck(groups: string | undefined): CheckResult {
+  if (groups === undefined) {
+    return { status: "warn", label: `Could not read ${SERVICE_USER}'s groups` };
+  }
+
+  if (groups.trim().split(/\s+/).includes(JOURNAL_GROUP)) {
+    return {
+      status: "pass",
+      label: `${SERVICE_USER} can read the system journal`,
+    };
+  }
+
+  return {
+    status: "warn",
+    label: `${SERVICE_USER} not in ${JOURNAL_GROUP}`,
+    detail: "The Logs page shows no system lines. Run `sudo booth service`.",
+  };
+}
+
+async function checkLogRotation(
+  results: CheckResult[],
+  repoRoot: string,
+): Promise<void> {
+  const installed = await Bun.file(LOGROTATE_RULE_PATH)
+    .text()
+    .catch(() => undefined);
+
+  results.push(logRotationCheck(installed, repoRoot));
+}
+
+async function checkJournalGroup(results: CheckResult[]): Promise<void> {
+  const groups = await capture(["id", "-nG", SERVICE_USER], {
+    allowFailure: true,
+  });
+
+  results.push(
+    journalGroupCheck(groups.exitCode === 0 ? groups.stdout : undefined),
+  );
+}
+
 function printResults(results: CheckResult[]): void {
   for (const result of results) {
     const detail = result.detail ? ` — ${result.detail}` : "";
@@ -371,6 +440,8 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkCertIp(results, repoRoot);
   await checkServiceEnabled(results);
   await checkPm2Processes(results, repoRoot);
+  await checkLogRotation(results, repoRoot);
+  await checkJournalGroup(results);
 
   const lanIp = (await detectLanIp()) ?? "127.0.0.1";
   await checkHealthz(
