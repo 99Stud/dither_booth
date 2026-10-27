@@ -35,7 +35,7 @@ Every command is idempotent: re-running it on a provisioned booth changes only w
 | `qr`                 |      | Show the QR that connects an iPad (the same as the setup ticket's)                                                                                                                  |
 | `network setup`      | yes  | Create the booth Wi-Fi, its captive page DNS, the polkit rule, and `ditherbooth-network.service`. Re-run after updates when `doctor` says it's out of date                          |
 | `network watch`      | yes  | The network watch loop. Run by `ditherbooth-network.service`; not for interactive use                                                                                               |
-| `service`            | yes  | Install and enable `ditherbooth.service`, the NetworkManager dispatcher hook and the PM2 log rotation rule; add `pi` to `systemd-journal` (restarts a running service when it does) |
+| `service`            | yes  | Install and enable `ditherbooth.service`, the NetworkManager dispatcher hook, the PM2 log rotation rule and an hourly `logrotate.timer`; add `pi` to `systemd-journal` (restarts a running service when it does) |
 | `doctor`             |      | Health checks. Exit code 1 if any check fails. See [Health checks](/docs/maintenance/health-checks/)                                                                                |
 | `complete <shell>`   |      | Print shell completions (`bash`, `zsh`, `fish`, `powershell`)                                                                                                                       |
 

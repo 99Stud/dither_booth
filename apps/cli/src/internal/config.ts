@@ -26,8 +26,13 @@ export const NETWORK_DISPATCHER_PATH =
   "/etc/NetworkManager/dispatcher.d/90-ditherbooth";
 /** PM2 writes one combined `<process>.log` per process here (pm2.config.js). */
 export const PM2_LOG_RELATIVE = "logs/pm2";
-/** Rotates the PM2 log folder; logrotate runs it once a day. */
+/** Rotates the PM2 log folder; logrotate runs it every hour (drop-in below). */
 export const LOGROTATE_RULE_PATH = "/etc/logrotate.d/ditherbooth";
+/** A PM2 log past this many MB is rotated at logrotate's next run. */
+export const LOGROTATE_MAX_SIZE_MB = 20;
+/** Makes Debian's daily logrotate.timer hourly, so the size cap holds. */
+export const LOGROTATE_TIMER_DROP_IN_PATH =
+  "/etc/systemd/system/logrotate.timer.d/ditherbooth.conf";
 /** Members read the whole system journal; the admin's Logs page needs it. */
 export const JOURNAL_GROUP = "systemd-journal";
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";

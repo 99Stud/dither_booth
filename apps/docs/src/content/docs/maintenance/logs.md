@@ -9,7 +9,7 @@ sidebar:
 
 | Source                                                    | Where                                                                           | Read with                                   |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------- |
-| Engine, Shutter server, Admin server                      | PM2 log files in `/opt/dither-booth/logs/pm2/` (`<process>.log`), rotated daily | `tail -f` or PM2, below                     |
+| Engine, Shutter server, Admin server                      | PM2 log files in `/opt/dither-booth/logs/pm2/` (`<process>.log`), rotated daily or past 20 MB | `tail -f` or PM2, below                     |
 | Browsers: the Shutter on the iPad, admin on staff phones  | Warnings and errors only, in the log of the server that served the page         | [Browser reports](#browser-reports), below  |
 | `ditherbooth.service` (start, stop, certificate re-issue) | journald                                                                        | `journalctl -u ditherbooth.service`         |
 | Network watch (booth Wi-Fi, mDNS name)                    | journald                                                                        | `journalctl -u ditherbooth-network.service` |
@@ -160,11 +160,11 @@ How the route checks reports: [Access control → Browser reports](/docs/archite
 
 logrotate rotates the three files, with the rule `booth service` installs at `/etc/logrotate.d/ditherbooth`:
 
-- **When:** once a day, and also when a file is over **20 MB** at logrotate's run. Raspberry Pi OS runs logrotate once a day (`logrotate.timer`), so a file can pass 20 MB before that run.
+- **When:** once a day, and also when a file is over **20 MB**, checked hourly. Raspberry Pi OS runs logrotate once a day (`logrotate.timer`); `booth service` makes it hourly with `/etc/systemd/system/logrotate.timer.d/ditherbooth.conf`, so a file passes 20 MB by at most an hour's output.
 - **How many:** the last **7** rotated files per process, gzip-compressed (`dither-booth-engine.log.1.gz` … `.7.gz`). Older ones are deleted.
 - **How:** copy, then truncate in place (`copytruncate`), as `pi`. PM2 keeps writing to the same file, with no restart. A line written during the copy can be lost.
 
-Rotation works offline, with the Pi's own logrotate. `booth doctor` fails when the rule is missing. To rotate now, for example on a full disk:
+Rotation works offline, with the Pi's own logrotate. `booth doctor` fails when the rule is missing, and warns when logrotate isn't hourly. To rotate now, for example on a full disk:
 
 ```bash
 sudo logrotate --force /etc/logrotate.d/ditherbooth

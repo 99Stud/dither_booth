@@ -35,7 +35,7 @@ Over SSH, `booth doctor` checks the whole Pi, in this order:
 | Cert IP                               | No TLS manifest, or the certificate was issued for another IP (warn)                  | `booth cert` (or wait for the next service start)                              |
 | `ditherbooth.service` enabled         | Not enabled                                                                           | `sudo booth service`                                                           |
 | PM2 processes                         | A process isn't `online`, or the service isn't running                                | See [Logs](/docs/maintenance/logs/), then `sudo systemctl restart ditherbooth` |
-| PM2 logs rotated                      | No `/etc/logrotate.d/ditherbooth`, or it's older than the software (warn)             | `sudo booth service`                                                           |
+| PM2 logs rotated                      | No `/etc/logrotate.d/ditherbooth`, or it's older than the software (warn), or logrotate isn't hourly (warn) | `sudo booth service`                                                           |
 | `pi` can read the system journal      | `pi` isn't in `systemd-journal` (warn)                                                | `sudo booth service`                                                           |
 | engine, shutter, admin `healthz`      | Unreachable or invalid payload                                                        | Same as above                                                                  |
 | Setup page                            | `http://<ip>:3003/healthz` unreachable                                                | It's served by the Shutter: restart the service                                |
