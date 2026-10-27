@@ -12,8 +12,12 @@ export const getConsoleMethod = (level: KioskLogLevel) => {
   return console.info;
 };
 
+export const isBrowserRuntime = () => {
+  return typeof window !== "undefined";
+};
+
 export const getBrowserLoggingContext = () => {
-  if (typeof window === "undefined") {
+  if (!isBrowserRuntime()) {
     return null;
   }
 

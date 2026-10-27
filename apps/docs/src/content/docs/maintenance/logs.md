@@ -32,10 +32,47 @@ Or read the files directly:
 
 ```bash
 tail -f /opt/dither-booth/logs/pm2/dither-booth-engine-out.log
-grep '"error"' /opt/dither-booth/logs/pm2/dither-booth-engine-*.log | tail
 ```
 
-Every line is timestamped (`time: true` in `pm2.config.js`).
+Info events go to `-out.log`; warnings and errors go to `-err.log`.
+
+## Line format
+
+Each log event is **one line**: PM2's timestamp (`time: true` in `pm2.config.js`), the `[kiosk]` prefix, then the event as compact JSON.
+
+```text
+2026-10-27T14:56:33: [kiosk] {"loggedAt":"2026-10-27T14:56:33.510Z","level":"error","source":"engine.device-setup","event":"wifi-join-failed","details":{"ssid":"BoothNet","password":"[redacted]"},"error":{"name":"Error","message":"Secrets were required","stack":"Error: Secrets were required\n    at …"}}
+```
+
+| Field      | What it holds                                                    |
+| ---------- | ---------------------------------------------------------------- |
+| `loggedAt` | When the app logged it, ISO time in UTC                          |
+| `level`    | `info`, `warn` or `error`                                        |
+| `source`   | The part of the app that logged it, e.g. `engine.printer`        |
+| `event`    | The event name, e.g. `printer-status-changed`                    |
+| `details`  | Optional. The event's details                                    |
+| `error`    | Optional. `name`, `message`, `cause` and `stack` (one JSON line) |
+
+Before a line is written:
+
+- **Secrets are redacted.** A detail whose key contains the word `password`, `passphrase`, `psk`, `secret`, `token` or `pin` (any case, at any depth: `wifiPassword`, `darkroom_pin`, `accessToken`) shows `"[redacted]"`.
+- **Odd values are made safe.** Big integers become strings, byte arrays (such as a printer's `raw` status packet) become arrays of numbers, and a reference back to a parent object becomes `"[circular]"`. If the details still can't be written, they become `"[unserializable: <reason>]"` and the event is kept.
+
+Lines without the `[kiosk]` prefix are plain text from elsewhere: a crash trace, Bun or a library. Read those as they are. Events written before this format spread one event over many lines, each with its own timestamp.
+
+Pages in the browser (the Shutter and admin) log the same events as objects to the browser's console, not as JSON lines.
+
+### Grep recipes
+
+Each event is one line, so `grep` always returns whole events:
+
+```bash
+cd /opt/dither-booth/logs/pm2
+grep '"level":"error"' dither-booth-*-err.log | tail                     # recent errors, every process
+grep '"source":"engine.printer"' dither-booth-engine-*.log | tail        # one part of the engine
+grep '"event":"printer-status-changed"' dither-booth-engine-out.log | tail -5
+grep -h '\[kiosk\]' dither-booth-engine-out.log | sed 's/^.*\[kiosk\] //' | tail -1 # bare JSON, ready to paste
+```
 
 ## Log events
 
@@ -52,7 +89,7 @@ The apps log structured events: a level, a **source** and an **event name**, plu
 | `engine.event`        | `event-kit-unknown`: an event names a kit this release doesn't ship; the default kit prints instead                                                                                                                                                                                               |
 | `engine.lottery`      | draw and lottery-ticket failures                                                                                                                                                                                                                                                                  |
 
-To follow one thing across a visit, grep by source: `grep engine.printer …-out.log`.
+To follow one thing across a visit, grep by source: `grep '"source":"engine.printer"' dither-booth-engine-*.log`.
 
 ## Process restarts
 
