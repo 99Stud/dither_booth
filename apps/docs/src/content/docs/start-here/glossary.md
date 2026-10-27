@@ -132,6 +132,10 @@ _Avoid_: receipt (on its own, in staff-facing text).
 **Ticket orientation**: which end of a ticket leaves the printer first: **Bottom first** (the default: printed turned, so the ticket reads the right way up in the guest's hand) or **Top first**. Set in admin's **Settings → Printing**. It turns the photo receipt and the lottery ticket; setup and Wi-Fi tickets always print top first.
 _Avoid_: upside down, rotation (in staff-facing text; rotation is a print setting that turns the photo only).
 
+## Logs
+
+**Browser report**: a warning or error logged by a page in a browser (the Shutter on the iPad, admin on a staff phone) and sent to the server that served it, which writes it to its log marked as coming from the browser, with the device's id.
+
 ## Booth state
 
 **Maintenance**: the booth is closed to guests. They see “be right back” and can't start a visit, while the Darkroom still opens. A visit already under way finishes first.
