@@ -60,6 +60,32 @@ describe("matchesLogFilter", () => {
     expect(matchesLogFilter(entry(), { text: "lottery" })).toBe(false);
   });
 
+  it("lets a server's restart through every filter but the services", () => {
+    const restart = entry({
+      source: "engine.server",
+      event: "server-started",
+      raw: '[kiosk] {"event":"server-started"}',
+    });
+    const narrow = {
+      levels: ["warn" as const, "error" as const],
+      source: "engine.printer",
+      text: "paper",
+    };
+
+    expect(matchesLogFilter(restart, narrow)).toBe(true);
+    expect(
+      matchesLogFilter(restart, { ...narrow, services: ["engine"] }),
+    ).toBe(true);
+    expect(
+      matchesLogFilter(restart, { ...narrow, services: ["shutter"] }),
+    ).toBe(false);
+    expect(
+      matchesLogFilter(entry({ event: "server-started", origin: "browser" }), {
+        levels: ["error"],
+      }),
+    ).toBe(false);
+  });
+
   it("needs every part of the filter to match", () => {
     expect(
       matchesLogFilter(entry({ level: "error" }), {

@@ -28,9 +28,6 @@ export const LOGS_SEARCH_DEBOUNCE_MS = 250;
  */
 export const LOGS_FIRST_ITEM_INDEX = 1_000_000;
 
-/** A server's start event, shown as a restart divider. */
-export const LOGS_RESTART_EVENT = "server-started";
-
 export const LOG_SERVICE_LABELS: Record<LogFilterService, string> = {
   engine: "Engine",
   shutter: "Shutter",

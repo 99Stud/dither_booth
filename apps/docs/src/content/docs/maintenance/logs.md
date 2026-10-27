@@ -43,7 +43,7 @@ The page is at `https://<booth>.local:3002/logs`. Its filters are in the address
 - **The badge** top right: **Live** (new lines arrive), **Paused**, **Reconnecting** or **Offline**. Offline shows a banner with **Retry now**.
 - **Each line:** time to the millisecond, service, level (**Error**, **Warn**, **Info**, with an icon), source, event, and a preview of its details. Error lines are tinted. Lines that aren't events (a crash trace) show as they are.
 - **Click a line** (or Enter) to open it: its details, the error and its stack, the raw line, **Copy JSON** and **Copy line**. On a phone, the line opens in a sheet.
-- **Dividers** mark moments: “Engine restarted · 14:02:15”, “Admin log rotated · …”, “Connection lost”, then “Reconnected · no lines missed”, or “Reconnected · some lines may be missing” when a log was rotated in between.
+- **Dividers** mark moments: “Engine restarted · 14:02:15”, “Admin log rotated · …”, “Connection lost”, then “Reconnected · no lines missed”, or “Reconnected · some lines may be missing” when a log was rotated in between. Restart dividers show whatever the level, source or search, so the printer's **View logs** shows Engine restarts too. Only hiding the service hides them.
 
 ### Filtering
 

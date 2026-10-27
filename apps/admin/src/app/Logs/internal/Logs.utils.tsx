@@ -9,11 +9,15 @@ import type {
 
 import { notify } from "#lib/feedback/notify";
 import { LOG_FILTER_SERVICES, LOG_LEVELS } from "#lib/logs/logs.constants";
-import { getLogFilterService, matchesLogFilter } from "#lib/logs/logs.utils";
+import {
+  getLogFilterService,
+  isRestartEntry,
+  matchesLogFilter,
+} from "#lib/logs/logs.utils";
 
 import type { LogsTimelineItem } from "./Logs.types";
 
-import { LOGS_RESTART_EVENT, LOG_SERVICE_LABELS } from "./Logs.constants";
+import { LOG_SERVICE_LABELS } from "./Logs.constants";
 
 /** Whether a row shows under `filter`. Reconnect dividers always do. */
 export function isLogsItemVisible(item: LogsTimelineItem, filter: LogFilter) {
@@ -61,11 +65,6 @@ export function formatLogTime(timestamp: string) {
 export function formatLogDividerTime(timestamp: string) {
   const date = new Date(timestamp);
   return Number.isNaN(date.getTime()) ? timestamp : format(date, "HH:mm:ss");
-}
-
-/** A server's start, shown as a restart divider instead of a line. */
-export function isRestartEntry(entry: LogEntry) {
-  return entry.event === LOGS_RESTART_EVENT && entry.origin === "server";
 }
 
 /** The service chip label of an entry: browser lines have their own. */
@@ -154,6 +153,8 @@ export function getLogCounts(
     const { entry } = item;
 
     if (entry.source) sources.add(entry.source);
+    // A restart is a divider, not a line: it isn't counted.
+    if (isRestartEntry(entry)) continue;
     if (entry.level === "error" && matchesLogFilter(entry, withoutServices)) {
       errorsByService[getLogFilterService(entry)] += 1;
     }

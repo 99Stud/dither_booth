@@ -226,6 +226,28 @@ describe("Logs page", () => {
     ).toBeDefined();
   });
 
+  test("restart dividers show through the printer's View logs preset", async () => {
+    const { socket } = await openLogs(
+      "/logs?source=engine.printer&levels=warn,error",
+    );
+    socket.history([]);
+
+    socket.append([
+      logEntry({
+        service: "engine",
+        source: "engine.server",
+        event: "server-started",
+        timestamp: "2026-10-27T14:02:15.000Z",
+      }),
+      logEntry({ service: "engine", source: "engine.server", event: "noise" }),
+    ]);
+
+    expect(
+      await screen.findByRole("separator", { name: /^Engine restarted · / }),
+    ).toBeDefined();
+    expect(screen.queryByText("noise")).toBeNull();
+  });
+
   test("says when the booth has no logs yet", async () => {
     const { socket } = await openLogs();
     expect(screen.getByLabelText("Loading logs")).toBeDefined();
