@@ -42,7 +42,7 @@ import { EventPrizesTable } from "./internal/components/EventPrizesTable";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";
 import { EventTicketItemsCard } from "./internal/components/EventTicketItemsCard";
-import { toEventTimes } from "./internal/Event.constants";
+import { toStartEnd } from "./internal/Event.constants";
 import { useEventQueries } from "./internal/hooks/useEventQueries";
 
 export const Event = () => {
@@ -71,6 +71,8 @@ export const Event = () => {
   const [isPrizeDialogOpen, setIsPrizeDialogOpen] = useState(false);
   const [editingPrize, setEditingPrize] = useState<EventPrize | null>(null);
   const [restockPrize, setRestockPrize] = useState<EventPrize | null>(null);
+  // A failed print's ticket, looked up in Draws from the Overview.
+  const [lookedUpTicketRef, setLookedUpTicketRef] = useState<string>();
 
   const event = currentEventQuery.data ?? null;
   const isLoading = currentEventQuery.isLoading;
@@ -176,6 +178,10 @@ export const Event = () => {
                 }}
                 isTurningOnLottery={updateLotterySettingsMutation.isPending}
                 onEditDetails={() => setIsDetailsOpen(true)}
+                onLookUpTicket={(ticketRef) => {
+                  setLookedUpTicketRef(ticketRef);
+                  setTab("draws");
+                }}
               />
             </TabsContent>
             <TabsContent value="kit" className={clsx("mt-0")}>
@@ -231,7 +237,10 @@ export const Event = () => {
               />
             </TabsContent>
             <TabsContent value="draws" className={clsx("mt-0")}>
-              <EventDrawsTable />
+              <EventDrawsTable
+                key={lookedUpTicketRef ?? "latest"}
+                initialTicketRef={lookedUpTicketRef}
+              />
             </TabsContent>
           </>
         )}
@@ -244,7 +253,7 @@ export const Event = () => {
           isPending={updateEventMutation.isPending}
           onOpenChange={setIsDetailsOpen}
           onSubmit={async (values) => {
-            await updateEventMutation.mutateAsync(toEventTimes(values));
+            await updateEventMutation.mutateAsync(toStartEnd(values));
           }}
         />
       )}
@@ -253,7 +262,7 @@ export const Event = () => {
         isPending={createEventMutation.isPending}
         onOpenChange={setIsCreateOpen}
         onSubmit={async (values) => {
-          await createEventMutation.mutateAsync(toEventTimes(values));
+          await createEventMutation.mutateAsync(toStartEnd(values));
         }}
       />
 
@@ -265,7 +274,7 @@ export const Event = () => {
         submitLabel="Replace event"
         onOpenChange={setIsReplaceFormOpen}
         onSubmit={async (values) => {
-          await replaceEventMutation.mutateAsync(toEventTimes(values));
+          await replaceEventMutation.mutateAsync(toStartEnd(values));
           setTab("overview");
         }}
       />

@@ -89,7 +89,7 @@ Events (`campaign`) are **never deleted**.
 - Everything reads and draws through the active campaign: `getCurrentEvent`, `listDraws`, the receipt settings, the draw, `getLotteryStatus`. A lottery is drawn against only while it belongs to the active campaign **and** is enabled.
 - Every **visit** inserts a `draw` row, which allocates its ticket number. It records `campaign_id` (the event active then, null if none) and `lottery_id`, set only while that event's lottery was enabled. Only rows with a `lottery_id` are **draws**: `listDraws` lists the active event's draws, and a lookup by ticket number also finds a lottery-off visit, as `outcome: "no-lottery"`. `getLotteryStatus` counts draws the same way.
 - Every visit also has a `visit` row ([Visits](#visits)).
-- `starts_at` and `ends_at` are the event's **start and end**, set by staff in admin (`createEvent`, `updateEvent`) and owned by the booth ([0005](/docs/decisions/0005-event-start-and-end-on-the-booth/)). Either may be null; `campaign_times_check` refuses an end at or before the start. They only decide which visits count in the stats; the booth runs, draws and prints the same outside them.
+- `starts_at` and `ends_at` are the event's **start and end**, set by staff in admin (`createEvent`, `updateEvent`) and owned by the booth ([0005](/docs/decisions/0005-event-start-and-end-on-the-booth/)). Either may be null; `campaign_start_end_check` refuses an end at or before the start. They only decide which visits count in the stats; the booth runs, draws and prints the same outside them.
 - Every event write (campaign, lottery, prizes, stock) moves `updated_at`.
 - Ticket numbers (`ticket_ref`) stay **unique across all events**, archived included, so one always points at one visit.
 

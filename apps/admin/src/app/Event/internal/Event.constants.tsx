@@ -24,16 +24,12 @@ import type {
   UpdateEventFormValues,
 } from "./Event.types";
 
-import {
-  fromTimeInput,
-  isEndAfterStart,
-  toTimeInput,
-} from "./event-times.utils";
+import { fromTimeInput, isEndAfterStart, toTimeInput } from "./start-end.utils";
 
 export const EVENT_LOG_SOURCE = "admin.event";
 
 /** The date-time fields hold local `2026-10-31T19:00`, or "" for open. */
-const EVENT_TIMES_FORM_FIELDS = {
+const START_END_FORM_FIELDS = {
   startsAt: z.string(),
   endsAt: z.string(),
 };
@@ -51,14 +47,14 @@ export const CREATE_EVENT_FORM_SCHEMA = z
     winCooldownMinutes: z.number().int().min(0),
     printLoserTicket: z.boolean(),
     enabled: z.boolean(),
-    ...EVENT_TIMES_FORM_FIELDS,
+    ...START_END_FORM_FIELDS,
   })
   .refine(isEndAfterStart, END_AFTER_START);
 
 export const UPDATE_EVENT_FORM_SCHEMA = z
   .object({
     name: z.string().trim().min(1).max(120),
-    ...EVENT_TIMES_FORM_FIELDS,
+    ...START_END_FORM_FIELDS,
   })
   .refine(isEndAfterStart, END_AFTER_START);
 
@@ -151,8 +147,8 @@ export const getUpdateEventFormValues = (event: {
   endsAt: toTimeInput(event.campaign.endsAt),
 });
 
-/** The form's times as the engine takes them: ISO, or null when empty. */
-export const toEventTimes = <T extends { startsAt: string; endsAt: string }>(
+/** The form's start and end as the engine takes them: ISO, or null when empty. */
+export const toStartEnd = <T extends { startsAt: string; endsAt: string }>(
   values: T,
 ) => ({
   ...values,

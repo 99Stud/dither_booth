@@ -7,6 +7,7 @@ import {
   formatHour,
   formatHourRange,
   formatTimeAtBooth,
+  isCurrentHour,
   type OverviewEvent,
   summarizeOverview,
 } from "./overview.utils";
@@ -70,9 +71,9 @@ const prize = (overrides: Partial<OddsPrize> & { id: string }): OddsPrize => ({
 const event = (
   overrides: Partial<OverviewEvent["lottery"]> = {},
   prizes: OddsPrize[] = [prize({ id: "Sticker" })],
-  times: OverviewEvent["campaign"] = { startsAt: iso(18), endsAt: null },
+  startEnd: OverviewEvent["campaign"] = { startsAt: iso(18), endsAt: null },
 ): OverviewEvent => ({
-  campaign: times,
+  campaign: startEnd,
   lottery: {
     enabled: true,
     noWinWeight: 50,
@@ -229,11 +230,50 @@ describe("summarizeOverview: the event's start and end", () => {
 
     expect(attention).toEqual([
       {
-        kind: "times",
+        kind: "start-end",
         text: "Set when the event starts and ends, so setup tests don't count.",
         target: "details",
       },
     ]);
+  });
+});
+
+describe("isCurrentHour", () => {
+  test("is the hour that holds now, not the last one shown", () => {
+    expect(isCurrentHour(iso(23), at(23, 30))).toBe(true);
+    expect(isCurrentHour(iso(22), at(23, 30))).toBe(false);
+    // The event ended at 22:30: its last hour is over at 23:30.
+    expect(isCurrentHour(iso(22), at(23))).toBe(false);
+  });
+});
+
+describe("summarizeOverview: the event's status", () => {
+  test("is upcoming, on now or ended once it has a start or an end", () => {
+    const upcoming = summarize({
+      visitStats: stats(),
+      overviewEvent: event({}, undefined, {
+        startsAt: iso(23, 30),
+        endsAt: null,
+      }),
+    });
+    expect(upcoming.status).toBe("upcoming");
+
+    expect(summarize().status).toBe("on");
+
+    const ended = summarize({
+      overviewEvent: event({}, undefined, {
+        startsAt: iso(18),
+        endsAt: iso(22, 30),
+      }),
+    });
+    expect(ended.status).toBe("ended");
+  });
+
+  test("has none without a start or an end", () => {
+    const { status } = summarize({
+      overviewEvent: event({}, undefined, { startsAt: null, endsAt: null }),
+    });
+    expect(status).toBeNull();
   });
 });
 
@@ -295,7 +335,8 @@ describe("summarizeOverview: needs a look", () => {
       {
         kind: "failed-print",
         text: "Ticket 000123 didn't print at 21:42.",
-        target: "control-center",
+        target: "draws",
+        ticketRef: "000123",
       },
       {
         kind: "failed-print",

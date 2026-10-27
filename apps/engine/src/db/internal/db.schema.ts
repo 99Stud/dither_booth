@@ -121,9 +121,10 @@ export const campaignTable = sqliteTable(
       .notNull()
       .default("active"),
     /**
-     * When guests are expected, set by staff in admin. Visits outside these
-     * times are still recorded but not counted in the event's stats (setup
-     * tests, packing up). Null: open on that side. The booth owns them.
+     * The event's start and end: when guests are expected, set by staff in
+     * admin. Visits outside are still recorded but not counted in the
+     * event's stats (setup tests, packing up). Null: open on that side. The
+     * booth owns them.
      */
     startsAt: integer("starts_at", { mode: "timestamp" }),
     endsAt: integer("ends_at", { mode: "timestamp" }),
@@ -141,7 +142,7 @@ export const campaignTable = sqliteTable(
       sql`${table.status} in (${sql.raw(CAMPAIGN_STATUS_CHECK_VALUES)})`,
     ),
     check(
-      "campaign_times_check",
+      "campaign_start_end_check",
       sql`${table.startsAt} is null or ${table.endsAt} is null or ${table.endsAt} > ${table.startsAt}`,
     ),
     uniqueIndex("campaign_single_active_idx")

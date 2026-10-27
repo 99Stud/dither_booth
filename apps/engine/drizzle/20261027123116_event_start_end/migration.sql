@@ -13,7 +13,7 @@ CREATE TABLE `__new_campaign` (
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	CONSTRAINT `campaign_lottery_id_lottery_id_fk` FOREIGN KEY (`lottery_id`) REFERENCES `lottery`(`id`),
 	CONSTRAINT "campaign_status_check" CHECK("status" in ('active', 'archived')),
-	CONSTRAINT "campaign_times_check" CHECK("starts_at" is null or "ends_at" is null or "ends_at" > "starts_at")
+	CONSTRAINT "campaign_start_end_check" CHECK("starts_at" is null or "ends_at" is null or "ends_at" > "starts_at")
 );
 --> statement-breakpoint
 INSERT INTO `__new_campaign`(`id`, `name`, `lottery_id`, `ticket_item_names`, `kit_id`, `kit_settings`, `status`, `created_at`, `updated_at`) SELECT `id`, `name`, `lottery_id`, `ticket_item_names`, `kit_id`, `kit_settings`, `status`, `created_at`, `updated_at` FROM `campaign`;--> statement-breakpoint

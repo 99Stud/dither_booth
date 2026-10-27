@@ -12,13 +12,13 @@ export const EVENT_LOG_SOURCE = "engine.event";
 const eventTimeSchema = z.iso.datetime({ offset: true }).nullable();
 
 /** An event can't end before it starts; either side may be left open. */
-const endsAfterStart = (times: {
+const endsAfterStart = (startEnd: {
   startsAt: string | null;
   endsAt: string | null;
 }) =>
-  times.startsAt === null ||
-  times.endsAt === null ||
-  new Date(times.endsAt) > new Date(times.startsAt);
+  startEnd.startsAt === null ||
+  startEnd.endsAt === null ||
+  new Date(startEnd.endsAt) > new Date(startEnd.startsAt);
 
 const END_BEFORE_START = {
   message: "The event has to end after it starts.",

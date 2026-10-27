@@ -1168,7 +1168,7 @@
     },
     {
       "table": "campaign",
-      "name": "campaign_times_check",
+      "name": "campaign_start_end_check",
       "value": "\"starts_at\" is null or \"ends_at\" is null or \"ends_at\" > \"starts_at\"",
       "entityType": "checks"
     },

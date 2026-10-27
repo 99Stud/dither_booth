@@ -29,7 +29,6 @@ import { rarityColor } from "#components/Misc/RarityBadge/index";
 
 import type { CurrentEvent, EventPrize } from "../../Event.types";
 
-import { formatEventTimes } from "../../event-times.utils";
 import { getRarityBreakdown, getRemainingPrizes } from "../../Event.utils";
 import { useOverviewSummary } from "../../hooks/useOverviewSummary";
 import { formatDuration } from "../../lottery-odds.utils";
@@ -38,7 +37,11 @@ import {
   formatWhen,
   type OverviewSummary,
 } from "../../overview.utils";
-import { EventGuestsCard } from "../EventGuestsCard/index";
+import { formatStartEnd } from "../../start-end.utils";
+import {
+  EventGuestsCard,
+  EventGuestsCardSkeleton,
+} from "../EventGuestsCard/index";
 
 interface EventOverviewPanelProps {
   event: CurrentEvent;
@@ -48,6 +51,7 @@ interface EventOverviewPanelProps {
   onTurnOnLottery: () => Promise<void>;
   isTurningOnLottery: boolean;
   onEditDetails: () => void;
+  onLookUpTicket: (ticketRef: string) => void;
 }
 
 /**
@@ -63,6 +67,7 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = ({
   onTurnOnLottery,
   isTurningOnLottery,
   onEditDetails,
+  onLookUpTicket,
 }) => {
   const overview = useOverviewSummary(event);
 
@@ -74,7 +79,7 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = ({
         className={clsx("flex flex-col gap-4 md:gap-6")}
       >
         <Skeleton className={clsx("h-14 w-full max-w-xl")} />
-        <Skeleton className={clsx("h-96 w-full rounded-xl")} />
+        <EventGuestsCardSkeleton />
       </div>
     );
   }
@@ -84,22 +89,23 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = ({
   return (
     <div className={clsx("flex flex-col gap-4 md:gap-6")}>
       <Headline
+        status={summary.status}
         headline={summary.headline}
-        times={formatEventTimes(event.campaign)}
+        startEnd={formatStartEnd(event.campaign)}
         firstVisitAt={stats.firstVisitAt}
         uncounted={stats.uncounted}
       />
-      {stats.visits > 0 && (
-        <EventGuestsCard
-          shareable={summary.shareable}
-          recentVisits={stats.recentVisits}
-          hourly={stats.hourly}
-        />
-      )}
+      {/* Always there, zeros included, so nothing moves at the first guest. */}
+      <EventGuestsCard
+        shareable={summary.shareable}
+        recentVisits={stats.recentVisits}
+        hourly={stats.hourly}
+      />
       <NeedsALookCard
         items={summary.attention}
         isHealthKnown={isHealthKnown}
         onEditDetails={onEditDetails}
+        onLookUpTicket={onLookUpTicket}
         onRestock={(prizeId) => {
           const prize = event.prizes.find((entry) => entry.id === prizeId);
           if (prize) onRestock(prize);
@@ -117,23 +123,58 @@ export const EventOverviewPanel: FC<EventOverviewPanelProps> = ({
   );
 };
 
+const STATUS_LABEL = {
+  upcoming: "Upcoming",
+  on: "On now",
+  ended: "Ended",
+} as const;
+
 /**
- * The event's start and end (or its first guest without them), one sentence
- * on how it's going, and the visits left uncounted.
+ * Where the event stands (a badge, once it has a start or an end), its
+ * start and end (or its first guest without them), one sentence on how it's
+ * going, and the visits left uncounted. The badge never says "Live": that is
+ * the lottery's word.
  */
 const Headline: FC<{
+  status: OverviewSummary["status"];
   headline: string;
-  times: string | null;
+  startEnd: string | null;
   firstVisitAt: string | null;
   uncounted: number;
-}> = ({ headline, times, firstVisitAt, uncounted }) => {
+}> = ({ status, headline, startEnd, firstVisitAt, uncounted }) => {
   const when =
-    times ??
+    startEnd ??
     (firstVisitAt && `First guest ${formatWhen(firstVisitAt, new Date())}`);
 
   return (
     <div className={clsx("flex flex-col gap-1")}>
-      {when && <p className={clsx("text-sm text-muted-foreground")}>{when}</p>}
+      {(status || when) && (
+        <p
+          className={clsx(
+            "flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground",
+          )}
+        >
+          {status && (
+            <span
+              className={clsx(
+                "inline-flex items-center gap-1.5 font-medium",
+                status === "on" && "text-foreground",
+              )}
+            >
+              <span
+                aria-hidden
+                className={clsx(
+                  "size-2 rounded-full",
+                  status === "on" ? "bg-success" : "bg-muted-foreground/50",
+                )}
+              />
+              {STATUS_LABEL[status]}
+            </span>
+          )}
+          {status && when && <span aria-hidden>·</span>}
+          {when}
+        </p>
+      )}
       <p className={clsx("text-lg font-medium text-balance")}>{headline}</p>
       {uncounted > 0 && (
         <p className={clsx("text-sm text-muted-foreground")}>
@@ -150,7 +191,7 @@ const ATTENTION_ICON = {
   "failed-print": Printer,
   booth: MonitorSmartphone,
   "prize-low": Gift,
-  times: CalendarClock,
+  "start-end": CalendarClock,
 } as const;
 
 /**
@@ -162,7 +203,8 @@ const NeedsALookCard: FC<{
   isHealthKnown: boolean;
   onRestock: (prizeId: string) => void;
   onEditDetails: () => void;
-}> = ({ items, isHealthKnown, onRestock, onEditDetails }) => (
+  onLookUpTicket: (ticketRef: string) => void;
+}> = ({ items, isHealthKnown, onRestock, onEditDetails, onLookUpTicket }) => (
   <Card>
     <CardHeader>
       <CardTitle className={clsx("flex items-center gap-2.5")}>
@@ -206,6 +248,15 @@ const NeedsALookCard: FC<{
                     onClick={onEditDetails}
                   >
                     Set start and end
+                  </Button>
+                ) : item.target === "draws" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onLookUpTicket(item.ticketRef)}
+                  >
+                    Look up ticket
                   </Button>
                 ) : item.target === "restock" ? (
                   <Button

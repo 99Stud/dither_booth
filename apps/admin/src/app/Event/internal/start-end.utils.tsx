@@ -6,7 +6,7 @@ const TIME_INPUT_FORMAT = "yyyy-MM-dd'T'HH:mm";
 /** Past midnight, an evening still reads as one when it is this short. */
 const ONE_EVENING_MS = 12 * 3_600_000;
 
-type EventTimes = { startsAt: string | null; endsAt: string | null };
+type StartEnd = { startsAt: string | null; endsAt: string | null };
 
 /** An event time as the date-time field shows it; empty when open. */
 export const toTimeInput = (iso: string | null): string =>
@@ -32,12 +32,12 @@ const time = (date: Date) => format(date, "HH:mm");
 /**
  * The event's start and end in one line: "Sat 31 Oct, 19:00 to 02:00" for one
  * evening, even past midnight; both days when it lasts longer; "From" or
- * "Until" with one side open; null without times.
+ * "Until" with one side open; null without either.
  */
-export const formatEventTimes = ({
+export const formatStartEnd = ({
   startsAt,
   endsAt,
-}: EventTimes): string | null => {
+}: StartEnd): string | null => {
   const start = startsAt === null ? null : new Date(startsAt);
   const end = endsAt === null ? null : new Date(endsAt);
 

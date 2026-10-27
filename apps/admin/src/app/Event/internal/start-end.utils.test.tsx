@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  formatEventTimes,
+  formatStartEnd,
   fromTimeInput,
   isEndAfterStart,
   toTimeInput,
-} from "./event-times.utils";
+} from "./start-end.utils";
 
 /** The booth's clock, local time. */
 const at = (day: number, h: number, m = 0) => new Date(2026, 9, day, h, m);
@@ -43,13 +43,13 @@ describe("isEndAfterStart", () => {
   });
 });
 
-describe("formatEventTimes", () => {
+describe("formatStartEnd", () => {
   test("says one evening once, even past midnight", () => {
     expect(
-      formatEventTimes({ startsAt: iso(31, 19), endsAt: iso(31, 23, 30) }),
+      formatStartEnd({ startsAt: iso(31, 19), endsAt: iso(31, 23, 30) }),
     ).toBe("Sat 31 Oct, 19:00 to 23:30");
     expect(
-      formatEventTimes({
+      formatStartEnd({
         startsAt: iso(31, 19),
         endsAt: new Date(2026, 10, 1, 2).toISOString(),
       }),
@@ -57,18 +57,18 @@ describe("formatEventTimes", () => {
   });
 
   test("names both days when it lasts longer", () => {
-    expect(
-      formatEventTimes({ startsAt: iso(30, 10), endsAt: iso(31, 18) }),
-    ).toBe("Fri 30 Oct, 10:00 to Sat 31 Oct, 18:00");
+    expect(formatStartEnd({ startsAt: iso(30, 10), endsAt: iso(31, 18) })).toBe(
+      "Fri 30 Oct, 10:00 to Sat 31 Oct, 18:00",
+    );
   });
 
-  test("says an open side as from or until, and nothing without times", () => {
-    expect(formatEventTimes({ startsAt: iso(31, 19), endsAt: null })).toBe(
+  test("says an open side as from or until, and nothing without either", () => {
+    expect(formatStartEnd({ startsAt: iso(31, 19), endsAt: null })).toBe(
       "From Sat 31 Oct, 19:00",
     );
-    expect(formatEventTimes({ startsAt: null, endsAt: iso(31, 23) })).toBe(
+    expect(formatStartEnd({ startsAt: null, endsAt: iso(31, 23) })).toBe(
       "Until Sat 31 Oct, 23:00",
     );
-    expect(formatEventTimes({ startsAt: null, endsAt: null })).toBeNull();
+    expect(formatStartEnd({ startsAt: null, endsAt: null })).toBeNull();
   });
 });

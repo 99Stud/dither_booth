@@ -161,7 +161,7 @@ describe("runSqliteMigrations", () => {
     ).toContain("prize_title");
   });
 
-  test("event_times keeps every event, with no times, and refuses an end before the start", () => {
+  test("event_start_end keeps every event, with no start or end, and refuses an end before the start", () => {
     const { sqlite, db } = openDb({ foreignKeys: true });
     // Up to and including 0023 (visit): the last schema without event times.
     runSqliteMigrations({ db, migrationsFolder: migrationsUpTo(24), sqlite });

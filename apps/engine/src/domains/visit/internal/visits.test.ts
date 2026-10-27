@@ -375,7 +375,7 @@ function setupWithLottery() {
 }
 
 /** Sets the active event's start and end, in seconds; null leaves it open. */
-function setTimes(db: DB, startsS: number | null, endsS: number | null) {
+function setStartEnd(db: DB, startsS: number | null, endsS: number | null) {
   db.update(campaignTable)
     .set({
       startsAt: startsS === null ? null : new Date(startsS * 1000),
@@ -555,7 +555,7 @@ describe("getVisitStatsForDb", () => {
 
   test("counts only visits between the event's start and end, and says how many it left out", () => {
     const { db } = setup();
-    setTimes(db, 19 * HOUR, 26 * HOUR);
+    setStartEnd(db, 19 * HOUR, 26 * HOUR);
     seedVisit(db, "setup-test", 18 * HOUR, { endReason: "failed" });
     seedVisit(db, "a", 20 * HOUR);
     seedVisit(db, "b", 21 * HOUR, { endReason: "abandoned" });
@@ -579,7 +579,7 @@ describe("getVisitStatsForDb", () => {
 
   test("runs the hours from the start, empty ones included, to now", () => {
     const { db } = setup();
-    setTimes(db, 19 * HOUR + 1_800, null);
+    setStartEnd(db, 19 * HOUR + 1_800, null);
     seedVisit(db, "a", 21 * HOUR);
 
     const { hourly } = statsAt(db, 22 * HOUR + 60);
@@ -590,7 +590,7 @@ describe("getVisitStatsForDb", () => {
 
   test("stops the hours at the end", () => {
     const { db } = setup();
-    setTimes(db, 19 * HOUR, 24 * HOUR);
+    setStartEnd(db, 19 * HOUR, 24 * HOUR);
     seedVisit(db, "a", 23 * HOUR + 600);
 
     const { hourly, recentVisits } = statsAt(db, 30 * HOUR);
@@ -605,7 +605,7 @@ describe("getVisitStatsForDb", () => {
 
   test("counts nothing before the start", () => {
     const { db } = setup();
-    setTimes(db, 30 * HOUR, null);
+    setStartEnd(db, 30 * HOUR, null);
     seedVisit(db, "setup-test", 19 * HOUR);
 
     expect(statsAt(db, 20 * HOUR)).toMatchObject({

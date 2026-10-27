@@ -42,6 +42,15 @@ export const formatHourRange = (iso: string): string => {
   return `${format(start, "HH:mm")} to ${format(start.getTime() + 3_600_000, "HH:mm")}`;
 };
 
+/**
+ * Whether the hour starting at `iso` holds `now`: the chart's "Now". After
+ * the event ended, its last hour shown is over, so none is.
+ */
+export const isCurrentHour = (iso: string, now: Date): boolean => {
+  const startMs = new Date(iso).getTime();
+  return startMs <= now.getTime() && now.getTime() < startMs + 3_600_000;
+};
+
 /** `at 21:42` today, `on Fri 30 Oct at 21:42` another day. */
 export const formatWhen = (iso: string, now: Date): string => {
   const at = new Date(iso);
@@ -61,7 +70,7 @@ export type OverviewMood =
   | "quiet"
   | "ended";
 
-/** What the Overview needs from the event: its times, lottery and prizes. */
+/** What the Overview needs from the event: its start and end, lottery and prizes. */
 export type OverviewEvent = {
   campaign: { startsAt: string | null; endsAt: string | null };
   lottery: {
@@ -75,11 +84,17 @@ export type OverviewEvent = {
 /** One thing staff should act on, in words, and where they act on it. */
 export type AttentionItem =
   | { kind: "failed-print" | "booth"; text: string; target: "control-center" }
-  | { kind: "times"; text: string; target: "details" }
+  | { kind: "failed-print"; text: string; target: "draws"; ticketRef: string }
+  | { kind: "start-end"; text: string; target: "details" }
   | { kind: "prize-low"; text: string; target: "restock"; prizeId: string };
 
 export type OverviewSummary = {
   mood: OverviewMood;
+  /**
+   * Where the event stands against its start and end, for the badge by its
+   * times; null while it has neither.
+   */
+  status: "upcoming" | "on" | "ended" | null;
   /** One sentence on how it's going, for anyone. */
   headline: string;
   /**
@@ -102,7 +117,7 @@ export type OverviewSummary = {
   };
   /**
    * Staff only, most urgent first: failed prints, the booth, the prizes,
-   * then the event's missing times.
+   * then the event's missing start and end.
    */
   attention: AttentionItem[];
   lottery: {
@@ -169,6 +184,7 @@ export const summarizeOverview = ({
 
   return {
     ...describeMood(stats, event.campaign, now),
+    status: describeStatus(event.campaign, now),
     shareable: {
       guests: stats.visits,
       captured: stats.captured,
@@ -195,7 +211,7 @@ export const summarizeOverview = ({
       ...(startsAt === null && endsAt === null
         ? [
             {
-              kind: "times",
+              kind: "start-end",
               text: "Set when the event starts and ends, so setup tests don't count.",
               target: "details",
             } satisfies AttentionItem,
@@ -214,19 +230,29 @@ export const summarizeOverview = ({
   };
 };
 
+const describeStatus = (
+  { startsAt, endsAt }: OverviewEvent["campaign"],
+  now: Date,
+): OverviewSummary["status"] => {
+  if (startsAt === null && endsAt === null) return null;
+  if (startsAt && new Date(startsAt) > now) return "upcoming";
+  if (endsAt && new Date(endsAt) <= now) return "ended";
+  return "on";
+};
+
 const describeMood = (
   stats: VisitStats,
-  times: OverviewEvent["campaign"],
+  startEnd: OverviewEvent["campaign"],
   now: Date,
 ): Pick<OverviewSummary, "mood" | "headline"> => {
-  if (times.startsAt && new Date(times.startsAt) > now) {
+  if (startEnd.startsAt && new Date(startEnd.startsAt) > now) {
     return {
       mood: "upcoming",
-      headline: `Starts ${formatWhen(times.startsAt, now)}. Visits before then are tests and don't count.`,
+      headline: `Starts ${formatWhen(startEnd.startsAt, now)}. Visits before then are tests and don't count.`,
     };
   }
-  if (times.endsAt && new Date(times.endsAt) <= now) {
-    const ended = `This event ended ${formatWhen(times.endsAt, now)}`;
+  if (startEnd.endsAt && new Date(startEnd.endsAt) <= now) {
+    const ended = `This event ended ${formatWhen(startEnd.endsAt, now)}`;
     return {
       mood: "ended",
       headline:
@@ -267,11 +293,21 @@ const describeMood = (
 
 const failedPrintItems = (stats: VisitStats, now: Date): AttentionItem[] => {
   const items = stats.failedVisits.map(
-    (visit): AttentionItem => ({
-      kind: "failed-print",
-      text: `${visit.ticketRef ? `Ticket ${visit.ticketRef}` : "A ticket"} didn't print ${formatWhen(visit.startedAt, now)}.`,
-      target: "control-center",
-    }),
+    (visit): AttentionItem =>
+      // With its number, staff look the ticket up in Draws to find the guest
+      // (and whether they won); without one, only the printer can tell.
+      visit.ticketRef
+        ? {
+            kind: "failed-print",
+            text: `Ticket ${visit.ticketRef} didn't print ${formatWhen(visit.startedAt, now)}.`,
+            target: "draws",
+            ticketRef: visit.ticketRef,
+          }
+        : {
+            kind: "failed-print",
+            text: `A ticket didn't print ${formatWhen(visit.startedAt, now)}.`,
+            target: "control-center",
+          },
   );
   const more = stats.failed - stats.failedVisits.length;
   if (more > 0) {

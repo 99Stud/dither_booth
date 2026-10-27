@@ -7,6 +7,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@dither-booth/ui/components/ui/chart";
+import { Skeleton } from "@dither-booth/ui/components/ui/skeleton";
 import clsx from "clsx";
 import { format } from "date-fns";
 import { ArrowRight } from "lucide-react";
@@ -18,6 +19,7 @@ import {
   formatHour,
   formatHourRange,
   formatTimeAtBooth,
+  isCurrentHour,
   type OverviewSummary,
 } from "../../overview.utils";
 
@@ -50,6 +52,30 @@ export const EventGuestsCard: FC<{
       <Numbers shareable={shareable} recentVisits={recentVisits} />
       <GuestPath shareable={shareable} />
       <GuestsPerHour hourly={hourly} busiestHour={shareable.busiestHour} />
+    </CardContent>
+  </Card>
+);
+
+/** The card's shape while the stats load, so the page doesn't move. */
+export const EventGuestsCardSkeleton: FC = () => (
+  <Card aria-hidden>
+    <CardContent className={clsx("flex flex-col gap-6")}>
+      <div className={clsx("grid grid-cols-2 gap-x-6 gap-y-5 lg:grid-cols-4")}>
+        {["guests", "prints", "prizes", "time"].map((key) => (
+          <div key={key} className={clsx("flex flex-col gap-2")}>
+            <Skeleton className={clsx("h-4 w-24")} />
+            <Skeleton className={clsx("h-8 w-16")} />
+            <Skeleton className={clsx("h-4 w-28")} />
+          </div>
+        ))}
+      </div>
+      <div className={clsx("border-t pt-4")}>
+        <Skeleton className={clsx("h-5 w-2/3")} />
+      </div>
+      <div className={clsx("flex flex-col gap-2")}>
+        <Skeleton className={clsx("h-5 w-32")} />
+        <Skeleton className={clsx("h-36 w-full")} />
+      </div>
     </CardContent>
   </Card>
 );
@@ -150,7 +176,11 @@ const GuestsPerHour: FC<{
   hourly: VisitStats["hourly"];
   busiestHour: Shareable["busiestHour"];
 }> = ({ hourly, busiestHour }) => {
-  const currentHour = hourly.at(-1)?.hour;
+  // The last hour shown is "Now" only while it runs: after the event's end
+  // it is just the hour the event ended in.
+  const currentHour = hourly.find((entry) =>
+    isCurrentHour(entry.hour, new Date()),
+  )?.hour;
   // Every hour when they fit, else every third counted back from now, so
   // the hour staff look at always has its label.
   const step = hourly.length > 8 ? 3 : 1;
@@ -188,62 +218,72 @@ const GuestsPerHour: FC<{
           .map((entry) => `${formatHour(entry.hour)}: ${entry.visits}`)
           .join(", ")}
       </p>
-      <ChartContainer
-        aria-hidden
-        config={chartConfig}
-        className={clsx("aspect-auto h-36 w-full")}
-      >
-        <BarChart
-          data={hourly}
-          margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+      {hourly.length === 0 ? (
+        <p
+          className={clsx(
+            "flex h-36 items-center justify-center rounded-lg bg-muted/50 text-sm text-muted-foreground",
+          )}
         >
-          <CartesianGrid vertical={false} strokeDasharray="3 3" />
-          <XAxis
-            dataKey="hour"
-            tickFormatter={(hour: string) =>
-              hour === currentHour ? "Now" : formatHour(hour)
-            }
-            ticks={ticks}
-            // Drops labels that would touch on a phone; "Now" always stays.
-            interval="preserveEnd"
-            minTickGap={16}
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-          />
-          <YAxis
-            allowDecimals={false}
-            tickCount={3}
-            tickLine={false}
-            axisLine={false}
-            width={28}
-          />
-          <ChartTooltip
-            cursor={{ fill: "var(--muted)", opacity: 0.6 }}
-            content={
-              <ChartTooltipContent
-                labelFormatter={(_, payload) =>
-                  formatHourRange(String(payload[0]?.payload?.hour))
-                }
-              />
-            }
-          />
-          <Bar
-            dataKey="visits"
-            fill="var(--color-visits)"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={32}
+          Each hour fills in from the first guest.
+        </p>
+      ) : (
+        <ChartContainer
+          aria-hidden
+          config={chartConfig}
+          className={clsx("aspect-auto h-36 w-full")}
+        >
+          <BarChart
+            data={hourly}
+            margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
           >
-            {/* The hour still running is lighter: it isn't over yet. */}
-            {hourly.map((entry) => (
-              <Cell
-                key={entry.hour}
-                fillOpacity={entry.hour === currentHour ? 0.55 : 1}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ChartContainer>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis
+              dataKey="hour"
+              tickFormatter={(hour: string) =>
+                hour === currentHour ? "Now" : formatHour(hour)
+              }
+              ticks={ticks}
+              // Drops labels that would touch on a phone; "Now" always stays.
+              interval="preserveEnd"
+              minTickGap={16}
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+            />
+            <YAxis
+              allowDecimals={false}
+              tickCount={3}
+              tickLine={false}
+              axisLine={false}
+              width={28}
+            />
+            <ChartTooltip
+              cursor={{ fill: "var(--muted)", opacity: 0.6 }}
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(_, payload) =>
+                    formatHourRange(String(payload[0]?.payload?.hour))
+                  }
+                />
+              }
+            />
+            <Bar
+              dataKey="visits"
+              fill="var(--color-visits)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={32}
+            >
+              {/* The hour still running is lighter: it isn't over yet. */}
+              {hourly.map((entry) => (
+                <Cell
+                  key={entry.hour}
+                  fillOpacity={entry.hour === currentHour ? 0.55 : 1}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartContainer>
+      )}
     </figure>
   );
 };

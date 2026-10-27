@@ -20,11 +20,11 @@ The events plan (GitHub #79) had the event's time window authored on the Hub, in
 - The booth's event has an optional **start** and **end** (`starts_at`, `ends_at`, seconds like every engine time). Either side may stay open; when both are set, the end is after the start. A CHECK on `campaign` refuses anything else, whoever writes.
 - Staff set them in admin: **Create event** and **Edit details** (which replaces **Rename**).
 - The visit stats count only visits that **start** between the start (inclusive) and the end (exclusive). The others are still recorded, still reported to the Hub, and counted apart as `uncounted`. The pause after a win is the one thing not limited to them: a test win still starts it.
-- The booth owns these times for good. The Hub does not author an event window for the booth.
+- The booth owns its start and end for good. The Hub does not author an event window for the booth.
 
 ## Consequences
 
-- Staff can fix the times on site, offline, and the Overview follows at once.
-- `campaign` was rebuilt to add the CHECK (`drizzle/20261027123116_event_times/`); it has no triggers to lose. Existing events keep every row and start with no start or end, so their stats are unchanged until staff set them.
+- Staff can fix the start and end on site, offline, and the Overview follows at once.
+- `campaign` was rebuilt to add the CHECK (`drizzle/20261027123116_event_start_end/`); it has no triggers to lose. Existing events keep every row and start with no start or end, so their stats are unchanged until staff set them.
 - The events plan changes. Where it has the Hub hold an event window authored in Studio (#79, #84, #86, #87, #88), the Hub should learn the start and end from the booth instead, with its visit reports or heartbeat. That part is not built yet.
 - Studio's **event times** (`booth.live_from`, `live_until`) stay on the Hub: they say when a silent booth is an alert, which only the Hub can tell, since a booth that never powers on can't report. They are a different setting with a different word. Staff set both for now.

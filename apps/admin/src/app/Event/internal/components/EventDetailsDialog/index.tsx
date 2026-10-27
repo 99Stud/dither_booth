@@ -29,7 +29,7 @@ interface EventDetailsDialogProps {
   onSubmit: (values: UpdateEventFormValues) => Promise<void>;
 }
 
-/** The event's name and times: an edit, not a replacement. */
+/** The event's name, start and end: an edit, not a replacement. */
 export const EventDetailsDialog: FC<EventDetailsDialogProps> = (props) => {
   const { event, open, isPending, onOpenChange, onSubmit } = props;
 
