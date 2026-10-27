@@ -30,6 +30,6 @@ Booths in the field hold a 0.x record and are updated by pulling a release. They
 ## Consequences
 
 - A booth needs nothing beyond the usual update; `db.migrations.test.ts` covers taking over a 0.x record, with and without rows that match no migration.
-- The record upgrade is one way for v1, but harmless to older releases: rolling back finds nothing to apply.
+- The record upgrade is one way for v1. Older releases read the upgraded record, but one that also holds a migration the booth first applied under v1 would apply it again, so rolling back to it needs the backup taken before the update ([Migrations](/docs/architecture/data-model/#migrations)).
 - New migrations are named by timestamp, not by an `NNNN_` index.
 - An RC can still change before 1.0. The versions are pinned; moving to the next release means re-reading its changelog, running `drizzle-kit up` and `db:generate` (it must find no changes), and the migration tests.

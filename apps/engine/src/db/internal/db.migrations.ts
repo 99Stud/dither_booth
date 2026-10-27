@@ -33,18 +33,25 @@ const retireUnknownV0Migrations = (
   if (columns.length === 0 || columns.includes("name")) return;
 
   const local = readMigrationFiles({ migrationsFolder });
-  const knownMillis = new Set(local.map((migration) => migration.folderMillis));
-  const knownHashes = new Set(local.map((migration) => migration.hash));
+  // Drizzle's own rule: the one folder of the same second, else the hash
+  // among the folders of that second, else the hash among all of them.
+  const matchesAFolder = (row: { hash: string; created_at: number }) => {
+    const second = Math.floor(Number(row.created_at) / 1000) * 1000;
+    const sameSecond = local.filter(
+      (migration) => migration.folderMillis === second,
+    );
+    const candidates = sameSecond.length > 0 ? sameSecond : local;
+    return (
+      sameSecond.length === 1 ||
+      candidates.some((migration) => migration.hash === row.hash)
+    );
+  };
   const unknown = sqlite
     .query<{ rowid: number; hash: string; created_at: number }, []>(
       "SELECT rowid, hash, created_at FROM __drizzle_migrations",
     )
     .all()
-    .filter(
-      (row) =>
-        !knownMillis.has(Math.floor(Number(row.created_at) / 1000) * 1000) &&
-        !knownHashes.has(row.hash),
-    );
+    .filter((row) => !matchesAFolder(row));
   if (unknown.length === 0) return;
 
   sqlite.transaction(() => {

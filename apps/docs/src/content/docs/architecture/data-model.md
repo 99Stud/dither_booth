@@ -143,12 +143,12 @@ Appearance that belongs to an event (logo, background colours) goes on the campa
 
 The engine **applies pending migrations at every start**, so an update needs no separate migration step. Migrations are forward-only: back up before an update that ships one.
 
-When a migration needs something drizzle-kit doesn't model (triggers, partial indexes, data moves), write it by hand in the generated SQL file and cover it in `db.migrations.test.ts`.
+When a migration needs something drizzle-kit doesn't model (triggers, partial indexes, data moves), write it by hand in the generated `migration.sql` and cover it in `db.migrations.test.ts`.
 
 The engine runs Drizzle v1 ([decision 0004](/docs/decisions/0004-drizzle-v1/)).
 
 - **Layout.** Each migration is a folder named `<UTC timestamp>_<name>`, holding `migration.sql` and `snapshot.json`. There is no journal: the migrator applies, in name order, every folder not yet recorded. Before Drizzle v1 a migration was called by its index (`0011_stock_ledger`); `db.migrations.test.ts` still names its tests that way, where `0011` is the twelfth folder.
 - **Record.** `__drizzle_migrations` holds one row per applied migration: its hash, `created_at`, `name` (the folder) and `applied_at`.
 - **Booths migrated before Drizzle v1.** Their record has no `name`. At the first start on v1, Drizzle adds `name` and `applied_at` and names each row after the folder whose timestamp has the same second as the row's `created_at`, or else whose `migration.sql` has the same hash. Nothing is re-applied, and `applied_at` stays empty on those rows. Drizzle refuses to start while a row matches no folder, which happens on a database that ran a migration that was later regenerated or never merged. `runSqliteMigrations` moves those rows to `__drizzle_migrations_retired` first, so the booth still starts.
-- **Rolling back** to a release from before Drizzle v1 works: the older migrator ignores the new columns and finds nothing to apply.
+- **Rolling back** to a release from before Drizzle v1 works when that release has no migration the booth first applied under v1. The older migrator ignores the new columns, but it applies every migration of its journal later than the newest recorded time, and v1 records a migration's time to the second where the journal has milliseconds. Such a migration would run again and the engine would fail to start: restore the backup taken before the update instead.
 - **CHECK text.** Drizzle v1 writes CHECK expressions without the table name (`"weight" > 0`); migrations made before it wrote `"prize"."weight" > 0`. The latest snapshot was rewritten to the v1 form, so `db:generate` doesn't rebuild every table with a CHECK. Booth databases keep the old text, which SQLite reads the same way.

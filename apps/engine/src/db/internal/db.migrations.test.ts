@@ -66,7 +66,8 @@ function migrateLikeDrizzleV0(sqlite: Database, count: number) {
     for (const statement of query.split("--> statement-breakpoint")) {
       sqlite.run(statement);
     }
-    // The journal kept milliseconds; the folder name keeps seconds.
+    // The journal kept milliseconds, the folder name keeps seconds: any
+    // millisecond part must still match its folder.
     const when = Date.UTC(
       Number(name.slice(0, 4)),
       Number(name.slice(4, 6)) - 1,
