@@ -32,7 +32,7 @@ apps/engine/src/
   internal/trpc.ts            # base procedures and their access checks
   db/                         # schema, migrations runner, seeds
   lib/                        # cross-domain infrastructure (Puppeteer, server, process manager)
-  drizzle/                    # SQL migrations
+  drizzle/                    # SQL migrations, one folder each
 ```
 
 A domain imports another only through its `*.service.ts`.

@@ -86,7 +86,7 @@ export async function seedDevLottery(
   const { reset = false } = options;
 
   const existing = await db.query.lotteryTable.findFirst({
-    where: eq(lotteryTable.id, DEV_LOTTERY_ID),
+    where: { id: DEV_LOTTERY_ID },
   });
 
   if (existing && !reset) {

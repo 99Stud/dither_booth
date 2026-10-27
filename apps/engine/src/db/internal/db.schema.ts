@@ -1,7 +1,7 @@
 import { RARITY_TYPES } from "@dither-booth/shared/lottery";
 import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { createId } from "@paralleldrive/cuid2";
-import { sql } from "drizzle-orm";
+import { defineRelations, sql } from "drizzle-orm";
 import {
   check,
   index,
@@ -278,7 +278,7 @@ const STOCK_ADJUSTMENT_REASON_CHECK_VALUES = STOCK_ADJUSTMENT_REASONS.map(
  * Append-only stock ledger. A prize's stock is the sum of its adjustments
  * minus its winning draws; nothing stores a running total. Ids are supplied
  * by whoever requests the change, so a retried delta is applied once.
- * Triggers added in `0011_stock_ledger` keep stock from going negative.
+ * Triggers added in the `stock_ledger` migration keep stock from going negative.
  */
 export const stockAdjustmentTable = sqliteTable(
   "stock_adjustment",
@@ -416,7 +416,11 @@ export const hubRegistrationTable = sqliteTable(
   (table) => [check("hub_registration_singleton_check", sql`${table.id} = 1`)],
 );
 
-export const dbSchema = {
+/**
+ * Every table for `db.query`. The engine declares no relations between them;
+ * `db.query` reads one table at a time.
+ */
+export const dbRelations = defineRelations({
   printConfigTable,
   campaignTable,
   lotteryTable,
@@ -428,4 +432,4 @@ export const dbSchema = {
   kioskMaintenanceTable,
   fontAssetTable,
   hubRegistrationTable,
-};
+});

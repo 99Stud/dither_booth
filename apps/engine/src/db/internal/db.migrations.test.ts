@@ -3,22 +3,19 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import {
-  copyFileSync,
-  mkdirSync,
+  cpSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
-  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 import { runSqliteMigrations } from "./db.migrations";
-import { dbSchema } from "./db.schema";
+import { dbRelations } from "./db.schema";
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../drizzle");
-
-type Journal = { entries: Array<{ tag: string }> };
 
 const tempDirs: string[] = [];
 const openDbs: Database[] = [];
@@ -30,36 +27,68 @@ afterEach(() => {
   }
 });
 
+/** Migration folder names, oldest first: each starts with its UTC timestamp. */
+const migrationNames = () =>
+  readdirSync(MIGRATIONS_FOLDER, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+
 /** A migrations folder holding only the first `count` migrations. */
 function migrationsUpTo(count: number): string {
   const folder = mkdtempSync(join(tmpdir(), "dither-migrations-"));
   tempDirs.push(folder);
-  mkdirSync(join(folder, "meta"));
 
-  const journal = JSON.parse(
-    readFileSync(join(MIGRATIONS_FOLDER, "meta/_journal.json"), "utf8"),
-  ) as Journal;
-  const entries = journal.entries.slice(0, count);
-
-  for (const { tag } of entries) {
-    copyFileSync(
-      join(MIGRATIONS_FOLDER, `${tag}.sql`),
-      join(folder, `${tag}.sql`),
-    );
+  for (const name of migrationNames().slice(0, count)) {
+    cpSync(join(MIGRATIONS_FOLDER, name), join(folder, name), {
+      recursive: true,
+    });
   }
-  writeFileSync(
-    join(folder, "meta/_journal.json"),
-    JSON.stringify({ ...journal, entries }),
-  );
 
   return folder;
+}
+
+/**
+ * Applies the first `count` migrations the way drizzle-orm 0.x did, and
+ * records them in its three-column `__drizzle_migrations`: the SQL file's
+ * hash and the journal's `when` in milliseconds. Booths in the field were
+ * migrated like this before the move to drizzle v1.
+ */
+function migrateLikeDrizzleV0(sqlite: Database, count: number) {
+  sqlite.run(
+    "CREATE TABLE __drizzle_migrations (id SERIAL PRIMARY KEY, hash text NOT NULL, created_at numeric)",
+  );
+  for (const name of migrationNames().slice(0, count)) {
+    const query = readFileSync(
+      join(MIGRATIONS_FOLDER, name, "migration.sql"),
+      "utf8",
+    );
+    for (const statement of query.split("--> statement-breakpoint")) {
+      sqlite.run(statement);
+    }
+    // The journal kept milliseconds, the folder name keeps seconds: any
+    // millisecond part must still match its folder.
+    const when = Date.UTC(
+      Number(name.slice(0, 4)),
+      Number(name.slice(4, 6)) - 1,
+      Number(name.slice(6, 8)),
+      Number(name.slice(8, 10)),
+      Number(name.slice(10, 12)),
+      Number(name.slice(12, 14)),
+      576,
+    );
+    sqlite.run(
+      "INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)",
+      [new Bun.CryptoHasher("sha256").update(query).digest("hex"), when],
+    );
+  }
 }
 
 function openDb({ foreignKeys }: { foreignKeys: boolean }) {
   const sqlite = new Database(":memory:");
   openDbs.push(sqlite);
   sqlite.run(`PRAGMA foreign_keys = ${foreignKeys ? "ON" : "OFF"}`);
-  return { sqlite, db: drizzle({ client: sqlite, schema: dbSchema }) };
+  return { sqlite, db: drizzle({ client: sqlite, relations: dbRelations }) };
 }
 
 /** Stock derived from the ledger, the way the engine computes it. */
@@ -139,6 +168,68 @@ describe("runSqliteMigrations", () => {
 
     run();
     expect(run()).toEqual([]);
+  });
+
+  test("takes over a booth migrated by drizzle 0.x without re-running", () => {
+    const { sqlite, db } = openDb({ foreignKeys: false });
+    // Up to and including 0022: the booth is one migration behind.
+    migrateLikeDrizzleV0(sqlite, 23);
+    sqlite.run("INSERT INTO campaign (id, name) VALUES ('c1', 'Halloween')");
+
+    const violations = runSqliteMigrations({
+      db,
+      migrationsFolder: MIGRATIONS_FOLDER,
+      sqlite,
+    });
+
+    expect(violations).toEqual([]);
+    const names = migrationNames();
+    const applied = sqlite
+      .query<{ id: number; name: string; applied_at: string | null }, []>(
+        "SELECT id, name, applied_at FROM __drizzle_migrations ORDER BY id",
+      )
+      .all();
+    expect(applied.map((row) => row.name)).toEqual(names);
+    // Rows from 0.x are adopted as they were; only the pending one ran now.
+    expect(applied.filter((row) => row.applied_at !== null)).toEqual([
+      expect.objectContaining({ name: names.at(-1) }),
+    ]);
+    expect(sqlite.query("SELECT id, name FROM campaign").all()).toEqual([
+      { id: "c1", name: "Halloween" },
+    ]);
+    expect(
+      sqlite
+        .query<{ name: string }, []>("PRAGMA table_info(visit)")
+        .all()
+        .map((column) => column.name),
+    ).toContain("draw_id");
+  });
+
+  test("retires rows drizzle 0.x kept for migrations no longer in the folder", () => {
+    const { sqlite, db } = openDb({ foreignKeys: true });
+    migrateLikeDrizzleV0(sqlite, migrationNames().length);
+    // Ran from a branch whose migration was regenerated before it merged.
+    sqlite.run(
+      "INSERT INTO __drizzle_migrations (hash, created_at) VALUES ('gone', 1784383719657)",
+    );
+
+    expect(
+      runSqliteMigrations({ db, migrationsFolder: MIGRATIONS_FOLDER, sqlite }),
+    ).toEqual([]);
+
+    expect(
+      sqlite
+        .query("SELECT hash, created_at FROM __drizzle_migrations_retired")
+        .all(),
+    ).toEqual([{ hash: "gone", created_at: 1784383719657 }]);
+    expect(
+      sqlite
+        .query<{ name: string }, []>(
+          "SELECT name FROM __drizzle_migrations ORDER BY rowid",
+        )
+        .all()
+        .map((row) => row.name),
+    ).toEqual(migrationNames());
   });
 
   test("rebuilds tables that hold referenced rows while FKs are enforced", () => {

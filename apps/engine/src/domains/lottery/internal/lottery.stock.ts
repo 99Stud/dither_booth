@@ -1,5 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { type Column, eq, getTableName, sql } from "drizzle-orm";
+import {
+  type Column,
+  eq,
+  getColumnTable,
+  getTableName,
+  sql,
+} from "drizzle-orm";
 
 import type { DbExecutor, DbTransaction } from "#db/internal/db.types";
 
@@ -18,7 +24,7 @@ export type StockAdjustmentReason = (typeof STOCK_ADJUSTMENT_REASONS)[number];
  * subquery would bind `prize_id = id` to the subquery's own table.
  */
 const qualified = (column: Column) =>
-  sql`${sql.identifier(getTableName(column.table))}.${sql.identifier(column.name)}`;
+  sql`${sql.identifier(getTableName(getColumnTable(column)))}.${sql.identifier(column.name)}`;
 
 // A prize's stock is never stored: it is the sum of its ledger entries minus
 // its winning draws. Both expressions are correlated subqueries on the outer
