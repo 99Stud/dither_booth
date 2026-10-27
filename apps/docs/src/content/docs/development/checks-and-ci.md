@@ -37,7 +37,9 @@ Changes under `supabase/` or `packages/protocol/` also run `.github/workflows/hu
 A render test mounts an Admin component in [happy-dom](https://github.com/capricorn86/happy-dom) and checks what it shows with [Testing Library](https://testing-library.com/docs/react-testing-library/intro/).
 
 1. Name the file `<Name>.render.test.tsx`, next to the component. The suffix is what gives it a DOM.
-2. Import `renderWithProviders` and the queries from `#lib/test/render`. It wraps the component in the providers `main.tsx` gives every screen: the theme (light unless you pass `theme: "dark"`), React Query (a fresh client that never retries, or the `queryClient` you pass) and tooltips. It unmounts and clears `localStorage` after each test.
+2. Import `renderWithProviders` and the queries from `#lib/test/render`. It wraps the component in the providers `main.tsx` gives every screen: the theme (light unless you pass `theme: "dark"`), React Query (a fresh client that never retries, or the `queryClient` you pass), the sidebar and tooltips. It unmounts and clears `localStorage` after each test.
+   - **Router.** A component that links, or reads or writes the URL, needs `route: { path, url?, validateSearch? }`: it then renders as that route of an in-memory router, and the result's `router` gives the URL (`router.state.location.search`). Wait for it with `findBy…`.
+   - **Virtual lists.** happy-dom has no layout, so `react-virtuoso` lists get a fixed viewport (`TEST_VIRTUAL_LIST_SIZE`: 40 rows of 30 px) and render only that window. Keep list tests under 40 rows.
 3. Query what a user sees: `screen.getByRole`, `getByText`, or `await screen.findByText` for what arrives later.
 
 ```tsx

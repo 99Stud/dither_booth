@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-Start with admin's **Control Center → Health checks** and, over SSH, `booth doctor`. Most problems show up there with the fix. If not, find the symptom below.
+Start with admin's **Control Center → Health checks** and, over SSH, `booth doctor`. Most problems show up there with the fix. To see why, open a health item's **View logs**, or admin's [Logs page](/docs/maintenance/logs/#open-logs). If not, find the symptom below.
 
 ## Getting in
 
@@ -59,7 +59,7 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 | Symptom                                                   | Check                                                                                                                                                                                                                                               |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Ticket renderer (Puppeteer) unhealthy                     | Admin → Health → **Re-initialize Puppeteer**. Persistent: `sudo booth install` re-installs Chromium's libraries, then `booth doctor`.                                                                                                               |
-| A PM2 process keeps restarting                            | `bun run pm2:list` for the restart count, then the `"type":"err"` lines of its `<process>.log`. See [Logs](/docs/maintenance/logs/).                                                                                                                |
+| A PM2 process keeps restarting                            | Admin's **Logs** page: “restarted” dividers, and the **Error** lines just before each. Over SSH: `bun run pm2:list` for the restart count, then the `"type":"err"` lines of its `<process>.log`. See [Logs](/docs/maintenance/logs/).               |
 | `EADDRINUSE` at start                                     | An old process still holds the port. `sudo systemctl restart ditherbooth`; if it persists, find it with `sudo ss -ltnp \| grep 300`.                                                                                                                |
 | Lottery never wins                                        | Lottery is off, prizes are out of stock, or a pause after a win is running. Check the Event page's odds card.                                                                                                                                       |
 | Wrong look on screen or tickets                           | The event's kit. A kit the release doesn't ship falls back to the default (`event-kit-unknown` in the logs).                                                                                                                                        |

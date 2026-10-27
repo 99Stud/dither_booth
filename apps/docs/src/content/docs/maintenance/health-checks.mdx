@@ -19,7 +19,7 @@ Admin's **Control Center → Health checks** is the first place to look. It chec
 | **Printer**         | The printer watch says it can print. Paper low is healthy with a warning.                         |
 | **Ticket renderer** | The headless Chromium (Puppeteer) the engine uses to lay out tickets has its page loaded.         |
 
-Each unhealthy item says why, and offers the recovery that fits: reload the kiosk page, re-initialize Puppeteer, or restart a PM2 process.
+Each unhealthy item says why, and offers the recovery that fits: reload the kiosk page, re-initialize Puppeteer, or restart a PM2 process. Each item's **View logs** opens the [Logs page](/docs/maintenance/logs/#open-logs) filtered to that part of the booth.
 
 The Darkroom shows a compact version of the same checks in its **Booth status** strip.
 
