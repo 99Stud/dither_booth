@@ -5,7 +5,7 @@ import type { DB } from "#db/internal/db.types";
 import { campaignTable, drawTable, visitTable } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 
-import { getVisitStatsForDb } from "./visit.stats";
+import { getVisitStatsForDb, VISIT_STATS_HOURS } from "./visit.stats";
 import { createVisits } from "./visits";
 
 const openDbs: Array<{ close: () => void }> = [];
@@ -250,12 +250,48 @@ describe("getVisitStatsForDb", () => {
     visits.end(failed, "failed");
     visits.start();
 
-    expect(getVisitStatsForDb(db)).toEqual({
+    expect(getVisitStatsForDb(db, new Date(1_040_000))).toMatchObject({
       visits: 4,
       completed: 2,
-      prints: 2,
+      failed: 1,
       wins: 0,
       avgDurationS: 40,
+      lastVisitAt: new Date(1_040_000).toISOString(),
     });
+  });
+
+  test("counts visits per hour over the last 12 hours, empty hours included", () => {
+    const { db, tick, visits } = setup();
+    // The clock starts at 1 000 s; 3 600 s is the start of the second hour.
+    visits.start();
+    tick(3_000);
+    visits.start();
+    visits.start();
+
+    const { hourly } = getVisitStatsForDb(db, new Date(4_000_000))!;
+
+    expect(hourly).toHaveLength(VISIT_STATS_HOURS);
+    expect(hourly.at(-1)).toEqual({
+      hour: new Date(3_600_000).toISOString(),
+      visits: 2,
+    });
+    expect(hourly.at(-2)).toEqual({
+      hour: new Date(0).toISOString(),
+      visits: 1,
+    });
+    expect(hourly.slice(0, -2).every((entry) => entry.visits === 0)).toBe(true);
+  });
+
+  test("leaves visits older than 12 hours out of the hours, not the totals", () => {
+    const { db, visits } = setup();
+    visits.start();
+
+    const stats = getVisitStatsForDb(
+      db,
+      new Date((1_000 + 13 * 3_600) * 1000),
+    )!;
+
+    expect(stats.visits).toBe(1);
+    expect(stats.hourly.every((entry) => entry.visits === 0)).toBe(true);
   });
 });

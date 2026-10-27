@@ -113,7 +113,7 @@ Deltas commute with kiosk wins: a restock never needs to know the current stock,
 - Times are in **seconds**, like `draw.created_at`.
 - `campaign_id` is the event active at **Start**, then the event the draw ran against.
 - `draw_id` is unique: a draw belongs to one visit at most.
-- `getVisitStats` counts the active event's visits: visits, completed, prints (visits with `printed_at`), wins (visits whose draw won) and the average length of a completed visit, Start to end, in seconds.
+- `getVisitStats` counts the active event's visits: visits, completed, failed, wins (visits whose draw won), the average length of a completed visit (Start to end, in seconds), when the last visit started, and visits started in each of the last 12 hours (`hourly`, empty hours included, the current one last). Hours are cut on epoch hours, which are the booth's own wherever its time zone is a whole number of hours from UTC.
 - **Outbox.** A visit is due to be reported to the Hub while `reported_at` is null or older than `updated_at`; `visit_pending_idx` (`reported_at`, `updated_at`) serves that read. Nothing reports visits yet, and `hub_event_id` stays null until the booth learns its Hub event.
 - `0023_visit` backfilled one visit per earlier draw, with deterministic ids (`backfill-<draw id>`): `completed`, printed, and every time set to the draw's. They count in the totals but have no length, so the average leaves them out.
 

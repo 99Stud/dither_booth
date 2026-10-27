@@ -1,7 +1,16 @@
+import { Button } from "@dither-booth/ui/components/ui/button";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import { Tabs, TabsContent } from "@dither-booth/ui/components/ui/tabs";
 import clsx from "clsx";
-import { Dices, Gift, History, LayoutDashboard, Palette } from "lucide-react";
+import {
+  Dices,
+  Gift,
+  History,
+  LayoutDashboard,
+  Palette,
+  PencilLine,
+  RefreshCw,
+} from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -22,8 +31,10 @@ import { EventLotteryForm } from "./internal/components/EventLotteryForm";
 import { EventOverviewPanel } from "./internal/components/EventOverviewPanel";
 import { EventPrizeDialog } from "./internal/components/EventPrizeDialog";
 import { EventPrizesTable } from "./internal/components/EventPrizesTable";
+import { EventRenameDialog } from "./internal/components/EventRenameDialog";
 import { EventReplaceDialog } from "./internal/components/EventReplaceDialog";
 import { EventRestockDialog } from "./internal/components/EventRestockDialog";
+import { EventTicketItemsCard } from "./internal/components/EventTicketItemsCard";
 import { useEventQueries } from "./internal/hooks/useEventQueries";
 
 export const Event = () => {
@@ -43,6 +54,7 @@ export const Event = () => {
 
   const [tab, setTab] = useState<EventTab>("overview");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isReplaceConfirmOpen, setIsReplaceConfirmOpen] = useState(false);
   const [isReplaceFormOpen, setIsReplaceFormOpen] = useState(false);
   const [prizeDialogMode, setPrizeDialogMode] = useState<"create" | "edit">(
@@ -66,6 +78,28 @@ export const Event = () => {
       <AppPageBody>
         <AppPageHeading
           title={event?.campaign.name ?? "Event"}
+          actions={
+            event && (
+              <div className={clsx("flex flex-wrap gap-2")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsRenameOpen(true)}
+                >
+                  <PencilLine data-icon="inline-start" />
+                  Rename
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsReplaceConfirmOpen(true)}
+                >
+                  <RefreshCw data-icon="inline-start" />
+                  Replace event
+                </Button>
+              </div>
+            )
+          }
           tabs={
             event && (
               <AppPageTabsList>
@@ -106,15 +140,7 @@ export const Event = () => {
             <TabsContent value="overview" className={clsx("mt-0")}>
               <EventOverviewPanel
                 event={event}
-                isSavingDetails={updateEventMutation.isPending}
-                isSavingTicketItems={updateTicketItemsMutation.isPending}
-                onSaveDetails={async (values) => {
-                  await updateEventMutation.mutateAsync(values);
-                }}
-                onSaveTicketItems={async (names) => {
-                  await updateTicketItemsMutation.mutateAsync({ names });
-                }}
-                onReplaceClick={() => setIsReplaceConfirmOpen(true)}
+                onOpenLottery={() => setTab("lottery")}
               />
             </TabsContent>
             <TabsContent value="kit" className={clsx("mt-0")}>
@@ -127,6 +153,15 @@ export const Event = () => {
                 onSave={async (input) => {
                   await updateKitSettingsMutation.mutateAsync(input);
                 }}
+                ticketItems={
+                  <EventTicketItemsCard
+                    event={event}
+                    isSaving={updateTicketItemsMutation.isPending}
+                    onSave={async (names) => {
+                      await updateTicketItemsMutation.mutateAsync({ names });
+                    }}
+                  />
+                }
               />
             </TabsContent>
             <TabsContent value="lottery" className={clsx("mt-0")}>
@@ -167,6 +202,17 @@ export const Event = () => {
         )}
       </AppPageBody>
 
+      {event && (
+        <EventRenameDialog
+          event={event}
+          open={isRenameOpen}
+          isPending={updateEventMutation.isPending}
+          onOpenChange={setIsRenameOpen}
+          onSubmit={async (values) => {
+            await updateEventMutation.mutateAsync(values);
+          }}
+        />
+      )}
       <EventCreateDialog
         open={isCreateOpen}
         isPending={createEventMutation.isPending}

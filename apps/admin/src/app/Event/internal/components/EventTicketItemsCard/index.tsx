@@ -10,6 +10,7 @@ import { Button } from "@dither-booth/ui/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@dither-booth/ui/components/ui/card";
@@ -148,6 +149,10 @@ export const EventTicketItemsCard: FC<{
           </IconBubble>
           Ticket items
         </CardTitle>
+        <CardDescription>
+          The items printed on the photo receipt, in this order. They save with
+          Save items, not with the kit.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form
