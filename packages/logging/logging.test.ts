@@ -5,6 +5,7 @@ import { getKioskErrorDiagnostics, logKioskEvent } from "./src/index";
 
 const originalConsoleError = console.error;
 const originalConsoleInfo = console.info;
+const originalConsoleWarn = console.warn;
 const originalWindowDescriptor = Object.getOwnPropertyDescriptor(
   globalThis,
   "window",
@@ -86,6 +87,7 @@ const callListener = <TEvent extends Event>(
 afterEach(() => {
   console.error = originalConsoleError;
   console.info = originalConsoleInfo;
+  console.warn = originalConsoleWarn;
   restoreWindow();
 });
 
@@ -290,6 +292,139 @@ describe("initializeBrowserLogging", () => {
       level: "error",
       runId: 5,
       source: "web.browser",
+    });
+  });
+});
+
+describe("browser reports", () => {
+  const setUpBrowser = () => {
+    const sendBeacon = mock<(url: string, body: string) => boolean>(
+      (..._args) => true,
+    );
+    const { windowStub } = createTestWindow({
+      "kiosk-device-id": "ipad-1",
+      "kiosk-run-id": "1",
+    });
+
+    Object.defineProperty(windowStub, "navigator", {
+      value: { sendBeacon },
+    });
+    console.error = mock(() => undefined) as typeof console.error;
+    console.info = mock(() => undefined) as typeof console.info;
+    console.warn = mock(() => undefined) as typeof console.warn;
+    setTestWindow(windowStub);
+
+    return { sendBeacon, windowStub };
+  };
+
+  const getSentReport = (
+    sendBeacon: ReturnType<typeof setUpBrowser>["sendBeacon"],
+  ) => {
+    expect(sendBeacon).toHaveBeenCalledTimes(1);
+
+    const [url, body] = sendBeacon.mock.calls[0]!;
+
+    expect(url).toBe("/client-log");
+
+    return JSON.parse(body) as Record<string, unknown>;
+  };
+
+  it("sends an error to the server with the device's ids", () => {
+    const { sendBeacon } = setUpBrowser();
+
+    initializeBrowserLogging();
+    logKioskEvent("error", "camera", "camera-failed", {
+      details: { attempt: 2, wifiPassword: "hunter2" },
+      error: { message: "Camera exploded", name: "Error" },
+    });
+
+    expect(getSentReport(sendBeacon)).toEqual({
+      deviceId: "ipad-1",
+      details: { attempt: 2, wifiPassword: "[redacted]" },
+      error: { message: "Camera exploded", name: "Error" },
+      event: "camera-failed",
+      level: "error",
+      runId: 2,
+      source: "camera",
+    });
+  });
+
+  it("sends warnings but keeps info local", () => {
+    const { sendBeacon } = setUpBrowser();
+
+    initializeBrowserLogging();
+    logKioskEvent("info", "camera", "camera-ready");
+
+    expect(sendBeacon).not.toHaveBeenCalled();
+
+    logKioskEvent("warn", "camera", "camera-slow");
+
+    expect(getSentReport(sendBeacon)).toMatchObject({
+      event: "camera-slow",
+      level: "warn",
+    });
+  });
+
+  it("sends uncaught errors from the global error handler", () => {
+    const { sendBeacon, windowStub } = setUpBrowser();
+
+    initializeBrowserLogging();
+    callListener(windowStub.__listeners.get("error")!, {
+      colno: 4,
+      error: new Error("Camera exploded"),
+      filename: "/src/main.tsx",
+      lineno: 12,
+      message: "Camera exploded",
+    } as ErrorEvent);
+
+    expect(getSentReport(sendBeacon)).toMatchObject({
+      error: { message: "Camera exploded", stack: expect.any(String) },
+      event: "window-error",
+      source: "web.browser",
+    });
+  });
+
+  it("sends unhandled promise rejections", () => {
+    const { sendBeacon, windowStub } = setUpBrowser();
+
+    initializeBrowserLogging();
+    callListener(windowStub.__listeners.get("unhandledrejection")!, {
+      reason: new Error("Upload failed"),
+    } as PromiseRejectionEvent);
+
+    expect(getSentReport(sendBeacon)).toMatchObject({
+      error: { message: "Upload failed" },
+      event: "unhandled-promise-rejection",
+    });
+  });
+
+  it("sends nothing before browser logging is initialised", () => {
+    const { sendBeacon } = setUpBrowser();
+
+    logKioskEvent("error", "camera", "camera-failed");
+
+    expect(sendBeacon).not.toHaveBeenCalled();
+  });
+
+  it("drops the details of a report too big to send", () => {
+    const { sendBeacon } = setUpBrowser();
+
+    initializeBrowserLogging();
+    logKioskEvent("error", "camera", "camera-failed", {
+      details: { frame: "x".repeat(20_000) },
+      error: { message: "Camera exploded", stack: "y".repeat(20_000) },
+    });
+
+    const report = getSentReport(sendBeacon);
+    const [, body] = sendBeacon.mock.calls[0]!;
+
+    expect(new TextEncoder().encode(body).byteLength).toBeLessThanOrEqual(
+      16 * 1024,
+    );
+    expect(report).not.toHaveProperty("details");
+    expect(report).toMatchObject({
+      error: { message: "Camera exploded", stack: expect.any(String) },
+      event: "camera-failed",
     });
   });
 });

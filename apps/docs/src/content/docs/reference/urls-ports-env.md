@@ -7,17 +7,18 @@ sidebar:
 
 ## URLs
 
-| What             | URL                                                  | Notes                                                                     |
-| ---------------- | ---------------------------------------------------- | ------------------------------------------------------------------------- |
-| Shutter (guests) | `https://<hostname>.local:3000`, `https://<ip>:3000` | `.local` survives venue changes                                           |
-| Darkroom         | `https://<hostname>.local:3000/darkroom`             | PIN required                                                              |
-| Admin            | `https://<hostname>.local:3002`, `https://<ip>:3002` | Admin origin is what authorises `config.*` / `ops.*`                      |
-| Setup page       | `http://<ip>:3003`, `http://<hostname>.local:3003`   | Plain HTTP: before a device trusts the booth                              |
-| Captive page     | `http://10.42.0.1/captive`                           | Booth Wi-Fi only, while it waits for a network                            |
-| Receipt viewer   | `https://<…>:3000/receipt-viewer`                    | For the engine's Chromium only                                            |
-| Docs (this site) | `https://<hostname>.local:3002/docs/`                | Served by the admin server from `apps/docs/dist`, offline                 |
-| Engine           | `http://127.0.0.1:3001`                              | Loopback only. Browsers use `/engine/trpc` on the Shutter or Admin origin |
-| Health           | `/healthz` on each of the above ports                | JSON                                                                      |
+| What             | URL                                                  | Notes                                                                             |
+| ---------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Shutter (guests) | `https://<hostname>.local:3000`, `https://<ip>:3000` | `.local` survives venue changes                                                   |
+| Darkroom         | `https://<hostname>.local:3000/darkroom`             | PIN required                                                                      |
+| Admin            | `https://<hostname>.local:3002`, `https://<ip>:3002` | Admin origin is what authorises `config.*` / `ops.*`                              |
+| Setup page       | `http://<ip>:3003`, `http://<hostname>.local:3003`   | Plain HTTP: before a device trusts the booth                                      |
+| Captive page     | `http://10.42.0.1/captive`                           | Booth Wi-Fi only, while it waits for a network                                    |
+| Receipt viewer   | `https://<…>:3000/receipt-viewer`                    | For the engine's Chromium only                                                    |
+| Docs (this site) | `https://<hostname>.local:3002/docs/`                | Served by the admin server from `apps/docs/dist`, offline                         |
+| Engine           | `http://127.0.0.1:3001`                              | Loopback only. Browsers use `/engine/trpc` on the Shutter or Admin origin         |
+| Health           | `/healthz` on each of the above ports                | JSON                                                                              |
+| Browser reports  | `POST /client-log` on 3000 and 3002                  | Write-only. [Browser reports](/docs/architecture/access-control/#browser-reports) |
 
 On the booth Wi-Fi, the booth is always `10.42.0.1`.
 

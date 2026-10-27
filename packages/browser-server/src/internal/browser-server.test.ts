@@ -344,6 +344,20 @@ describe("runBrowserServer route validation", () => {
     ).rejects.toThrow('custom route cannot override reserved route "/healthz"');
   });
 
+  it("keeps the browser report route for itself", async () => {
+    await expect(
+      runBrowserServer(
+        createRunBrowserServerOptions({
+          routes: {
+            "/client-log": () => new Response("ok"),
+          },
+        }),
+      ),
+    ).rejects.toThrow(
+      'custom route cannot override reserved route "/client-log"',
+    );
+  });
+
   it("rejects routes configured as both HTTP and websocket", async () => {
     await expect(
       runBrowserServer(
