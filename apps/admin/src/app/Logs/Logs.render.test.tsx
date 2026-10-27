@@ -347,6 +347,42 @@ describe("Logs page", () => {
     ).toBeDefined();
   });
 
+  test("after falling behind, waits out the backoff and reloads the latest lines, marked as a gap", async () => {
+    const { socket } = await openLogs();
+    socket.history([logEntry({ event: "before-drop" })], { cursor: "c-1" });
+    await screen.findByText("before-drop");
+
+    socket.drop(1013);
+    await act(() => Bun.sleep(50));
+    expect(sockets.latest()).toBe(socket);
+    expect(
+      screen.getByRole("status", { name: "Connection: Reconnecting" }),
+    ).toBeDefined();
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    const reloaded = sockets.latest();
+    expect(reloaded).not.toBe(socket);
+    reloaded.open();
+
+    expect(reloaded.lastRequest()).toEqual({
+      type: "history",
+      filter: {},
+      limit: 500,
+    });
+
+    reloaded.history([logEntry({ event: "latest-line" })]);
+
+    expect(await screen.findByText("latest-line")).toBeDefined();
+    expect(screen.getByText("before-drop")).toBeDefined();
+    expect(
+      await screen.findByRole("separator", {
+        name: /^Reconnected · some lines may be missing/,
+      }),
+    ).toBeDefined();
+  });
+
   test("goes Offline after failed attempts, with a way to retry", async () => {
     const { socket } = await openLogs();
     socket.history([]);

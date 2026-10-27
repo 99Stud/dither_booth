@@ -109,7 +109,7 @@ The admin is restarted by PM2 above **256 MB**, so everything is bounded:
 | What                                  | Bound                                                                       |
 | ------------------------------------- | --------------------------------------------------------------------------- |
 | Live lines waiting for the next batch | Sent early once **1000** are waiting                                        |
-| Live lines held for one page (below)  | **5000**; past that the socket is closed with **1013** and the page resumes |
+| Live lines held for one page (below)  | **5000**; past that the socket is closed with **1013** and the page reloads |
 | One history page                      | **1000** entries                                                            |
 | A read                                | **64 KB** chunks, **64 KB** lines                                           |
 | `journalctl` processes                | One follower, plus one per history request being served                     |
@@ -146,7 +146,7 @@ Admin's Logs page (`/logs`, `apps/admin/src/app/Logs/`) is the socket's only cli
 
 **Pause** keeps the socket and the cursor; new lines wait in a buffer (also capped at 10,000) and the badge counts them. While paused, a polite live region announces “N new errors”. The list itself is `role="log"` with `aria-live="off"`, so a screen reader isn't read every line.
 
-**Reconnecting.** When the socket closes, the page draws a “Connection lost” divider and retries after **1 s**, doubling to at most **10 s**; the browser's `online` event retries at once. The badge says **Reconnecting**, then **Offline** after **3** failed attempts in a row or while the browser is offline, with a **Retry now** banner. On the new socket it sends `after: <last cursor>` and keeps asking until a page is `done`, then marks the divider “Reconnected · no lines missed”, or “some lines may be missing” if a source rotated in between. A cursor the server refuses (**1008** while resuming) falls back to the latest page, marked as a possible gap. A **1008** on a fresh request is not retried: the banner offers **Retry now**. A **1013** (fell behind) reconnects at once.
+**Reconnecting.** When the socket closes, the page draws a “Connection lost” divider and retries after **1 s**, doubling to at most **10 s**; the browser's `online` event retries at once. The badge says **Reconnecting**, then **Offline** after **3** failed attempts in a row or while the browser is offline, with a **Retry now** banner. On the new socket it sends `after: <last cursor>` and keeps asking until a page is `done`, then marks the divider “Reconnected · no lines missed”, or “some lines may be missing” if a source rotated in between. A cursor the server refuses (**1008** while resuming) falls back to the latest page, marked as a possible gap. A **1008** on a fresh request is not retried: the banner offers **Retry now**. A **1013** (fell behind) waits out the same backoff, then loads the latest page instead of resuming, marked as a possible gap: catching up again could fall behind again.
 
 ## The system journal
 
