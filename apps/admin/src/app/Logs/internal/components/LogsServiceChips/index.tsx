@@ -10,24 +10,24 @@ import clsx from "clsx";
 import { CircleSlash } from "lucide-react";
 
 import type {
+  LogFilter,
   LogFilterService,
   LogService,
   LogSourceStatus,
 } from "#lib/logs/logs.types";
 
 import { LOG_FILTER_SERVICES } from "#lib/logs/logs.constants";
+import { isLogLevelShown, isLogServiceShown } from "#lib/logs/logs.utils";
 
 import { LOG_SERVICE_LABELS } from "../../Logs.constants";
 
 interface LogsServiceChipsProps {
-  /** The services shown; `undefined` shows them all. */
-  selected?: LogFilterService[];
-  errorsByService: Record<LogFilterService, number>;
   /**
-   * Error lines show. Counts only cover lines the page holds, and history
-   * only holds what shows, so a hidden service or level gets no count.
+   * What shows. Counts only cover lines the page holds, and history only
+   * holds what shows, so a hidden service, or hidden errors, get no count.
    */
-  areErrorsShown: boolean;
+  filter: LogFilter;
+  errorsByService: Record<LogFilterService, number>;
   statuses: Partial<Record<LogService, LogSourceStatus>>;
   onToggle: (service: LogFilterService) => void;
 }
@@ -41,9 +41,8 @@ const isSourceService = (service: LogFilterService): service is LogService =>
  * (hover for why).
  */
 export const LogsServiceChips: FC<LogsServiceChipsProps> = ({
-  selected,
+  filter,
   errorsByService,
-  areErrorsShown,
   statuses,
   onToggle,
 }) => (
@@ -53,8 +52,11 @@ export const LogsServiceChips: FC<LogsServiceChipsProps> = ({
     className={clsx("flex shrink-0 items-center gap-1.5")}
   >
     {LOG_FILTER_SERVICES.map((service) => {
-      const isPressed = !selected || selected.includes(service);
-      const errors = isPressed && areErrorsShown ? errorsByService[service] : 0;
+      const isPressed = isLogServiceShown(filter, service);
+      const errors =
+        isPressed && isLogLevelShown(filter, "error")
+          ? errorsByService[service]
+          : 0;
       const status = isSourceService(service) ? statuses[service] : undefined;
       const isUnavailable = status?.state === "unavailable";
 

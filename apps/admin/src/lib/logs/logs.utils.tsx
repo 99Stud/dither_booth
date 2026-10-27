@@ -5,7 +5,12 @@
 
 import { SERVER_STARTED_EVENT } from "@dither-booth/logging/kiosk-line";
 
-import type { LogEntry, LogFilter, LogFilterService } from "./logs.types";
+import type {
+  LogEntry,
+  LogFilter,
+  LogFilterService,
+  LogLevel,
+} from "./logs.types";
 
 /** The service chip an entry belongs to: browser lines have their own. */
 export function getLogFilterService(entry: LogEntry): LogFilterService {
@@ -18,6 +23,11 @@ export function isLogServiceShown(
   service: LogFilterService,
 ) {
   return !filter.services || filter.services.includes(service);
+}
+
+/** Whether `filter` shows `level`'s lines: no levels list shows all. */
+export function isLogLevelShown(filter: LogFilter, level: LogLevel) {
+  return !filter.levels || filter.levels.includes(level);
 }
 
 /** A server's start: a restart divider on the page, not a line. */
@@ -38,7 +48,7 @@ export function matchesLogFilter(entry: LogEntry, filter: LogFilter) {
     return true;
   }
 
-  if (filter.levels && !filter.levels.includes(entry.level)) {
+  if (!isLogLevelShown(filter, entry.level)) {
     return false;
   }
 

@@ -79,16 +79,15 @@ export const LogsToolbar: FC<LogsToolbarProps> = ({
 
   const chips = (
     <LogsServiceChips
-      selected={filter.services}
+      filter={filter}
       errorsByService={counts.errorsByService}
-      areErrorsShown={!filter.levels || filter.levels.includes("error")}
       statuses={statuses}
       onToggle={onToggleService}
     />
   );
   const levels = (
     <LogsLevelToggles
-      selected={filter.levels}
+      filter={filter}
       counts={counts.byLevel}
       onToggle={onToggleLevel}
     />

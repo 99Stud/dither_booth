@@ -3,15 +3,16 @@ import type { FC } from "react";
 import { Toggle } from "@dither-booth/ui/components/ui/toggle";
 import clsx from "clsx";
 
-import type { LogLevel } from "#lib/logs/logs.types";
+import type { LogFilter, LogLevel } from "#lib/logs/logs.types";
 
 import { LOG_LEVELS } from "#lib/logs/logs.constants";
+import { isLogLevelShown } from "#lib/logs/logs.utils";
 
 import { LogLevelLabel } from "../LogLevelLabel";
 
 interface LogsLevelTogglesProps {
-  /** The levels shown; `undefined` shows them all. */
-  selected?: LogLevel[];
+  /** What shows. */
+  filter: LogFilter;
   counts: Record<LogLevel, number>;
   onToggle: (level: LogLevel) => void;
 }
@@ -21,7 +22,7 @@ interface LogsLevelTogglesProps {
  * it shows. A hidden level's lines aren't loaded, so it gets no number.
  */
 export const LogsLevelToggles: FC<LogsLevelTogglesProps> = ({
-  selected,
+  filter,
   counts,
   onToggle,
 }) => (
@@ -31,7 +32,7 @@ export const LogsLevelToggles: FC<LogsLevelTogglesProps> = ({
     className={clsx("flex shrink-0 items-center gap-1")}
   >
     {LOG_LEVELS.map((level) => {
-      const isPressed = !selected || selected.includes(level);
+      const isPressed = isLogLevelShown(filter, level);
 
       return (
         <Toggle

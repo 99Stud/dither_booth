@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test";
 
 import type { LogEntry } from "./logs.types";
 
-import { isLogServiceShown, matchesLogFilter } from "./logs.utils";
+import {
+  isLogLevelShown,
+  isLogServiceShown,
+  matchesLogFilter,
+} from "./logs.utils";
 
 const entry = (overrides: Partial<LogEntry> = {}): LogEntry => ({
   id: "engine::0:0",
@@ -23,6 +27,15 @@ describe("isLogServiceShown", () => {
     expect(isLogServiceShown({ services: ["engine"] }, "engine")).toBe(true);
     expect(isLogServiceShown({ services: ["engine"] }, "browser")).toBe(false);
     expect(isLogServiceShown({ services: [] }, "engine")).toBe(false);
+  });
+});
+
+describe("isLogLevelShown", () => {
+  it("shows every level without a levels list, else only those listed", () => {
+    expect(isLogLevelShown({}, "info")).toBe(true);
+    expect(isLogLevelShown({ levels: ["error"] }, "error")).toBe(true);
+    expect(isLogLevelShown({ levels: ["error"] }, "warn")).toBe(false);
+    expect(isLogLevelShown({ levels: [] }, "error")).toBe(false);
   });
 });
 
