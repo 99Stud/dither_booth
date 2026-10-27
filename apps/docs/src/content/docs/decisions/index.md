@@ -42,4 +42,15 @@ What we do.
 What becomes easier, what becomes harder, what we now have to maintain.
 ```
 
+## Records
+
+| Record                                                         | Decision                                                       |
+| -------------------------------------------------------------- | -------------------------------------------------------------- |
+| [0001](/docs/decisions/0001-persistent-printer-connection/)    | Persistent printer connection and ASB                          |
+| [0002](/docs/decisions/0002-hub-deploy-by-supabase/)           | Supabase deploys the Hub                                       |
+| [0003](/docs/decisions/0003-print-ready-logos/)                | Logos are kept as they print                                   |
+| [0004](/docs/decisions/0004-drizzle-v1/)                       | The engine runs Drizzle v1                                     |
+| [0005](/docs/decisions/0005-event-start-and-end-on-the-booth/) | The booth owns its event's start and end                       |
+| [0006](/docs/decisions/0006-json-line-logs/)                   | One JSON line per log entry, rotated, read by the admin server |
+
 Longer design work — measurements, state models, acceptance criteria — goes in a [spec](/docs/specs/printer-watchdog/) that the ADR links to.

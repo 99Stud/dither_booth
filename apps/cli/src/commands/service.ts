@@ -7,7 +7,11 @@ import type { BoothContext } from "#internal/context";
 import { requireRoot } from "#internal/args";
 import {
   BOOTH_BIN,
+  JOURNAL_GROUP,
+  LOGROTATE_RULE_PATH,
   NETWORK_DISPATCHER_PATH,
+  PM2_LOG_RELATIVE,
+  PM2_PROCESS_NAMES,
   SERVICE_BUN,
   SERVICE_BUN_DIR,
   SERVICE_HOME,
@@ -17,7 +21,7 @@ import {
   SSD_MOUNT_POINT,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
-import { run } from "#internal/system";
+import { capture, run } from "#internal/system";
 import { heading, info, ok, runBoothTask, step } from "#internal/ui";
 
 export function buildUnit(repoRoot: string): string {
@@ -93,6 +97,33 @@ exit 0
 `;
 }
 
+/**
+ * PM2 never rotates its files. logrotate copies then truncates each one, so
+ * PM2 keeps writing through the handle it already holds. `maxsize` rotates a
+ * file over 20 MB even when it was already rotated that day; Debian's
+ * logrotate.timer decides how often that is checked (daily by default).
+ * Files are named, not globbed: the old `-out.log`/`-err.log` stay as they are.
+ */
+export function buildLogrotateRule(repoRoot: string): string {
+  const files = PM2_PROCESS_NAMES.map(
+    (name) => `${repoRoot}/${PM2_LOG_RELATIVE}/${name}.log`,
+  ).join("\n");
+
+  return `# Installed by \`booth service\`. Rotates the PM2 log files.
+${files}
+{
+  su ${SERVICE_USER} ${SERVICE_USER}
+  daily
+  maxsize 20M
+  rotate 7
+  compress
+  copytruncate
+  missingok
+  notifempty
+}
+`;
+}
+
 async function writeIfChanged(path: string, content: string): Promise<boolean> {
   const existing = await Bun.file(path)
     .text()
@@ -102,6 +133,27 @@ async function writeIfChanged(path: string, content: string): Promise<boolean> {
 
   step(`${existing ? "Updating" : "Creating"} ${path}`);
   await Bun.write(path, content);
+  return true;
+}
+
+async function isActive(unit: string): Promise<boolean> {
+  const active = await capture(["systemctl", "is-active", unit], {
+    allowFailure: true,
+  });
+
+  return active.stdout.trim() === "active";
+}
+
+/** True when the service user was added now, false when already a member. */
+async function joinJournalGroup(): Promise<boolean> {
+  const groups = await capture(["id", "-nG", SERVICE_USER], {
+    allowFailure: true,
+  });
+
+  if (groups.stdout.trim().split(/\s+/).includes(JOURNAL_GROUP)) return false;
+
+  step(`Adding ${SERVICE_USER} to ${JOURNAL_GROUP}`);
+  await run(["usermod", "-aG", JOURNAL_GROUP, SERVICE_USER]);
   return true;
 }
 
@@ -121,11 +173,24 @@ export async function runServiceCommand(context: BoothContext): Promise<void> {
   // NetworkManager only runs dispatcher scripts that root owns and can execute.
   await chmod(NETWORK_DISPATCHER_PATH, 0o755);
 
+  await writeIfChanged(LOGROTATE_RULE_PATH, buildLogrotateRule(repoRoot));
+  // logrotate skips a rule that the group or others can write.
+  await chmod(LOGROTATE_RULE_PATH, 0o644);
+
+  const wasActive = await isActive(SERVICE_NAME);
+  const joinedJournal = await joinJournalGroup();
+
   step("Reloading systemd daemon");
   await run(["systemctl", "daemon-reload"]);
 
   step(`Enabling and starting ${SERVICE_NAME}`);
   await run(["systemctl", "enable", "--now", SERVICE_NAME]);
+
+  // A running process keeps the groups it started with.
+  if (wasActive && joinedJournal) {
+    step(`Restarting ${SERVICE_NAME} so it can read the system journal`);
+    await run(["systemctl", "restart", SERVICE_NAME]);
+  }
 
   ok(`${SERVICE_NAME} enabled`);
 }
