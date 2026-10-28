@@ -10,6 +10,7 @@ import {
 
 import { PRODUCTION_ENTRY } from "./internal/build.constants";
 import { copyPublicAssets, toDistRelative } from "./internal/build.utils";
+import { inlineImagesPlugin } from "./internal/inline-images.plugin";
 
 export async function buildBrowserServerApp() {
   const appRoot = process.cwd();
@@ -47,7 +48,7 @@ export async function buildBrowserServerApp() {
       asset: "assets/[name]-[hash].[ext]",
     },
     define: defineEnv,
-    plugins: [tailwindPlugin],
+    plugins: [tailwindPlugin, inlineImagesPlugin],
   });
 
   if (!serverResult.success) {
