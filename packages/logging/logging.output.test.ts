@@ -8,14 +8,17 @@ const KIOSK_PREFIX = "[kiosk] ";
  * Runs `body` in a fresh Bun process with `logKioskEvent` in scope and
  * returns exactly what it wrote to stdout and stderr.
  */
-const runLogger = async (body: string) => {
+const runLogger = async (
+  body: string,
+  env: { NODE_ENV: string } = { NODE_ENV: "production" },
+) => {
   const child = Bun.spawn(
     [
       process.execPath,
       "-e",
       `import { logKioskEvent } from ${JSON.stringify(LOGGER_ENTRY)};\n${body}`,
     ],
-    { stderr: "pipe", stdout: "pipe" },
+    { env: { ...process.env, ...env }, stderr: "pipe", stdout: "pipe" },
   );
 
   const [stdout, stderr, exitCode] = await Promise.all([
@@ -172,6 +175,73 @@ describe("logKioskEvent output", () => {
       ssid: "BoothNet",
       wifiPassword: "[redacted]",
     });
+  });
+});
+
+describe("logKioskEvent output in development", () => {
+  const DEVELOPMENT = { NODE_ENV: "development" };
+
+  it("writes a readable entry instead of the kiosk line", async () => {
+    const { stderr, stdout } = await runLogger(
+      `
+      logKioskEvent("error", "engine.server", "trpc-request-failed", {
+        details: { code: "FORBIDDEN", path: "ops.getHealthz" },
+        error: {
+          cause: "boom",
+          message: "Request origin not allowed.",
+          name: "TRPCError",
+          stack: "TRPCError: Request origin not allowed.\\n    at forbidden (trpc.ts:42:7)",
+        },
+      });
+    `,
+      DEVELOPMENT,
+    );
+
+    expect(stdout).toBe("");
+    expect(stderr).not.toContain(KIOSK_PREFIX);
+    expect(getLines(stderr)).toEqual([
+      expect.stringMatching(
+        /^\d{2}:\d{2}:\d{2}\.\d{3} ERROR engine\.server trpc-request-failed$/,
+      ),
+      "  details: {",
+      '    "code": "FORBIDDEN",',
+      '    "path": "ops.getHealthz"',
+      "  }",
+      "  error: TRPCError: Request origin not allowed.",
+      "      at forbidden (trpc.ts:42:7)",
+      "  cause: boom",
+    ]);
+  });
+
+  it("keeps an event without details or error to its header line", async () => {
+    const { stdout } = await runLogger(
+      `logKioskEvent("info", "engine.kiosk", "kiosk-reload-sent");`,
+      DEVELOPMENT,
+    );
+
+    expect(getLines(stdout)).toEqual([
+      expect.stringMatching(
+        /^\d{2}:\d{2}:\d{2}\.\d{3} INFO  engine\.kiosk kiosk-reload-sent$/,
+      ),
+    ]);
+  });
+
+  it("redacts secrets and survives details that cannot be written", async () => {
+    const { stderr, stdout } = await runLogger(
+      `
+      logKioskEvent("warn", "engine.device-setup", "wifi-join-failed", {
+        details: { ssid: "BoothNet", wifiPassword: "hunter22" },
+      });
+      logKioskEvent("info", "engine.kiosk", "kiosk-reload-sent", {
+        details: { page: { toJSON: () => { throw new Error("detached"); } } },
+      });
+    `,
+      DEVELOPMENT,
+    );
+
+    expect(stderr).not.toContain("hunter22");
+    expect(stderr).toContain('    "wifiPassword": "[redacted]"');
+    expect(stdout).toContain("  details: [unserializable: detached]");
   });
 });
 

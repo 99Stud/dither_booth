@@ -61,6 +61,12 @@ const createLogReplacer = () => {
   };
 };
 
+const getUnserializableMarker = (error: unknown) => {
+  const reason = error instanceof Error ? error.message : String(error);
+
+  return `[unserializable: ${reason}]`;
+};
+
 /**
  * Serialises a log payload to compact, single-line JSON. It never throws:
  * if the details can't be written (a getter or `toJSON` throws), they are
@@ -70,11 +76,25 @@ export const serializeLogPayload = (payload: Record<string, unknown>) => {
   try {
     return JSON.stringify(payload, createLogReplacer());
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-
     return JSON.stringify(
-      { ...payload, details: `[unserializable: ${reason}]` },
+      { ...payload, details: getUnserializableMarker(error) },
       createLogReplacer(),
     );
+  }
+};
+
+/**
+ * Serialises an event's details alone, indented, with the same redaction
+ * and the same never-throw guarantee: details that can't be written become
+ * the marker that names the failure.
+ */
+export const serializeLogDetails = (
+  details: Record<string, unknown>,
+  indent: number,
+) => {
+  try {
+    return JSON.stringify(details, createLogReplacer(), indent);
+  } catch (error) {
+    return getUnserializableMarker(error);
   }
 };

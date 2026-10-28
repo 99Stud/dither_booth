@@ -250,12 +250,14 @@ export async function runEngineServer(options: {
   const trpcHandler = createHTTPHandler({
     router: engineRouter,
     createContext,
-    onError({ error, path, req, type }) {
+    onError({ ctx, error, path, req, type }) {
       logKioskEvent("error", ENGINE_SERVER_LOG_SOURCE, "trpc-request-failed", {
         details: {
           code: error.code,
           method: req.method,
           ...(path ? { path } : {}),
+          // Says which origin a FORBIDDEN refused, so the fix is readable here.
+          ...(ctx?.requestOrigin ? { requestOrigin: ctx.requestOrigin } : {}),
           type,
           url: req.url,
         },

@@ -40,14 +40,14 @@ Defaults live in `packages/ports/src/internal/ports.constants.ts`. Each app has 
 
 ### Apps
 
-| Variable          | Read by                | Default | Purpose                                                                                       |
-| ----------------- | ---------------------- | ------- | --------------------------------------------------------------------------------------------- |
-| `SHUTTER_PORT`    | shutter, engine, admin | `3000`  | Shutter HTTPS port                                                                            |
-| `ENGINE_PORT`     | engine, shutter, admin | `3001`  | Engine port (and the proxies' upstream)                                                       |
-| `ADMIN_PORT`      | admin, engine          | `3002`  | Admin HTTPS port                                                                              |
-| `SETUP_PORT`      | shutter, engine, CLI   | `3003`  | Setup page port                                                                               |
-| `NODE_ENV`        | all                    | —       | `production` on the booth. Development-only flags refuse to run under it                      |
-| `PROCESS_MANAGER` | all                    | —       | `pm2` under PM2, `turborepo` under `bun run dev`. Admin's restart actions only work under PM2 |
+| Variable          | Read by                | Default | Purpose                                                                                                                      |
+| ----------------- | ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `SHUTTER_PORT`    | shutter, engine, admin | `3000`  | Shutter HTTPS port                                                                                                           |
+| `ENGINE_PORT`     | engine, shutter, admin | `3001`  | Engine port (and the proxies' upstream)                                                                                      |
+| `ADMIN_PORT`      | admin, engine          | `3002`  | Admin HTTPS port                                                                                                             |
+| `SETUP_PORT`      | shutter, engine, CLI   | `3003`  | Setup page port                                                                                                              |
+| `NODE_ENV`        | all                    | —       | `production` on the booth (development-only flags refuse it); `development` under `bun run dev`, which logs readable entries |
+| `PROCESS_MANAGER` | all                    | —       | `pm2` under PM2, `turborepo` under `bun run dev`. Admin's restart actions only work under PM2                                |
 
 ### Development only
 

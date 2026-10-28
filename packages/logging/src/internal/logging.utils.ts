@@ -16,6 +16,20 @@ export const isBrowserRuntime = () => {
   return typeof window !== "undefined";
 };
 
+/**
+ * `bun run dev` sets `NODE_ENV=development`. There a human reads the
+ * terminal, and nothing reads the output back: PM2 and its files are
+ * production only.
+ */
+export const isDevelopmentRuntime = () => {
+  // This package also builds for the browser, where `process` has no type.
+  const runtime = globalThis as {
+    process?: { env?: Record<string, string | undefined> };
+  };
+
+  return runtime.process?.env?.NODE_ENV === "development";
+};
+
 export const getBrowserLoggingContext = () => {
   if (!isBrowserRuntime()) {
     return null;

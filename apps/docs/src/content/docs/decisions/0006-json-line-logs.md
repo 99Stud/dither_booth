@@ -43,3 +43,4 @@ Diagnosing a booth meant SSH and `tail` on raw PM2 files ([spec, issue #95](http
 - A new PM2 process must be added to `PM2_PROCESS_NAMES` in `@dither-booth/shared/booth-system` (and in `pm2.config.js`, which a test keeps equal), or its file isn't rotated or shown.
 - Membership of `systemd-journal` lets every app read the whole journal, which can hold other services' details. The admin server must filter what it serves, and restricting the Logs page to tech staff later stays one change at the admin's single access point.
 - Rolling back is a config revert: the old two-file format comes back, and the old files were never touched.
+- Under `bun run dev` (`NODE_ENV=development`) the logger prints each event readable over several lines instead. Nothing reads a development terminal back, and the Logs page only reads PM2's files.

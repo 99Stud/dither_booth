@@ -5,7 +5,7 @@ sidebar:
   order: 9
 ---
 
-The apps write one JSON line per event, PM2 keeps one combined file per process, and logrotate rotates the files ([Logs](/docs/maintenance/logs/), [ADR 0006](/docs/decisions/0006-json-line-logs/)). The **admin server** reads those files, and the system journal, and streams them to the admin's Logs page. It is the admin, not the engine, because the engine is the process most likely to be down when someone needs its logs.
+The apps write one JSON line per event (under `NODE_ENV=development` a readable entry for the terminal instead, since nothing reads it back), PM2 keeps one combined file per process, and logrotate rotates the files ([Logs](/docs/maintenance/logs/), [ADR 0006](/docs/decisions/0006-json-line-logs/)). The **admin server** reads those files, and the system journal, and streams them to the admin's Logs page. It is the admin, not the engine, because the engine is the process most likely to be down when someone needs its logs.
 
 Code: `apps/admin/src/lib/logs/` for the server, `apps/admin/src/app/Logs/` for the page. The socket tests in `logs.routes.test.tsx` drive the route with a fake socket, a temp folder of PM2 files and a fake source; `logs.journal.test.tsx` drives it with a fake `journalctl`. The page's render tests in `Logs.render.test.tsx` drive the page with a fake socket in place of `WebSocket` (`Logs.testing.tsx`).
 
