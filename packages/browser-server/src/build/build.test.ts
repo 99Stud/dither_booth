@@ -35,10 +35,11 @@ async function writeApp(): Promise<string> {
   );
   await Bun.write(
     join(root, "src/client.ts"),
-    'import mask from "./mask.png";\ndocument.body.textContent = mask;\n',
+    // Upper case: the build must not care how the file is named.
+    'import mask from "./mask.PNG";\ndocument.body.textContent = mask;\n',
   );
   await Bun.write(
-    join(root, "src/mask.png"),
+    join(root, "src/mask.PNG"),
     Buffer.from(PNG_BASE64, "base64"),
   );
 
@@ -60,7 +61,7 @@ describe("buildBrowserServerApp", () => {
     );
 
     expect(clientBundle).toBeDefined();
-    expect(buildAssets.some((path) => path.endsWith(".png"))).toBe(false);
+    expect(buildAssets.some((path) => /\.png$/iu.test(path))).toBe(false);
 
     const bundle = await readFile(join(appRoot, "dist", clientBundle!), "utf8");
 
