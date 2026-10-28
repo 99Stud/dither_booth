@@ -41,6 +41,15 @@ Every `ops.*` command returns `{ delivered }`, the number of pages that got it. 
 
 `booth.reportKioskStatus({ pageId, camera, maintenance })`: a page reports its camera state (or `null` while it runs none, as on the Darkroom's PIN screen) and whether it shows the maintenance screen yet, on every change and every reconnection. The engine stores it on the page's entry until its stream ends, and answers `{ registered: false }` for a page it doesn't know (the page retries). Admin's **Camera** health item reads it; a failed camera is unhealthy.
 
+## The camera on the page
+
+`useUserMedia` (`packages/ui/src/hooks/user-media/`) runs the camera for the `Webcam` component, on the Experience and the Darkroom's print tuning. Its state is what `reportKioskStatus` carries.
+
+- **`ready` means a picture.** The state flips to `ready` on the first frame, not when `getUserMedia` resolves. The hook listens for `requestVideoFrameCallback` and `timeupdate` together and takes whichever comes first: a browser may not run frame callbacks for a video it doesn't draw, and the Shutter hides its live feed (`display: none` in the Darkroom once a preview shows, `visibility: hidden` in the Experience behind the frozen photo), while `timeupdate` follows playback. A browser can open the camera and draw nothing, with a live track and no error: seen on a page reloaded while its camera was running. Every photo then failed (`platform error`, `setPhotoOptions failed`) while admin showed the camera healthy. An `unmute` gives `ready` back only to a camera that has shown a picture.
+- **No picture within 5 s, or the track ends:** the state is `error` (“The camera gives no picture.” / “The camera stopped.”), the stream is closed and the camera reopened after 1.5 s. Three restarts in a row at most. A picture gives them back only once it has lasted 30 s, so a camera that draws a frame and dies right after still runs out. Once they have run out, the message gains “Close the browser fully and open the Shutter again.” and stays, so the Camera health item and the Booth camera card show it. A reload is not enough: the browser's camera can stay hung across reloads.
+- **No visit without a picture.** The Experience's **Start** stays disabled until the page's camera is `ready` (`useExperienceFlow`, from the kiosk camera store), as it does during maintenance. A guest can't start a visit that would end in a failed print.
+- **A photo is a frame when `takePhoto` fails.** `ImageCapture.takePhoto` can break while the video runs (virtual cameras, a phone used as a camera). The hook then waits up to 1 s for a fresh frame, draws it to a canvas and returns that JPEG, logging `photo-capture-fallback` (warn). A stalled picture is never printed: without a fresh frame, the original error is thrown.
+
 ## Camera live view
 
 The engine only relays **signalling**. Video goes peer-to-peer from the iPad to the viewer on the LAN.

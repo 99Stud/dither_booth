@@ -186,6 +186,7 @@ The apps log structured events: a level, a **source** and an **event name**, plu
 | `engine.browser`      | `browser-launch-failed`, `browser-close-failed` (the receipt Chromium)                                                                                                                                                                                                                            |
 | `engine.event`        | `event-kit-unknown`: an event names a kit this release doesn't ship; the default kit prints instead                                                                                                                                                                                               |
 | `engine.lottery`      | draw and lottery-ticket failures                                                                                                                                                                                                                                                                  |
+| `shutter.camera`      | `camera-state-changed` (error level when the camera failed, with its message), `photo-captured`, `photo-capture-fallback` (`takePhoto` failed; a frame of the live picture was used), `experience-camera-prewarm-failed`                                                                          |
 
 To follow one thing across a visit, grep by source: `grep -F '\"source\":\"engine.printer\"' dither-booth-engine.log`.
 

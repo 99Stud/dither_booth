@@ -45,6 +45,7 @@ import { reportPrintConfigurationError } from "./internal/PrintConfiguration.uti
 const {
   reportUserMediaCameraStateChange,
   reportUserMediaConstraintFallbackError,
+  reportUserMediaPhotoCaptureFallback,
 } = createUserMediaReporters({ source: SHUTTER_CAMERA_LOG_SOURCE });
 
 /**
@@ -221,6 +222,7 @@ export const PrintTuning = ({
           onRefreshPreview={refreshActivePreview}
           onCameraStateChange={onCameraStateChange}
           onConstraintFallbackError={reportUserMediaConstraintFallbackError}
+          onPhotoCaptureFallback={reportUserMediaPhotoCaptureFallback}
         />
         <Card
           className={clsx(

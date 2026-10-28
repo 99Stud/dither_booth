@@ -31,6 +31,7 @@ import { CameraViewfinder } from "../CameraViewfinder/index";
 const {
   reportUserMediaCameraStateChange,
   reportUserMediaConstraintFallbackError,
+  reportUserMediaPhotoCaptureFallback,
 } = createUserMediaReporters({ source: SHUTTER_CAMERA_LOG_SOURCE });
 
 /** How far the caption travels as it exits upward and the next one rises in. */
@@ -183,6 +184,7 @@ export const CameraStage = ({
               className="h-full min-h-0 w-full max-w-none flex-1"
               onCameraStateChange={onCameraStateChange}
               onConstraintFallbackError={reportUserMediaConstraintFallbackError}
+              onPhotoCaptureFallback={reportUserMediaPhotoCaptureFallback}
             />
           </CameraCrt>
           <CameraViewfinder isVisible={isCameraVisible} />
