@@ -41,7 +41,7 @@ Every table has `org_id` and row level security. Rules worth knowing:
 
 ## Production settings come from `config.toml`
 
-Every deploy (see [Releases](/docs/development/releases/)) makes the project's API, database, Auth and Storage settings match `supabase/config.toml`, as Supabase recommends for email templates. `[remotes.production]` at the end of the file holds the values production needs instead of the local ones: `site_url` (Studio, `https://dither-studio.pages.dev`), no extra redirect URLs, email confirmations and TOTP on.
+Every deploy (see [Releases](/docs/development/releases/)) makes the project's API, database, Auth and Storage settings match `supabase/config.toml`, as Supabase recommends for email templates. `[remotes.production]` at the end of the file holds the values production needs instead of the local ones: `site_url` (Studio, `https://studio.ditherbooth.com`), no extra redirect URLs, email confirmations and TOTP on.
 
 So **change production settings in `config.toml`, never in the dashboard**: the next deploy puts back whatever the file says. Among them:
 

@@ -461,7 +461,7 @@ project_id = "cvxebmlzjudvxxesgpgq"
 
 [remotes.production.auth]
 # Studio, which also serves the sign-in email's images.
-site_url = "https://dither-studio.pages.dev"
+site_url = "https://studio.ditherbooth.com"
 additional_redirect_urls = []
 
 [remotes.production.auth.email]
