@@ -27,6 +27,8 @@ import { StatusDot } from "#components/Misc/StatusDot/index";
 import { notify } from "#lib/feedback/notify";
 import { getKioskCameraHealth } from "#lib/healthz/healthz.utils";
 import { reportKioskError } from "#lib/logging/logging.utils";
+import { getOverallSystemStatus } from "#lib/system/system.utils";
+import { useSystemMetrics } from "#lib/system/useSystemMetrics";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 import { CameraAccordionItem } from "./internal/components/CameraAccordionItem";
@@ -34,6 +36,7 @@ import { HealthzAccordionItem } from "./internal/components/HealthzAccordionItem
 import { KioskReloadSection } from "./internal/components/KioskReloadSection";
 import { PrinterAccordionItem } from "./internal/components/PrinterAccordionItem";
 import { PuppeteerAccordionItem } from "./internal/components/PuppeteerAccordionItem";
+import { SystemAccordionItem } from "./internal/components/SystemAccordionItem";
 import {
   HEALTHZ_SERVICE_LABELS,
   KIOSK_RELOAD_HEALTHZ_REFETCH_DELAY_MS,
@@ -99,6 +102,15 @@ export const HealthCard = () => {
   } = useMutation(trpc.ops.restartPuppeteerReceiptViewer.mutationOptions());
   const { mutateAsync: reloadKiosk, isPending: isReloadKioskPending } =
     useMutation(trpc.ops.reloadKiosk.mutationOptions());
+  // The Pi itself, from the admin server: it answers while the engine is down.
+  const {
+    data: system,
+    isPending: isSystemPending,
+    isError: isSystemError,
+  } = useSystemMetrics();
+  // Only a critical Pi counts: warm or low is worth a look, not a failure.
+  const isSystemCritical =
+    system !== undefined && getOverallSystemStatus(system) === "critical";
 
   const areAllChecksHealthy =
     isHealthzSuccess &&
@@ -106,10 +118,11 @@ export const HealthCard = () => {
     healthz.engine.healthz.ok &&
     healthz.puppeteer.healthz.ok &&
     healthz.printer.healthz.ok &&
-    getKioskCameraHealth(healthz.shutter.kiosk.pages) !== false;
+    getKioskCameraHealth(healthz.shutter.kiosk.pages) !== false &&
+    !isSystemCritical;
 
   const unhealthyServices = isHealthzSuccess
-    ? extractUnhealthyServicesCount(healthz)
+    ? extractUnhealthyServicesCount(healthz) + (isSystemCritical ? 1 : 0)
     : undefined;
   const isRestarting =
     restartProgress !== undefined || isRestartPuppeteerPending;
@@ -345,6 +358,11 @@ export const HealthCard = () => {
             isHealthzSuccess={isHealthzSuccess}
             isHealthzError={isHealthzError}
             healthz={healthz}
+          />
+          <SystemAccordionItem
+            snapshot={system}
+            isPending={isSystemPending}
+            isError={isSystemError}
           />
         </Accordion>
       </CardContent>

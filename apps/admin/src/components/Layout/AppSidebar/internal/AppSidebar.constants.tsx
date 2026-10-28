@@ -1,10 +1,18 @@
 import type { ReactNode } from "react";
 
-import { BookOpen, Gauge, ScrollText, Settings, Ticket } from "lucide-react";
+import {
+  BookOpen,
+  Cpu,
+  Gauge,
+  ScrollText,
+  Settings,
+  Ticket,
+} from "lucide-react";
 
 import { DOCS_PATH } from "#lib/docs/docs.constants";
 import { LOGS_PAGE_PATH } from "#lib/logs/logs.search";
 import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
+import { SYSTEM_PAGE_PATH } from "#lib/system/system.constants";
 
 type AppNavLink = {
   label: string;
@@ -37,6 +45,17 @@ export const APP_LOGS_LINK = {
   label: "Logs",
   path: LOGS_PAGE_PATH,
   icon: <ScrollText />,
+};
+
+/**
+ * The System page: the Pi's heat, memory, CPU and storage, next to Logs
+ * at the sidebar's foot. Not in the phone's tab bar: phones reach it from
+ * Settings.
+ */
+export const APP_SYSTEM_LINK = {
+  label: "System",
+  path: SYSTEM_PAGE_PATH,
+  icon: <Cpu />,
 };
 
 export const APP_SIDEBAR_MENU_LINKS: AppNavLink[] = [

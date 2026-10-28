@@ -21,6 +21,8 @@ sidebar:
 | Browser reports  | `POST /client-log` on 3000 and 3002                  | Write-only. [Browser reports](/docs/architecture/access-control/#browser-reports)                       |
 | Logs page        | `https://<hostname>.local:3002/logs`                 | Filters in the URL: `services`, `levels`, `source`, `q`. [Open Logs](/docs/maintenance/logs/#open-logs) |
 | Logs socket      | `wss://<hostname>.local:3002/admin/logs`             | The Logs page's live logs. [Logging](/docs/architecture/logging/)                                       |
+| System page      | `https://<hostname>.local:3002/system`               | The Pi's heat, throttling, memory, CPU and storage. [System](/docs/maintenance/system/)                 |
+| System readings  | `GET https://<hostname>.local:3002/admin/system`     | JSON: the latest reading and the last hour. [System metrics](/docs/architecture/system-metrics/)        |
 
 On the booth Wi-Fi, the booth is always `10.42.0.1`.
 

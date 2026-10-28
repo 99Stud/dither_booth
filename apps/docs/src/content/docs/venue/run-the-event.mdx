@@ -7,7 +7,7 @@ sidebar:
 
 import { Aside } from "@astrojs/starlight/components";
 
-Admin is at `https://<booth>.local:3002` (or `https://<booth IP>:3002`). It has three pages: **Control Center**, **Event** and **Settings**.
+Admin is at `https://<booth>.local:3002` (or `https://<booth IP>:3002`). It has three pages: **Control Center**, **Event** and **Settings**, and two for tech staff at the sidebar's foot: **Logs** and **System**.
 
 ## The event
 
@@ -98,13 +98,13 @@ The **Draws** table lists every draw of the active event, wins and losses, newes
 
 The page to keep open on your phone during the event.
 
-| Card              | What it shows and does                                                                                                                                                                                                                                                         |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Booth screen**  | **Photo booth / Darkroom**: switch what the iPad shows. **Maintenance**: close the booth to guests. **Automatic**: let the printer close and reopen the booth on its own.                                                                                                      |
-| **Printer**       | Live printer state (ready, paper low, out of paper, cover open, error, not connected), since when, whether it can print, and the last changes.                                                                                                                                 |
-| **Booth camera**  | **Watch live**: see what the iPad camera sees, to check framing from across the room. Stops after 10 minutes.                                                                                                                                                                  |
-| **Health checks** | Engine, Shutter, Camera, Printer and the ticket renderer (Puppeteer). Each item explains what is wrong. From here you can reload the kiosk page (now, or when the current guest is done), re-initialize Puppeteer, or restart a service. **View logs** opens that item's logs. |
-| **Network**       | The booth's network and address, the QR and link to connect a device, and **Print setup ticket**.                                                                                                                                                                              |
+| Card              | What it shows and does                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Booth screen**  | **Photo booth / Darkroom**: switch what the iPad shows. **Maintenance**: close the booth to guests. **Automatic**: let the printer close and reopen the booth on its own.                                                                                                                                                                                                                                             |
+| **Printer**       | Live printer state (ready, paper low, out of paper, cover open, error, not connected), since when, whether it can print, and the last changes.                                                                                                                                                                                                                                                                        |
+| **Booth camera**  | **Watch live**: see what the iPad camera sees, to check framing from across the room. Stops after 10 minutes.                                                                                                                                                                                                                                                                                                         |
+| **Health checks** | Engine, Shutter, Camera, Printer, the ticket renderer (Puppeteer) and the Pi itself (temperature, throttling, memory, storage). Each item explains what is wrong. From here you can reload the kiosk page (now, or when the current guest is done), re-initialize Puppeteer, or restart a service. **View logs** opens that item's logs; the Pi's **View system** opens the [System page](/docs/maintenance/system/). |
+| **Network**       | The booth's network and address, the QR and link to connect a device, and **Print setup ticket**.                                                                                                                                                                                                                                                                                                                     |
 
 ### Maintenance
 
@@ -127,3 +127,4 @@ If you switch maintenance off while the printer is still the reason, the card sa
 - **Darkroom PIN** — 4 to 8 digits. Changing it signs out every open Darkroom.
 - **Appearance** — light or dark theme for admin itself.
 - **Docs** (on a phone) — opens this documentation. The booth serves it itself at `/docs/` on the admin address, so it works at a venue with no internet. On an iPad or a computer, it's the sidebar's **Docs** link.
+- **Logs** and **System** (on a phone) — open the [Logs page](/docs/maintenance/logs/#open-logs) and the [System page](/docs/maintenance/system/). On an iPad or a computer, they are the sidebar's **Logs** and **System** links.

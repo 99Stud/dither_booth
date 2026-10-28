@@ -2,7 +2,7 @@
 title: Troubleshooting
 description: Find the symptom, apply the fix. Organised by what you see.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 Start with admin's **Control Center → Health checks** and, over SSH, `booth doctor`. Most problems show up there with the fix. To see why, open a health item's **View logs**, or admin's [Logs page](/docs/maintenance/logs/#open-logs). If not, find the symptom below.
@@ -76,6 +76,8 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 | `nvme0n1` missing from `lsblk`                 | Ribbon cable orientation and latches, `dtparam=pciex1` in `/boot/firmware/config.txt`, bootloader updated with `rpi-eeprom-update -a`.                                                                                                                                                                   |
 | `booth ssd` can't find the SSD partition       | It needs an unmounted ext4 partition. Force one with `BOOTH_SSD_DEVICE=/dev/nvme0n1p1`.                                                                                                                                                                                                                  |
 | `booth ssd`: “Both … hold dither-booth.sqlite” | The data symlink is gone and the engine made a second database on the SD card. Nothing was moved. Follow [The data symlink is gone](/docs/maintenance/recovery/#the-data-symlink-is-gone).                                                                                                               |
-| Throttling, loud fan                           | `vcgencmd get_throttled` (`0x0` is fine). Official 27 W supply? Cooler contact, blower intake clear?                                                                                                                                                                                                     |
+| Throttling, loud fan                           | Admin's [System page](/docs/maintenance/system/): **Temperature** and **Throttling** say which flag is set, now or since boot. Over SSH, `vcgencmd get_throttled` (`0x0` is fine). Official 27 W supply? Cooler contact, blower intake clear?                                                            |
+| System page: **Under-voltage** since boot      | The supply dipped at least once since the Pi started. Use the official 27 W supply, and check the USB-C cable. The flag clears on the next restart.                                                                                                                                                      |
+| System page says **Not on a Pi**               | Expected off the Pi (a development machine): heat, fan and throttling only exist on the booth. On the booth, **Throttling** alone saying so means `vcgencmd` failed: is `pi` in the `video` group?                                                                                                       |
 | `Error opening terminal: xterm-ghostty`        | The Pi has no terminfo for Ghostty. Prefix commands with `TERM=xterm-256color`, or copy the entry: `infocmp -x xterm-ghostty > xterm-ghostty.ti` on the Mac, then `tic -x xterm-ghostty.ti` (and `sudo tic -x`) on the Pi.                                                                               |
 | SD card or SSD full                            | `df -h / /mnt/ssd`. PM2 logs in `/opt/dither-booth/logs/pm2/` are rotated daily, or past 20 MB checked hourly: `booth doctor` says if the rule is missing (`sudo booth service`). Rotate now with `sudo logrotate --force /etc/logrotate.d/ditherbooth`, and delete old `-out.log` and `-err.log` files. |

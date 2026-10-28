@@ -2,7 +2,9 @@ import { ControlCenter } from "#app/ControlCenter/index";
 import { Event } from "#app/Event/index";
 import { Logs } from "#app/Logs/index";
 import { Settings } from "#app/Settings/index";
+import { System } from "#app/System/index";
 import { LOGS_PAGE_PATH, validateLogsSearch } from "#lib/logs/logs.search";
+import { SYSTEM_PAGE_PATH } from "#lib/system/system.constants";
 
 import type { RouteConfig } from "./router.types";
 
@@ -11,6 +13,7 @@ export const ROUTE_KEYS = [
   "event",
   "settings",
   "logs",
+  "system",
 ] as const;
 
 export const ROUTES_CONFIG: RouteConfig = new Map([
@@ -41,6 +44,13 @@ export const ROUTES_CONFIG: RouteConfig = new Map([
       path: LOGS_PAGE_PATH,
       component: Logs,
       validateSearch: validateLogsSearch,
+    },
+  ],
+  [
+    "system",
+    {
+      path: SYSTEM_PAGE_PATH,
+      component: System,
     },
   ],
 ]);

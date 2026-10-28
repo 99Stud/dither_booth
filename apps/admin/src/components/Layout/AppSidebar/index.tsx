@@ -24,6 +24,7 @@ import {
   APP_LOGS_LINK,
   APP_SETTINGS_LINK,
   APP_SIDEBAR_MENU_LINKS,
+  APP_SYSTEM_LINK,
 } from "./internal/AppSidebar.constants";
 
 interface AppSidebarProps extends Omit<
@@ -129,6 +130,19 @@ export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
             >
               {APP_LOGS_LINK.icon}
               <span>{APP_LOGS_LINK.label}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className={clsx("h-9")}
+              isActive={pathname === APP_SYSTEM_LINK.path}
+              tooltip={APP_SYSTEM_LINK.label}
+              render={
+                <Link to={APP_SYSTEM_LINK.path} onClick={closeOnMobile} />
+              }
+            >
+              {APP_SYSTEM_LINK.icon}
+              <span>{APP_SYSTEM_LINK.label}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

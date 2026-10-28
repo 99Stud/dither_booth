@@ -7,6 +7,7 @@ import { HubCard } from "#components/App/Settings/HubCard/index";
 import { LogsCard } from "#components/App/Settings/LogsCard/index";
 import { NetworkCard } from "#components/App/Settings/NetworkCard/index";
 import { PrintingCard } from "#components/App/Settings/PrintingCard/index";
+import { SystemCard } from "#components/App/Settings/SystemCard/index";
 import {
   AppPageBody,
   AppPageHeading,
@@ -16,8 +17,8 @@ import {
 /**
  * What's set once, most needed first: the booth's hardware on the left, access
  * and display on the right, so neither column is empty whatever the Wi-Fi
- * card's height. The docs and logs cards are for phones, where the sidebar's
- * links aren't.
+ * card's height. The docs, logs and system cards are for phones, where the
+ * sidebar's links aren't.
  */
 export const Settings = () => {
   return (
@@ -37,6 +38,7 @@ export const Settings = () => {
             <div className={clsx("flex flex-col gap-4 md:hidden")}>
               <DocsCard />
               <LogsCard />
+              <SystemCard />
             </div>
           </div>
         </div>
