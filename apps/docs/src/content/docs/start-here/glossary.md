@@ -15,7 +15,7 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Darkroom**: the staff screen inside the Shutter, behind a PIN, for print tuning, sample tickets, Wi-Fi and printer status. Opened by tapping the logo four times within two seconds.
 
-**Admin**: the staff web app (`https://<booth>:3002`): Control Center, Event, Settings, and the Logs page for tech staff.
+**Admin**: the staff web app (`https://<booth>:3002`): Control Center, Event, Settings, and the Logs and System pages for tech staff.
 
 **Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts, shows how each booth is doing, sets their event times and gives their registration codes. It talks to the Hub, never to a booth.
 _Avoid_: Studio for Supabase's own dashboard (call that the Supabase dashboard).
@@ -140,6 +140,14 @@ _Avoid_: console, terminal.
 **Log source**: one place the Logs page reads lines from, followed by the admin server: each PM2 process's log file (Engine, Shutter, Admin), and the system journal. A source is available, unavailable (no file yet, no journal), or rotated (its file started over).
 
 **Browser report**: a warning or error logged by a page in a browser (the Shutter on the iPad, admin on a staff phone) and sent to the server that served it, which writes it to its log marked as coming from the browser, with the device's id.
+
+## The Pi
+
+**System page**: admin's page (`/system`) with the Pi's readings, live with the last hour: temperature, throttling, memory, CPU and storage. The admin server reads the Pi every 5 s, so the page works while the engine is down.
+
+**Throttling**: the Pi's firmware running the CPU slower than it could, from heat or a weak supply. Its four flags are **under-voltage**, **clock capped**, **throttled** and **soft temperature limit**, each reported **now** and **since boot**.
+
+**Since boot**: a throttle flag that was set at some point since the Pi last started, even if it is clear now. It is the trace of a supply dip or an overheat during the event; a restart clears it.
 
 ## Booth state
 

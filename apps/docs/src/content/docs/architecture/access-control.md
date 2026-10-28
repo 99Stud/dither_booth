@@ -85,13 +85,17 @@ The engine binds **`127.0.0.1:3001`**. Nothing outside the Pi reaches it except 
 
 ## System privileges
 
-| Actor                       | Runs as     | Can                                                                                    |
-| --------------------------- | ----------- | -------------------------------------------------------------------------------------- |
-| PM2 and the three apps      | `pi`        | Its files, the printer (`lp` group), NetworkManager actions allowed by the polkit rule |
-| Network watch               | root        | Bring the booth Wi-Fi up/down, nftables redirect, restart avahi                        |
-| `booth install` and friends | root (sudo) | Provisioning                                                                           |
+| Actor                       | Runs as     | Can                                                                                                                                                       |
+| --------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PM2 and the three apps      | `pi`        | Its files, the printer (`lp` group), the journal (`systemd-journal` group), `vcgencmd` (`video` group), NetworkManager actions allowed by the polkit rule |
+| Network watch               | root        | Bring the booth Wi-Fi up/down, nftables redirect, restart avahi                                                                                           |
+| `booth install` and friends | root (sudo) | Provisioning                                                                                                                                              |
 
 The polkit rule grants the service user four NetworkManager actions and nothing wider: modify system connections, network control, Wi-Fi scan, Wi-Fi sharing.
+
+## System readings
+
+The admin's System page reads the Pi over **`GET https://<booth>:3002/admin/system`** ([System metrics](/docs/architecture/system-metrics/)): one JSON snapshot, read-only, nothing a page sends reaches a file or a process. Like the rest of admin it is network-trusted: anyone who can load admin can read it. It exposes the Pi's model, uptime, heat, memory, load and disk sizes, nothing from the data.
 
 ## Logs socket
 

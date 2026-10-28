@@ -11,15 +11,16 @@ import { Aside } from "@astrojs/starlight/components";
 
 Admin's **Control Center → Health checks** is the first place to look. It checks, live:
 
-| Item                | Healthy when                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| **Engine**          | The engine answers.                                                                               |
-| **Shutter**         | The Shutter server answers. The item lists every connected kiosk page and which screen it shows.  |
-| **Camera**          | The Experience page on the iPad reports a working camera. A denied or failed camera is unhealthy. |
-| **Printer**         | The printer watch says it can print. Paper low is healthy with a warning.                         |
-| **Ticket renderer** | The headless Chromium (Puppeteer) the engine uses to lay out tickets has its page loaded.         |
+| Item                | Healthy when                                                                                                                                                                                                                                              |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Engine**          | The engine answers.                                                                                                                                                                                                                                       |
+| **Shutter**         | The Shutter server answers. The item lists every connected kiosk page and which screen it shows.                                                                                                                                                          |
+| **Camera**          | The Experience page on the iPad reports a working camera. A denied or failed camera is unhealthy.                                                                                                                                                         |
+| **Printer**         | The printer watch says it can print. Paper low is healthy with a warning.                                                                                                                                                                                 |
+| **Ticket renderer** | The headless Chromium (Puppeteer) the engine uses to lay out tickets has its page loaded.                                                                                                                                                                 |
+| **Pi**              | The Pi isn't throttling now, is under 80 °C, has over 5 % of memory and of each disk free, and its 1 min load is under twice its cores. Warm (70 °C), a throttle flag since boot, under 15 % free, or load past the cores shows a warning, not a failure. |
 
-Each unhealthy item says why, and offers the recovery that fits: reload the kiosk page, re-initialize Puppeteer, or restart a PM2 process. Each item's **View logs** opens the [Logs page](/docs/maintenance/logs/#open-logs) filtered to that part of the booth.
+Each unhealthy item says why, and offers the recovery that fits: reload the kiosk page, re-initialize Puppeteer, or restart a PM2 process. Each item's **View logs** opens the [Logs page](/docs/maintenance/logs/#open-logs) filtered to that part of the booth. The Pi's **View system** opens the [System page](/docs/maintenance/system/), with the last hour of every reading.
 
 The Darkroom shows a compact version of the same checks in its **Booth status** strip.
 
@@ -64,6 +65,8 @@ curl http://<booth-ip>:3003/healthz         # setup page
 `-k` skips certificate verification for a quick check from a machine that doesn't trust the booth CA.
 
 ## System health
+
+Admin's [System page](/docs/maintenance/system/) shows all of this live, with the last hour, and keeps working while the engine is down. Over SSH, the same readings:
 
 ```bash
 vcgencmd get_throttled   # 0x0 = never throttled or under-volted

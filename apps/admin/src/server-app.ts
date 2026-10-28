@@ -33,6 +33,11 @@ import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
 import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
 import { ADMIN_APP_ROOT, ADMIN_REPO_ROOT } from "#lib/server-constants";
+import { SYSTEM_ROUTE_PATH } from "#lib/system/system.constants";
+import { hostSystemReaderDeps } from "#lib/system/system.host";
+import { createSystemReader } from "#lib/system/system.reader";
+import { createSystemRoute } from "#lib/system/system.routes";
+import { createSystemSampler } from "#lib/system/system.sampler";
 const engineOrigin = getEngineInternalOrigin();
 
 export async function runAdminServer(options: {
@@ -66,7 +71,29 @@ export async function runAdminServer(options: {
     mode: options.mode,
     port: getPort("ADMIN_PORT"),
     publicOrigin: adminOrigin,
-    routes: createDocsRoutes(resolve(ADMIN_REPO_ROOT, DOCS_DIST_RELATIVE_PATH)),
+    routes: {
+      ...createDocsRoutes(resolve(ADMIN_REPO_ROOT, DOCS_DIST_RELATIVE_PATH)),
+      // Off the Pi, its own readings (heat, fan, throttling) report
+      // unavailable; memory, CPU and the root disk still work.
+      [SYSTEM_ROUTE_PATH]: createSystemRoute(
+        createSystemSampler({
+          reader: createSystemReader(hostSystemReaderDeps),
+          onError: (error) => {
+            logKioskEvent(
+              "warn",
+              ADMIN_SERVER_LOG_SOURCE,
+              "system-read-failed",
+              {
+                details: {
+                  message:
+                    error instanceof Error ? error.message : String(error),
+                },
+              },
+            );
+          },
+        }),
+      ),
+    },
     webSocketRoutes: {
       // Not only under PM2: without its files, each source reports unavailable.
       [LOGS_ROUTE_PATH]: createLogsRoute({

@@ -74,8 +74,11 @@ Paths relative to `/opt/dither-booth` unless absolute.
 
 ## Hardware
 
-|         |                                                                                             |
-| ------- | ------------------------------------------------------------------------------------------- |
-| SSD     | ext4 partition, mounted at `/mnt/ssd`                                                       |
-| Printer | USB `04b8:0e28`, `/dev/bus/usb/…` `root:lp`                                                 |
-| Wi-Fi   | The Pi's single radio: client mode on venue networks, AP mode (2.4 GHz) for the booth Wi-Fi |
+|            |                                                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------- |
+| SSD        | ext4 partition, mounted at `/mnt/ssd`                                                           |
+| Printer    | USB `04b8:0e28`, `/dev/bus/usb/…` `root:lp`                                                     |
+| Wi-Fi      | The Pi's single radio: client mode on venue networks, AP mode (2.4 GHz) for the booth Wi-Fi     |
+| SoC heat   | `/sys/class/thermal/thermal_zone0/temp` (millidegrees), read by the admin server every 5 s      |
+| Fan        | The Pi 5 `FAN` header: `/sys/class/hwmon/hwmon*/` whose `name` is `pwmfan`, `fan1_input` in RPM |
+| Throttling | `vcgencmd get_throttled`, run as `pi` (the `video` group, a Raspberry Pi OS default)            |
