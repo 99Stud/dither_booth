@@ -2,7 +2,7 @@
 title: The Hub
 description: The cloud side's database, how to run it locally, and how it's tested.
 sidebar:
-  order: 7
+  order: 8
 ---
 
 The [Hub](/docs/start-here/glossary/) is a Supabase project in the EU. Its code lives in `supabase/`: migrations, the config for the local stack, and the database tests. The booth never needs it to run an event.

@@ -29,3 +29,7 @@ Every change that adds or changes behaviour updates the docs in the same change.
 Write venue pages for staff on site: exact button labels, short steps, no internals. Write architecture pages for developers: the mechanism, the exact numbers, and why. Use the glossary's terms.
 
 Pure refactors need no doc change, unless a doc names a file, symbol or path you moved or renamed. Then fix the reference.
+
+# Commits and pull requests
+
+Commits and pull request titles are Conventional Commits (`type(scope): what is now true`, at most 72 characters; a PR title counts the ` (#123)` GitHub adds). Pull requests are squash-merged, so the title becomes the commit on `main`. Fill in `.github/pull_request_template.md`. Never add AI attribution. Full rules: `apps/docs/src/content/docs/development/commits-and-pull-requests.md`.

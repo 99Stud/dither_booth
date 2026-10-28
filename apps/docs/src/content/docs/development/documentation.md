@@ -2,7 +2,7 @@
 title: Writing these docs
 description: Where each kind of page goes, the house style, and the rule that every feature updates the docs.
 sidebar:
-  order: 6
+  order: 7
 ---
 
 This site is the booth's single source of documentation. App READMEs only point here.
