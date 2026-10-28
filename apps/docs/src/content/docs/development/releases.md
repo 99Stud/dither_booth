@@ -2,7 +2,7 @@
 title: Releases
 description: How the CLI is released, how booth software reaches a booth, and how the Hub is deployed.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 There are three things to ship, on three paths.

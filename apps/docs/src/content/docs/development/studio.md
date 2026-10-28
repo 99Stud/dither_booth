@@ -2,7 +2,7 @@
 title: Studio
 description: The staff app that gets the booths' alerts, how it signs staff in, and how it is set up and deployed.
 sidebar:
-  order: 8
+  order: 9
 ---
 
 Studio (`apps/studio`) is the staff app: a static site on Cloudflare Pages that staff add to their Home Screen. It has three tabs: **Alerts**, **Booths** and **This device**, which sets a [device](/docs/start-here/glossary/) up to get the booths' alerts.
