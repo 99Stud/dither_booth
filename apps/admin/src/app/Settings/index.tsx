@@ -4,6 +4,7 @@ import { AppearanceCard } from "#components/App/Settings/AppearanceCard/index";
 import { DarkroomPinCard } from "#components/App/Settings/DarkroomPinCard/index";
 import { DocsCard } from "#components/App/Settings/DocsCard/index";
 import { HubCard } from "#components/App/Settings/HubCard/index";
+import { LogsCard } from "#components/App/Settings/LogsCard/index";
 import { NetworkCard } from "#components/App/Settings/NetworkCard/index";
 import { PrintingCard } from "#components/App/Settings/PrintingCard/index";
 import {
@@ -15,7 +16,8 @@ import {
 /**
  * What's set once, most needed first: the booth's hardware on the left, access
  * and display on the right, so neither column is empty whatever the Wi-Fi
- * card's height. The docs card is for phones, where the sidebar's link isn't.
+ * card's height. The docs and logs cards are for phones, where the sidebar's
+ * links aren't.
  */
 export const Settings = () => {
   return (
@@ -32,8 +34,9 @@ export const Settings = () => {
             <HubCard />
             <DarkroomPinCard />
             <AppearanceCard />
-            <div className={clsx("md:hidden")}>
+            <div className={clsx("flex flex-col gap-4 md:hidden")}>
               <DocsCard />
+              <LogsCard />
             </div>
           </div>
         </div>

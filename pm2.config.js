@@ -24,8 +24,11 @@ const sharedAppConfig = {
   max_restarts: 10,
   merge_logs: true,
   min_uptime: "10s",
+  // One JSON envelope per stdout/stderr chunk: {message, timestamp, type,
+  // process_id, app_name}. No `time`: it would swap the ISO timestamp for a
+  // date format.
+  log_type: "json",
   script: bunInterpreter,
-  time: true,
   watch: false,
 };
 
@@ -38,9 +41,12 @@ const createAppConfig = ({
   ...sharedAppConfig,
   name,
   cwd: resolve(repoRoot, "apps", appDirectory),
-  error_file: resolve(pm2LogDir, `${name}-err.log`),
+  // stdout and stderr both go to the one combined file only; `type` tells
+  // them apart. logrotate rotates it (`booth service`).
+  error_file: "/dev/null",
+  log_file: resolve(pm2LogDir, `${name}.log`),
   max_memory_restart,
-  out_file: resolve(pm2LogDir, `${name}-out.log`),
+  out_file: "/dev/null",
   env_production: {
     NODE_ENV: "production",
     PROCESS_MANAGER: "pm2",

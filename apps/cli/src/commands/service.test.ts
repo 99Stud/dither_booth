@@ -4,7 +4,60 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { buildPolkitRule } from "./network";
-import { buildNetworkDispatcher, buildUnit } from "./service";
+import {
+  buildLogrotateRule,
+  buildLogrotateTimerDropIn,
+  buildNetworkDispatcher,
+  buildUnit,
+} from "./service";
+
+describe("PM2 log rotation", () => {
+  const rule = buildLogrotateRule("/mnt/ssd/dither-booth");
+  const directives = rule
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"));
+
+  test("rotates the combined PM2 file of each process in the configured repo", () => {
+    expect(directives.slice(0, 4)).toEqual([
+      "/mnt/ssd/dither-booth/logs/pm2/dither-booth-engine.log",
+      "/mnt/ssd/dither-booth/logs/pm2/dither-booth-admin.log",
+      "/mnt/ssd/dither-booth/logs/pm2/dither-booth-shutter.log",
+      "{",
+    ]);
+    expect(directives.at(-1)).toBe("}");
+  });
+
+  test("leaves the old -out.log and -err.log files alone", () => {
+    expect(rule).not.toContain("*");
+  });
+
+  test("rotates daily or at 20 MB, keeps 7 compressed files, never closes PM2's handle", () => {
+    expect(directives).toEqual(
+      expect.arrayContaining([
+        "daily",
+        "maxsize 20M",
+        "rotate 7",
+        "compress",
+        "copytruncate",
+      ]),
+    );
+  });
+
+  test("rotates as the service user, who owns the log folder", () => {
+    expect(directives).toContain("su pi pi");
+  });
+
+  test("makes logrotate run hourly, so 20 MB is checked every hour", () => {
+    const lines = buildLogrotateTimerDropIn()
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith("#"));
+
+    // An empty OnCalendar= clears Debian's daily schedule first.
+    expect(lines).toEqual(["[Timer]", "OnCalendar=", "OnCalendar=hourly"]);
+  });
+});
 
 describe("ditherbooth.service", () => {
   test("re-issues the certificate before starting, without blocking the start", () => {

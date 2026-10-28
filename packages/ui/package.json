@@ -18,6 +18,7 @@
     "./components/ui/*": "./src/components/ui/*.tsx",
     "./components/svg/*": "./src/components/svg/*.tsx",
     "./fields/*": "./src/fields/*/index.tsx",
+    "./hooks/use-mobile": "./src/hooks/use-mobile.tsx",
     "./hooks/user-media": "./src/hooks/user-media/index.tsx",
     "./brand": "./src/lib/brand.tsx",
     "./haptics": "./src/lib/haptics.tsx",

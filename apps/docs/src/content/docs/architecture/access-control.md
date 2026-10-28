@@ -61,6 +61,24 @@ The captive page must work for a device that trusts nothing and has no PIN, yet 
 - The setup server only serves the captive page to clients on the booth Wi-Fi's subnet.
 - The engine refuses `captive.joinFromCaptive` unless the booth opened its Wi-Fi **for want of a network**. While staff run the event on the booth Wi-Fi, the captive page is gone and joining is refused.
 
+## Browser reports
+
+Both web servers (Shutter on 3000, Admin on 3002) take **`POST /client-log`**: the browser logger's warnings and errors, sent with `navigator.sendBeacon`. It is the only route a browser can write to without going through the engine, so it is **write-only** and refuses before it logs anything:
+
+| Check                                                                                                                       | Refused with |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Not `POST`                                                                                                                  | 405          |
+| `Origin` isn't the server's own origin, on one of the booth's hostnames or its IP                                           | 403          |
+| Body over **16 KB** (read no further than that)                                                                             | 413          |
+| Not a valid report (zod: `level` `warn` or `error`, `deviceId`, `runId`, `source`, `event`, optional `details` and `error`) | 400          |
+| More than **30 reports a minute** of one level (`warn` or `error`) from the same `deviceId`                                 | 429          |
+
+An accepted report answers 204 and is re-logged once through the shared logger, marked `"origin":"browser"` with its `deviceId` and `runId`. The server's logger redacts secrets again. Nothing is ever read back through this route.
+
+Why these numbers: a report is one event, a few KB with its stack; 16 KB leaves room and bounds what one request can write. A page stuck in an error loop on one device stops at 30 lines a minute instead of filling the disk. Warnings and errors have separate budgets of 30 each, so a chatty warning loop can't get real errors refused. The limit is per device and level, in memory, and resets with the server; a device that forges ids can still only write 16 KB a request, from an allowed origin.
+
+Code: `packages/browser-server/src/internal/client-log.routes.ts`; the report schema and limits are in `packages/logging/src/isomorphic/client-log.ts`.
+
 ## Engine exposure
 
 The engine binds **`127.0.0.1:3001`**. Nothing outside the Pi reaches it except through the two web servers' `/engine/trpc` proxies, which forward the browser's headers (so the engine sees the real `Origin`) and its abort signal.
@@ -74,3 +92,13 @@ The engine binds **`127.0.0.1:3001`**. Nothing outside the Pi reaches it except 
 | `booth install` and friends | root (sudo) | Provisioning                                                                           |
 
 The polkit rule grants the service user four NetworkManager actions and nothing wider: modify system connections, network control, Wi-Fi scan, Wi-Fi sharing.
+
+## Logs socket
+
+The admin's Logs page reads every service's logs over **`wss://<booth>:3002/admin/logs`** ([Logging](/docs/architecture/logging/)). Like the rest of admin it is **network-trusted**: the upgrade only checks that `Origin` is the admin's own origin, on one of the booth's hostnames or its IP, and refuses others with 403. Anyone who can load admin can read the logs.
+
+- **Read-only.** The socket only answers history requests and streams lines; nothing a page sends reaches a file or a process.
+- **Secrets.** Lines carry what the logger wrote, which redacted secret-looking detail keys first ([Logs → Line format](/docs/maintenance/logs/#line-format)).
+- **System journal.** Only the booth's units, NetworkManager and the kernel are read; the rest of the journal stays on the booth. Those lines are shown as journald stored them, not redacted ([Logging → The system journal](/docs/architecture/logging/#the-system-journal)).
+- **One way in.** `createLogsRoute` in `apps/admin/src/lib/logs/logs.routes.tsx` is the only place logs leave the booth. Restricting them to tech staff later is one change there (its `validateUpgrade` hook), plus the page.
+- **The page** (`/logs`) is an ordinary admin route, linked from the sidebar, Settings and the health items. It holds nothing itself: without the socket it shows no lines.

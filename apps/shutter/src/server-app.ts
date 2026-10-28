@@ -1,5 +1,6 @@
 import { runBrowserServer } from "@dither-booth/browser-server";
 import { logKioskEvent } from "@dither-booth/logging";
+import { SERVER_STARTED_EVENT } from "@dither-booth/logging/kiosk-line";
 import {
   BOOTH_WIFI_IP,
   SHUTTER_BIND_HOST,
@@ -85,7 +86,7 @@ export async function runShutterServer(options: {
     },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {
-      logKioskEvent("info", SHUTTER_SERVER_LOG_SOURCE, "server-started", {
+      logKioskEvent("info", SHUTTER_SERVER_LOG_SOURCE, SERVER_STARTED_EVENT, {
         details,
       });
     },

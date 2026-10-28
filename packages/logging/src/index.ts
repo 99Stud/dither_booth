@@ -8,10 +8,14 @@ import type {
   ReportKioskErrorOptions,
 } from "./internal/logging.types";
 
+import { sendBrowserReport } from "./internal/logging.report";
+import { serializeLogPayload } from "./internal/logging.serialize";
 import {
   getBrowserLoggingContext,
   getConsoleMethod,
+  isBrowserRuntime,
 } from "./internal/logging.utils";
+import { KIOSK_LOG_PREFIX } from "./isomorphic/kiosk-line";
 
 export const getKioskErrorDiagnostics = (
   error: unknown,
@@ -47,17 +51,39 @@ export const logKioskEvent = (
   event: string,
   context: KioskLogContext = {},
 ) => {
-  const { details, error } = context;
-
-  getConsoleMethod(level)("[kiosk]", {
+  const { browser, details, error } = context;
+  const payload = {
     loggedAt: new Date().toISOString(),
     level,
     source,
     event,
     ...getBrowserLoggingContext(),
+    ...(browser
+      ? { origin: "browser", deviceId: browser.deviceId, runId: browser.runId }
+      : {}),
     ...(hasDetails(details) ? { details } : {}),
     ...(error ? { error } : {}),
-  });
+  };
+
+  if (isBrowserRuntime()) {
+    getConsoleMethod(level)(KIOSK_LOG_PREFIX, payload);
+
+    if (level !== "info") {
+      sendBrowserReport(getBrowserLoggingContext(), {
+        level,
+        source,
+        event,
+        ...(hasDetails(details) ? { details } : {}),
+        ...(error ? { error } : {}),
+      });
+    }
+
+    return;
+  }
+
+  getConsoleMethod(level)(
+    `${KIOSK_LOG_PREFIX} ${serializeLogPayload(payload)}`,
+  );
 };
 
 export type { ReportKioskErrorOptions };

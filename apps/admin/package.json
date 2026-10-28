@@ -16,7 +16,9 @@
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "check-types": "tsc --noEmit -p tsconfig.json",
-    "test": "bun test --isolate"
+    "test": "bun run test:unit && bun run test:render",
+    "test:unit": "bun test --isolate --path-ignore-patterns='**/*.render.test.tsx'",
+    "test:render": "bun test --isolate --preload ./src/lib/test/dom-environment.tsx .render.test.tsx"
   },
   "dependencies": {
     "@dither-booth/browser-server": "workspace:*",
@@ -44,6 +46,7 @@
     "pm2": "7.0.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-virtuoso": "4.18.19",
     "recharts": "3.8.0",
     "sonner": "2.0.7",
     "tailwindcss": "4.3.3",
@@ -52,6 +55,9 @@
   },
   "devDependencies": {
     "@dither-booth/typescript-config": "workspace:*",
+    "@happy-dom/global-registrator": "21.0.4",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
     "@types/bun": "1.3.14",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",

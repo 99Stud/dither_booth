@@ -1,4 +1,5 @@
 import { getKioskErrorDiagnostics, logKioskEvent } from "@dither-booth/logging";
+import { SERVER_STARTED_EVENT } from "@dither-booth/logging/kiosk-line";
 import {
   getAdminOrigin,
   getSetupServerTokenPath,
@@ -317,7 +318,7 @@ export async function runEngineServer(options: {
   const address = server.address();
 
   if (address && typeof address !== "string") {
-    logKioskEvent("info", ENGINE_SERVER_LOG_SOURCE, "server-started", {
+    logKioskEvent("info", ENGINE_SERVER_LOG_SOURCE, SERVER_STARTED_EVENT, {
       details: {
         environment: process.env.NODE_ENV,
         processManager,

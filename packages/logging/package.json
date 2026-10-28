@@ -7,7 +7,9 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./browser": "./src/browser/index.ts"
+    "./browser": "./src/browser/index.ts",
+    "./client-log": "./src/isomorphic/client-log.ts",
+    "./kiosk-line": "./src/isomorphic/kiosk-line.ts"
   },
   "scripts": {
     "update": "bun update -i",
@@ -19,7 +21,8 @@
     "test": "bun test --isolate"
   },
   "dependencies": {
-    "@dither-booth/shared": "workspace:*"
+    "@dither-booth/shared": "workspace:*",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@dither-booth/typescript-config": "workspace:*"

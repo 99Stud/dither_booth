@@ -1,5 +1,6 @@
 import { runBrowserServer } from "@dither-booth/browser-server";
 import { logKioskEvent } from "@dither-booth/logging";
+import { SERVER_STARTED_EVENT } from "@dither-booth/logging/kiosk-line";
 import {
   ADMIN_BIND_HOST,
   getAdminOrigin,
@@ -9,6 +10,10 @@ import {
   getWebTlsHostnames,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
+import {
+  PM2_LOG_RELATIVE_DIR,
+  PM2_PROCESS_NAMES,
+} from "@dither-booth/shared/booth-system";
 import { ADMIN_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
 import {
   TRPC_PROXY_PATH,
@@ -19,6 +24,11 @@ import { resolve } from "node:path";
 import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
 import { DOCS_DIST_RELATIVE_PATH } from "#lib/docs/docs.constants";
 import { createDocsRoutes } from "#lib/docs/docs.routes";
+import { LOGS_ROUTE_PATH } from "#lib/logs/logs.constants";
+import { createLogHub } from "#lib/logs/logs.hub";
+import { createJournalLogSource } from "#lib/logs/logs.journal";
+import { createPm2LogSources } from "#lib/logs/logs.pm2";
+import { createLogsRoute } from "#lib/logs/logs.routes";
 import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
 import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
@@ -49,7 +59,7 @@ export async function runAdminServer(options: {
     },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {
-      logKioskEvent("info", ADMIN_SERVER_LOG_SOURCE, "server-started", {
+      logKioskEvent("info", ADMIN_SERVER_LOG_SOURCE, SERVER_STARTED_EVENT, {
         details,
       });
     },
@@ -57,11 +67,24 @@ export async function runAdminServer(options: {
     port: getPort("ADMIN_PORT"),
     publicOrigin: adminOrigin,
     routes: createDocsRoutes(resolve(ADMIN_REPO_ROOT, DOCS_DIST_RELATIVE_PATH)),
-    webSocketRoutes: isPm2Managed
-      ? {
-          [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute(),
-        }
-      : undefined,
+    webSocketRoutes: {
+      // Not only under PM2: without its files, each source reports unavailable.
+      [LOGS_ROUTE_PATH]: createLogsRoute({
+        hub: createLogHub({
+          sources: [
+            ...createPm2LogSources({
+              logDir: resolve(ADMIN_REPO_ROOT, PM2_LOG_RELATIVE_DIR),
+              processNames: PM2_PROCESS_NAMES,
+            }),
+            // Off the Pi (no journalctl), it reports unavailable.
+            createJournalLogSource(),
+          ],
+        }),
+      }),
+      ...(isPm2Managed
+        ? { [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute() }
+        : {}),
+    },
     serverName: "runAdminServer",
     tlsCertPath,
     tlsKeyPath,

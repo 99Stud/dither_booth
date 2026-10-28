@@ -1,4 +1,8 @@
-export type KioskLogLevel = "error" | "info" | "warn";
+import type { z } from "zod";
+
+import type { kioskLogLevelSchema } from "../isomorphic/kiosk-line";
+
+export type KioskLogLevel = z.infer<typeof kioskLogLevelSchema>;
 
 export type KioskLogDetails = Record<string, unknown>;
 
@@ -20,6 +24,11 @@ export type BrowserKioskLoggingState = {
 };
 
 export type KioskLogContext = {
+  /**
+   * Set by a server re-logging a browser report: the line is marked
+   * `origin: "browser"` and carries the reporting device's ids.
+   */
+  browser?: BrowserKioskLogContext;
   details?: KioskLogDetails;
   error?: KioskErrorDiagnostics;
 };

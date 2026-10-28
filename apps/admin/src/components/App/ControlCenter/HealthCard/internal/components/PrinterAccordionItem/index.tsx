@@ -8,6 +8,7 @@ import type { HealthzResponse } from "#lib/healthz/healthz.types";
 
 import { HealthAccordionShell } from "#components/App/ControlCenter/HealthCard/internal/components/HealthAccordionShell/index";
 import { HealthDetailRow } from "#components/App/ControlCenter/HealthCard/internal/components/HealthDetailRow/index";
+import { HEALTH_LOGS_SEARCH } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.constants";
 import { getHealthStatusVariant } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
 import { getPrinterHistoryLabel } from "#lib/printer/printer.copy";
 
@@ -36,6 +37,7 @@ export const PrinterAccordionItem: FC<PrinterAccordionItemProps> = ({
       value="printer"
       label="Printer"
       icon={<PrinterIcon />}
+      logsSearch={HEALTH_LOGS_SEARCH.printer}
       statusDotSize="sm"
       statusVariant={getHealthStatusVariant({
         hasWarning: Boolean(details?.warning),
