@@ -102,6 +102,8 @@ Booths updated from an older release still have `<process>-out.log` and `<proces
 
 Each log event is **one line** in `message`: the `[kiosk]` prefix, then the event as compact JSON.
 
+That line is for PM2's files. Under `bun run dev` (`NODE_ENV=development`) nothing reads the output back, so each app prints the same event for the terminal instead: a header line with the local time, the level, the source and the event, then the details as indented JSON and the error's stack under it, with the same redaction. The Logs page never reads a development terminal.
+
 ```text
 [kiosk] {"loggedAt":"2026-10-27T14:56:33.510Z","level":"error","source":"engine.device-setup","event":"wifi-join-failed","details":{"ssid":"BoothNet","password":"[redacted]"},"error":{"name":"Error","message":"Secrets were required","stack":"Error: Secrets were required\n    at …"}}
 ```

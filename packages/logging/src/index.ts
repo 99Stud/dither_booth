@@ -7,13 +7,16 @@ import type {
   KioskLogLevel,
   ReportKioskErrorOptions,
 } from "./internal/logging.types";
+import type { KioskLogLine } from "./isomorphic/kiosk-line";
 
+import { formatReadableLogEntry } from "./internal/logging.readable";
 import { sendBrowserReport } from "./internal/logging.report";
 import { serializeLogPayload } from "./internal/logging.serialize";
 import {
   getBrowserLoggingContext,
   getConsoleMethod,
   isBrowserRuntime,
+  isDevelopmentRuntime,
 } from "./internal/logging.utils";
 import { KIOSK_LOG_PREFIX } from "./isomorphic/kiosk-line";
 
@@ -52,7 +55,7 @@ export const logKioskEvent = (
   context: KioskLogContext = {},
 ) => {
   const { browser, details, error } = context;
-  const payload = {
+  const payload: KioskLogLine = {
     loggedAt: new Date().toISOString(),
     level,
     source,
@@ -77,6 +80,13 @@ export const logKioskEvent = (
         ...(error ? { error } : {}),
       });
     }
+
+    return;
+  }
+
+  // A terminal in development; the kiosk line for PM2's files everywhere else.
+  if (isDevelopmentRuntime()) {
+    getConsoleMethod(level)(formatReadableLogEntry(payload));
 
     return;
   }
