@@ -1,6 +1,7 @@
 {
   "name": "dither_booth",
   "private": true,
+  "license": "FSL-1.1-ALv2",
   "workspaces": [
     "apps/*",
     "packages/*"

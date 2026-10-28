@@ -1,0 +1,13 @@
+# Keeps the commit SHAs that pin every GitHub Action current. Security
+# updates for dependencies are turned on in the repository settings.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci

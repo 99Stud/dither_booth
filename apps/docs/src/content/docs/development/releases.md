@@ -40,6 +40,8 @@ git tag v0.5.0
 git push origin v0.5.0
 ```
 
+Only repository admins can push, move or delete a `v*` tag: the **release tags** ruleset refuses anyone else ([Repository rules and security](/docs/development/repository-rules/)).
+
 ### Versioning
 
 `booth --version` is set at compile time; there is no version to bump in code. `apps/cli/scripts/build.ts` resolves it in this order:
