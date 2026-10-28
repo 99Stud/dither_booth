@@ -6,6 +6,7 @@ import { requireRoot } from "#internal/args";
 import {
   ENGINE_APP_RELATIVE,
   ENGINE_DATA_RELATIVE,
+  ENGINE_DB_FILE,
   SSD_BOOTH_DIR,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
@@ -112,6 +113,36 @@ export function withSsdFstabEntry(fstab: string, uuid: string): string {
   return `${lines.join("\n")}\n`;
 }
 
+export type DataDirState = "symlink" | "directory" | "missing";
+
+export type DataRelocation = "keep" | "link" | "move" | "conflict";
+
+// When both sides hold a database, moving one would overwrite the other, and
+// nothing tells which is the booth's: an empty one is what the engine creates
+// when the symlink is gone. The operator compares them and decides.
+export function planDataRelocation(
+  state: DataDirState,
+  databases: { local: boolean; ssd: boolean },
+): DataRelocation {
+  if (state === "symlink") {
+    return "keep";
+  }
+
+  if (state === "missing") {
+    return "link";
+  }
+
+  return databases.local && databases.ssd ? "conflict" : "move";
+}
+
+async function dataDirState(path: string): Promise<DataDirState> {
+  if (await isSymlink(path)) {
+    return "symlink";
+  }
+
+  return (await isRealDirectory(path)) ? "directory" : "missing";
+}
+
 async function isRealDirectory(path: string): Promise<boolean> {
   const result = await capture(
     ["bash", "-lc", `test -d "${path}" && test ! -L "${path}"`],
@@ -208,19 +239,28 @@ export async function runSsdCommand(context: BoothContext): Promise<void> {
 
   const dataPath = `${repoRoot}/${ENGINE_DATA_RELATIVE}`;
 
-  if (await isSymlink(dataPath)) {
+  const relocation = planDataRelocation(await dataDirState(dataPath), {
+    local: await Bun.file(`${dataPath}/${ENGINE_DB_FILE}`).exists(),
+    ssd: await Bun.file(`${SSD_DATA_DIR}/${ENGINE_DB_FILE}`).exists(),
+  });
+
+  if (relocation === "keep") {
     info(`${dataPath} is already a symlink; leaving it in place.`);
     ok("SSD mounted and data directory linked");
     return;
   }
 
-  if (await isRealDirectory(dataPath)) {
+  if (relocation === "conflict") {
+    fail(
+      `Both ${dataPath} and ${SSD_DATA_DIR} hold ${ENGINE_DB_FILE}. Nothing was moved. Compare them and set one aside: see Recovery, "The data symlink is gone", in the docs.`,
+    );
+    throw new SilentExit(1);
+  }
+
+  if (relocation === "move") {
     step(`Migrating existing data from ${dataPath} to ${SSD_DATA_DIR}`);
-    await run([
-      "bash",
-      "-lc",
-      `cp -a "${dataPath}/." "${SSD_DATA_DIR}/" 2>/dev/null || true`,
-    ]);
+    // A failed copy stops here, before the source is removed.
+    await run(["cp", "-a", `${dataPath}/.`, `${SSD_DATA_DIR}/`]);
     await run(["rm", "-rf", dataPath]);
   } else {
     step(`Creating parent directory for ${dataPath}`);

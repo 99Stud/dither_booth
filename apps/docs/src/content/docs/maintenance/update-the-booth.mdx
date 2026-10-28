@@ -86,6 +86,8 @@ sudo systemctl restart ditherbooth.service
 
 Then return to `main` (`git checkout main`) before the next `booth repo`, which only fast-forwards.
 
+Commits up to v0.7.0 track `apps/engine/data/.gitkeep`: checking one out replaces the data symlink with a folder on the SD card, and the engine starts on an empty database. Run `booth doctor` after every checkout; if **Data symlink** fails, follow [The data symlink is gone](/docs/maintenance/recovery/#the-data-symlink-is-gone).
+
 <Aside type="danger" title="Migrations don't roll back">
   Migrations are forward-only. Rolling back across a migration leaves a newer
   database under older code. Before an update that ships a migration, [back up
