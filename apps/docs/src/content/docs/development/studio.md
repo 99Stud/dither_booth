@@ -5,7 +5,7 @@ sidebar:
   order: 9
 ---
 
-Studio (`apps/studio`) is the staff app: a static site on Cloudflare Pages that staff add to their Home Screen. It has three tabs: **Alerts**, **Booths** and **This device**, which sets a [device](/docs/start-here/glossary/) up to get the booths' alerts.
+Studio (`apps/studio`) is the staff app: a static site on Cloudflare Pages, at `https://studio.ditherbooth.com`, that staff add to their Home Screen. It has three tabs: **Alerts**, **Booths** and **This device**, which sets a [device](/docs/start-here/glossary/) up to get the booths' alerts.
 
 ## Run it locally
 
@@ -41,6 +41,14 @@ bun run studio:dev
 ## Deploy
 
 `.github/workflows/studio-deploy.yml` tests, builds and deploys Studio to Cloudflare Pages when `apps/studio`, `packages/ui` or `packages/protocol` changes on `main`, or by hand. It needs, in the `production` environment, the secrets `CLOUDFLARE_API_TOKEN` (Pages: Edit, on this account only) and `CLOUDFLARE_ACCOUNT_ID`, and the variable `CLOUDFLARE_PAGES_PROJECT`.
+
+### Its address
+
+`studio.ditherbooth.com` is a custom domain on the Pages project (Workers & Pages, the project, **Custom domains**). The `ditherbooth.com` zone is on the same Cloudflare account, so adding the domain there creates its DNS record and certificate. The project's own `dither-studio.pages.dev` serves the same build and stays up.
+
+The Hub's production `site_url` names this address: the sign-in email loads its images from it. Add a new address to Pages, and wait for it to show **Active**, before the `site_url` change reaches `main`; otherwise the email's images break.
+
+A device belongs to one address. The Home Screen app, the sign-in and the notifications on `dither-studio.pages.dev` don't carry over to `studio.ditherbooth.com`: on each device, add the new address to the Home Screen, sign in, and turn notifications on again, then delete the old Home Screen app. Once the push service says its subscription is gone, the Hub forgets it, as for any device.
 
 ## Setting it up on the Hub
 
