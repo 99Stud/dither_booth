@@ -46,3 +46,9 @@ bun run format && bun run lint && bun run check-types && bun run test && bun run
 ```
 
 Every change that adds or changes behaviour updates the docs in the same pull request. See [Writing these docs](apps/docs/src/content/docs/development/documentation.md).
+
+## Licence
+
+[FSL-1.1-ALv2](LICENSE.md), the Functional Source License: you may read, run, change and share the code for any purpose except a product or service that competes with Dither Booth. Each version becomes Apache 2.0 two years after its release. See [decision 0007](apps/docs/src/content/docs/decisions/0007-fsl-licence.md).
+
+Security issues: see [SECURITY.md](SECURITY.md).

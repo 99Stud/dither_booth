@@ -37,11 +37,9 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - name: Install
         run: bun install --frozen-lockfile
 
@@ -52,7 +50,7 @@ jobs:
         run: bun run --filter @dither-booth/studio build
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

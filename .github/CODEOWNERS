@@ -1,0 +1,8 @@
+# Paths that change how the project is built, released or secured.
+# Their owners are asked to review every pull request that touches them.
+/.github/                 @ThibaultWalterspieler
+/supabase/                @ThibaultWalterspieler
+/apps/cli/                @ThibaultWalterspieler
+/pm2.config.js            @ThibaultWalterspieler
+/LICENSE.md               @ThibaultWalterspieler
+/SECURITY.md              @ThibaultWalterspieler
