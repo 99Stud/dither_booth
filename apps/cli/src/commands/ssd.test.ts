@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { withSsdFstabEntry } from "./ssd";
+import { planDataRelocation, withSsdFstabEntry } from "./ssd";
 
 const UUID = "d10337d4-72d7-4f23-8a00-8508413e5061";
 const ENTRY = `UUID=${UUID} /mnt/ssd ext4 defaults,nofail 0 2`;
@@ -40,5 +40,37 @@ describe("withSsdFstabEntry", () => {
     const fstab = `${BASE}\n# ${ENTRY}\n`;
 
     expect(withSsdFstabEntry(fstab, UUID)).toBe(`${fstab}${ENTRY}\n`);
+  });
+});
+
+describe("planDataRelocation", () => {
+  test("keeps a symlink, whatever the databases", () => {
+    expect(planDataRelocation("symlink", { local: true, ssd: true })).toBe(
+      "keep",
+    );
+  });
+
+  test("links when the data folder is missing", () => {
+    expect(planDataRelocation("missing", { local: false, ssd: true })).toBe(
+      "link",
+    );
+  });
+
+  test("moves a folder's database onto an SSD without one", () => {
+    expect(planDataRelocation("directory", { local: true, ssd: false })).toBe(
+      "move",
+    );
+  });
+
+  test("moves a folder without a database next to the SSD's", () => {
+    expect(planDataRelocation("directory", { local: false, ssd: true })).toBe(
+      "move",
+    );
+  });
+
+  test("refuses when the folder and the SSD both hold a database", () => {
+    expect(planDataRelocation("directory", { local: true, ssd: true })).toBe(
+      "conflict",
+    );
   });
 });

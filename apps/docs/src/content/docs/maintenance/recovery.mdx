@@ -37,6 +37,44 @@ Copy backups off the booth (`scp pi@booth.local:…`). Back up before every upda
 
 To restore: stop the service, put the file back at the same path (owned by `pi`), start the service.
 
+## The data symlink is gone
+
+`booth doctor` fails with `apps/engine/data is not a symlink to the SSD`. The engine then runs on a database on the SD card: usually a new, empty one it created at start, while the booth's own stays on the SSD, untouched. Events, prizes and draws look gone from admin.
+
+A Git checkout of a commit that still tracks `apps/engine/data/.gitkeep` replaces the symlink with a real folder: `git reset --hard`, or `git checkout` back to an older commit. `git pull` doesn't.
+
+`sudo booth ssd` relinks it when only one side holds a database. When both do, it refuses and changes nothing, because one would overwrite the other. Then:
+
+1. **Compare the two databases.** The one with your events is the one to keep:
+
+   ```bash
+   cd /opt/dither-booth/apps/engine
+   for f in data/dither-booth.sqlite /mnt/ssd/dither-booth/data/dither-booth.sqlite; do
+     bun -e "import {Database} from 'bun:sqlite'; const d=new Database('$f',{readonly:true}); console.log('$f', ['campaign','prize','draw'].map(t=>t+'='+d.query('select count(*) c from '+t).get().c).join(' '))"
+   done
+   ```
+
+   `ls -la` on both folders shows when each was last written. If they both hold data you need, stop here and ask a developer.
+
+2. **Stop the booth and set the SD card folder aside:**
+
+   ```bash
+   sudo systemctl stop ditherbooth.service
+   sudo -u pi mv /opt/dither-booth/apps/engine/data /opt/dither-booth/apps/engine/data.sd-$(date +%F)
+   ```
+
+   If the SD card's database is the one to keep, first move the SSD's aside (`mv /mnt/ssd/dither-booth/data/dither-booth.sqlite /mnt/ssd/dither-booth/data/dither-booth.sqlite.old`) and copy the SD card's in its place, with `cp -a`.
+
+3. **Relink and start:**
+
+   ```bash
+   sudo -u pi ln -s /mnt/ssd/dither-booth/data /opt/dither-booth/apps/engine/data
+   sudo systemctl start ditherbooth.service
+   booth doctor
+   ```
+
+   Migrations the database is missing apply at start. Check the event in admin, then delete the folder you set aside.
+
 ## Back up the booth CA
 
 ```bash

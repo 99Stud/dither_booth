@@ -33,11 +33,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 
-# local SQLite database files
-data/*.sqlite*
-
-# fonts added to the booth from admin (font_asset)
-data/fonts/
-
-# logos added to the booth from admin (logo_asset)
-data/logos/
+# the engine's data: the SQLite database, and the fonts and logos added from
+# admin. The engine creates the folder; on a booth it is a symlink to the SSD,
+# which a tracked file inside it would replace with a real folder on checkout.
+/data
