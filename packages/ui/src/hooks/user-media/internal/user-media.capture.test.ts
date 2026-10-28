@@ -5,6 +5,7 @@ import { describe, expect, it } from "bun:test";
 import {
   createPhotoCaptureCoordinator,
   type CapturePhoto,
+  withFrameGrabFallback,
 } from "./user-media.capture";
 
 const createDeferred = <Value>() => {
@@ -86,5 +87,62 @@ describe("createPhotoCaptureCoordinator", () => {
     await coordinator.prewarmPhotoCapture();
 
     expect(captureCount).toBe(2);
+  });
+});
+
+describe("withFrameGrabFallback", () => {
+  const photo = new Blob(["photo"], { type: "image/jpeg" });
+  const frame = new Blob(["frame"], { type: "image/jpeg" });
+
+  it("returns the device photo and never grabs a frame when takePhoto works", async () => {
+    let grabs = 0;
+    const fallbacks: unknown[] = [];
+    const capture = withFrameGrabFallback({
+      takePhoto: async () => photo,
+      grabFrame: async () => {
+        grabs++;
+        return frame;
+      },
+      onFallback: (error) => fallbacks.push(error),
+    });
+
+    await expect(capture()).resolves.toBe(photo);
+    expect(grabs).toBe(0);
+    expect(fallbacks).toEqual([]);
+  });
+
+  it("stands a fresh frame in for a failed takePhoto and reports why", async () => {
+    const platformError = new DOMException("platform error", "UnknownError");
+    const fallbacks: unknown[] = [];
+    const capture = withFrameGrabFallback({
+      takePhoto: async () => {
+        throw platformError;
+      },
+      grabFrame: async () => frame,
+      onFallback: (error) => fallbacks.push(error),
+    });
+
+    await expect(capture()).resolves.toBe(frame);
+    expect(fallbacks).toEqual([platformError]);
+  });
+
+  it("rethrows the takePhoto error when there is no live picture either", async () => {
+    const platformError = new DOMException(
+      "setPhotoOptions failed",
+      "UnknownError",
+    );
+    const fallbacks: unknown[] = [];
+    const capture = withFrameGrabFallback({
+      takePhoto: async () => {
+        throw platformError;
+      },
+      grabFrame: async () => {
+        throw new Error("The camera gives no picture.");
+      },
+      onFallback: (error) => fallbacks.push(error),
+    });
+
+    await expect(capture()).rejects.toBe(platformError);
+    expect(fallbacks).toEqual([]);
   });
 });

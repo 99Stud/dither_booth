@@ -27,6 +27,7 @@ interface PrintConfigurationPreviewPanelProps {
   isRefreshDisabled: boolean;
   onCameraStateChange?: WebcamProps["onCameraStateChange"];
   onConstraintFallbackError?: WebcamProps["onConstraintFallbackError"];
+  onPhotoCaptureFallback?: WebcamProps["onPhotoCaptureFallback"];
   onRefreshPreview: () => Promise<void> | void;
   previewSrc?: string;
   webcamRef: RefObject<WebcamHandle | null>;
@@ -40,6 +41,7 @@ export const PrintConfigurationPreviewPanel: FC<
   isRefreshDisabled,
   onCameraStateChange,
   onConstraintFallbackError,
+  onPhotoCaptureFallback,
   onRefreshPreview,
   previewSrc,
   webcamRef,
@@ -67,6 +69,7 @@ export const PrintConfigurationPreviewPanel: FC<
           className={clsx("h-full", previewSrc && "hidden")}
           onCameraStateChange={onCameraStateChange}
           onConstraintFallbackError={onConstraintFallbackError}
+          onPhotoCaptureFallback={onPhotoCaptureFallback}
         />
       </div>
       <Button

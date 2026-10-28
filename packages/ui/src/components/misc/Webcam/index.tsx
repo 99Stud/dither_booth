@@ -9,6 +9,7 @@ interface WebcamProps {
   className?: string;
   onCameraStateChange?: UseUserMediaParams["onCameraStateChange"];
   onConstraintFallbackError?: UseUserMediaParams["onConstraintFallbackError"];
+  onPhotoCaptureFallback?: UseUserMediaParams["onPhotoCaptureFallback"];
   ref?: Ref<WebcamHandle>;
   showDebugInfo?: boolean;
 }
@@ -25,6 +26,7 @@ export const Webcam: FC<WebcamProps> = ({
   className,
   onCameraStateChange,
   onConstraintFallbackError,
+  onPhotoCaptureFallback,
   ref,
   showDebugInfo = false,
 }) => {
@@ -33,10 +35,8 @@ export const Webcam: FC<WebcamProps> = ({
   const { cameraState, prewarmPhotoCapture, takePhoto } = useUserMedia({
     onCameraStateChange,
     onConstraintFallbackError,
-    onStream: (stream) => {
-      if (!videoRef.current) return;
-      videoRef.current.srcObject = stream;
-    },
+    onPhotoCaptureFallback,
+    videoRef,
   });
 
   useImperativeHandle(

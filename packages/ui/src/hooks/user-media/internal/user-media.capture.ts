@@ -58,3 +58,42 @@ export const createPhotoCaptureCoordinator = (
     takePhoto,
   };
 };
+
+export interface FrameGrabFallbackOptions {
+  takePhoto: CapturePhoto;
+  /** A fresh frame of the live picture, or a rejection when there is none. */
+  grabFrame: () => Promise<Blob>;
+  /** `takePhoto` failed with this error and a grabbed frame stands in. */
+  onFallback: (error: unknown) => void;
+}
+
+/**
+ * `takePhoto`, or a frame of the live picture when it fails. The device's
+ * still-photo path can break while the video runs fine ("platform error",
+ * "setPhotoOptions failed" in Chromium), and a photo from the picture the
+ * guest saw beats no photo. When there is no live picture either, the
+ * original error is what the caller needs to see.
+ */
+export const withFrameGrabFallback =
+  ({
+    takePhoto,
+    grabFrame,
+    onFallback,
+  }: FrameGrabFallbackOptions): CapturePhoto =>
+  async (photoSettings) => {
+    try {
+      return await takePhoto(photoSettings);
+    } catch (error) {
+      let frame: Blob;
+
+      try {
+        frame = await grabFrame();
+      } catch {
+        throw error;
+      }
+
+      onFallback(error);
+
+      return frame;
+    }
+  };

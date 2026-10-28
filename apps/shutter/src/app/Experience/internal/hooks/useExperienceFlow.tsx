@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 
 import { requestKioskFullscreen } from "#lib/kiosk-fullscreen";
+import { useKioskCamera } from "#lib/kiosk/kiosk-camera";
 import { queryClient, useTRPC } from "#lib/trpc/trpc.client";
 
 import {
@@ -64,6 +65,9 @@ export const useExperienceFlow = () => {
 
   useExperienceShellClass();
   const isMaintenance = useKioskCommands(phase, webcamRef);
+  // A visit needs a picture to photograph: until the camera shows one
+  // (or while it is reopening), the start button stays disabled.
+  const isCameraReady = useKioskCamera()?.status === "ready";
   useWebcamPrewarm({ phase, webcamRef });
   usePrintAttempt({
     activePrintAttemptId,
@@ -204,7 +208,8 @@ export const useExperienceFlow = () => {
     // Maintenance hides the start button and refuses a visit.
     isStartButtonVisible:
       hasPhaseFlag(phase, "startButtonVisible") && !isMaintenance,
-    isStartDisabled: !hasPhaseFlag(phase, "startEnabled") || isMaintenance,
+    isStartDisabled:
+      !hasPhaseFlag(phase, "startEnabled") || isMaintenance || !isCameraReady,
     lotteryStatus,
     phase,
     photoUrl,

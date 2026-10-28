@@ -17,6 +17,7 @@ export type UserMediaReporters = {
     diagnosticError?: unknown,
   ) => void;
   reportUserMediaConstraintFallbackError: (error: unknown) => void;
+  reportUserMediaPhotoCaptureFallback: (error: unknown) => void;
 };
 
 const reportKioskError = (error: unknown, options: ReportKioskErrorOptions) => {
@@ -79,6 +80,14 @@ export const createUserMediaReporters = (
         error: getKioskErrorDiagnostics(
           error,
           "Camera constraint fallback failed.",
+        ),
+      });
+    },
+    reportUserMediaPhotoCaptureFallback: (error: unknown) => {
+      logKioskEvent("warn", source, "photo-capture-fallback", {
+        error: getKioskErrorDiagnostics(
+          error,
+          "takePhoto failed; a frame of the live picture stands in.",
         ),
       });
     },
