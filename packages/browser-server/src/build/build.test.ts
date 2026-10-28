@@ -21,8 +21,14 @@ afterEach(async () => {
   }
 });
 
-/** A browser app the way Shutter is laid out: a server entry that imports the page. */
-async function writeApp(): Promise<string> {
+/**
+ * A browser app the way Shutter is laid out: a server entry that imports the
+ * page. With `stylesheet`, the page also links a stylesheet whose `url()`
+ * points at a second PNG.
+ */
+async function writeApp(
+  options: { stylesheet?: boolean } = {},
+): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "dither-booth-build-"));
   await mkdir(join(root, "src"), { recursive: true });
   await Bun.write(
@@ -31,8 +37,18 @@ async function writeApp(): Promise<string> {
   );
   await Bun.write(
     join(root, "src/index.html"),
-    '<!doctype html><html><body><script type="module" src="./client.ts"></script></body></html>\n',
+    `<!doctype html><html><head>${options.stylesheet ? '<link rel="stylesheet" href="./style.css">' : ""}</head><body><script type="module" src="./client.ts"></script></body></html>\n`,
   );
+  if (options.stylesheet) {
+    await Bun.write(
+      join(root, "src/style.css"),
+      'body { background: url("./background.png"); }\n',
+    );
+    await Bun.write(
+      join(root, "src/background.png"),
+      Buffer.from(PNG_BASE64, "base64"),
+    );
+  }
   await Bun.write(
     join(root, "src/client.ts"),
     // Upper case: the build must not care how the file is named.
@@ -66,5 +82,28 @@ describe("buildBrowserServerApp", () => {
     const bundle = await readFile(join(appRoot, "dist", clientBundle!), "utf8");
 
     expect(bundle).toContain(`data:image/png;base64,${PNG_BASE64}`);
+  });
+
+  it("leaves a stylesheet's url() to Bun's CSS bundler, which inlines it", async () => {
+    appRoot = await writeApp({ stylesheet: true });
+    process.chdir(appRoot);
+
+    await buildBrowserServerApp();
+
+    const buildAssets = (await Bun.file(
+      join(appRoot, "dist/build-assets.json"),
+    ).json()) as string[];
+    const clientBundle = buildAssets.find((path) => path.endsWith(".js"));
+    const stylesheet = buildAssets.find((path) => path.endsWith(".css"));
+
+    expect(clientBundle).toBeDefined();
+    expect(stylesheet).toBeDefined();
+    expect(buildAssets.some((path) => /\.png$/iu.test(path))).toBe(false);
+
+    const bundle = await readFile(join(appRoot, "dist", clientBundle!), "utf8");
+    const css = await readFile(join(appRoot, "dist", stylesheet!), "utf8");
+
+    expect(bundle).toContain(`data:image/png;base64,${PNG_BASE64}`);
+    expect(css).toContain(`url("data:image/png;base64,${PNG_BASE64}")`);
   });
 });

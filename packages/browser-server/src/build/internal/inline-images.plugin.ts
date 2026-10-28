@@ -18,6 +18,19 @@ const IMAGE_FILTER = new RegExp(
   "iu",
 );
 
+const INLINE_IMAGE_NAMESPACE = "inline-image";
+
+/**
+ * Only what a module imports. A stylesheet's `url()` reaches `onResolve` as
+ * kind `internal` and stays with Bun's CSS bundler, which inlines it itself;
+ * a `js` module handed to it fails the build.
+ */
+const MODULE_IMPORT_KINDS = new Set([
+  "import-statement",
+  "dynamic-import",
+  "require-call",
+]);
+
 /**
  * A PNG, JPEG, WebP or GIF a browser module imports becomes a data URL, not
  * a file. Bun (1.3.14) breaks both ways of shipping it as a file from the
@@ -31,15 +44,32 @@ const IMAGE_FILTER = new RegExp(
 export const inlineImagesPlugin: BunPlugin = {
   name: "inline-images",
   setup(build) {
-    build.onLoad({ filter: IMAGE_FILTER }, async ({ path }) => {
-      const mimeType = IMAGE_MIME_TYPES[extname(path).toLowerCase()]!;
-      const bytes = Buffer.from(await Bun.file(path).arrayBuffer());
-      const dataUrl = `data:${mimeType};base64,${bytes.toString("base64")}`;
+    build.onResolve(
+      { filter: IMAGE_FILTER },
+      ({ importer, kind, path, resolveDir }) => {
+        if (!MODULE_IMPORT_KINDS.has(kind)) {
+          return undefined;
+        }
 
-      return {
-        contents: `export default ${JSON.stringify(dataUrl)};`,
-        loader: "js",
-      };
-    });
+        return {
+          namespace: INLINE_IMAGE_NAMESPACE,
+          path: Bun.resolveSync(path, resolveDir ?? importer),
+        };
+      },
+    );
+
+    build.onLoad(
+      { filter: /.*/u, namespace: INLINE_IMAGE_NAMESPACE },
+      async ({ path }) => {
+        const mimeType = IMAGE_MIME_TYPES[extname(path).toLowerCase()]!;
+        const bytes = Buffer.from(await Bun.file(path).arrayBuffer());
+        const dataUrl = `data:${mimeType};base64,${bytes.toString("base64")}`;
+
+        return {
+          contents: `export default ${JSON.stringify(dataUrl)};`,
+          loader: "js",
+        };
+      },
+    );
   },
 };
