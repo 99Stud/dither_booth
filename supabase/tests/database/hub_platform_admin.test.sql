@@ -2,7 +2,7 @@
 -- their team, and a booth nothing. Being an admin is a row only the admin
 -- can read, added from the SQL editor. Team roles are owner and member.
 begin;
-select plan(34);
+select plan(38);
 
 insert into auth.users (id, email) values
   ('ad000000-0000-0000-0000-000000000001', 'admin@example.com'),
@@ -82,6 +82,12 @@ update public.alert set acked_at = now()
 select is(
   (select acked_by from public.alert where org_id = 'bbbbbbbb-0000-0000-0000-00000000000b'),
   'ad000000-0000-0000-0000-000000000001'::uuid, 'the admin acknowledges any alert');
+update public.booth
+  set live_from = '2026-10-31 18:00+00', live_until = '2026-11-01 02:00+00'
+  where id = 'b0b0b0b0-0000-0000-0000-0000000000b0';
+select is(
+  (select live_until from public.booth where id = 'b0b0b0b0-0000-0000-0000-0000000000b0'),
+  '2026-11-01 02:00+00'::timestamptz, 'the admin sets any booth''s event times');
 select throws_ok(
   $$insert into public.push_subscription (org_id, user_id, endpoint, p256dh_key, auth_secret)
     values ('bbbbbbbb-0000-0000-0000-00000000000b', 'ad000000-0000-0000-0000-000000000001',
@@ -111,6 +117,9 @@ select ok(not public.is_platform_admin(), 'a booth is not an admin');
 select is_empty($$select public.visible_org_ids()$$, 'a booth sees no team');
 select is_empty($$select 1 from public.booth$$, 'a booth reads no booth row');
 select is_empty($$select 1 from public.org_member$$, 'a booth reads no membership');
+select is_empty($$select 1 from public.org$$, 'a booth reads no org');
+select is_empty($$select 1 from public.booth_status$$, 'a booth reads no booth status');
+select is_empty($$select 1 from public.alert$$, 'a booth reads no alert');
 
 select * from finish();
 rollback;

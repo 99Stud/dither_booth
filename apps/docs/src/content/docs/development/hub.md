@@ -36,9 +36,9 @@ For the Edge Functions, also run `supabase functions serve`; they answer on `htt
 Every table has `org_id` and row level security. Rules worth knowing:
 
 - **Who sees a team.** Its members, and every platform admin. Policies say so with `org_id in (select public.visible_org_ids())`: the caller's teams, or every team for an admin. `org` and `org_member` check memberships and `is_platform_admin()` themselves, since `visible_org_ids()` reads them and would recurse.
-- **Platform admins act as staff of every team**: they read, add booths, set event times, acknowledge alerts and add teams (`insert (name)` on `org`). They get no push for a team they aren't in: a device can only be added for the owner's own teams.
+- **Platform admins act as staff of every team**: they read, add booths, set event times, acknowledge alerts and add teams (`insert (name)` on `org`). They get no push for a team they aren't in: a user can only add a device for a team they're in.
 - **Staff read their org's rows and write little.** On `booth` they add one to their org (`org_id`, `name`) and set its event times (`live_from`, `live_until`); never its registration, nor its name. The only column they write on `alert` is `acked_at`; a trigger records who. They manage their own `push_subscription` rows.
-- **Realtime** publishes `alert` and `booth_status`, so Studio updates without polling. It applies the same row level security: staff only hear about their org's rows.
+- **Realtime** publishes `alert` and `booth_status`, so Studio updates without polling. It applies the same row level security: staff only hear about their team's rows, and a platform admin about every team's.
 - **A booth never touches these tables.** Its JWT carries `booth_id` in `app_metadata` (never `user_metadata`, which users can edit), and an Edge Function writes with the service role after checking it.
 - **No `security definer` functions in `public`**: Postgres lets every role call them.
 

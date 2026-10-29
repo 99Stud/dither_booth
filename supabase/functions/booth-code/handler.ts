@@ -13,8 +13,8 @@ export type BoothCodeDeps = {
   findBooth: (
     boothId: string,
   ) => Promise<{ orgId: string; name: string } | null>;
-  /** Whether the user is staff of the org, or a platform admin. */
-  seesOrg: (userId: string, orgId: string) => Promise<boolean>;
+  isMember: (userId: string, orgId: string) => Promise<boolean>;
+  isPlatformAdmin: (userId: string) => Promise<boolean>;
   /** A new one-time code for the booth, replacing any earlier one. */
   issueCode: (boothId: string) => Promise<{ code: string; expiresAt: string }>;
 };
@@ -40,9 +40,14 @@ export async function handleBoothCode(
   const parsed = requestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return reply(400, { error: "invalid request" });
 
-  // Someone else's booth answers like a booth that doesn't exist.
+  // Someone else's booth answers like a booth that doesn't exist. A platform
+  // admin acts as staff of every org.
   const booth = await deps.findBooth(parsed.data.boothId);
-  if (!booth || !(await deps.seesOrg(userId, booth.orgId))) {
+  const allowed =
+    booth !== null &&
+    ((await deps.isMember(userId, booth.orgId)) ||
+      (await deps.isPlatformAdmin(userId)));
+  if (!booth || !allowed) {
     return reply(404, { error: "unknown booth" });
   }
 
