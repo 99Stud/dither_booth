@@ -13,7 +13,7 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { type FC, useMemo } from "react";
 
-import { Ghost } from "#components/svg/Ghost/index";
+import { GhostIcon } from "#components/svg/GhostIcon/index";
 import { KitText } from "#kits/KitText/index";
 import { PartnerRow } from "#kits/PartnerRow/index";
 import { useKitCopy } from "#kits/useKit";
@@ -51,7 +51,8 @@ const randomPriceSplit = (total: number, count: number): number[] => {
 /**
  * Everything below the photo on the Halloween photo ticket: date, venue,
  * items, total, the event's partner row, QR, ticket number and the
- * DitherBooth badge. Tartines' body, with ghosts around the thank-you line.
+ * DitherBooth badge. A copy of TartinesTicketBody with ghosts around the
+ * thank-you line: change both.
  */
 export const HalloweenTicketBody: FC = () => {
   const { ticketItems, ticketRef } = receiptViewerRoute.useSearch();
@@ -149,9 +150,9 @@ export const HalloweenTicketBody: FC = () => {
             "mb-4 flex items-center justify-center gap-3 text-4xl font-bold",
           )}
         >
-          <Ghost className="size-8 shrink-0" aria-hidden />
+          <GhostIcon className="size-8 shrink-0" aria-hidden />
           <KitText text={copy["photoTicket.thanks"]} />
-          <Ghost className="size-8 shrink-0" aria-hidden />
+          <GhostIcon className="size-8 shrink-0" aria-hidden />
         </p>
       ) : null}
       {ticketNumber ? (

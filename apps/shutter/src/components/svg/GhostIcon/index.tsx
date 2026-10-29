@@ -1,7 +1,7 @@
 import type { FC, SVGProps } from "react";
 
 /** A 24×24 pixel ghost, drawn like the pixelarticons set it sits beside. */
-export const Ghost: FC<SVGProps<SVGSVGElement>> = (props) => {
+export const GhostIcon: FC<SVGProps<SVGSVGElement>> = (props) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
