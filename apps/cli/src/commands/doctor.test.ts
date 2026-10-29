@@ -4,11 +4,14 @@ import {
   journalGroupCheck,
   logRotationCheck,
   powerControlsCheck,
+  updatesCheck,
 } from "./doctor";
 import {
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
+  buildRollbackUnit,
   buildSystemPolkitRule,
+  buildUpdateUnit,
 } from "./service";
 
 describe("doctor: log rotation", () => {
@@ -93,5 +96,23 @@ describe("doctor: power controls", () => {
 
   test("says nothing without sudo: the rules folder is root-only", () => {
     expect(powerControlsCheck(undefined, false)).toBeUndefined();
+  });
+});
+
+describe("doctor: updates", () => {
+  const units = { update: buildUpdateUnit(), rollback: buildRollbackUnit() };
+
+  test("passes on a release with both units", () => {
+    expect(updatesCheck(units, true).status).toBe("pass");
+  });
+
+  test("warns when a unit is missing or old", () => {
+    expect(
+      updatesCheck({ ...units, rollback: undefined }, true).detail,
+    ).toContain("sudo booth service");
+  });
+
+  test("warns that a checkout should move to releases", () => {
+    expect(updatesCheck(units, false).detail).toContain("sudo booth update");
   });
 });

@@ -5,6 +5,7 @@ import {
   engineHealthzPayloadSchema,
   shutterHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
+import { isReleaseBundle } from "@dither-booth/shared/server/booth-update";
 import { defineCommand } from "citty";
 import { hostname } from "node:os";
 
@@ -18,7 +19,9 @@ import {
 import {
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
+  buildRollbackUnit,
   buildSystemPolkitRule,
+  buildUpdateUnit,
 } from "#commands/service";
 import { printCommandBanner } from "#internal/banner";
 import {
@@ -38,7 +41,9 @@ import {
   SERVICE_USER,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
+  ROLLBACK_UNIT_PATH,
   SYSTEM_POLKIT_RULE_PATH,
+  UPDATE_UNIT_PATH,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import { readHubRegistration } from "#internal/hub-registration";
@@ -105,6 +110,22 @@ async function checkDataSymlink(
     record(results, "warn", `Data symlink points to ${resolved}`);
   } else {
     record(results, "fail", `${dataPath} is not a symlink to the SSD`);
+  }
+}
+
+/** `booth update` unpacks with `tar --zstd`; `booth install` installs it. */
+async function checkZstd(results: CheckResult[]): Promise<void> {
+  const which = await capture(["which", "zstd"], { allowFailure: true });
+
+  if (which.exitCode === 0) {
+    record(results, "pass", "zstd installed (release bundles unpack)");
+  } else {
+    record(
+      results,
+      "warn",
+      "zstd not installed: `booth update` can't unpack a release",
+      "Run `sudo apt-get install -y zstd`.",
+    );
   }
 }
 
@@ -428,6 +449,57 @@ export function powerControlsCheck(
   };
 }
 
+/**
+ * `installed` holds the two units' content, each undefined when missing;
+ * `runsRelease` says whether the booth runs a release bundle or a git
+ * checkout from before releases.
+ */
+export function updatesCheck(
+  installed: { update: string | undefined; rollback: string | undefined },
+  runsRelease: boolean,
+): CheckResult {
+  if (
+    installed.update !== buildUpdateUnit() ||
+    installed.rollback !== buildRollbackUnit()
+  ) {
+    return {
+      status: "warn",
+      label: "Admin can't update or roll back the booth",
+      detail: "Run `sudo booth service`.",
+    };
+  }
+
+  if (!runsRelease) {
+    return {
+      status: "warn",
+      label: "Runs a git checkout, not a release",
+      detail:
+        "`sudo booth update` installs the latest release and keeps this checkout to roll back to.",
+    };
+  }
+
+  return { status: "pass", label: "Runs a release; admin can update it" };
+}
+
+async function checkUpdates(
+  results: CheckResult[],
+  repoRoot: string,
+): Promise<void> {
+  const read = (path: string) =>
+    Bun.file(path)
+      .text()
+      .catch(() => undefined);
+  results.push(
+    updatesCheck(
+      {
+        update: await read(UPDATE_UNIT_PATH),
+        rollback: await read(ROLLBACK_UNIT_PATH),
+      },
+      isReleaseBundle(repoRoot),
+    ),
+  );
+}
+
 async function checkPowerControls(results: CheckResult[]): Promise<void> {
   const installed = await Bun.file(SYSTEM_POLKIT_RULE_PATH)
     .text()
@@ -509,12 +581,14 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkSsdMounted(results);
   await checkDataSymlink(results, repoRoot);
   await checkBun(results);
+  await checkZstd(results);
   await checkCertIp(results, repoRoot);
   await checkServiceEnabled(results);
   await checkPm2Processes(results, repoRoot);
   await checkLogRotation(results, repoRoot);
   await checkJournalGroup(results);
   await checkPowerControls(results);
+  await checkUpdates(results, repoRoot);
 
   const lanIp = (await detectLanIp()) ?? "127.0.0.1";
   await checkHealthz(

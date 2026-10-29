@@ -3,6 +3,10 @@ import {
   PM2_LOG_RELATIVE_DIR,
   PM2_PROCESS_NAMES,
 } from "@dither-booth/shared/booth-system";
+import {
+  boothRollbackModeSchema,
+  getBoothRollbackUnit,
+} from "@dither-booth/shared/booth-update";
 import { defineCommand } from "citty";
 import { chmod, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -24,7 +28,9 @@ import {
   SERVICE_PATH,
   SERVICE_USER,
   SSD_MOUNT_POINT,
+  ROLLBACK_UNIT_PATH,
   SYSTEM_POLKIT_RULE_PATH,
+  UPDATE_UNIT_PATH,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import { capture, run } from "#internal/system";
@@ -60,6 +66,9 @@ PIDFile=${home}/.pm2/pm2.pid
 # address before the apps start. Same CA, so trusted iPads keep working.
 # \`-\`: a failed re-issue still starts the booth on the old certificate.
 ExecStartPre=-${BOOTH_BIN} cert --if-changed --no-banner --color=never
+# An update a power cut or a crash interrupted after its switch goes back
+# before the apps start. As root (\`+\`): it moves /opt/dither-booth.
+ExecStartPre=-+${BOOTH_BIN} update --recover --no-restart --no-banner --color=never
 ExecStart=${bun} run pm2:start
 ExecReload=${bun} run pm2:reload
 ExecStop=${bun} ./node_modules/pm2/bin/pm2 kill
@@ -144,11 +153,18 @@ OnCalendar=hourly
 `;
 }
 
+/** One per rollback mode, as the admin starts them. */
+const ROLLBACK_UNITS =
+  boothRollbackModeSchema.options.map(getBoothRollbackUnit);
+
 /**
  * The admin's System page runs `systemctl` as the service user: restart
- * this unit, reboot, power off. Nothing else: not other units, not stop.
- * The `-multiple-sessions` actions are what logind asks while someone is
- * logged in over SSH. polkit reads the rules folder again on its own.
+ * this unit, reboot, power off, and start an update or a rollback unit.
+ * Nothing else: not other units, not stop. The update instance must be a
+ * release version (systemd writes its `-` as `\x2d`); the CLI checks it
+ * again. The `-multiple-sessions` actions are what logind asks while
+ * someone is logged in over SSH. polkit reads the rules folder again on
+ * its own.
  */
 export function buildSystemPolkitRule(): string {
   return `// Installed by \`booth service\`.
@@ -164,6 +180,16 @@ polkit.addRule(function (action, subject) {
     return polkit.Result.YES;
   }
   if (
+    action.id === "org.freedesktop.systemd1.manage-units" &&
+    action.lookup("verb") === "start" &&
+    (/^ditherbooth-update@[0-9]+\\.[0-9]+\\.[0-9]+(\\\\x2d[0-9A-Za-z.]+)?\\.service$/.test(
+      action.lookup("unit"),
+    ) ||
+      ${JSON.stringify(ROLLBACK_UNITS)}.indexOf(action.lookup("unit")) >= 0)
+  ) {
+    return polkit.Result.YES;
+  }
+  if (
     action.id === "org.freedesktop.login1.reboot" ||
     action.id === "org.freedesktop.login1.reboot-multiple-sessions" ||
     action.id === "org.freedesktop.login1.power-off" ||
@@ -173,6 +199,46 @@ polkit.addRule(function (action, subject) {
   }
   return polkit.Result.NOT_HANDLED;
 });
+`;
+}
+
+/**
+ * `booth update <version>` as root, in a unit of its own: it restarts
+ * PM2, and the admin that asked with it, and must outlive both. One run
+ * per version at a time; the CLI's lock stops two versions at once.
+ */
+export function buildUpdateUnit(): string {
+  return `[Unit]
+Description=Dither Booth update to %I
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=${BOOTH_BIN} update %I --no-banner --color=never
+# However the job's process ended (the new CLI dying after the handover,
+# this unit's timeout, an out-of-memory kill), an unfinished job is ended
+# here: back to the release before if it had switched.
+ExecStopPost=${BOOTH_BIN} update --recover --no-banner --color=never
+# The booth keeps serving while the update downloads and unpacks.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=45min
+# ExecStopPost goes back on the release before: a stop, a start and a
+# 2 min check. The 90 s default would cut it short.
+TimeoutStopSec=5min
+`;
+}
+
+/** `booth rollback` as root; the instance is keep-db or restore-db. */
+export function buildRollbackUnit(): string {
+  return `[Unit]
+Description=Dither Booth rollback (%I)
+
+[Service]
+Type=oneshot
+ExecStart=${BOOTH_BIN} rollback --mode %I --no-banner --color=never
+TimeoutStartSec=15min
 `;
 }
 
@@ -209,7 +275,15 @@ async function joinJournalGroup(): Promise<boolean> {
   return true;
 }
 
-export async function runServiceCommand(context: BoothContext): Promise<void> {
+export async function runServiceCommand(
+  context: BoothContext,
+  {
+    restart = true,
+  }: {
+    /** False from `booth update`, which restarts the booth itself next. */
+    restart?: boolean;
+  } = {},
+): Promise<void> {
   const { repoRoot } = context;
 
   heading("Install systemd service");
@@ -236,6 +310,8 @@ export async function runServiceCommand(context: BoothContext): Promise<void> {
     buildLogrotateTimerDropIn(),
   );
 
+  await writeIfChanged(UPDATE_UNIT_PATH, buildUpdateUnit());
+  await writeIfChanged(ROLLBACK_UNIT_PATH, buildRollbackUnit());
   await writeIfChanged(SYSTEM_POLKIT_RULE_PATH, buildSystemPolkitRule());
   await chmod(SYSTEM_POLKIT_RULE_PATH, 0o644);
 
@@ -249,7 +325,7 @@ export async function runServiceCommand(context: BoothContext): Promise<void> {
   await run(["systemctl", "enable", "--now", SERVICE_NAME]);
 
   // A running process keeps the groups it started with.
-  if (wasActive && joinedJournal) {
+  if (restart && wasActive && joinedJournal) {
     step(`Restarting ${SERVICE_NAME} so it can read the system journal`);
     await run(["systemctl", "restart", SERVICE_NAME]);
   }

@@ -93,7 +93,7 @@ The engine binds **`127.0.0.1:3001`**. Nothing outside the Pi reaches it except 
 
 The network polkit rule (`booth network setup`) grants the service user four NetworkManager actions and nothing wider: modify system connections, network control, Wi-Fi scan, Wi-Fi sharing.
 
-The system polkit rule (`booth service`, `50-ditherbooth-system.rules`) grants it what the System page's **Power** panel runs, and nothing wider: restart `ditherbooth.service` (not stop it, not any other unit), reboot, power off. The reboot and power-off grants include logind's `-multiple-sessions` variants, which apply while someone is logged in over SSH, but not `-ignore-inhibit`: a process holding a shutdown lock still blocks them.
+The system polkit rule (`booth service`, `50-ditherbooth-system.rules`) grants it what the System page runs, and nothing wider: restart `ditherbooth.service` (not stop it, not any other unit), reboot, power off, and start `ditherbooth-update@<version>.service` (the instance must be a release version) or `ditherbooth-rollback@keep-db.service` / `@restore-db.service`. Those two run `booth update` and `booth rollback` as root ([Updates](/docs/architecture/updates/)). The reboot and power-off grants include logind's `-multiple-sessions` variants, which apply while someone is logged in over SSH, but not `-ignore-inhibit`: a process holding a shutdown lock still blocks them.
 
 ## Power
 

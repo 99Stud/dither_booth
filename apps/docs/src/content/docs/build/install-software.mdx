@@ -29,7 +29,7 @@ The `booth` CLI is a single static binary. The Pi needs nothing installed before
 
    | Step            | What it does                                                                                                      |
    | --------------- | ----------------------------------------------------------------------------------------------------------------- |
-   | apt packages    | `git`, `curl`, `mkcert`, `libnss3-tools`, `iw`, `logrotate`, Chromium and its runtime libraries                   |
+   | apt packages    | `git`, `curl`, `mkcert`, `libnss3-tools`, `iw`, `logrotate`, `zstd`, Chromium and its runtime libraries           |
    | `bun`           | Installs Bun for the service user at `~/.bun/bin/bun`                                                             |
    | `repo`          | Clones the repo into `/opt/dither-booth` (or pulls it), `bun install`, `bun run build`, Puppeteer's browser       |
    | `ssd`           | Mounts the NVMe at `/mnt/ssd` via `/etc/fstab` and moves `apps/engine/data` onto it with a symlink                |
@@ -48,11 +48,19 @@ The `booth` CLI is a single static binary. The Pi needs nothing installed before
 
    Every critical check should pass: SSD mount, data symlink, Bun, certificate IP, service, the three PM2 processes, log rotation, the three `healthz` endpoints, the setup page, the network watch, the network setup files and the `.local` name. See [Health checks](/docs/maintenance/health-checks/).
 
-4. **Connect the first iPad.** The printer prints a setup ticket as soon as the engine is up. Follow [Connect a device](/docs/venue/connect-a-device/).
+4. **Switch to releases:**
 
-5. **Set the Darkroom PIN** in admin's **Settings**, then **create the first event** on the Event page.
+   ```bash
+   sudo booth update
+   ```
 
-6. **Check the whole chain.** In admin's Control Center, Health and Printer should be green. On the iPad, open the Darkroom and run a test print: a receipt should come out within a few seconds.
+   `booth install` builds the booth from a git checkout. This installs the latest release next to it and switches the booth to it, so later updates and rollbacks work. See [Update the booth](/docs/maintenance/update-the-booth/).
+
+5. **Connect the first iPad.** The printer prints a setup ticket as soon as the engine is up. Follow [Connect a device](/docs/venue/connect-a-device/).
+
+6. **Set the Darkroom PIN** in admin's **Settings**, then **create the first event** on the Event page.
+
+7. **Check the whole chain.** In admin's Control Center, Health and Printer should be green. On the iPad, open the Darkroom and run a test print: a receipt should come out within a few seconds.
 
 </Steps>
 
@@ -69,7 +77,7 @@ The `booth` CLI is a single static binary. The Pi needs nothing installed before
 | Path                                                                | What                                             |
 | ------------------------------------------------------------------- | ------------------------------------------------ |
 | `/usr/local/bin/booth`                                              | The CLI                                          |
-| `/opt/dither-booth`                                                 | The repo, built (`apps/*/dist`)                  |
+| `/opt/dither-booth`                                                 | A link to the running release (after step 4)     |
 | `/opt/dither-booth/apps/engine/data` → `/mnt/ssd/dither-booth/data` | SQLite database                                  |
 | `/opt/dither-booth/.local/tls/`                                     | Booth certificate, key and manifest              |
 | `/etc/systemd/system/ditherbooth.service`                           | Starts PM2 and the three apps                    |

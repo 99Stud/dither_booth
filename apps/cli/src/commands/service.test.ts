@@ -1,3 +1,4 @@
+import { isReleaseVersion } from "@dither-booth/shared/booth-update";
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -8,8 +9,10 @@ import {
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
   buildNetworkDispatcher,
+  buildRollbackUnit,
   buildSystemPolkitRule,
   buildUnit,
+  buildUpdateUnit,
 } from "./service";
 
 describe("PM2 log rotation", () => {
@@ -163,6 +166,48 @@ describe("system polkit rule", () => {
     ).toBe("not-handled");
   });
 
+  test("lets the service user start an update to a release version, or a rollback", () => {
+    const rule = loadRule();
+
+    for (const unit of [
+      "ditherbooth-update@0.8.0.service",
+      "ditherbooth-update@0.8.0\\x2drc.1.service",
+      "ditherbooth-rollback@keep\\x2ddb.service",
+      "ditherbooth-rollback@restore\\x2ddb.service",
+    ]) {
+      expect(rule(unitAction(unit, "start"), pi)).toBe("yes");
+      expect(rule(unitAction(unit, "stop"), pi)).toBe("not-handled");
+    }
+
+    for (const unit of [
+      "ditherbooth-update@latest.service",
+      "ditherbooth-update@0.8.0;reboot.service",
+      "ditherbooth-rollback@anything.service",
+    ]) {
+      expect(rule(unitAction(unit, "start"), pi)).toBe("not-handled");
+    }
+  });
+
+  test("starts an update for exactly the versions the booth accepts", () => {
+    const rule = loadRule();
+
+    for (const version of [
+      "0.8.0",
+      "10.2.33",
+      "0.8.0-rc.1",
+      "0.8.0-rc-1",
+      "0.8.0+build",
+      "v0.8.0",
+      "0.8",
+      "0.8.0;reboot",
+    ]) {
+      const unit = `ditherbooth-update@${version.replaceAll("-", "\\x2d")}.service`;
+      expect(rule(unitAction(unit, "start"), pi) === "yes").toBe(
+        isReleaseVersion(version),
+      );
+    }
+  });
+
   test("grants nothing to another user", () => {
     const rule = loadRule();
 
@@ -172,5 +217,32 @@ describe("system polkit rule", () => {
     expect(
       rule(unitAction("ditherbooth.service", "restart"), { user: "guest" }),
     ).toBe("not-handled");
+  });
+});
+
+describe("update and rollback units", () => {
+  test("run the CLI as root on the unit's unescaped instance", () => {
+    expect(buildUpdateUnit()).toContain(
+      "ExecStart=/usr/local/bin/booth update %I --no-banner --color=never",
+    );
+    expect(buildUpdateUnit()).toContain("Type=oneshot");
+    expect(buildUpdateUnit()).not.toContain("User=");
+    expect(buildRollbackUnit()).toContain(
+      "ExecStart=/usr/local/bin/booth rollback --mode %I --no-banner --color=never",
+    );
+  });
+
+  test("end an interrupted job, however the process ended, and at every booth start", () => {
+    expect(buildUpdateUnit()).toContain(
+      "ExecStopPost=/usr/local/bin/booth update --recover --no-banner --color=never",
+    );
+    // Going back takes a stop, a start and a 2 min check: past the 90 s default.
+    expect(buildUpdateUnit()).toContain("TimeoutStopSec=5min");
+    // Going back takes a stop, a start and a 2 min check: past the 90 s default.
+    expect(buildUpdateUnit()).toContain("TimeoutStopSec=5min");
+    // `+`: as root, though the booth's unit runs as pi; `-`: never blocks its start.
+    expect(buildUnit("/opt/dither-booth")).toContain(
+      "ExecStartPre=-+/usr/local/bin/booth update --recover --no-restart --no-banner --color=never",
+    );
   });
 });

@@ -14,34 +14,26 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 
 ## Update the booth software
 
-The booth runs whatever is checked out in `/opt/dither-booth`, built. Updating means pulling `main`, rebuilding, and restarting.
+The booth runs a [release](/docs/start-here/glossary/#releases). Updating installs the next one next to it, switches, checks that the booth came back, and goes back on its own if it didn't. How: [Updates](/docs/architecture/updates/).
 
 <Steps>
 
-1. **Pull, install and build:**
+1. **Update:**
 
    ```bash
-   sudo booth repo
+   sudo booth update          # the latest release
+   sudo booth update 0.8.0    # or a given one, pre-releases included (0.8.0-rc.1)
    ```
 
-   This runs `git pull --ff-only`, `bun install` and `bun run build` (the apps and these docs) as the service user. It refuses to pull over local changes; that's deliberate, the booth's checkout should never be edited by hand.
+   It downloads the release, checks it against its `SHA256SUMS`, unpacks it, backs up the database, then restarts the apps on it: guests can use the booth until that restart. It installs the release's own `booth` CLI first and applies its system setup (`booth service`, `booth network setup`) on its own.
 
-2. **Restart the apps:**
+2. **Read how it ended:**
 
-   ```bash
-   sudo systemctl restart ditherbooth.service
-   ```
+   - **Updated to 0.8.0.** Done.
+   - **Nothing changed, the booth still runs …** The update stopped before the switch (no internet, no such release, a broken download, not enough room). Fix the reason given and run it again.
+   - **Rolled back to …** The new release didn't come up within 2 minutes, so the booth went back to the one before, database included. The reason is in the message and in `journalctl -u 'ditherbooth-update@*'`.
 
-   Database migrations apply on their own when the engine starts. A restart also revokes Darkroom sessions.
-
-3. **Apply system-level changes, if any.** Re-running these is always safe; they change nothing when already up to date:
-
-   ```bash
-   sudo booth network setup   # when doctor says "Network setup out of date"
-   sudo booth service         # when the systemd unit changed, doctor flags log rotation, or the Power panel says the booth doesn't allow it
-   ```
-
-4. **Check:**
+3. **Check:**
 
    ```bash
    booth doctor
@@ -51,16 +43,22 @@ The booth runs whatever is checked out in `/opt/dither-booth`, built. Updating m
 
 </Steps>
 
+### The first update of a booth
+
+A booth set up before releases runs a git checkout, built in place: `booth doctor` says **Runs a git checkout, not a release**. Its first `sudo booth update` turns it into a release. The checkout moves to `/opt/dither-booth-releases/legacy-<version>`, kept to roll back to, and its certificates and logs move to `/opt/dither-booth-shared/`. Before that first update, install a CLI that has `booth update`: see [Update the CLI](#update-the-cli).
+
+`sudo booth repo` refuses on a booth that runs releases: there is no checkout to pull.
+
 ## Update the CLI
 
-The CLI is a separate binary, released from Git tags. Re-run the installer to get the latest release:
+The CLI ships with each release. Re-run the installer to get the latest one:
 
 ```bash
 curl -fsSL https://github.com/99Stud/dither_booth/releases/latest/download/install.sh | sudo bash
 booth --version
 ```
 
-Update the CLI **before** the software when a release notes says so: a newer `network setup` or `service` may be needed by the new software.
+`booth update` installs each release's CLI itself. Re-run the installer only on a booth whose CLI predates `booth update`.
 
 ## Update the operating system
 
@@ -74,22 +72,22 @@ After the reboot, run `booth doctor`. A Chromium update from apt changes the bro
 
 ## Roll back
 
-The checkout is a normal Git repo. To go back to a known good commit:
+To go back to the release that ran before the last update:
 
 ```bash
-cd /opt/dither-booth
-sudo -u pi git log --oneline -10
-sudo -u pi git checkout <commit>
-sudo -u pi bun install && sudo -u pi bun run build
-sudo systemctl restart ditherbooth.service
+sudo booth rollback
 ```
 
-Then return to `main` (`git checkout main`) before the next `booth repo`, which only fast-forwards.
+When the update applied database migrations, the older release can't run on the database as it is, and rollback refuses. It says so and names the backup taken just before the update. Restore it with:
 
-Commits up to v0.7.0 track `apps/engine/data/.gitkeep`: checking one out replaces the data symlink with a folder on the SD card, and the engine starts on an empty database. Run `booth doctor` after every checkout; if **Data symlink** fails, follow [The data symlink is gone](/docs/maintenance/recovery/#the-data-symlink-is-gone).
+```bash
+sudo booth rollback --restore-db
+```
+
+Everything the booth recorded after that backup (visits, draws) is lost. Then run `booth doctor`.
 
 <Aside type="danger" title="Migrations don't roll back">
-  Migrations are forward-only. Rolling back across a migration leaves a newer
-  database under older code. Before an update that ships a migration, [back up
-  the database](/docs/maintenance/recovery/#back-up-the-database).
+  Migrations are forward-only. `booth update` backs the database up before every
+  switch (the last 3 are kept in `/mnt/ssd/dither-booth/backups/`), and only
+  that backup takes a booth back across a migration.
 </Aside>
