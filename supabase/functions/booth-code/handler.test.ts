@@ -12,7 +12,7 @@ function setup(overrides: Partial<BoothCodeDeps> = {}) {
       Promise.resolve(token === "staff" ? "user-a" : null),
     findBooth: (id) =>
       Promise.resolve(id === BOOTH ? { orgId: ORG, name: "Booth A" } : null),
-    isMember: (userId, orgId) =>
+    seesOrg: (userId, orgId) =>
       Promise.resolve(userId === "user-a" && orgId === ORG),
     issueCode: (id) => (
       issued.push(id),
@@ -46,7 +46,7 @@ Deno.test("staff of the booth's org get a code for it", async () => {
 });
 
 Deno.test("another org's booth answers like a booth that doesn't exist", async () => {
-  const { deps, issued } = setup({ isMember: () => Promise.resolve(false) });
+  const { deps, issued } = setup({ seesOrg: () => Promise.resolve(false) });
   assertEquals(
     (await handleBoothCode(post({ boothId: BOOTH }, "staff"), deps)).status,
     404,

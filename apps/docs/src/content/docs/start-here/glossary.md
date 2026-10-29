@@ -175,10 +175,14 @@ _Avoid_: watchdog (in staff-facing text).
 
 **Booth**: one Dither Booth: its Pi, printer and iPad. Staff add and name it in the Studio app's **Booths**; the name can't be changed afterwards. It has one Hub registration at a time.
 
-**Team** (`org` in the code): the staff who share booths and their alerts. Staff see only their team's booths, alerts and devices.
+**Team** (`org` in the code): the staff who share booths and their alerts. Staff see only their team's booths, alerts and devices; a platform admin sees every team's.
 _Avoid_: org, organisation (in staff-facing text).
 
-**Staff**: the people who set up and run booths. On the Hub, a member of a team; it is the only role.
+**Staff**: the people who set up and run booths. On the Hub, each one is in a team as a **member** or an **owner**.
+
+**Member**, **Owner** (`org_member.role` in the code): the two roles in a team. Both see the team's booths and alerts; an owner will also manage who is in the team.
+
+**Platform admin**: a 99Stud person who sees every team, booth and alert on the Hub (`platform_admin` in the code). It isn't a team role: a platform admin's devices still only get the alerts of the teams they're in.
 
 **Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions and its maintenance state. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
 

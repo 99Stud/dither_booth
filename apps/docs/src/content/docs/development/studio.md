@@ -72,3 +72,12 @@ There is no sign-up. For each staff member:
    ```
 
 They then open Studio, sign in with the emailed code, and turn notifications on, on each device.
+
+To make someone a platform admin, who sees every team's booths and alerts in Studio:
+
+```sql
+insert into public.platform_admin (user_id)
+select id from auth.users where email = '<their address>';
+```
+
+They still need a team membership to add booths from Studio and to get alerts.

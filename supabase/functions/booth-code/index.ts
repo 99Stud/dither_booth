@@ -18,7 +18,14 @@ Deno.serve((req) =>
       return data ? { orgId: data.org_id, name: data.name } : null;
     },
 
-    async isMember(userId, orgId) {
+    async seesOrg(userId, orgId) {
+      const { data: platformAdmin, error: adminError } = await admin
+        .from("platform_admin")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (adminError) throw adminError;
+      if (platformAdmin) return true;
       const { data, error } = await admin
         .from("org_member")
         .select("user_id")

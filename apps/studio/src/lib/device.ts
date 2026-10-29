@@ -155,11 +155,18 @@ export async function sendTest(): Promise<TestOutcome> {
   return data ?? { sent: 0, removed: 0, failed: 0 };
 }
 
-/** The org the signed-in staff member works for (the first, for now). */
+/**
+ * The org the signed-in staff member works for (the first, for now). A
+ * platform admin reads every membership, so only their own count.
+ */
 export async function staffOrgId(): Promise<string | null> {
+  const { data: auth } = await hub.auth.getSession();
+  const userId = auth.session?.user.id;
+  if (!userId) return null;
   const { data, error } = await hub
     .from("org_member")
     .select("org_id")
+    .eq("user_id", userId)
     .limit(1);
   if (error) throw error;
   return data?.[0]?.org_id ?? null;
