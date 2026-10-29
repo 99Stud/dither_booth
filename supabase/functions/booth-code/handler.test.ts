@@ -9,11 +9,14 @@ function setup(overrides: Partial<BoothCodeDeps> = {}) {
   const issued: string[] = [];
   const deps: BoothCodeDeps = {
     authenticate: (token) =>
-      Promise.resolve(token === "staff" ? "user-a" : null),
+      Promise.resolve(
+        token === "staff" ? "user-a" : token === "admin" ? "admin" : null,
+      ),
     findBooth: (id) =>
       Promise.resolve(id === BOOTH ? { orgId: ORG, name: "Booth A" } : null),
     isMember: (userId, orgId) =>
       Promise.resolve(userId === "user-a" && orgId === ORG),
+    isPlatformAdmin: (userId) => Promise.resolve(userId === "admin"),
     issueCode: (id) => (
       issued.push(id),
       Promise.resolve({
@@ -42,6 +45,13 @@ Deno.test("staff of the booth's org get a code for it", async () => {
     code: "7KQ2M-9XD4T",
     expiresAt: "2026-11-01T18:00:00Z",
   });
+  assertEquals(issued, [BOOTH]);
+});
+
+Deno.test("a platform admin gets a code for any org's booth", async () => {
+  const { deps, issued } = setup();
+  const res = await handleBoothCode(post({ boothId: BOOTH }, "admin"), deps);
+  assertEquals(res.status, 200);
   assertEquals(issued, [BOOTH]);
 });
 

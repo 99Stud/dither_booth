@@ -29,6 +29,16 @@ Deno.serve((req) =>
       return data !== null;
     },
 
+    async isPlatformAdmin(userId) {
+      const { data, error } = await admin
+        .from("platform_admin")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data !== null;
+    },
+
     async issueCode(boothId) {
       const { data: code, error } = await admin.rpc(
         "issue_booth_registration_code",

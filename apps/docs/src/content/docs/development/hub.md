@@ -26,7 +26,8 @@ For the Edge Functions, also run `supabase functions serve`; they answer on `htt
 
 | Table               | Holds                                                                                                                                                                                                                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `org`, `org_member` | Who may see what. Only `staff` exists.                                                                                                                                                                                                                                                           |
+| `org`, `org_member` | Who may see what. A member's `role` is `member` (the default) or `owner`; no rule reads it yet.                                                                                                                                                                                                  |
+| `platform_admin`    | The platform admins: one row per user. A user reads only their own row; rows are added from the SQL editor.                                                                                                                                                                                      |
 | `booth`             | One booth: its [event times](/docs/start-here/glossary/) (`live_from`, `live_until`), when silence is an alert, and its registration (the code's hash and expiry, its Auth user, when it registered). Staff read only `id`, `org_id`, `name`, the event times, `created_at` and `registered_at`. |
 | `booth_status`      | The last [heartbeat](/docs/start-here/glossary/) of each booth.                                                                                                                                                                                                                                  |
 | `alert`             | An alert opened from a heartbeat: one open per booth and key.                                                                                                                                                                                                                                    |
@@ -35,9 +36,11 @@ For the Edge Functions, also run `supabase functions serve`; they answer on `htt
 
 Every table has `org_id` and row level security. Rules worth knowing:
 
+- **Who sees a team.** Its members, and every platform admin. Policies say so with `org_id in (select public.visible_org_ids())`: the caller's teams, or every team for an admin. `org` and `org_member` check memberships and `is_platform_admin()` themselves, since `visible_org_ids()` reads them and would recurse.
+- **Platform admins act as staff of every team**: they read, add booths, set event times, acknowledge alerts, ask booths to update and add teams (`insert (name)` on `org`). They get no push for a team they aren't in: a user can only add a device for a team they're in.
 - **Staff read their org's rows and write little.** On `booth` they add one to their org (`org_id`, `name`) and set its event times (`live_from`, `live_until`); never its registration, nor its name. The only column they write on `alert` is `acked_at`; a trigger records who. Asking a booth to update again closes its **Update failed** alert: the request trigger (`private.booth_update_requested`, `security definer`) does it for that booth only, without giving staff the column. They manage their own `push_subscription` rows.
 - **Update requests.** On `booth_update` staff insert a row for their org's booth (`booth_id`, `org_id`, `release`), change its `release` (asking again), or delete it (cancel). A trigger sets who asked and when and resets the state to `requested`. Only the heartbeat function writes the state, through `report_booth_update`.
-- **Realtime** publishes `alert`, `booth_status` and `booth_update`, so Studio updates without polling. It applies the same row level security: staff only hear about their org's rows.
+- **Realtime** publishes `alert`, `booth_status` and `booth_update`, so Studio updates without polling. It applies the same row level security: staff only hear about their team's rows, and a platform admin about every team's.
 - **A booth never touches these tables.** Its JWT carries `booth_id` in `app_metadata` (never `user_metadata`, which users can edit), and an Edge Function writes with the service role after checking it.
 - **No `security definer` functions in `public`**: Postgres lets every role call them.
 
@@ -57,7 +60,7 @@ To see how production differs from the file, run `supabase config push --project
 
 A booth needs its own identity on the Hub, and the Hub's service role must never leave it. So a booth registers once, with a one-time code:
 
-1. Staff add the booth in Studio (Booths) and choose **Get a registration code**. That calls the `booth-code` Edge Function, which checks the caller is staff of the booth's org and issues the code with the service role. Without Studio, the SQL editor does the same:
+1. Staff add the booth in Studio (Booths) and choose **Get a registration code**. That calls the `booth-code` Edge Function, which checks the caller is staff of the booth's org or a platform admin, and issues the code with the service role. Without Studio, the SQL editor does the same:
 
    ```sql
    select public.issue_booth_registration_code('<booth id>');  -- 7KQ2M-9XD4T

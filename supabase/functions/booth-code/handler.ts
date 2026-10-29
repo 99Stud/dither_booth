@@ -14,6 +14,7 @@ export type BoothCodeDeps = {
     boothId: string,
   ) => Promise<{ orgId: string; name: string } | null>;
   isMember: (userId: string, orgId: string) => Promise<boolean>;
+  isPlatformAdmin: (userId: string) => Promise<boolean>;
   /** A new one-time code for the booth, replacing any earlier one. */
   issueCode: (boothId: string) => Promise<{ code: string; expiresAt: string }>;
 };
@@ -21,9 +22,9 @@ export type BoothCodeDeps = {
 const requestSchema = z.object({ boothId: z.uuid() });
 
 /**
- * Issues a one-time registration code for a booth, to staff of its org, so
- * Studio can register a booth without the SQL editor. The service role that
- * issues it stays here, behind this check.
+ * Issues a one-time registration code for a booth, to staff of its org or a
+ * platform admin, so Studio can register a booth without the SQL editor. The
+ * service role that issues it stays here, behind this check.
  */
 export async function handleBoothCode(
   req: Request,
@@ -39,9 +40,14 @@ export async function handleBoothCode(
   const parsed = requestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return reply(400, { error: "invalid request" });
 
-  // Someone else's booth answers like a booth that doesn't exist.
+  // Someone else's booth answers like a booth that doesn't exist. A platform
+  // admin acts as staff of every org.
   const booth = await deps.findBooth(parsed.data.boothId);
-  if (!booth || !(await deps.isMember(userId, booth.orgId))) {
+  const allowed =
+    booth !== null &&
+    ((await deps.isMember(userId, booth.orgId)) ||
+      (await deps.isPlatformAdmin(userId)));
+  if (!booth || !allowed) {
     return reply(404, { error: "unknown booth" });
   }
 
