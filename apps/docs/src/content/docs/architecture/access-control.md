@@ -95,6 +95,8 @@ The network polkit rule (`booth network setup`) grants the service user four Net
 
 The system polkit rule (`booth service`, `50-ditherbooth-system.rules`) grants it what the System page runs, and nothing wider: restart `ditherbooth.service` (not stop it, not any other unit), reboot, power off, and start `ditherbooth-update@<version>.service` (the instance must be a release version) or `ditherbooth-rollback@keep-db.service` / `@restore-db.service`. Those two run `booth update` and `booth rollback` as root ([Updates](/docs/architecture/updates/)). The reboot and power-off grants include logind's `-multiple-sessions` variants, which apply while someone is logged in over SSH, but not `-ignore-inhibit`: a process holding a shutdown lock still blocks them.
 
+polkit runs rules in Duktape, an ES5 engine. A rule it can't compile is skipped whole, without an error anywhere but polkitd's journal, and every action it granted is refused. The CLI's tests parse both rules as ES5 (`apps/cli/src/commands/service.test.ts`); the 0.8.0 CLI wrote a system rule with a trailing comma in a call, which polkit refused.
+
 ## Power
 
 The Power panel posts to **`POST https://<booth>:3002/admin/power`** with `{"action": "restart-apps" | "reboot" | "power-off"}`. The admin server runs `systemctl --no-block` with the matching verb and answers 202 once systemd has queued the job, before it stops the admin itself. Like the rest of admin it is **network-trusted**: the POST is refused with 403 unless `Origin` is the admin's own (as the Logs socket checks it), so another site open on a staff device can't reboot the booth, but anyone who can load admin can. A GET on the same route says the actions are there.

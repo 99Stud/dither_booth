@@ -182,9 +182,7 @@ polkit.addRule(function (action, subject) {
   if (
     action.id === "org.freedesktop.systemd1.manage-units" &&
     action.lookup("verb") === "start" &&
-    (/^ditherbooth-update@[0-9]+\\.[0-9]+\\.[0-9]+(\\\\x2d[0-9A-Za-z.]+)?\\.service$/.test(
-      action.lookup("unit"),
-    ) ||
+    (/^ditherbooth-update@[0-9]+\\.[0-9]+\\.[0-9]+(\\\\x2d[0-9A-Za-z.]+)?\\.service$/.test(action.lookup("unit")) ||
       ${JSON.stringify(ROLLBACK_UNITS)}.indexOf(action.lookup("unit")) >= 0)
   ) {
     return polkit.Result.YES;

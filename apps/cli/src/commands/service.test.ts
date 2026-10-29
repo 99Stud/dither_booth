@@ -1,4 +1,5 @@
 import { isReleaseVersion } from "@dither-booth/shared/booth-update";
+import { parse } from "acorn";
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -93,6 +94,19 @@ describe("network dispatcher", () => {
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
     }
+  });
+});
+
+// polkit runs rules in Duktape, which is ES5 with a few later additions: a
+// rule it can't compile is skipped whole, and logged only by polkitd. Bun
+// runs newer syntax (a trailing comma in a call), so the tests that run a
+// rule here can't catch it; parsing it as ES5 does.
+describe("polkit rules", () => {
+  test.each([
+    ["network", buildPolkitRule],
+    ["system", buildSystemPolkitRule],
+  ])("the %s rule is ES5, which polkit can compile", (_, build) => {
+    expect(() => parse(build(), { ecmaVersion: 5 })).not.toThrow();
   });
 });
 
