@@ -2,16 +2,16 @@ import type { Session } from "@supabase/supabase-js";
 
 import { NinetyNineStudLogo } from "@dither-booth/ui/components/svg/99StudLogo/index";
 import { Button } from "@dither-booth/ui/components/ui/button";
-import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
 import { LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AlertBanner } from "#app/AlertBanner";
 import { AlertsScreen } from "#app/AlertsScreen";
 import { BoothsScreen } from "#app/BoothsScreen";
 import { DeviceCard } from "#app/DeviceCard";
 import { SignIn } from "#app/SignIn";
+import { Splash } from "#app/Splash";
 import { TabBar } from "#app/TabBar";
 import { listAlerts } from "#lib/alerts";
 import { hub } from "#lib/hub";
@@ -57,6 +57,8 @@ const SignedIn = ({ userId, email }: { userId: string; email: string }) => {
 /** Studio: sign in, then the booths' alerts, the booths, and this device. */
 export const App = () => {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [splash, setSplash] = useState(true);
+  const hideSplash = useCallback(() => setSplash(false), []);
 
   useEffect(() => {
     void hub.auth.getSession().then(({ data }) => setSession(data.session));
@@ -105,9 +107,7 @@ export const App = () => {
       </header>
 
       <main className={clsx("flex flex-col gap-4")}>
-        {session === undefined ? (
-          <Spinner className="mx-auto size-5" />
-        ) : session ? (
+        {session === undefined ? null : session ? (
           <SignedIn userId={session.user.id} email={session.user.email ?? ""} />
         ) : (
           <SignIn />
@@ -126,6 +126,10 @@ export const App = () => {
           Powered by 99Stud
         </footer>
       )}
+
+      {splash ? (
+        <Splash ready={session !== undefined} onDone={hideSplash} />
+      ) : null}
     </div>
   );
 };
