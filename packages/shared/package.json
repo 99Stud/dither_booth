@@ -38,6 +38,7 @@
     "./runtime": "./src/isomorphic/runtime.ts",
     "./server/network": "./src/server/network.ts",
     "./server/paths": "./src/server/paths.ts",
+    "./server/release": "./src/server/release.ts",
     "./server/runtime": "./src/server/runtime.ts",
     "./styles": "./src/isomorphic/styles.ts",
     "./ticket": "./src/isomorphic/ticket.ts",

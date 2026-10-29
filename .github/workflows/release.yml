@@ -1,0 +1,168 @@
+name: Release
+
+# One `v*` tag = one release: the `booth` CLI binaries and the booth bundle,
+# published together with a SHA256SUMS that covers every asset.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    name: CLI binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Reads `packageManager` from the root package.json, like CI.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build CLI binaries
+        run: bun run --filter @dither-booth/cli build
+
+      - name: Collect CLI assets
+        run: |
+          mkdir -p release-assets
+          cp apps/cli/dist/booth-linux-arm64 apps/cli/dist/booth-linux-x64 \
+            apps/cli/install.sh release-assets/
+
+      - name: Upload CLI assets
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cli
+          path: release-assets/
+          if-no-files-found: error
+          retention-days: 1
+
+  bundle:
+    name: Booth bundle (linux-arm64)
+    runs-on: ubuntu-24.04-arm
+    # Bookworm's glibc is as old as any booth's (Raspberry Pi OS Bookworm,
+    # or Debian 13 on the booth today), so the prebuilt `sharp` and `usb`
+    # binaries it picks load on all of them. The Pi never compiles.
+    container: debian:bookworm
+    timeout-minutes: 30
+    env:
+      # arm64 uses Debian's Chromium (puppeteer.config.cjs), never a download.
+      PUPPETEER_SKIP_DOWNLOAD: "1"
+    steps:
+      # git before checkout, so the docs get their last-updated dates.
+      - name: Install system tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git unzip zstd
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      # Same rule as apps/cli/scripts/build.ts and the booth's own check:
+      # the tag without its `v`, X.Y.Z with an optional dot-separated
+      # pre-release, nothing else. A tag a booth would refuse never becomes
+      # a release. Checked first, before a long build.
+      - name: Write release.json
+        id: release
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+            echo "Release tag $GITHUB_REF_NAME is not a release tag (vX.Y.Z or vX.Y.Z-rc.N)." >&2
+            exit 1
+          fi
+          printf '{"version":"%s","sha":"%s","builtAt":"%s"}\n' \
+            "$version" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > release.json
+          echo "bundle=dither-booth-$version-linux-arm64.tar.zst" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      # A clean install, so no dev dependency stays behind in node_modules.
+      - name: Keep production dependencies only
+        run: |
+          rm -rf node_modules apps/*/node_modules packages/*/node_modules
+          bun install --production --frozen-lockfile
+
+      # Everything PM2 runs, as laid out in the repository. Workspace packages
+      # ship as source: the app dists import them from node_modules. tar keeps
+      # node_modules' relative symlinks as symlinks.
+      - name: Pack the bundle
+        env:
+          BUNDLE: ${{ steps.release.outputs.bundle }}
+        run: |
+          mkdir -p release-assets
+          tar --zstd -cf "release-assets/$BUNDLE" \
+            release.json package.json bun.lock pm2.config.js puppeteer.config.cjs \
+            node_modules packages \
+            apps/engine/package.json apps/engine/dist apps/engine/node_modules \
+            apps/engine/drizzle apps/engine/fontconfig \
+            apps/admin/package.json apps/admin/dist apps/admin/node_modules \
+            apps/shutter/package.json apps/shutter/dist apps/shutter/node_modules \
+            apps/docs/dist
+          ls -lh "release-assets/$BUNDLE"
+
+      # The native modules the engine loads, from the unpacked bundle with its
+      # own pinned bun, as the Pi will run them.
+      - name: Smoke-test native modules
+        env:
+          BUNDLE: ${{ steps.release.outputs.bundle }}
+        run: |
+          unpacked="$RUNNER_TEMP/bundle"
+          mkdir -p "$unpacked"
+          tar --zstd -xf "release-assets/$BUNDLE" -C "$unpacked"
+          cd "$unpacked/apps/engine"
+          ../../node_modules/.bin/bun -e '
+            const { default: sharp } = await import("sharp");
+            await sharp({ create: { width: 1, height: 1, channels: 3, background: "#000" } }).png().toBuffer();
+            const usb = await import("usb");
+            if (typeof usb.getDeviceList !== "function") throw new Error("usb did not load");
+            console.log("sharp", sharp.versions.sharp, "and usb load");
+          '
+
+      - name: Upload the bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bundle
+          path: release-assets/${{ steps.release.outputs.bundle }}
+          if-no-files-found: error
+          # Already zstd-compressed.
+          compression-level: 0
+          retention-days: 1
+
+  # Publishes only once both builds passed, so a release never lacks either.
+  publish:
+    name: Publish release
+    needs: [cli, bundle]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      # Integrity of a download (truncated, corrupt), not authenticity: the
+      # sums come from the same release.
+      - name: Write SHA256SUMS
+        working-directory: release-assets
+        run: |
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+
+      # A tag with a pre-release part (`v0.8.0-rc.1`) is a pre-release, which
+      # `releases/latest` (install.sh) skips.
+      - name: Publish release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: release-assets/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
