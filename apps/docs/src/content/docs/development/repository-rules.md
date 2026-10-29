@@ -27,7 +27,7 @@ The repository also only allows squash merging, uses the pull request's title an
 
 ## Release tags
 
-A ruleset named **release tags** protects `v*` tags. Only repository admins can create, move or delete one. A tag publishes the `booth` CLI that booths install as root ([Releases](/docs/development/releases/)).
+A ruleset named **release tags** protects `v*` tags. Only repository admins can create, move or delete one. A tag publishes a release: the `booth` CLI that booths install as root, and the release bundle booths will run ([Releases](/docs/development/releases/)).
 
 ## Secrets
 

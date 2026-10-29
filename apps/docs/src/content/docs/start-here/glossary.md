@@ -149,6 +149,12 @@ _Avoid_: console, terminal.
 
 **Since boot**: a throttle flag that was set at some point since the Pi last started, even if it is clear now. It is the trace of a supply dip or an overheat during the event; a restart clears it.
 
+## Releases
+
+**Release**: one version of the booth software, cut by a `v*` Git tag: the apps, the docs and the `booth` CLI together. It is written without the `v` (`0.8.0`, `0.8.0-rc.1`); the heartbeat reports the one a booth runs.
+
+**Release bundle**: the file a release ships for booths, `dither-booth-<version>-linux-arm64.tar.zst`: the built apps, their dependencies and the docs, ready to run on the Pi. A booth only downloads and unpacks it; it never compiles.
+
 ## Booth state
 
 **Maintenance**: the booth is closed to guests. They see “be right back” and can't start a visit, while the Darkroom still opens. A visit already under way finishes first.

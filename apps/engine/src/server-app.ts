@@ -12,6 +12,7 @@ import {
   createHealthzPayload,
 } from "@dither-booth/shared/healthz";
 import { SETUP_SERVER_TOKEN_HEADER } from "@dither-booth/shared/server/network";
+import { readRelease } from "@dither-booth/shared/server/release";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
 import {
   createHTTPHandler,
@@ -35,7 +36,6 @@ import {
   createHubReporter,
   HUB_LOG_SOURCE,
   PRODUCTION_HUB,
-  readRelease,
 } from "#domains/hub/hub.service";
 import {
   CAMERA_PREVIEW_ICE_SERVERS,
