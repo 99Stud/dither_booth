@@ -12,7 +12,7 @@ import { DitherBoothBadge } from "@dither-booth/ui/components/svg/DitherBoothBad
 import clsx from "clsx";
 import { format } from "date-fns";
 import { Sparkles } from "pixelarticons/react/Sparkles.js";
-import { type FC, useMemo } from "react";
+import { type FC, type SVGProps, useMemo } from "react";
 
 import { KitText } from "#kits/KitText/index";
 import { PartnerRow } from "#kits/PartnerRow/index";
@@ -48,12 +48,18 @@ const randomPriceSplit = (total: number, count: number): number[] => {
   return extras.map((extra) => minPrice + extra);
 };
 
+interface TartinesTicketBodyProps {
+  /** Drawn on both sides of the thank-you line. Sparkles by default. */
+  thanksIcon?: FC<SVGProps<SVGSVGElement>>;
+}
+
 /**
  * Everything below the photo on Tartines' photo ticket: date, venue, items,
  * total, the event's partner row, QR, ticket number and the DitherBooth
  * badge. Other kits reuse it under their own header.
  */
-export const TartinesTicketBody: FC = () => {
+export const TartinesTicketBody: FC<TartinesTicketBodyProps> = (props) => {
+  const { thanksIcon: ThanksIcon = Sparkles } = props;
   const { ticketItems, ticketRef } = receiptViewerRoute.useSearch();
   const copy = useKitCopy();
   const ticketNumber = ticketRef ? formatBoothTicketNumber(ticketRef) : null;
@@ -149,9 +155,9 @@ export const TartinesTicketBody: FC = () => {
             "mb-4 flex items-center justify-center gap-3 text-4xl font-bold",
           )}
         >
-          <Sparkles className="size-8 shrink-0" aria-hidden />
+          <ThanksIcon className="size-8 shrink-0" aria-hidden />
           <KitText text={copy["photoTicket.thanks"]} />
-          <Sparkles className="size-8 shrink-0" aria-hidden />
+          <ThanksIcon className="size-8 shrink-0" aria-hidden />
         </p>
       ) : null}
       {ticketNumber ? (

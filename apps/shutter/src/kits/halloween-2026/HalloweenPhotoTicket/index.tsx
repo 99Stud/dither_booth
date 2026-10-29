@@ -6,6 +6,7 @@ import { cn } from "@dither-booth/shared/styles";
 import clsx from "clsx";
 
 import { BalDesVampiresLogo } from "#components/svg/BalDesVampiresLogo/index";
+import { Ghost } from "#components/svg/Ghost/index";
 import { TartinesTicketBody } from "#kits/tartines/TartinesTicketBody/index";
 
 import photoMaskPath from "./photo-mask.png";
@@ -57,7 +58,7 @@ export const HalloweenPhotoTicket: FC<HalloweenPhotoTicketProps> = (props) => {
           alt="booth photo"
         />
       </div>
-      <TartinesTicketBody />
+      <TartinesTicketBody thanksIcon={Ghost} />
     </div>
   );
 };
