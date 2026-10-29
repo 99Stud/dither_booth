@@ -56,7 +56,7 @@ export const SignIn = () => {
     if (error) {
       toast.error(
         error.status === 422 || error.code === "otp_disabled"
-          ? "This address isn't on the Hub. Ask to be added as staff."
+          ? "This address isn't on the Hub. Ask a team owner to add you."
           : `Couldn't send the code: ${error.message}`,
       );
       return;

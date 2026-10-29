@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 export type Route =
   | { screen: "alerts"; alertId?: string }
   | { screen: "booths" }
+  | { screen: "team" }
   | { screen: "device" };
 
 export function parseRoute(path: string): Route {
   const [, first, second] = path.split("/");
   if (first === "booths") return { screen: "booths" };
+  if (first === "team") return { screen: "team" };
   if (first === "device") return { screen: "device" };
   if (first === "alerts" && second)
     return { screen: "alerts", alertId: second };

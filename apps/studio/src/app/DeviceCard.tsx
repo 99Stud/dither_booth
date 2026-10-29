@@ -21,11 +21,11 @@ import {
   isKnownToHub,
   readBrowserTraits,
   sendTest,
-  staffOrgId,
   turnOff,
   turnOn,
 } from "#lib/device";
 import { messageOf } from "#lib/errors";
+import { staffOrgId } from "#lib/team";
 
 /** Where this device stands, from "can't" to "gets the alerts". */
 type DeviceState =
@@ -133,8 +133,8 @@ export const DeviceCard = ({
 
         {state.kind === "not-staff" ? (
           <p className={clsx("text-sm")}>
-            You're signed in, but not staff of any team on the Hub yet. Ask to
-            be added, then open Studio again.
+            You're signed in, but not in a team on the Hub yet. Ask a team owner
+            to add you, then open Studio again.
           </p>
         ) : null}
 
