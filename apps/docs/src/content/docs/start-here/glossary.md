@@ -145,7 +145,7 @@ _Avoid_: console, terminal.
 
 **System page**: admin's page (`/system`) with the Pi's readings, live with the last hour: temperature, throttling, memory, CPU and storage. The admin server reads the Pi every 5 s, so the page works while the engine is down.
 
-**Throttling**: the Pi's firmware running the CPU slower than it could, from heat or a weak supply. Its four flags are **under-voltage**, **clock capped**, **throttled** and **soft temperature limit**, each reported **now** and **since boot**.
+**Throttling**: the Pi's firmware running the CPU slower than it could, from heat or a weak supply. Its four flags are **under-voltage**, **clock capped**, **throttled** and **soft temperature limit**, each reported **now** and **since boot**. The System page shows each as one state: **Clear**, **Since boot** or **Now**.
 
 **Since boot**: a throttle flag that was set at some point since the Pi last started, even if it is clear now. It is the trace of a supply dip or an overheat during the event; a restart clears it.
 
