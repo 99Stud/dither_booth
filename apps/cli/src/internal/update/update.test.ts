@@ -105,18 +105,28 @@ async function sha256(bytes: Uint8Array) {
  * A booth and GitHub, in memory. `health` decides what each probe sees
  * from the release the repo link points at.
  */
+/** This test process, as the job file and the lock would name it. */
+const ME = { pid: process.pid, bootId: "boot-a", startedTicks: 100 };
+/** A process that ran before and is gone: same pid, an earlier start. */
+const GONE = { pid: process.pid, bootId: "boot-a", startedTicks: 1 };
+/** Another process, alive now: another pid, started when ME did. */
+const OTHER = { pid: process.pid + 1, bootId: "boot-a", startedTicks: 100 };
+
 async function createHost({
   versions = ["0.8.0"],
   health = () => true,
   corruptBundle = false,
   newCli = false,
   onStart,
+  busy = [],
 }: {
   versions?: string[];
   health?: (release: string) => boolean;
   corruptBundle?: boolean;
   newCli?: boolean;
   onStart?: (release: string) => void;
+  /** What `isBusy` answers, one per call, then free. */
+  busy?: Array<string | null>;
 } = {}) {
   let clock = Date.parse("2026-10-29T10:00:00.000Z");
   const assets = new Map<string, Uint8Array>();
@@ -151,6 +161,12 @@ async function createHost({
   };
 
   const host: UpdateHost = {
+    processIdentity: () => ME,
+    // Alive: this boot, and started when ME did (GONE started earlier).
+    isProcessAlive: (identity) =>
+      identity.bootId === ME.bootId &&
+      identity.startedTicks === ME.startedTicks,
+    isBusy: async () => busy.shift() ?? null,
     now: () => new Date(clock),
     fetch: (async (input: string | URL | Request) => {
       const body = assets.get(String(input));
@@ -348,15 +364,48 @@ describe("booth update", () => {
     ]);
   });
 
-  test("refuses to run while another update holds the lock", async () => {
+  test("refuses to run while another update holds the lock, not after it died", async () => {
     createCheckout();
     mkdirSync(layout.stateDir, { recursive: true });
-    writeFileSync(join(layout.stateDir, "lock"), String(process.pid));
     const { host } = await createHost();
 
+    writeFileSync(join(layout.stateDir, "lock"), JSON.stringify(ME));
     expect(
       runUpdate({ layout, host, version: "0.8.0" }),
     ).rejects.toBeInstanceOf(UpdateRefused);
+
+    // The same pid, started earlier: a process that is gone.
+    writeFileSync(join(layout.stateDir, "lock"), JSON.stringify(GONE));
+    expect((await runUpdate({ layout, host, version: "0.8.0" })).kind).toBe(
+      "finished",
+    );
+  });
+
+  test("waits at the switch while a guest or a print keeps the booth busy", async () => {
+    createCheckout();
+    const { host, calls } = await createHost({
+      busy: ["A ticket is printing.", "A guest is in a visit.", null],
+    });
+
+    const outcome = await runUpdate({ layout, host, version: "0.8.0" });
+
+    expect(outcome).toMatchObject({ job: { state: "done" } });
+    expect(calls).toEqual(["setup", "restart 0.8.0"]);
+  });
+
+  test("gives up on a booth that stays busy, with nothing changed", async () => {
+    createCheckout();
+    const { host, calls } = await createHost({
+      busy: Array.from({ length: 60 }, () => "A guest is in a visit."),
+    });
+
+    const outcome = await runUpdate({ layout, host, version: "0.8.0" });
+
+    expect(outcome).toMatchObject({
+      job: { state: "failed", error: expect.stringContaining("stayed busy") },
+    });
+    expect(lstatSync(layout.repoLink).isDirectory()).toBe(true);
+    expect(calls).toEqual([]);
   });
 });
 
@@ -453,7 +502,7 @@ describe("an interrupted job", () => {
         backup: null,
         migrationsBefore: 1,
         migrated: null,
-        pid: 2_147_483_000,
+        process: GONE,
       }),
     );
     return second;
@@ -486,6 +535,17 @@ describe("an interrupted job", () => {
     expect(calls).toEqual([]);
   });
 
+  test("cut short while going back, finishes going back", async () => {
+    const { host, calls } = await interruptedAt("rollback", true);
+
+    const job = await runRecover({ layout, host, restart: true });
+
+    expect(job).toMatchObject({ state: "rolled-back" });
+    expect(job?.error).not.toContain("Nothing changed");
+    expect(linkTarget()).toBe(join(layout.releasesDir, "0.8.0"));
+    expect(calls).toEqual(["stop", "start 0.8.0"]);
+  });
+
   test("at the booth's start, moves the link back without restarting it", async () => {
     const { host, calls } = await interruptedAt("restart", true);
 
@@ -502,7 +562,7 @@ describe("an interrupted job", () => {
       path,
       JSON.stringify({
         ...JSON.parse(readFileSync(path, "utf8")),
-        pid: process.ppid,
+        process: OTHER,
       }),
     );
 

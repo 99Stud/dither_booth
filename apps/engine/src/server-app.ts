@@ -295,12 +295,14 @@ export async function runEngineServer(options: {
         "Content-Type": "application/json",
       });
       res.end(
-        JSON.stringify(
-          createHealthzPayload({
+        JSON.stringify({
+          ...createHealthzPayload({
             mode: options.mode,
             service: ENGINE_HEALTHZ_SERVICE,
           }),
-        ),
+          // `booth update` asks this before its switch.
+          busy: visits.hasOpenVisit() ? "A guest is in a visit." : null,
+        }),
       );
       return;
     }

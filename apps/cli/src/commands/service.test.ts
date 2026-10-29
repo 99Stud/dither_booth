@@ -236,6 +236,10 @@ describe("update and rollback units", () => {
     expect(buildUpdateUnit()).toContain(
       "ExecStopPost=/usr/local/bin/booth update --recover --no-banner --color=never",
     );
+    // Going back takes a stop, a start and a 2 min check: past the 90 s default.
+    expect(buildUpdateUnit()).toContain("TimeoutStopSec=5min");
+    // Going back takes a stop, a start and a 2 min check: past the 90 s default.
+    expect(buildUpdateUnit()).toContain("TimeoutStopSec=5min");
     // `+`: as root, though the booth's unit runs as pi; `-`: never blocks its start.
     expect(buildUnit("/opt/dither-booth")).toContain(
       "ExecStartPre=-+/usr/local/bin/booth update --recover --no-restart --no-banner --color=never",
