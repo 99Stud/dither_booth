@@ -1,4 +1,5 @@
-import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export function requireBunMainPath() {
@@ -16,12 +17,23 @@ export function getAppRootFromMain(mainPath = requireBunMainPath()) {
   return resolve(dirname(mainPath), "..");
 }
 
-/** App package root resolved relative to the module that owns the constant. */
-export function getAppRootFromImportMetaUrl(
-  importMetaUrl: string,
-  relativePath = "../..",
-) {
-  return resolve(dirname(fileURLToPath(importMetaUrl)), relativePath);
+/**
+ * App package root: the nearest folder above the module with a
+ * `package.json`. The same answer from the source (`src/lib/…`) and from
+ * a bundle (`dist/server.js`), where a fixed `../..` would land in `apps/`.
+ */
+export function getAppRootFromImportMetaUrl(importMetaUrl: string) {
+  let dir = dirname(fileURLToPath(importMetaUrl));
+
+  while (!existsSync(join(dir, "package.json"))) {
+    const parent = dirname(dir);
+    if (parent === dir) {
+      throw new Error(`No package.json above ${fileURLToPath(importMetaUrl)}.`);
+    }
+    dir = parent;
+  }
+
+  return dir;
 }
 
 /** App package root for production entry files compiled from `src/production-entry.ts`. */

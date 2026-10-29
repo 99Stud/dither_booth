@@ -10,6 +10,20 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 
 import { useKioskCamera } from "./kiosk-camera";
 
+/**
+ * The release this page's code came with: its own server's, asked once
+ * when the code loads. Module state, so it lasts as long as the code does,
+ * across screens and reconnections. Unknown (an older server, no answer)
+ * falls back to the first release a stream opens with.
+ */
+let loadedRelease: string | undefined;
+const loadedReleaseRead = fetch("/healthz", { cache: "no-store" })
+  .then((response) => (response.ok ? response.json() : null))
+  .then((body: { release?: unknown } | null) => {
+    if (typeof body?.release === "string") loadedRelease ??= body.release;
+  })
+  .catch(() => {});
+
 /** Waits between status reports the engine couldn't match to the stream. */
 const STATUS_REPORT_RETRY_MS = 1_000;
 const STATUS_REPORT_ATTEMPTS = 5;
@@ -44,6 +58,24 @@ export const useKioskCommandStream = (
       // A live view signal is for one page only.
       onData: (command) => {
         if (command.type === "camera" && command.pageId !== page.pageId) return;
+
+        // After an update the engine comes back on another release: this
+        // page's code is the old one's. Each screen reloads the way it
+        // reloads for staff, the Experience once idle.
+        if (command.type === "release") {
+          void loadedReleaseRead.then(() => {
+            loadedRelease ??= command.release;
+            if (command.release !== loadedRelease) {
+              onCommand({
+                type: "reload",
+                mode: "when-idle",
+                commandId: command.commandId,
+              });
+            }
+          });
+          return;
+        }
+
         onCommand(command);
       },
     }),

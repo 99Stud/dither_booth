@@ -41,6 +41,11 @@ interface SystemAreaChartProps {
   domain?: [number, number];
   /** What to say while there aren't two readings to draw. */
   emptyText: string;
+  /**
+   * Grow to the height the figure is given, never below the usual one. The
+   * chart is drawn out of flow, so it never holds the figure taller.
+   */
+  fill?: boolean;
   className?: string;
 }
 
@@ -56,6 +61,7 @@ export const SystemAreaChart: FC<SystemAreaChartProps> = ({
   decimals = 0,
   domain,
   emptyText,
+  fill = false,
   className,
 }) => {
   const values = points
@@ -73,6 +79,70 @@ export const SystemAreaChart: FC<SystemAreaChartProps> = ({
     first && last
       ? `from ${format(first.t, "HH:mm")} to ${format(last.t, "HH:mm")}`
       : "";
+
+  const chart = (
+    <ChartContainer
+      aria-hidden
+      config={chartConfig}
+      className={clsx(
+        "aspect-auto w-full",
+        fill ? "absolute inset-0 h-full" : "h-32",
+      )}
+    >
+      <AreaChart
+        data={points}
+        margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+      >
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis
+          dataKey="t"
+          type="number"
+          scale="time"
+          domain={["dataMin", "dataMax"]}
+          ticks={pickTicks(points)}
+          tickFormatter={(t: number) => format(t, "HH:mm")}
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          minTickGap={24}
+        />
+        <YAxis
+          domain={domain ?? ["auto", "auto"]}
+          width={36}
+          tickCount={3}
+          tickLine={false}
+          axisLine={false}
+        />
+        <ChartTooltip
+          cursor={{ stroke: "var(--border)" }}
+          content={
+            <ChartTooltipContent
+              hideIndicator
+              labelFormatter={(_, payload) =>
+                format(Number(payload[0]?.payload?.t), "HH:mm:ss")
+              }
+              formatter={(value) => (
+                <span className={clsx("w-full text-right tabular-nums")}>
+                  {Number(value).toFixed(decimals)} {unit}
+                </span>
+              )}
+            />
+          }
+        />
+        <Area
+          dataKey="value"
+          type="monotone"
+          stroke="var(--color-value)"
+          strokeWidth={2}
+          fill="var(--color-value)"
+          fillOpacity={0.15}
+          dot={false}
+          connectNulls={false}
+          isAnimationActive={false}
+        />
+      </AreaChart>
+    </ChartContainer>
+  );
 
   return (
     <figure className={clsx("flex min-w-0 flex-col gap-2", className)}>
@@ -94,70 +164,16 @@ export const SystemAreaChart: FC<SystemAreaChartProps> = ({
       {values.length < 2 ? (
         <p
           className={clsx(
-            "flex h-32 items-center justify-center rounded-lg bg-muted/50 px-4 text-center text-sm text-muted-foreground",
+            "flex items-center justify-center rounded-lg bg-muted/50 px-4 text-center text-sm text-muted-foreground",
+            fill ? "min-h-32 flex-1" : "h-32",
           )}
         >
           {emptyText}
         </p>
+      ) : fill ? (
+        <div className={clsx("relative min-h-32 flex-1")}>{chart}</div>
       ) : (
-        <ChartContainer
-          aria-hidden
-          config={chartConfig}
-          className={clsx("aspect-auto h-32 w-full")}
-        >
-          <AreaChart
-            data={points}
-            margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-          >
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis
-              dataKey="t"
-              type="number"
-              scale="time"
-              domain={["dataMin", "dataMax"]}
-              ticks={pickTicks(points)}
-              tickFormatter={(t: number) => format(t, "HH:mm")}
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={24}
-            />
-            <YAxis
-              domain={domain ?? ["auto", "auto"]}
-              width={36}
-              tickCount={3}
-              tickLine={false}
-              axisLine={false}
-            />
-            <ChartTooltip
-              cursor={{ stroke: "var(--border)" }}
-              content={
-                <ChartTooltipContent
-                  hideIndicator
-                  labelFormatter={(_, payload) =>
-                    format(Number(payload[0]?.payload?.t), "HH:mm:ss")
-                  }
-                  formatter={(value) => (
-                    <span className={clsx("w-full text-right tabular-nums")}>
-                      {Number(value).toFixed(decimals)} {unit}
-                    </span>
-                  )}
-                />
-              }
-            />
-            <Area
-              dataKey="value"
-              type="monotone"
-              stroke="var(--color-value)"
-              strokeWidth={2}
-              fill="var(--color-value)"
-              fillOpacity={0.15}
-              dot={false}
-              connectNulls={false}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ChartContainer>
+        chart
       )}
     </figure>
   );

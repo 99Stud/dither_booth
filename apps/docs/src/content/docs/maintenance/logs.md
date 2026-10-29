@@ -15,10 +15,11 @@ sidebar:
 | Network watch (booth Wi-Fi, mDNS name)                    | journald                                                                                      | `journalctl -u ditherbooth-network.service` |
 | NetworkManager (Wi-Fi joins, failures)                    | journald                                                                                      | `journalctl -u NetworkManager`              |
 | Kernel (USB plug/unplug, under-voltage)                   | journald                                                                                      | `journalctl -k` or `dmesg`                  |
+| `booth` CLI in a unit (updates, rollbacks, network watch) | journald                                                                                      | `journalctl -t booth`                       |
 
 The PM2 process names are `dither-booth-engine`, `dither-booth-shutter` and `dither-booth-admin`.
 
-The admin server reads the three PM2 files and the four journald rows above and streams them to admin's [Logs page](#open-logs) over `/admin/logs`: see [Logging](/docs/architecture/logging/). The journald rows are the **System** service there; each line's source is its unit (`NetworkManager.service`) or `kernel`, and journald's priority sets its level (emergency to error → error, warning → warn, the rest → info). On a machine without `journalctl`, such as a Mac in development, System shows as unavailable.
+The admin server reads the three PM2 files and the five journald rows above and streams them to admin's [Logs page](#open-logs) over `/admin/logs`: see [Logging](/docs/architecture/logging/). The journald rows are the **System** service there; each line's source is its unit (`NetworkManager.service`) or `kernel`, and journald's priority sets its level (emergency to error → error, warning → warn, the rest → info). On a machine without `journalctl`, such as a Mac in development, System shows as unavailable.
 
 ## Open Logs
 

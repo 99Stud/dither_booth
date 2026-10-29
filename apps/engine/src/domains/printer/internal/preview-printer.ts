@@ -73,6 +73,7 @@ export function createPreviewPrinter({
   };
   let jobs = 0;
   let queue: Promise<unknown> = Promise.resolve();
+  let pendingJobs = 0;
 
   async function save(body: Buffer) {
     jobs += 1;
@@ -89,13 +90,19 @@ export function createPreviewPrinter({
     dryRun: true,
     getStatus: () => status,
     print(body, { content = "raster" } = {}) {
-      const job = queue.then(async () => {
-        if (content === "raster") return await save(body);
-        log("printer-dry-run-text-ticket", { bytes: body.byteLength });
-      });
+      pendingJobs += 1;
+      const job = queue
+        .then(async () => {
+          if (content === "raster") return await save(body);
+          log("printer-dry-run-text-ticket", { bytes: body.byteLength });
+        })
+        .finally(() => {
+          pendingJobs -= 1;
+        });
       queue = job.catch(() => {});
       return job;
     },
+    isPrinting: () => pendingJobs > 0,
     start: () => {},
     stop: async () => {},
     subscribe: () => () => {},

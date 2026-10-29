@@ -75,6 +75,28 @@ A Git checkout of a commit that still tracks `apps/engine/data/.gitkeep` replace
 
    Migrations the database is missing apply at start. Check the event in admin, then delete the folder you set aside.
 
+## An update was interrupted
+
+A power cut or a crash in the middle of an update leaves no booth half updated: the next start of the booth ends the job ([Interrupted jobs](/docs/architecture/updates/#interrupted-jobs)). Before its switch nothing had changed; after it, the booth starts on the release it ran before. Admin's **System → Software** then says the update stopped or didn't start, with "Interrupted during …".
+
+To end it by hand, without waiting for a restart:
+
+```bash
+sudo booth update --recover
+booth doctor
+```
+
+## Go back to the release before
+
+From admin: **System → Software → Roll back**. Over SSH:
+
+```bash
+sudo booth rollback               # refuses when the newer release changed the database
+sudo booth rollback --restore-db  # puts back the backup taken before the update: visits since are lost
+```
+
+The backups are in `/mnt/ssd/dither-booth/backups/update-*.sqlite`, the last 3 kept. See [Update the booth](/docs/maintenance/update-the-booth/#roll-back).
+
 ## Back up the booth CA
 
 ```bash

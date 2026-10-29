@@ -7,22 +7,24 @@ sidebar:
 
 ## URLs
 
-| What             | URL                                                  | Notes                                                                                                   |
-| ---------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Shutter (guests) | `https://<hostname>.local:3000`, `https://<ip>:3000` | `.local` survives venue changes                                                                         |
-| Darkroom         | `https://<hostname>.local:3000/darkroom`             | PIN required                                                                                            |
-| Admin            | `https://<hostname>.local:3002`, `https://<ip>:3002` | Admin origin is what authorises `config.*` / `ops.*`                                                    |
-| Setup page       | `http://<ip>:3003`, `http://<hostname>.local:3003`   | Plain HTTP: before a device trusts the booth                                                            |
-| Captive page     | `http://10.42.0.1/captive`                           | Booth Wi-Fi only, while it waits for a network                                                          |
-| Receipt viewer   | `https://<…>:3000/receipt-viewer`                    | For the engine's Chromium only                                                                          |
-| Docs (this site) | `https://<hostname>.local:3002/docs/`                | Served by the admin server from `apps/docs/dist`, offline                                               |
-| Engine           | `http://127.0.0.1:3001`                              | Loopback only. Browsers use `/engine/trpc` on the Shutter or Admin origin                               |
-| Health           | `/healthz` on each of the above ports                | JSON                                                                                                    |
-| Browser reports  | `POST /client-log` on 3000 and 3002                  | Write-only. [Browser reports](/docs/architecture/access-control/#browser-reports)                       |
-| Logs page        | `https://<hostname>.local:3002/logs`                 | Filters in the URL: `services`, `levels`, `source`, `q`. [Open Logs](/docs/maintenance/logs/#open-logs) |
-| Logs socket      | `wss://<hostname>.local:3002/admin/logs`             | The Logs page's live logs. [Logging](/docs/architecture/logging/)                                       |
-| System page      | `https://<hostname>.local:3002/system`               | The Pi's heat, throttling, memory, CPU and storage. [System](/docs/maintenance/system/)                 |
-| System readings  | `GET https://<hostname>.local:3002/admin/system`     | JSON: the latest reading and the last hour. [System metrics](/docs/architecture/system-metrics/)        |
+| What             | URL                                                  | Notes                                                                                                                                                                |
+| ---------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shutter (guests) | `https://<hostname>.local:3000`, `https://<ip>:3000` | `.local` survives venue changes                                                                                                                                      |
+| Darkroom         | `https://<hostname>.local:3000/darkroom`             | PIN required                                                                                                                                                         |
+| Admin            | `https://<hostname>.local:3002`, `https://<ip>:3002` | Admin origin is what authorises `config.*` / `ops.*`                                                                                                                 |
+| Setup page       | `http://<ip>:3003`, `http://<hostname>.local:3003`   | Plain HTTP: before a device trusts the booth                                                                                                                         |
+| Captive page     | `http://10.42.0.1/captive`                           | Booth Wi-Fi only, while it waits for a network                                                                                                                       |
+| Receipt viewer   | `https://<…>:3000/receipt-viewer`                    | For the engine's Chromium only                                                                                                                                       |
+| Docs (this site) | `https://<hostname>.local:3002/docs/`                | Served by the admin server from `apps/docs/dist`, offline                                                                                                            |
+| Engine           | `http://127.0.0.1:3001`                              | Loopback only. Browsers use `/engine/trpc` on the Shutter or Admin origin                                                                                            |
+| Health           | `/healthz` on each of the above ports                | JSON, with `release`, the one the server runs. The engine's adds `busy`: why a restart now would land on a guest, or null; `booth update` reads it before its switch |
+| Browser reports  | `POST /client-log` on 3000 and 3002                  | Write-only. [Browser reports](/docs/architecture/access-control/#browser-reports)                                                                                    |
+| Logs page        | `https://<hostname>.local:3002/logs`                 | Filters in the URL: `services`, `levels`, `source`, `q`. [Open Logs](/docs/maintenance/logs/#open-logs)                                                              |
+| Logs socket      | `wss://<hostname>.local:3002/admin/logs`             | The Logs page's live logs. [Logging](/docs/architecture/logging/)                                                                                                    |
+| System page      | `https://<hostname>.local:3002/system`               | The Pi's heat, throttling, memory, CPU and storage. [System](/docs/maintenance/system/)                                                                              |
+| System readings  | `GET https://<hostname>.local:3002/admin/system`     | JSON: the latest reading and the last hour. [System metrics](/docs/architecture/system-metrics/)                                                                     |
+| Updates          | `https://<hostname>.local:3002/admin/update`         | GET the snapshot; POST check, install, roll back. Booth only. [Updates](/docs/architecture/updates/#from-admin)                                                      |
+| Power            | `POST https://<hostname>.local:3002/admin/power`     | Restart the apps, reboot, power off. Booth only. [Power](/docs/architecture/access-control/#power)                                                                   |
 
 On the booth Wi-Fi, the booth is always `10.42.0.1`.
 

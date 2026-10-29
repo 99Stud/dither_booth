@@ -59,17 +59,17 @@ The engine's API is tRPC (`apps/engine/src/internal/router.ts`). Browsers call i
 
 ## `ops.*` — control and recovery
 
-| Procedure                       | Kind         | Access   | Purpose                                                                  |
-| ------------------------------- | ------------ | -------- | ------------------------------------------------------------------------ |
-| `getHealthz`                    | query        | darkroom | Health of engine, Shutter (with kiosk pages), camera, printer, Puppeteer |
-| `restartPuppeteerReceiptViewer` | mutation     | admin    | Relaunch the receipt Chromium                                            |
-| `reloadKiosk`                   | mutation     | admin    | Reload kiosk pages, `when-idle` or `now`                                 |
-| `showKioskScreen`               | mutation     | admin    | Switch the iPad to the Experience or the Darkroom                        |
-| `setKioskMaintenance`           | mutation     | admin    | Manual maintenance on/off                                                |
-| `setAutomaticMaintenance`       | mutation     | admin    | Let the printer close and reopen the booth                               |
-| `watchPrinter`                  | subscription | admin    | Printer status, then every change                                        |
-| `watchCamera`                   | subscription | admin    | A camera live-view session                                               |
-| `sendCameraSignal`              | mutation     | admin    | WebRTC signalling from the viewer                                        |
+| Procedure                       | Kind         | Access   | Purpose                                                                                              |
+| ------------------------------- | ------------ | -------- | ---------------------------------------------------------------------------------------------------- |
+| `getHealthz`                    | query        | darkroom | Health of engine, Shutter (with kiosk pages), camera, printer (and whether it prints now), Puppeteer |
+| `restartPuppeteerReceiptViewer` | mutation     | admin    | Relaunch the receipt Chromium                                                                        |
+| `reloadKiosk`                   | mutation     | admin    | Reload kiosk pages, `when-idle` or `now`                                                             |
+| `showKioskScreen`               | mutation     | admin    | Switch the iPad to the Experience or the Darkroom                                                    |
+| `setKioskMaintenance`           | mutation     | admin    | Manual maintenance on/off                                                                            |
+| `setAutomaticMaintenance`       | mutation     | admin    | Let the printer close and reopen the booth                                                           |
+| `watchPrinter`                  | subscription | admin    | Printer status, then every change                                                                    |
+| `watchCamera`                   | subscription | admin    | A camera live-view session                                                                           |
+| `sendCameraSignal`              | mutation     | admin    | WebRTC signalling from the viewer                                                                    |
 
 Admin also restarts PM2 processes through its own server (not the engine), which only works when the apps run under PM2.
 

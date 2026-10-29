@@ -27,6 +27,8 @@ const APT_PACKAGES = [
   "iw",
   // Rotates the PM2 log files (`booth service` installs the rule).
   "logrotate",
+  // Unpacks release bundles (`booth update`).
+  "zstd",
   // Chromium/Puppeteer runtime libraries commonly required on Raspberry Pi OS.
   "libatk1.0-0",
   "libatk-bridge2.0-0",

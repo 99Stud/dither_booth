@@ -571,6 +571,7 @@ describe("the receipt procedures", () => {
       hubReporter: createHubReporterStub(),
       kioskChannel,
       kioskMaintenance,
+      release: "0.0.0-test",
       cameraPreview: {} as TRPCContext["cameraPreview"],
       mode: "production",
       network: {} as TRPCContext["network"],

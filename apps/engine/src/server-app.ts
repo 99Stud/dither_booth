@@ -11,8 +11,14 @@ import {
   ENGINE_HEALTHZ_SERVICE,
   createHealthzPayload,
 } from "@dither-booth/shared/healthz";
+import { readBoothUpdateJob } from "@dither-booth/shared/server/booth-update";
 import { SETUP_SERVER_TOKEN_HEADER } from "@dither-booth/shared/server/network";
+import { readRelease } from "@dither-booth/shared/server/release";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
+import {
+  hostSystemctlRun,
+  startUnit,
+} from "@dither-booth/shared/server/systemctl";
 import {
   createHTTPHandler,
   type CreateHTTPContextOptions,
@@ -33,9 +39,10 @@ import {
 } from "#domains/device-setup/device-setup.service";
 import {
   createHubReporter,
+  createRemoteUpdates,
   HUB_LOG_SOURCE,
   PRODUCTION_HUB,
-  readRelease,
+  readQuietness,
 } from "#domains/hub/hub.service";
 import {
   CAMERA_PREVIEW_ICE_SERVERS,
@@ -155,14 +162,28 @@ export async function runEngineServer(options: {
     maintenance: kioskMaintenance,
     printer,
   });
+  const release = readRelease(ENGINE_REPO_ROOT);
   // Reports to the Hub once the booth is registered; idle until then.
   const hubReporter = createHubReporter({
     db,
     hub: getHubOverride() ?? PRODUCTION_HUB,
     printer,
     maintenance: kioskMaintenance,
-    release: readRelease(ENGINE_REPO_ROOT),
+    release,
     dryRun: printer.dryRun,
+    // Only on the booth: elsewhere there's no update unit to start.
+    updates:
+      processManager === "pm2"
+        ? createRemoteUpdates({
+            release,
+            readJob: () => readBoothUpdateJob(),
+            readQuietness: () =>
+              readQuietness(db, new Date(), printer.isPrinting()),
+            startUnit: (unit) => startUnit(unit, hostSystemctlRun),
+            log: (level, event, details) =>
+              logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
+          })
+        : undefined,
     log: (level, event, details) =>
       logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
   });
@@ -232,6 +253,7 @@ export async function runEngineServer(options: {
         typeof darkroomToken === "string" ? darkroomToken : undefined,
       kioskChannel,
       kioskMaintenance,
+      release,
       cameraPreview,
       mode: options.mode,
       network,
@@ -295,12 +317,18 @@ export async function runEngineServer(options: {
         "Content-Type": "application/json",
       });
       res.end(
-        JSON.stringify(
-          createHealthzPayload({
+        JSON.stringify({
+          ...createHealthzPayload({
             mode: options.mode,
             service: ENGINE_HEALTHZ_SERVICE,
           }),
-        ),
+          // `booth update` asks this before its switch.
+          busy: printer.isPrinting()
+            ? "A ticket is printing."
+            : visits.hasOpenVisit()
+              ? "A guest is in a visit."
+              : null,
+        }),
       );
       return;
     }

@@ -28,6 +28,8 @@ export const main = defineCommand({
     network: () => import("#commands/network").then((m) => m.default),
     service: () => import("#commands/service").then((m) => m.default),
     doctor: () => import("#commands/doctor").then((m) => m.default),
+    update: () => import("#commands/update").then((m) => m.default),
+    rollback: () => import("#commands/rollback").then((m) => m.default),
   },
 });
 

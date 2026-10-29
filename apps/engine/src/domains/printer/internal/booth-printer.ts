@@ -88,6 +88,8 @@ export type BoothPrinter = {
     body: Buffer,
     options?: { content?: PrintJobContent; enforceStatus?: boolean },
   ) => Promise<void>;
+  /** A job is printing or waiting to: not a moment to restart the booth. */
+  isPrinting: () => boolean;
 };
 
 const STATUS_EVENT = "status";
@@ -145,6 +147,7 @@ export function createBoothPrinter({
   let wake: (() => void) | undefined;
   let needsBufferClear = false;
   let queue: Promise<unknown> = Promise.resolve();
+  let pendingJobs = 0;
 
   function update(next: {
     conditions: PrinterCondition[];
@@ -353,10 +356,16 @@ export function createBoothPrinter({
     dryRun: false,
     getStatus: () => status,
     print(body, { content = "raster", enforceStatus = true } = {}) {
-      const job = queue.then(() => runJob(body, { content, enforceStatus }));
+      pendingJobs += 1;
+      const job = queue
+        .then(() => runJob(body, { content, enforceStatus }))
+        .finally(() => {
+          pendingJobs -= 1;
+        });
       queue = job.catch(() => {});
       return job;
     },
+    isPrinting: () => pendingJobs > 0,
     start() {
       if (running) return;
 

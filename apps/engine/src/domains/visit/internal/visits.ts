@@ -47,6 +47,8 @@ export type Visits = {
   end: (visitId: string, reason: VisitEndReason) => void;
   /** Engine boot: no visit survives a restart. */
   closeStale: () => void;
+  /** A guest is in a visit now: not a moment to restart the booth. */
+  hasOpenVisit: () => boolean;
 };
 
 /**
@@ -262,6 +264,21 @@ export function createVisits({
         if (closed > 0) log("info", "visits-closed-at-boot", { closed });
       } catch (error) {
         logFailure("visits-close-failed", error, {});
+      }
+    },
+    hasOpenVisit() {
+      try {
+        return (
+          db
+            .select({ id: visitTable.id })
+            .from(visitTable)
+            .where(isNull(visitTable.endedAt))
+            .limit(1)
+            .get() !== undefined
+        );
+      } catch (error) {
+        logFailure("visits-open-check-failed", error, {});
+        return false;
       }
     },
   };
