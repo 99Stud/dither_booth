@@ -55,5 +55,6 @@ What becomes easier, what becomes harder, what we now have to maintain.
 | [0007](/docs/decisions/0007-fsl-licence/)                          | FSL-1.1-ALv2 licence                                           |
 | [0008](/docs/decisions/0008-system-metrics-from-the-admin-server/) | The admin server reads the Pi's metrics, without a library     |
 | [0009](/docs/decisions/0009-booths-install-releases-side-by-side/) | Booths install CI-built releases side by side                  |
+| [0010](/docs/decisions/0010-studio-asks-the-booth-decides/)        | Studio asks for an update; the booth decides when              |
 
 Longer design work — measurements, state models, acceptance criteria — goes in a [spec](/docs/specs/printer-watchdog/) that the ADR links to.

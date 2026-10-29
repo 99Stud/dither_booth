@@ -11,9 +11,14 @@ import {
   ENGINE_HEALTHZ_SERVICE,
   createHealthzPayload,
 } from "@dither-booth/shared/healthz";
+import { readBoothUpdateJob } from "@dither-booth/shared/server/booth-update";
 import { SETUP_SERVER_TOKEN_HEADER } from "@dither-booth/shared/server/network";
 import { readRelease } from "@dither-booth/shared/server/release";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
+import {
+  hostSystemctlRun,
+  runSystemctl,
+} from "@dither-booth/shared/server/systemctl";
 import {
   createHTTPHandler,
   type CreateHTTPContextOptions,
@@ -34,8 +39,10 @@ import {
 } from "#domains/device-setup/device-setup.service";
 import {
   createHubReporter,
+  createRemoteUpdates,
   HUB_LOG_SOURCE,
   PRODUCTION_HUB,
+  readQuietness,
 } from "#domains/hub/hub.service";
 import {
   CAMERA_PREVIEW_ICE_SERVERS,
@@ -164,6 +171,19 @@ export async function runEngineServer(options: {
     maintenance: kioskMaintenance,
     release,
     dryRun: printer.dryRun,
+    // Only on the booth: elsewhere there's no update unit to start.
+    updates:
+      processManager === "pm2"
+        ? createRemoteUpdates({
+            release,
+            readJob: () => readBoothUpdateJob(),
+            readQuietness: () => readQuietness(db, new Date()),
+            startUnit: (unit) =>
+              runSystemctl(["--no-block", "start", unit], hostSystemctlRun),
+            log: (level, event, details) =>
+              logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
+          })
+        : undefined,
     log: (level, event, details) =>
       logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
   });

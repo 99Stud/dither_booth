@@ -56,6 +56,15 @@ export const HEARTBEAT_FIXTURES = {
     ...ready,
     maintenance: { on: true, reasons: ["manual"] },
   },
+  /** Waiting to install the release Studio asked for. */
+  updateWaiting: {
+    ...ready,
+    update: {
+      release: "0.8.0",
+      state: "waiting",
+      error: "The event runs until 23:00.",
+    },
+  },
   /** A development booth: never alerts. */
   dryRun: { ...printerFault(["paper-out"]), dryRun: true },
 } satisfies Record<string, Heartbeat>;

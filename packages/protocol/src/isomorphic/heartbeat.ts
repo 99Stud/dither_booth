@@ -28,6 +28,28 @@ export const MAINTENANCE_REASONS = ["manual", "printer"] as const;
 
 export const maintenanceReasonSchema = z.enum(MAINTENANCE_REASONS);
 
+/**
+ * How a booth stands with an update Studio asked for. `waiting`: it got
+ * the request and waits for a quiet moment (`error` says why). Then its
+ * job's own states, from `booth update`.
+ */
+export const BOOTH_UPDATE_REPORT_STATES = [
+  "waiting",
+  "running",
+  "done",
+  "failed",
+  "rolled-back",
+] as const;
+
+export const boothUpdateReportSchema = z.object({
+  /** The release asked for. */
+  release: z.string().trim().min(1).max(64),
+  state: z.enum(BOOTH_UPDATE_REPORT_STATES),
+  error: z.string().max(500).nullable(),
+});
+
+export type BoothUpdateReport = z.infer<typeof boothUpdateReportSchema>;
+
 export const heartbeatSchema = z.object({
   /** Any number reads here; the Hub decides which ones it supports. */
   protocol: z.number().int().min(0),
@@ -47,7 +69,24 @@ export const heartbeatSchema = z.object({
     on: z.boolean(),
     reasons: z.array(maintenanceReasonSchema).max(MAINTENANCE_REASONS.length),
   }),
+  /**
+   * Only while Studio has asked this booth to update. A booth from before
+   * it never sends it; a Hub from before it drops it.
+   */
+  update: boothUpdateReportSchema.optional(),
 });
+
+/**
+ * The Hub's answer to a heartbeat. `update`: the release Studio asked this
+ * booth to install, until the booth reports it running. A booth from
+ * before it ignores it.
+ */
+export const heartbeatReplySchema = z.object({
+  ok: z.literal(true),
+  update: z.object({ release: z.string().min(1).max(64) }).nullish(),
+});
+
+export type HeartbeatReply = z.infer<typeof heartbeatReplySchema>;
 
 export type Heartbeat = z.infer<typeof heartbeatSchema>;
 export type PrinterCondition = z.infer<typeof printerConditionSchema>;

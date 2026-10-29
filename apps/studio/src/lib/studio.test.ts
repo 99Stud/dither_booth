@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import { type AlertRow, sortAlerts, waitingAlerts } from "#lib/alerts";
-import { type BoothRow, reportLine } from "#lib/booths";
+import { type BoothRow, reportLine, updateLine } from "#lib/booths";
+import { isBehind } from "#lib/releases";
 import { parseRoute, pathOf } from "#lib/route";
 
 const alert = (id: string, over: Partial<AlertRow>): AlertRow => ({
@@ -76,6 +77,7 @@ describe("reportLine", () => {
     liveUntil: null,
     registeredAt: "2026-10-30T10:00:00.000Z",
     status: null,
+    update: null,
     ...over,
   });
   const status = (lastSeenAt: string) => ({
@@ -103,5 +105,47 @@ describe("reportLine", () => {
       reportLine(booth({ status: status("2026-10-31T18:05:00.000Z") }), now)
         .tone,
     ).toBe("warn");
+  });
+});
+
+describe("updates", () => {
+  const booth = (update: BoothRow["update"]): BoothRow => ({
+    id: "b",
+    orgId: "o",
+    name: "Booth A",
+    liveFrom: null,
+    liveUntil: null,
+    registeredAt: "2026-10-30T10:00:00.000Z",
+    status: null,
+    update,
+  });
+
+  test("a booth on an older release, or on a git checkout, is behind", () => {
+    expect(isBehind("0.7.2", "0.8.0")).toBe(true);
+    expect(isBehind("0.8.0-rc.2", "0.8.0")).toBe(true);
+    expect(isBehind("0.7.2-3-g806eca4", "0.7.2")).toBe(true);
+    expect(isBehind("0.8.0", "0.8.0")).toBe(false);
+    expect(isBehind("0.9.0", "0.8.0")).toBe(false);
+    expect(isBehind("0.7.2", null)).toBe(false);
+  });
+
+  test("says how the update staff asked for goes", () => {
+    const at = { stateAt: "2026-10-31T18:00:00.000Z" };
+    expect(updateLine(booth(null))).toBeNull();
+    expect(
+      updateLine(
+        booth({
+          release: "0.8.0",
+          state: "waiting",
+          error: "The event runs until 23:00.",
+          ...at,
+        }),
+      ),
+    ).toBe("Waiting to update to 0.8.0. The event runs until 23:00.");
+    expect(
+      updateLine(
+        booth({ release: "0.8.0", state: "rolled-back", error: null, ...at }),
+      ),
+    ).toBe("0.8.0 didn't start, so the booth went back.");
   });
 });

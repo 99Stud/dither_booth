@@ -6,16 +6,24 @@ import { type BoothAuth, handleHeartbeat } from "./handler.ts";
 
 const BOOTH = "a0a0a0a0-0000-0000-0000-0000000000a0";
 
-function setup(auth: BoothAuth = { boothId: BOOTH }) {
+function setup(
+  auth: BoothAuth = { boothId: BOOTH },
+  update: { release: string } | null = null,
+) {
   const evaluated: { boothId: string; heartbeat: Heartbeat }[] = [];
+  const reported: string[] = [];
   const deps = {
     authenticate: (_token: string) => Promise.resolve(auth),
     evaluate: (boothId: string, heartbeat: Heartbeat) => {
       evaluated.push({ boothId, heartbeat });
       return Promise.resolve("ok" as const);
     },
+    reportUpdate: (boothId: string, _heartbeat: Heartbeat) => {
+      reported.push(boothId);
+      return Promise.resolve(update);
+    },
   };
-  return { deps, evaluated };
+  return { deps, evaluated, reported };
 }
 
 const post = (body: unknown, headers: Record<string, string> = {}) =>
@@ -32,6 +40,22 @@ Deno.test("stores a booth's heartbeat and answers 200", async () => {
   assertEquals(evaluated, [
     { boothId: BOOTH, heartbeat: HEARTBEAT_FIXTURES.paperOut },
   ]);
+});
+
+Deno.test("answers with the release Studio asked the booth to install", async () => {
+  const { deps, reported } = setup({ boothId: BOOTH }, { release: "0.8.0" });
+  const res = await handleHeartbeat(
+    post(HEARTBEAT_FIXTURES.updateWaiting),
+    deps,
+  );
+  assertEquals(await res.json(), { ok: true, update: { release: "0.8.0" } });
+  assertEquals(reported, [BOOTH]);
+});
+
+Deno.test("answers with no update when nothing waits for the booth", async () => {
+  const { deps } = setup();
+  const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), deps);
+  assertEquals(await res.json(), { ok: true, update: null });
 });
 
 Deno.test("accepts every fixture the protocol ships", async () => {

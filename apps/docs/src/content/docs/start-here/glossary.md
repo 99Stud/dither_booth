@@ -155,6 +155,8 @@ _Avoid_: console, terminal.
 
 **Roll back**: go back to the release a booth ran before its last update. An update rolls back on its own when the new release doesn't start; staff can roll back by hand. Across a database change it means restoring the backup taken before the update.
 
+**Update request**: a release staff asked a booth to install, from the Studio app's **Booths**. The booth reads it in its heartbeat's answer and installs it when it's quiet: not during its event, nor within 15 minutes of a visit. It reports how it goes; Studio shows it under the booth.
+
 **Release bundle**: the file a release ships for booths, `dither-booth-<version>-linux-arm64.tar.zst`: the built apps, their dependencies and the docs, ready to run on the Pi. A booth only downloads and unpacks it; it never compiles.
 
 ## Booth state

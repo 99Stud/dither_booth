@@ -62,6 +62,23 @@ The page reads the snapshot every **3 s** while a job runs, and every 60 s other
 
 The job's output (the `booth` CLI's lines) is on the Logs page, under **System**: the journal source reads `SYSLOG_IDENTIFIER=booth`, since the units are named by version and a journal match takes no wildcard.
 
+## From Studio
+
+Staff ask a booth to update from Studio's **Booths** ([Studio](/docs/development/studio/#how-it-works)). The booth is often offline, and the Hub never reaches into it ([decision 0010](/docs/decisions/0010-studio-asks-the-booth-decides/)): the request waits on the Hub, and the booth reads it in its heartbeat's answer.
+
+```text
+Studio   insert booth_update {booth, release}                       state requested
+Hub      heartbeat answer: { ok, update: { release } }               while requested | waiting
+engine   quiet?  no  → next heartbeat: update {release, waiting, why}   state waiting
+                 yes → systemctl --no-block start ditherbooth-update@<release>.service
+         next heartbeats: update {release, running | done | failed | rolled-back, error}
+Hub      heartbeat release = asked release → done
+```
+
+- **Quiet** (`readQuietness`, `apps/engine/src/domains/hub/internal/hub-updates.ts`): no active event between its start and end, no active event that started with no end (then: update from admin on the booth), and no visit started in the last **15 min**.
+- **The booth keeps nothing.** The Hub repeats the request in every answer until the booth reports it running, so a request survives the engine's own restart. After the update restarts the engine, its next heartbeats report the job from `status.json` (for a day), or simply run the new release, which marks the request done.
+- Only under PM2, on the booth. A unit that can't start (polkit, a missing unit) is reported as `failed` with the reason.
+
 ## Why its own unit
 
 The admin runs as `pi`, under PM2, which an update restarts. The update runs as root in a oneshot unit of its own (`Nice=10`, idle I/O, up to 45 min), so it outlives the PM2 restart and the admin that started it. systemd runs one job per unit at a time; `/var/lib/ditherbooth/update/lock`, holding the job's pid, stops an update and a rollback, or two versions, at once. A lock whose process is gone is taken over.

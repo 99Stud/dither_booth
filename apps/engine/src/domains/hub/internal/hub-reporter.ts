@@ -1,5 +1,7 @@
 import {
+  type BoothUpdateReport,
   type Heartbeat,
+  heartbeatReplySchema,
   heartbeatSchema,
   PROTOCOL_VERSION,
 } from "@dither-booth/protocol/heartbeat";
@@ -15,6 +17,7 @@ import type {
 
 import { hubRegistrationTable } from "#db/internal/db.schema";
 
+import type { RemoteUpdates } from "./hub-updates";
 import type { HubEndpoint } from "./hub.constants";
 
 import { forgetRegistration } from "./hub-registration.service";
@@ -59,6 +62,8 @@ export function createHubReporter(deps: {
   maintenance: Pick<KioskMaintenance, "get">;
   release: string;
   dryRun: boolean;
+  /** Updates Studio asks for, through the heartbeat's answer. */
+  updates?: RemoteUpdates;
   log: Log;
   intervalMs?: number;
   fetch?: typeof fetch;
@@ -156,7 +161,10 @@ export function createHubReporter(deps: {
     return session.accessToken;
   }
 
-  function heartbeat(status: PrinterStatus): Heartbeat {
+  function heartbeat(
+    status: PrinterStatus,
+    update: BoothUpdateReport | undefined,
+  ): Heartbeat {
     const { enabled, reasons } = maintenance.get();
     return heartbeatSchema.parse({
       protocol: PROTOCOL_VERSION,
@@ -170,6 +178,7 @@ export function createHubReporter(deps: {
         changedAt: status.changedAt || now().toISOString(),
       },
       maintenance: { on: enabled, reasons },
+      ...(update ? { update } : {}),
     });
   }
 
@@ -178,10 +187,11 @@ export function createHubReporter(deps: {
     if (!token) return;
 
     const status = printer.getStatus();
+    const update = await deps.updates?.report();
     const res = await fetchFn(`${hub.url}/functions/v1/heartbeat`, {
       method: "POST",
       headers: headers({ Authorization: `Bearer ${token}` }),
-      body: JSON.stringify(heartbeat(status)),
+      body: JSON.stringify(heartbeat(status, update)),
       signal: AbortSignal.timeout(15_000),
     });
 
@@ -201,6 +211,19 @@ export function createHubReporter(deps: {
 
     lastSentPrinter = status;
     if (state.lastError) log("info", "hub-report-recovered");
+
+    // A Hub from before updates answers without one.
+    const reply = heartbeatReplySchema.safeParse(
+      await res.json().catch(() => undefined),
+    );
+    const requested = reply.success ? reply.data.update?.release : undefined;
+    if (requested && deps.updates) {
+      await deps.updates.request(requested).catch((error: unknown) => {
+        log("warn", "hub-update-request-failed", {
+          error: getErrorMessage(error),
+        });
+      });
+    }
     state.lastReportedAt = now().toISOString();
     state.lastError = null;
   }

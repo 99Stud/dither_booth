@@ -37,10 +37,12 @@
     "./printing": "./src/isomorphic/printing.ts",
     "./routes": "./src/isomorphic/routes.ts",
     "./runtime": "./src/isomorphic/runtime.ts",
+    "./server/booth-update": "./src/server/booth-update.ts",
     "./server/network": "./src/server/network.ts",
     "./server/paths": "./src/server/paths.ts",
     "./server/release": "./src/server/release.ts",
     "./server/runtime": "./src/server/runtime.ts",
+    "./server/systemctl": "./src/server/systemctl.ts",
     "./styles": "./src/isomorphic/styles.ts",
     "./ticket": "./src/isomorphic/ticket.ts",
     "./trpc-proxy": "./src/isomorphic/trpc-proxy.ts"

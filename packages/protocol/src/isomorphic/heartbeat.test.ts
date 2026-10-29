@@ -43,6 +43,11 @@ describe("heartbeatSchema", () => {
     },
   );
 
+  test("reads a booth from before updates, which sends no update", () => {
+    const { ready } = HEARTBEAT_FIXTURES;
+    expect(heartbeatSchema.parse(ready).update).toBeUndefined();
+  });
+
   test("ignores a field a newer booth adds", () => {
     const { ready } = HEARTBEAT_FIXTURES;
     const parsed = heartbeatSchema.parse({ ...ready, spoolBacklog: 3 });

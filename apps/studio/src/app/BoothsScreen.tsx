@@ -5,6 +5,17 @@ import {
   IconBubble,
   type IconBubbleTone,
 } from "@dither-booth/ui/components/misc/IconBubble";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@dither-booth/ui/components/ui/alert-dialog";
 import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import {
@@ -19,7 +30,14 @@ import { Input } from "@dither-booth/ui/components/ui/input";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { CalendarClock, Copy, KeyRound, Plus, Printer } from "lucide-react";
+import {
+  CalendarClock,
+  Copy,
+  KeyRound,
+  PackageCheck,
+  Plus,
+  Printer,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -27,16 +45,20 @@ import { LiveFallback } from "#app/LiveFallback";
 import {
   addBooth,
   type BoothRow,
+  cancelUpdate,
   issueRegistrationCode,
   listBooths,
   reportLine,
   type RegistrationCode,
   type ReportTone,
+  requestUpdate,
   setEventTimes,
+  updateLine,
 } from "#lib/booths";
 import { staffOrgId } from "#lib/device";
 import { messageOf } from "#lib/errors";
 import { useLive } from "#lib/live";
+import { isBehind, useLatestRelease } from "#lib/releases";
 
 const REPORT_TONE: Record<ReportTone, IconBubbleTone> = {
   ok: "emerald",
@@ -164,6 +186,120 @@ const EventTimes = ({
   );
 };
 
+/**
+ * The release the booth runs, and the update staff can ask for. The booth
+ * installs it when it's quiet: not during its event, nor within 15 minutes
+ * of a visit.
+ */
+const BoothUpdate = ({
+  booth,
+  latest,
+  onChanged,
+}: {
+  booth: BoothRow;
+  latest: string | null;
+  onChanged: () => void;
+}) => {
+  const [busy, setBusy] = useState(false);
+  const release = booth.status?.release ?? "";
+  const line = updateLine(booth);
+  const pending =
+    booth.update?.state === "requested" || booth.update?.state === "waiting";
+  const running = booth.update?.state === "running";
+  const behind = isBehind(release, latest);
+
+  if (!booth.registeredAt || !release) return null;
+
+  const act = async (work: () => Promise<void>, done: string) => {
+    setBusy(true);
+    try {
+      await work();
+      toast.success(done);
+      onChanged();
+    } catch (error) {
+      toast.error(messageOf(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={clsx("flex flex-col gap-2")}>
+      <p className={clsx("flex flex-wrap items-center gap-2 text-sm")}>
+        <PackageCheck
+          aria-hidden
+          className={clsx("size-4 shrink-0 text-muted-foreground")}
+        />
+        Runs <span className={clsx("font-mono")}>{release}</span>
+        {behind && latest ? (
+          <Badge variant="outline">Behind: {latest} is out</Badge>
+        ) : null}
+      </p>
+      {line ? (
+        <p role="status" className={clsx("text-sm text-muted-foreground")}>
+          {line}
+        </p>
+      ) : null}
+      <div className={clsx("flex flex-wrap gap-2")}>
+        {behind && latest && !pending && !running ? (
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                />
+              }
+            >
+              Update to {latest}
+            </AlertDialogTrigger>
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Update {booth.name} to {latest}?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  The booth installs it when it's quiet: not during its event,
+                  nor within 15 minutes of a visit. It restarts briefly, and
+                  goes back to {release} on its own if {latest} doesn't start.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() =>
+                    void act(
+                      () => requestUpdate(booth, latest),
+                      `${booth.name} will update to ${latest}.`,
+                    )
+                  }
+                >
+                  Update
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
+        {pending ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() =>
+              void act(() => cancelUpdate(booth.id), "Update cancelled.")
+            }
+          >
+            Cancel the update
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
 const RegistrationCodePanel = ({ code }: { code: RegistrationCode }) => (
   <div
     className={clsx("flex flex-col gap-2 rounded-lg border border-border p-3")}
@@ -203,10 +339,12 @@ const RegistrationCodePanel = ({ code }: { code: RegistrationCode }) => (
 const BoothCard = ({
   booth,
   now,
+  latest,
   onChanged,
 }: {
   booth: BoothRow;
   now: number;
+  latest: string | null;
   onChanged: () => void;
 }) => {
   const [code, setCode] = useState<RegistrationCode>();
@@ -258,6 +396,8 @@ const BoothCard = ({
         ) : null}
 
         <EventTimes booth={booth} onSaved={onChanged} />
+
+        <BoothUpdate booth={booth} latest={latest} onChanged={onChanged} />
 
         {code ? (
           <RegistrationCodePanel code={code} />
@@ -329,9 +469,13 @@ const AddBooth = ({ onAdded }: { onAdded: () => void }) => {
   );
 };
 
-/** The org's booths: how each is doing, its event times, its registration. */
+/**
+ * The org's booths: how each is doing, its event times, its release and
+ * updates, its registration.
+ */
 export const BoothsScreen = () => {
-  const live = useLive("booths", listBooths, ["booth_status"]);
+  const live = useLive("booths", listBooths, ["booth_status", "booth_update"]);
+  const latest = useLatestRelease();
   const now = Date.now();
 
   if (live.data === undefined) {
@@ -350,6 +494,7 @@ export const BoothsScreen = () => {
             key={booth.id}
             booth={booth}
             now={now}
+            latest={latest}
             onChanged={live.reload}
           />
         ))

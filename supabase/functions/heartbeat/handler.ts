@@ -1,5 +1,6 @@
 import {
   type Heartbeat,
+  type HeartbeatReply,
   heartbeatSchema,
   PROTOCOL_VERSION,
 } from "@dither-booth/protocol/heartbeat";
@@ -14,6 +15,14 @@ export type HeartbeatDeps = {
     boothId: string,
     heartbeat: Heartbeat,
   ) => Promise<"ok" | "unknown-booth">;
+  /**
+   * Records what the booth says about the update Studio asked for, and
+   * returns the release it should install, or null.
+   */
+  reportUpdate: (
+    boothId: string,
+    heartbeat: Heartbeat,
+  ) => Promise<{ release: string } | null>;
 };
 
 const reply = (status: number, body: Record<string, unknown>) =>
@@ -61,15 +70,17 @@ export async function handleHeartbeat(
     });
   }
 
+  let update: { release: string } | null;
   try {
     const result = await deps.evaluate(auth.boothId, parsed.data);
     if (result === "unknown-booth") {
       return reply(404, { error: "unknown booth" });
     }
+    update = await deps.reportUpdate(auth.boothId, parsed.data);
   } catch (error) {
     console.error("heartbeat failed", auth.boothId, error);
     return reply(500, { error: "internal error" });
   }
 
-  return reply(200, { ok: true });
+  return reply(200, { ok: true, update } satisfies HeartbeatReply);
 }
