@@ -35,5 +35,5 @@ Until now a booth was a git checkout: `sudo booth repo` pulled `main`, ran `bun 
 - A booth's first update turns its checkout into a release (`legacy-<git describe>`), kept to roll back to. `sudo booth repo` refuses on a booth that runs releases.
 - Two releases and three database backups live on the booth; an update needs 1 GB free to start.
 - Migrations still only go forward: a rollback across one restores the pre-update backup and loses what came after, and says so first.
-- A release whose CLI changed takes effect within the same update, with no SSH step.
+- A release whose CLI changed takes effect within the same update, with no SSH step. If that CLI dies, the one that handed over ends the job, and the unit's `ExecStopPost` and the booth's next start do too: an interrupted job never stays `running`.
 - Shipping to booths means tagging: `main` no longer reaches a booth by itself.

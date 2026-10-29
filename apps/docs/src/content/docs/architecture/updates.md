@@ -27,26 +27,36 @@ Each release links `.local` and `logs` to `/opt/dither-booth-shared/`, and `apps
 
 `sudo booth update [version]`, or the unit `ditherbooth-update@<version>.service`; with no version, the latest release that isn't a pre-release. Each step is written to `/var/lib/ditherbooth/update/status.json` as it starts.
 
-| Step        | What it does                                                                                                                                                                                                    | On failure                |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `preflight` | Takes the lock, checks the version, 1 GB free next to the releases, and that the release has a `SHA256SUMS`                                                                                                     | Nothing changed           |
-| `cli`       | Downloads the release's `booth` binary and checks it. When it differs from the one running, installs it to `/usr/local/bin/booth` and hands the job over: `booth update <version> --resume <job>` does the rest | Nothing changed           |
-| `download`  | Downloads the bundle to `/var/cache/ditherbooth/` and checks it against `SHA256SUMS`. A copy already there that matches is reused                                                                               | Nothing changed           |
-| `unpack`    | On a checkout, moves its `.local` and `logs` to shared first and links them back. Unpacks the bundle as `pi` into `<version>.tmp`, links it, renames it to `<version>`                                          | Nothing changed           |
-| `setup`     | Runs this CLI's `service` and `network setup` steps: the units, the polkit rules, log rotation. Both change nothing when up to date                                                                             | Nothing changed           |
-| `backup`    | `VACUUM INTO /mnt/ssd/dither-booth/backups/update-<job>-<from>-to-<to>.sqlite`, and counts the applied migrations. The last 3 backups are kept                                                                  | Nothing changed           |
-| `switch`    | On a checkout, moves it to `legacy-<git describe>`. Points `/opt/dither-booth` at the new release: a new link, renamed over the old one                                                                         | Goes back                 |
-| `restart`   | `systemctl restart ditherbooth.service`                                                                                                                                                                         | Goes back                 |
-| `check`     | Up to 120 s: the three PM2 processes `online` for at least 15 s (past PM2's 10 s `min_uptime`, so not restarting in a loop) and the engine's `/healthz` answering. Counts the migrations again                  | Goes back                 |
-| `rollback`  | Only after a failure from `switch` on: stops the booth, restores the backup unless the new release applied no migration, points the link back, starts, checks again                                             | Reported as `rolled-back` |
+| Step        | What it does                                                                                                                                                                                                      | On failure                |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `preflight` | Takes the lock, ends a job a crash left behind (see [Interrupted jobs](#interrupted-jobs)), resolves "latest", checks the version, arm64, 1 GB free next to the releases, and that the release has a `SHA256SUMS` | Nothing changed           |
+| `cli`       | Downloads the release's `booth` binary and checks it. When it differs from the one running, installs it to `/usr/local/bin/booth` and hands the job over: `booth update <version> --resume <job>` does the rest   | Nothing changed           |
+| `download`  | Downloads the bundle to `/var/cache/ditherbooth/` and checks it against `SHA256SUMS`. A copy already there that matches is reused                                                                                 | Nothing changed           |
+| `unpack`    | On a checkout, moves its `.local` and `logs` to shared first and links them back. Unpacks the bundle as `pi` into `<version>.tmp`, links it, renames it to `<version>`                                            | Nothing changed           |
+| `backup`    | `VACUUM INTO /mnt/ssd/dither-booth/backups/update-<job>-<from>-to-<to>.sqlite`, and records how many migrations the database has. The last 3 backups are kept                                                     | Nothing changed           |
+| `switch`    | On a checkout, moves it to `legacy-<git describe>`. Points `/opt/dither-booth` at the new release: a new link, renamed over the old one                                                                           | Goes back                 |
+| `setup`     | Runs this CLI's `service` and `network setup` steps: the units, the polkit rules, log rotation. After the switch, so the restarts they'd need (a new journal group, a changed network watch) fold into the next   | Goes back                 |
+| `restart`   | `systemctl restart ditherbooth.service`                                                                                                                                                                           | Goes back                 |
+| `check`     | Up to 120 s: the three PM2 processes `online` for at least 15 s (past PM2's 10 s `min_uptime`, so not restarting in a loop) and the engine's `/healthz` answering                                                 | Goes back                 |
+| `rollback`  | Only after a failure from `switch` on: stops the booth, counts the migrations again and restores the backup only if the new release added one, points the link back, starts, checks again                         | Reported as `rolled-back` |
 
-The job ends `done`, `failed` (the booth still runs the old release: nothing past `backup` happened) or `rolled-back` (the new release didn't come up; the booth went back). Finished jobs go to `history.json`, newest first, 20 kept.
+The booth serves guests through every step up to `switch`. Every refusal (no internet for "latest", not arm64, no such release, no room) is a `failed` job in `status.json`, so the admin and the Hub see it; only a booth already on the version records nothing. The job ends `done`, `failed` (the booth still runs the old release: nothing past `backup` happened) or `rolled-back` (the new release didn't come up; the booth went back). Finished jobs go to `history.json`, newest first, 20 kept.
 
-The booth's first update turns its checkout into a release: the checkout itself becomes `legacy-<git describe>`, with its `.local` and `logs` moved to shared and linked back, so a rollback can return to it and still runs.
+The booth's first update turns its checkout into a release: the checkout itself becomes `legacy-<git describe>`, with its `.local` and `logs` moved to shared and linked back, so a rollback can return to it and still runs. `git describe` runs with the checkout named as `safe.directory`, since root runs it in `pi`'s repository.
+
+## Interrupted jobs
+
+A job records its process id in `status.json`. A job still `running` whose process is gone was interrupted: the release's own CLI died after the handover, the unit hit its 45 min timeout, the Pi lost power or ran out of memory. `booth update --recover` ends it:
+
+- **Before the switch** (`/opt/dither-booth` still points at the old release): it removes the half-unpacked folder and records `failed`, "Interrupted during <step>. Nothing changed."
+- **After the switch**: it goes back as a failed check does, restoring the backup only if the new release added a migration, and records `rolled-back`.
+- **While the process lives**: it does nothing.
+
+It runs in four places, so no interrupted job is left `running`: after the CLI it handed over to exits; as the update unit's `ExecStopPost`, however its process ended; as `ditherbooth.service`'s `ExecStartPre` (as root, `--no-restart`), so a booth that lost power mid-update starts on the release before; and before every new update or rollback. The admin and the engine treat a `running` job whose process is gone as not running.
 
 ## Rolling back by hand
 
-`sudo booth rollback` goes back to the release the last successful update came from, found in the history. When that update applied migrations, the older release can't run on the database as it is, and rollback refuses unless it is told to restore the backup taken before the update: `sudo booth rollback --restore-db`. Everything the booth recorded since that backup (visits, draws) is lost. The units are `ditherbooth-rollback@keep-db.service` and `ditherbooth-rollback@restore-db.service`.
+`sudo booth rollback` goes back to the release the last successful update came from, found in the history, while its folder is still on the booth. After every job the CLI writes where a rollback would go to `/var/lib/ditherbooth/update/rollback.json` (the release, whether the newer one migrated, the backup and when it was taken), which the admin offers as is: it never offers what the CLI would refuse. When that update applied migrations, the older release can't run on the database as it is, and rollback refuses unless it is told to restore the backup taken before the update: `sudo booth rollback --restore-db`. Everything the booth recorded since that backup (visits, draws) is lost. The units are `ditherbooth-rollback@keep-db.service` and `ditherbooth-rollback@restore-db.service`.
 
 A rollback whose release doesn't come up within 120 s switches back to the release it left.
 

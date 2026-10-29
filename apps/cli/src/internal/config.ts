@@ -3,6 +3,7 @@ import {
   BOOTH_SERVICE_UNIT,
 } from "@dither-booth/shared/booth-system";
 import {
+  BOOTH_RELEASES_REPO,
   BOOTH_ROLLBACK_UNIT_TEMPLATE,
   BOOTH_UPDATE_UNIT_TEMPLATE,
 } from "@dither-booth/shared/booth-update";
@@ -15,6 +16,9 @@ export const CLI_VERSION =
   typeof BOOTH_CLI_VERSION === "string" ? BOOTH_CLI_VERSION : "0.0.0-dev";
 
 export const DEFAULT_REPO_ROOT = "/opt/dither-booth";
+/** The GitHub repository `booth update` installs releases from. */
+export const RELEASES_REPO =
+  process.env.BOOTH_RELEASES_REPO ?? BOOTH_RELEASES_REPO;
 export const REPO_GIT_URL =
   process.env.BOOTH_REPO_URL ?? "https://github.com/99Stud/dither_booth.git";
 

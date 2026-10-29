@@ -37,6 +37,7 @@
     "./printing": "./src/isomorphic/printing.ts",
     "./routes": "./src/isomorphic/routes.ts",
     "./runtime": "./src/isomorphic/runtime.ts",
+    "./server/booth-update": "./src/server/booth-update.ts",
     "./server/network": "./src/server/network.ts",
     "./server/paths": "./src/server/paths.ts",
     "./server/release": "./src/server/release.ts",

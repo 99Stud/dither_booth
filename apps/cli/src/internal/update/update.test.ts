@@ -19,7 +19,7 @@ import type { UpdateHost } from "./update";
 import type { HealthReading } from "./update.health";
 import type { UpdateLayout } from "./update.layout";
 
-import { UpdateRefused, runRollback, runUpdate } from "./update";
+import { UpdateRefused, runRecover, runRollback, runUpdate } from "./update";
 import {
   bundleAssetName,
   cliAssetName,
@@ -410,5 +410,173 @@ describe("booth rollback", () => {
 
     expect(outcome).toMatchObject({ job: { state: "done" } });
     expect(visits()).toBe(0);
+  });
+});
+
+describe("an interrupted job", () => {
+  /** What a job whose process died leaves: running, with a dead pid. */
+  async function interruptedAt(step: string, switched: boolean) {
+    createCheckout();
+    createDatabase();
+    const booth = await createHost();
+    // A first update makes the checkout a release to go back to.
+    await runUpdate({ layout, host: booth.host, version: "0.8.0" });
+    const second = await createHost({ versions: ["0.9.0"] });
+    second.host.runInstalledCli = async () => 0;
+    const status = JSON.parse(
+      readFileSync(join(layout.stateDir, "status.json"), "utf8"),
+    );
+    if (switched) {
+      mkdirSync(join(layout.releasesDir, "0.9.0/apps/engine"), {
+        recursive: true,
+      });
+      writeFileSync(
+        join(layout.releasesDir, "0.9.0/release.json"),
+        JSON.stringify({ version: "0.9.0" }),
+      );
+      symlinkSync(
+        layout.dataDir,
+        join(layout.releasesDir, "0.9.0/apps/engine/data"),
+      );
+      rmSync(layout.repoLink);
+      symlinkSync(join(layout.releasesDir, "0.9.0"), layout.repoLink);
+    }
+    writeFileSync(
+      join(layout.stateDir, "status.json"),
+      JSON.stringify({
+        ...status,
+        jobId: "interrupted",
+        from: "0.8.0",
+        to: "0.9.0",
+        state: "running",
+        step,
+        backup: null,
+        migrationsBefore: 1,
+        migrated: null,
+        pid: 2_147_483_000,
+      }),
+    );
+    return second;
+  }
+
+  test("after its switch, goes back to the release before", async () => {
+    const { host, calls } = await interruptedAt("check", true);
+
+    const job = await runRecover({ layout, host, restart: true });
+
+    expect(job).toMatchObject({
+      state: "rolled-back",
+      error: "Interrupted during check.",
+      migrated: false,
+    });
+    expect(linkTarget()).toBe(join(layout.releasesDir, "0.8.0"));
+    expect(calls).toEqual(["stop", "start 0.8.0"]);
+  });
+
+  test("before its switch, changed nothing and says so", async () => {
+    const { host, calls } = await interruptedAt("download", false);
+
+    const job = await runRecover({ layout, host, restart: true });
+
+    expect(job).toMatchObject({
+      state: "failed",
+      error: "Interrupted during download. Nothing changed.",
+    });
+    expect(linkTarget()).toBe(join(layout.releasesDir, "0.8.0"));
+    expect(calls).toEqual([]);
+  });
+
+  test("at the booth's start, moves the link back without restarting it", async () => {
+    const { host, calls } = await interruptedAt("restart", true);
+
+    await runRecover({ layout, host, restart: false });
+
+    expect(linkTarget()).toBe(join(layout.releasesDir, "0.8.0"));
+    expect(calls).toEqual([]);
+  });
+
+  test("leaves a job whose process still runs alone", async () => {
+    const { host } = await interruptedAt("download", false);
+    const path = join(layout.stateDir, "status.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        ...JSON.parse(readFileSync(path, "utf8")),
+        pid: process.ppid,
+      }),
+    );
+
+    expect(await runRecover({ layout, host, restart: true })).toBeNull();
+    expect((await readStatus(layout.stateDir))?.state).toBe("running");
+  });
+});
+
+describe("refusals", () => {
+  test("are failed jobs the admin and the Hub can read", async () => {
+    createCheckout();
+    const { host } = await createHost();
+    host.arch = "x64";
+
+    const outcome = await runUpdate({ layout, host, version: "0.8.0" });
+
+    expect(outcome).toMatchObject({
+      job: { state: "failed", error: "Releases are built for arm64 only." },
+    });
+    expect((await readStatus(layout.stateDir))?.state).toBe("failed");
+  });
+
+  test("including no answer from GitHub for the latest release", async () => {
+    createCheckout();
+    const { host } = await createHost();
+
+    const outcome = await runUpdate({ layout, host });
+
+    expect(outcome).toMatchObject({
+      job: { state: "failed", to: "latest" },
+    });
+  });
+});
+
+describe("going back after a failed check", () => {
+  test("keeps the database when the new release migrated nothing", async () => {
+    createCheckout();
+    createDatabase();
+    const { host } = await createHost({
+      health: (release) => release !== "0.8.0",
+      onStart: (release) => {
+        if (release === "0.8.0") {
+          const db = new Database(dbPath());
+          db.run("INSERT INTO visit DEFAULT VALUES");
+          db.close();
+        }
+      },
+    });
+
+    const outcome = await runUpdate({ layout, host, version: "0.8.0" });
+
+    expect(outcome).toMatchObject({
+      job: { state: "rolled-back", migrated: false },
+    });
+    expect(visits()).toBe(1);
+  });
+});
+
+describe("the rollback target", () => {
+  test("is written for the admin after each job, and never the running release", async () => {
+    createCheckout();
+    const { host } = await createHost();
+    const target = () =>
+      JSON.parse(readFileSync(join(layout.stateDir, "rollback.json"), "utf8"));
+
+    await runUpdate({ layout, host, version: "0.8.0" });
+
+    expect(target()).toMatchObject({
+      release: "0.7.2-2-g806eca4",
+      migrated: false,
+    });
+
+    await runRollback({ layout, host, mode: "keep-db" });
+
+    expect(target()).toBeNull();
   });
 });

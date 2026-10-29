@@ -1,3 +1,4 @@
+import { isReleaseVersion } from "@dither-booth/shared/booth-update";
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -187,6 +188,26 @@ describe("system polkit rule", () => {
     }
   });
 
+  test("starts an update for exactly the versions the booth accepts", () => {
+    const rule = loadRule();
+
+    for (const version of [
+      "0.8.0",
+      "10.2.33",
+      "0.8.0-rc.1",
+      "0.8.0-rc-1",
+      "0.8.0+build",
+      "v0.8.0",
+      "0.8",
+      "0.8.0;reboot",
+    ]) {
+      const unit = `ditherbooth-update@${version.replaceAll("-", "\\x2d")}.service`;
+      expect(rule(unitAction(unit, "start"), pi) === "yes").toBe(
+        isReleaseVersion(version),
+      );
+    }
+  });
+
   test("grants nothing to another user", () => {
     const rule = loadRule();
 
@@ -208,6 +229,16 @@ describe("update and rollback units", () => {
     expect(buildUpdateUnit()).not.toContain("User=");
     expect(buildRollbackUnit()).toContain(
       "ExecStart=/usr/local/bin/booth rollback --mode %I --no-banner --color=never",
+    );
+  });
+
+  test("end an interrupted job, however the process ended, and at every booth start", () => {
+    expect(buildUpdateUnit()).toContain(
+      "ExecStopPost=/usr/local/bin/booth update --recover --no-banner --color=never",
+    );
+    // `+`: as root, though the booth's unit runs as pi; `-`: never blocks its start.
+    expect(buildUnit("/opt/dither-booth")).toContain(
+      "ExecStartPre=-+/usr/local/bin/booth update --recover --no-restart --no-banner --color=never",
     );
   });
 });

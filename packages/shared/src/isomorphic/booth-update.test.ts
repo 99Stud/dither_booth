@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   compareReleaseVersions,
+  fetchLatestRelease,
   getBoothRollbackUnit,
   getBoothUpdateUnit,
   isReleaseVersion,
@@ -53,5 +54,37 @@ describe("unit names", () => {
 
   test("refuse anything that isn't a release version", () => {
     expect(() => getBoothUpdateUnit("0.8.0 && reboot")).toThrow();
+  });
+});
+
+describe("fetchLatestRelease", () => {
+  const answering = (body: unknown, status = 200) =>
+    (async () => Response.json(body, { status })) as unknown as typeof fetch;
+
+  test("reads GitHub's latest release, without the v", async () => {
+    expect(
+      await fetchLatestRelease({
+        fetch: answering({
+          tag_name: "v0.8.0",
+          body: "notes",
+          html_url: "https://github.com/x",
+          published_at: "2026-10-28T09:00:00Z",
+        }),
+      }),
+    ).toEqual({
+      version: "0.8.0",
+      notes: "notes",
+      url: "https://github.com/x",
+      publishedAt: "2026-10-28T09:00:00Z",
+    });
+  });
+
+  test("throws when GitHub doesn't answer, or tags something that isn't a version", async () => {
+    expect(fetchLatestRelease({ fetch: answering({}, 403) })).rejects.toThrow(
+      "403",
+    );
+    expect(
+      fetchLatestRelease({ fetch: answering({ tag_name: "nightly" }) }),
+    ).rejects.toThrow("isn't a version");
   });
 });
