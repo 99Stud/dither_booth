@@ -60,10 +60,15 @@ create policy "members cancel" on public.booth_update
 -- A request (an insert, or an update that names the release) starts over:
 -- whoever asked, now, and nothing heard from the booth yet. The booth's
 -- reports only change state, state_at and error.
-create function public.booth_update_requested()
+--
+-- It also closes the booth's last Update failed alert, which staff may not
+-- resolve themselves: hence security definer, in private (out of the API's
+-- reach, as alert_stamp_notified). The row it runs for has passed the
+-- booth_update policies; one that fails their check rolls the close back.
+create function private.booth_update_requested()
 returns trigger
 language plpgsql
-security invoker
+security definer
 set search_path = ''
 as $$
 begin
@@ -81,7 +86,11 @@ $$;
 
 create trigger booth_update_requested
   before insert or update of release on public.booth_update
-  for each row execute function public.booth_update_requested();
+  for each row execute function private.booth_update_requested();
+
+-- A trigger fires without EXECUTE; nobody calls it by hand.
+revoke execute on function private.booth_update_requested()
+  from public, anon, authenticated;
 
 -- Staff name the booth and the release; the Hub fills in the rest.
 revoke all on public.booth_update from anon, authenticated;
@@ -89,9 +98,6 @@ grant select, delete on public.booth_update to authenticated;
 grant insert (booth_id, org_id, release) on public.booth_update to authenticated;
 grant update (release) on public.booth_update to authenticated;
 grant select, insert, update, delete on public.booth_update to service_role;
--- The request trigger closes the booth's update alert as staff: a column
--- they may already write (acked_at's neighbour), under the alert's own policy.
-grant update (resolved_at) on public.alert to authenticated;
 
 -- Called by the heartbeat function after evaluate_heartbeat. Records what
 -- the booth says about the request, and returns the release it should

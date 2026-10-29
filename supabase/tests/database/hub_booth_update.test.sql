@@ -1,7 +1,7 @@
 -- Staff ask their booths to update from Studio; the booth reads the request
 -- in its heartbeat's answer and reports how it goes.
 begin;
-select plan(22);
+select plan(24);
 
 insert into auth.users (id, email) values
   ('a1a1a1a1-0000-0000-0000-000000000001', 'staff-a@example.com'),
@@ -109,6 +109,18 @@ select is(
   (select count(*) from public.alert
     where booth_id = 'a0a0a0a0-0000-0000-0000-0000000000a0' and resolved_at is null),
   0::bigint, 'and closes the failed-update alert');
+
+reset role;
+select ok(
+  not has_column_privilege('authenticated', 'public.alert', 'resolved_at', 'update'),
+  'though staff still cannot resolve an alert themselves');
+-- The trigger is no API: nobody calls it by hand.
+select ok(
+  not has_function_privilege('authenticated', 'private.booth_update_requested()', 'execute'),
+  'and the trigger that does it is not theirs to call');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"a1a1a1a1-0000-0000-0000-000000000001","role":"authenticated"}', true);
 select results_eq(
   $$delete from public.booth_update returning booth_id$$,
   array['a0a0a0a0-0000-0000-0000-0000000000a0'::uuid], 'staff cancel only their own requests');
