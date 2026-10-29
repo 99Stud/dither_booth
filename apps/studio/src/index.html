@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Studio" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- ds-allow-hardcode:start: a meta tag can't read a CSS token -->
     <meta
       name="theme-color"
       content="#ffffff"
@@ -19,6 +20,7 @@
       content="#09090b"
       media="(prefers-color-scheme: dark)"
     />
+    <!-- ds-allow-hardcode:end -->
     <meta name="color-scheme" content="light dark" />
     <title>Dither Booth Studio</title>
     <script>
@@ -31,7 +33,14 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Until the app renders the splash in its place: the splash's
+           background (BRAND_ICON_BACKGROUND, the manifest's
+           background_color), so the launch screen holds while it loads. -->
+      <!-- ds-allow-hardcode:start: paints before any stylesheet loads -->
+      <div style="position: fixed; inset: 0; background: #09090b"></div>
+      <!-- ds-allow-hardcode:end -->
+    </div>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>

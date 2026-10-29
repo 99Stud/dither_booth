@@ -1,37 +1,51 @@
-import { DITHER_BOOTH_MARK } from "@dither-booth/ui/brand";
 import {
+  BRAND_ICON_BACKGROUND,
+  DITHER_BOOTH_MARK,
+} from "@dither-booth/ui/brand";
+import {
+  animate,
   createScope,
   createTimeline,
   stagger,
   steps,
-  type Timeline,
   utils,
 } from "animejs";
 import clsx from "clsx";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-/** One pixel of the mark, in its own SVG units. */
-const MARK_PIXEL = 58.676;
 const GHOST_MS = 360;
 /** Each dither pixel's drop into place. */
 const PIXEL_DROP_MS = 320;
 const PIXEL_GAP_MS = 45;
 const EXIT_MS = 280;
+/** After the entrance, how long the splash waits for the session at most. */
+const MAX_WAIT_MS = 3_000;
+const MEDIA_QUERIES = { reducedMotion: "(prefers-reduced-motion: reduce)" };
 
 const [GHOST, DITHER] = DITHER_BOOTH_MARK.paths;
 /** The dither, one square per subpath, so each can fall on its own. */
 const PIXELS = DITHER.split(/(?=M)/u);
 
-/** Animation frames don't run on a hidden page, or for reduced motion. */
-const shouldAnimate = () =>
-  document.visibilityState === "visible" &&
-  !matchMedia("(prefers-reduced-motion: reduce)").matches;
+/**
+ * Animation frames stop on a hidden page (a locked phone, a switched app):
+ * there, `animation` lands at once instead of waiting to be shown again.
+ */
+const landWhenHidden = (animation: { complete: () => unknown }) => {
+  const onVisibilityChange = () => {
+    if (document.visibilityState === "hidden") animation.complete();
+  };
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  return () =>
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+};
 
 /**
- * The launch screen: the mark on the background while Studio finds its
- * session. The ghost steps in, its dither drops into place pixel by pixel,
- * and once `ready` and the entrance is over, the splash fades and `onDone`
- * unmounts it. Reduced motion or a hidden page shows it still, until `ready`.
+ * The launch screen: the mark on the app icon's background, which the
+ * system's own launch screen shows too, while Studio finds its session. The
+ * ghost steps in, its dither drops into place pixel by pixel, and once `ready`
+ * and the entrance is over, the splash fades and `onDone` unmounts it. It
+ * waits for `ready` at most `MAX_WAIT_MS`; the app shows its own loading
+ * after that. Reduced motion or a hidden page shows it still.
  */
 export const Splash = ({
   ready,
@@ -42,79 +56,102 @@ export const Splash = ({
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const [entered, setEntered] = useState(false);
+  const [waitedOut, setWaitedOut] = useState(false);
+  const leaving = entered && (ready || waitedOut);
 
   useLayoutEffect(() => {
-    if (!shouldAnimate()) {
-      setEntered(true);
-      return;
-    }
+    let stopLanding = () => {};
+    const scope = createScope({ root, mediaQueries: MEDIA_QUERIES }).add(
+      (self) => {
+        if (
+          self?.matches.reducedMotion ||
+          document.visibilityState === "hidden"
+        ) {
+          setEntered(true);
+          return;
+        }
 
-    let timeline: Timeline | undefined;
-    const scope = createScope({ root }).add(() => {
-      // Hidden before the first paint: a pixel would show in place until
-      // its delay starts.
-      utils.set("[data-splash-ghost], [data-splash-pixel]", { opacity: 0 });
-      timeline = createTimeline({ onComplete: () => setEntered(true) })
-        .add("[data-splash-ghost]", {
-          opacity: [0, 1],
-          translateY: [MARK_PIXEL, 0],
-          duration: GHOST_MS,
-          ease: steps(3),
-        })
-        .add(
-          "[data-splash-pixel]",
-          {
+        // Hidden before the first paint: a pixel would show in place until
+        // its delay starts.
+        utils.set("[data-splash-ghost], [data-splash-pixel]", { opacity: 0 });
+        const entrance = createTimeline({ onComplete: () => setEntered(true) })
+          .add("[data-splash-ghost]", {
             opacity: [0, 1],
-            translateY: [-MARK_PIXEL, 0],
-            duration: PIXEL_DROP_MS,
+            translateY: [DITHER_BOOTH_MARK.pixel, 0],
+            duration: GHOST_MS,
             ease: steps(3),
-            delay: stagger(PIXEL_GAP_MS, { from: "random" }),
-          },
-          `-=${GHOST_MS / 2}`,
-        );
-    });
-
-    // Hidden mid-way (a locked phone, a switched app): land it now.
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") timeline?.complete();
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
+          })
+          .add(
+            "[data-splash-pixel]",
+            {
+              opacity: [0, 1],
+              translateY: [-DITHER_BOOTH_MARK.pixel, 0],
+              duration: PIXEL_DROP_MS,
+              ease: steps(3),
+              delay: stagger(PIXEL_GAP_MS, { from: "random" }),
+            },
+            `-=${GHOST_MS / 2}`,
+          );
+        stopLanding = landWhenHidden(entrance);
+      },
+    );
 
     return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      stopLanding();
       scope.revert();
     };
   }, []);
 
   useEffect(() => {
-    if (!ready || !entered) return;
+    if (!entered || ready) return;
 
-    if (!shouldAnimate()) {
-      onDone();
-      return;
-    }
+    const timer = setTimeout(() => setWaitedOut(true), MAX_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [entered, ready]);
 
-    const timeline = createTimeline({ onComplete: onDone }).add(root.current!, {
-      opacity: [1, 0],
-      duration: EXIT_MS,
-      ease: "out(2)",
-    });
+  useEffect(() => {
+    if (!leaving) return;
+
+    let stopLanding = () => {};
+    const scope = createScope({ root, mediaQueries: MEDIA_QUERIES }).add(
+      (self) => {
+        const splash = root.current;
+        if (
+          !splash ||
+          self?.matches.reducedMotion ||
+          document.visibilityState === "hidden"
+        ) {
+          onDone();
+          return;
+        }
+
+        const exit = animate(splash, {
+          opacity: [1, 0],
+          duration: EXIT_MS,
+          ease: "out(2)",
+          onComplete: onDone,
+        });
+        stopLanding = landWhenHidden(exit);
+      },
+    );
 
     return () => {
-      timeline.revert();
+      stopLanding();
+      scope.revert();
     };
-  }, [ready, entered, onDone]);
+  }, [leaving, onDone]);
 
   return (
     <div
       ref={root}
       role="status"
-      aria-label="Studio is loading"
+      style={{ backgroundColor: BRAND_ICON_BACKGROUND }}
       className={clsx(
         "fixed inset-0 z-50 flex items-center justify-center",
-        "bg-background text-foreground",
+        "text-white",
       )}
     >
+      <span className={clsx("sr-only")}>Loading Studio</span>
       <svg
         aria-hidden
         className={clsx("h-28 w-auto")}
