@@ -1,17 +1,10 @@
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 
 import { Badge } from "@dither-booth/ui/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@dither-booth/ui/components/ui/table";
 import clsx from "clsx";
 import { Check, CircleAlert, Fan, Gauge, History, Zap } from "lucide-react";
 
+import type { SystemThrottleFlagKey } from "#lib/system/system.constants";
 import type { SystemSample } from "#lib/system/system.protocol";
 import type { SystemStatus } from "#lib/system/system.utils";
 
@@ -27,29 +20,35 @@ const THROTTLE_LABELS: Record<SystemStatus, string> = {
   critical: "Throttling now",
 };
 
-/** Yes or no, as an icon and a word. "Now" is urgent, "since boot" a record. */
-const FlagCell: FC<{ active: boolean; when: "now" | "sinceBoot" }> = ({
-  active,
-  when,
-}) =>
-  active ? (
-    <span
-      className={clsx(
-        "inline-flex items-center gap-1 font-medium",
-        when === "now" ? "text-destructive" : "text-foreground",
-      )}
-    >
-      {when === "now" ? <CircleAlert aria-hidden /> : <History aria-hidden />}
-      Yes
-    </span>
-  ) : (
-    <span
-      className={clsx("inline-flex items-center gap-1 text-muted-foreground")}
-    >
-      <Check aria-hidden />
-      No
-    </span>
-  );
+type FlagState = "clear" | "sinceBoot" | "now";
+
+const FLAG_STATES: Record<
+  FlagState,
+  { label: string; icon: ReactNode; className: string }
+> = {
+  clear: {
+    label: "Clear",
+    icon: <Check aria-hidden />,
+    className: "text-muted-foreground",
+  },
+  sinceBoot: {
+    label: "Since boot",
+    icon: <History aria-hidden />,
+    className: "border-warning/50 text-warning",
+  },
+  now: {
+    label: "Now",
+    icon: <CircleAlert aria-hidden />,
+    className: "border-destructive/50 text-destructive",
+  },
+};
+
+/** One flag's worst state: set now outranks set at some point since boot. */
+const getFlagState = (
+  throttle: NonNullable<SystemSample["thermal"]["throttle"]>,
+  key: SystemThrottleFlagKey,
+): FlagState =>
+  throttle.now[key] ? "now" : throttle.sinceBoot[key] ? "sinceBoot" : "clear";
 
 interface ThrottlePanelProps {
   thermal: SystemSample["thermal"];
@@ -58,9 +57,11 @@ interface ThrottlePanelProps {
 
 /**
  * How the Pi copes: its fan and clock, and the firmware's four throttle
- * flags, each now and since boot. A flag since boot is the diagnosis an
- * event's worth of "fine now" would hide: an under-voltage that happened
- * once means the supply, whatever the gauge says.
+ * flags, each as its worst state: clear, set since boot, or set now. Only
+ * a set flag says what it means, so a clean board reads at a glance. A
+ * flag since boot is the diagnosis an event's worth of "fine now" would
+ * hide: an under-voltage that happened once means the supply, whatever the
+ * gauge says.
  */
 export const ThrottlePanel: FC<ThrottlePanelProps> = ({ thermal, sources }) => {
   const status = getThrottleStatus(thermal.throttle);
@@ -100,39 +101,37 @@ export const ThrottlePanel: FC<ThrottlePanelProps> = ({ thermal, sources }) => {
           {sources.throttle.message}
         </p>
       ) : (
-        <Table aria-label="Throttle flags">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Flag</TableHead>
-              <TableHead className={clsx("text-right")}>Now</TableHead>
-              <TableHead className={clsx("text-right")}>Since boot</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {SYSTEM_THROTTLE_FLAGS.map((flag) => (
-              <TableRow key={flag.key}>
-                <TableCell className={clsx("whitespace-normal")}>
-                  <span className={clsx("font-medium")}>{flag.label}</span>
-                  <span className={clsx("block text-xs text-muted-foreground")}>
-                    {flag.description}
-                  </span>
-                </TableCell>
-                <TableCell className={clsx("text-right align-top")}>
-                  <FlagCell
-                    active={thermal.throttle!.now[flag.key]}
-                    when="now"
-                  />
-                </TableCell>
-                <TableCell className={clsx("text-right align-top")}>
-                  <FlagCell
-                    active={thermal.throttle!.sinceBoot[flag.key]}
-                    when="sinceBoot"
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ul aria-label="Throttle flags" className={clsx("divide-y")}>
+          {SYSTEM_THROTTLE_FLAGS.map((flag) => {
+            const flagState = getFlagState(thermal.throttle!, flag.key);
+            const state = FLAG_STATES[flagState];
+
+            return (
+              <li
+                key={flag.key}
+                className={clsx(
+                  "flex items-start justify-between gap-4 py-2.5 first:pt-0 last:pb-0",
+                )}
+              >
+                <div className={clsx("min-w-0 text-sm")}>
+                  <p className={clsx("font-medium")}>{flag.label}</p>
+                  {flagState !== "clear" && (
+                    <p className={clsx("mt-0.5 text-xs text-muted-foreground")}>
+                      {flag.description}
+                    </p>
+                  )}
+                </div>
+                <Badge
+                  variant="outline"
+                  className={clsx("h-6 gap-1.5 px-2.5", state.className)}
+                >
+                  {state.icon}
+                  {state.label}
+                </Badge>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </SystemPanel>
   );

@@ -42,13 +42,17 @@ describe("System page", () => {
     expect(words).toContain("Keeping up");
     expect(words).toContain("Room to spare");
 
-    const flags = screen.getByRole("table", { name: "Throttle flags" });
+    const flags = screen.getByRole("list", { name: "Throttle flags" });
     const underVoltage = within(flags)
       .getByText("Under-voltage")
-      .closest("tr")!;
+      .closest("li")!;
 
-    expect(within(underVoltage).getAllByText("No")).toHaveLength(1);
-    expect(within(underVoltage).getByText("Yes")).toBeDefined();
+    expect(within(underVoltage).getByText("Since boot")).toBeDefined();
+    expect(
+      within(underVoltage).getByText(/Use the official 27 W supply/),
+    ).toBeDefined();
+    expect(within(flags).getAllByText("Clear")).toHaveLength(3);
+    expect(within(flags).queryByText(/capped the CPU clock/)).toBeNull();
     expect(screen.getByText("2954 rpm")).toBeDefined();
     expect(screen.getByText("2.44 GB")).toBeDefined();
     expect(screen.getByText("Raspberry Pi 5 Model B Rev 1.0")).toBeDefined();
@@ -96,7 +100,7 @@ describe("System page", () => {
     ).toBeDefined();
     expect(screen.getAllByText("Not on a Pi")).toHaveLength(3);
     expect(screen.getByText("Not a Raspberry Pi")).toBeDefined();
-    expect(screen.queryByRole("table", { name: "Throttle flags" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Throttle flags" })).toBeNull();
     expect(screen.getByRole("table", { name: "Disks" })).toBeDefined();
   });
 
