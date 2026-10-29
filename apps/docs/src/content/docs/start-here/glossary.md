@@ -20,6 +20,11 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 **Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts, shows how each booth is doing, sets their event times and gives their registration codes. It talks to the Hub, never to a booth.
 _Avoid_: Studio for Supabase's own dashboard (call that the Supabase dashboard).
 
+**Launch screen**: what a phone shows while it starts a Home Screen app, before the app draws anything: on Android the app icon on a dark background, on iOS a blank screen. It can't move.
+
+**Splash**: Studio's own opening screen, after the launch screen: the Dither Booth mark building itself on the same dark background, then fading into the app.
+_Avoid_: splash for the launch screen.
+
 **Engine**: the backend process. It is only reachable through the two web apps, which proxy `/engine/trpc` to it over loopback.
 
 ## Kits
