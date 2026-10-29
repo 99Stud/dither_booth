@@ -38,7 +38,8 @@ interface ThermalPanelProps {
 /**
  * The page's lead: the SoC's temperature on a gauge that ends where the
  * Pi 5 throttles hard, and its course over the chart range. Heat is the
- * one thing a venue (a hot room, a blocked blower) changes.
+ * one thing a venue (a hot room, a blocked blower) changes. The chart
+ * fills the card's height, so the row never leaves a band under it.
  */
 export const ThermalPanel: FC<ThermalPanelProps> = ({
   thermal,
@@ -75,10 +76,10 @@ export const ThermalPanel: FC<ThermalPanelProps> = ({
       statusLabel={statusLabel}
       className={clsx("lg:col-span-8")}
       contentClassName={clsx(
-        "grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center",
+        "grid flex-1 gap-6 sm:grid-cols-[auto_minmax(0,1fr)]",
       )}
     >
-      <div className={clsx("relative mx-auto size-48")}>
+      <div className={clsx("relative mx-auto size-48 self-center")}>
         <ChartContainer
           aria-hidden
           config={gaugeConfig}
@@ -128,7 +129,7 @@ export const ThermalPanel: FC<ThermalPanelProps> = ({
         </div>
       </div>
       {thermal.celsius === null ? (
-        <p className={clsx("text-sm text-muted-foreground")}>
+        <p className={clsx("self-center text-sm text-muted-foreground")}>
           {source.message}
         </p>
       ) : (
@@ -138,6 +139,7 @@ export const ThermalPanel: FC<ThermalPanelProps> = ({
           unit="°C"
           decimals={1}
           emptyText={CHART_WAITING_TEXT}
+          fill
         />
       )}
     </SystemPanel>
