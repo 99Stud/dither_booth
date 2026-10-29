@@ -153,6 +153,10 @@ OnCalendar=hourly
 `;
 }
 
+/** One per rollback mode, as the admin starts them. */
+const ROLLBACK_UNITS =
+  boothRollbackModeSchema.options.map(getBoothRollbackUnit);
+
 /**
  * The admin's System page runs `systemctl` as the service user: restart
  * this unit, reboot, power off, and start an update or a rollback unit.
@@ -162,10 +166,6 @@ OnCalendar=hourly
  * someone is logged in over SSH. polkit reads the rules folder again on
  * its own.
  */
-/** One per rollback mode, as the admin starts them. */
-const ROLLBACK_UNITS =
-  boothRollbackModeSchema.options.map(getBoothRollbackUnit);
-
 export function buildSystemPolkitRule(): string {
   return `// Installed by \`booth service\`.
 polkit.addRule(function (action, subject) {
@@ -224,6 +224,9 @@ ExecStopPost=${BOOTH_BIN} update --recover --no-banner --color=never
 Nice=10
 IOSchedulingClass=idle
 TimeoutStartSec=45min
+# ExecStopPost goes back on the release before: a stop, a start and a
+# 2 min check. The 90 s default would cut it short.
+TimeoutStopSec=5min
 `;
 }
 

@@ -16,6 +16,7 @@ const booth = {
   job: null,
   jobRunning: false,
   log: [],
+  history: [],
   previous: null,
   freeBytes: 5 * 1024 ** 3,
 };

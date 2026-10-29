@@ -139,6 +139,7 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
   const healthzRoute = createHealthzRoute({
     mode: options.mode,
     service: options.healthz.service,
+    release: options.healthz.release,
   });
   const clientLogRoute = createClientLogRoute({
     allowedHostnames: options.allowedHostnames,

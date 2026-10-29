@@ -9,6 +9,9 @@ import { z } from "zod";
 /** Where releases are published: GitHub, `owner/name`. */
 export const BOOTH_RELEASES_REPO = "99Stud/dither_booth";
 
+/** Room an update needs next to the releases: the download and the unpacked bundle, with margin. */
+export const BOOTH_UPDATE_MIN_FREE_BYTES = 1024 ** 3;
+
 export const BOOTH_UPDATE_STATE_DIR = "/var/lib/ditherbooth/update";
 /** The job running now, or the last one. */
 export const BOOTH_UPDATE_STATUS_PATH = `${BOOTH_UPDATE_STATE_DIR}/status.json`;
@@ -65,6 +68,17 @@ export const BOOTH_JOB_STATES = [
 ] as const;
 
 export const boothJobStateSchema = z.enum(BOOTH_JOB_STATES);
+ * One process, told apart from a later one that got its pid back: the
+ * boot it ran in, and when it started (clock ticks since that boot, as
+ * `/proc/<pid>/stat` counts them).
+ */
+export const processIdentitySchema = z.object({
+  pid: z.number().int().positive(),
+  bootId: z.string().min(1),
+  startedTicks: z.number().int().nonnegative(),
+});
+
+export type ProcessIdentity = z.infer<typeof processIdentitySchema>;
 
 export const boothUpdateJobSchema = z.object({
   kind: z.enum(["update", "rollback"]),
@@ -91,7 +105,7 @@ export const boothUpdateJobSchema = z.object({
    * The process running the job. A `running` job whose process is gone
    * was interrupted (a crash, a timeout, a power cut): not running.
    */
-  pid: z.number().int().positive().nullable(),
+  process: processIdentitySchema.nullable(),
 });
 
 export type BoothUpdateJob = z.infer<typeof boothUpdateJobSchema>;
@@ -237,3 +251,26 @@ export function compareReleaseVersions(a: string, b: string): number {
 
   return 0;
 }
+
+/**
+ * Whether an event runs at `now`, given its start and end: a side left
+ * empty is open. The engine's quiet check and admin's warnings agree.
+ */
+export const isEventRunning = (
+  event: {
+    startsAt: string | Date | null;
+    endsAt: string | Date | null;
+  } | null,
+  now: number,
+): boolean => {
+  if (!event) return false;
+  const at = (value: string | Date | null) =>
+    value === null
+      ? null
+      : value instanceof Date
+        ? value.getTime()
+        : Date.parse(value);
+  const starts = at(event.startsAt);
+  const ends = at(event.endsAt);
+  return (starts === null || starts <= now) && (ends === null || now < ends);
+};

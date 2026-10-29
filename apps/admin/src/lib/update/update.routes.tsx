@@ -35,6 +35,7 @@ export type UpdateRouteDeps = {
     job: BoothUpdateJob | null;
     jobRunning: boolean;
     log: string[];
+    history: BoothUpdateJob[];
     previous: BoothRollbackTarget;
     freeBytes: number | null;
   }>;

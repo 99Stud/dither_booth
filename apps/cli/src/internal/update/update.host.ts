@@ -1,4 +1,8 @@
 import { engineHealthzPayloadSchema } from "@dither-booth/shared/healthz";
+import {
+  currentProcessIdentity,
+  isProcessAlive,
+} from "@dither-booth/shared/server/process-identity";
 import { readRelease } from "@dither-booth/shared/server/release";
 import { chmod, copyFile, mkdir, rename, statfs } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -23,17 +27,16 @@ import { sha256File } from "./update.release";
 
 const ENGINE_HEALTHZ_URL = "http://127.0.0.1:3001/healthz";
 
-async function engineHealthy(): Promise<boolean> {
+async function engineHealthz() {
   try {
     const response = await fetch(ENGINE_HEALTHZ_URL, {
       signal: AbortSignal.timeout(3_000),
     });
-    return (
-      response.ok &&
-      engineHealthzPayloadSchema.safeParse(await response.json()).success
-    );
+    if (!response.ok) return null;
+    const parsed = engineHealthzPayloadSchema.safeParse(await response.json());
+    return parsed.success ? parsed.data : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -83,9 +86,16 @@ export const hostUpdateHost: UpdateHost = {
 
     return {
       pm2: list?.exitCode === 0 ? list.stdout : undefined,
-      engineHealthy: await engineHealthy(),
+      engineHealthy: (await engineHealthz()) !== null,
       now: Date.now(),
     };
+  },
+  processIdentity: currentProcessIdentity,
+  isProcessAlive,
+  // The engine's healthz says what the booth is doing; down, it does nothing.
+  async isBusy() {
+    const healthz = await engineHealthz();
+    return healthz?.busy ?? null;
   },
   async installCli(binary) {
     const installed = await sha256File(BOOTH_BIN).catch(() => "");

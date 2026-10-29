@@ -2,7 +2,9 @@ import {
   BOOTH_UPDATE_STEPS,
   type BoothUpdateJob,
   type BoothUpdateStep,
+  isEventRunning,
 } from "@dither-booth/shared/booth-update";
+import { formatDistanceToNowStrict } from "date-fns";
 
 import type { SystemStatus } from "#lib/system/system.utils";
 
@@ -72,14 +74,8 @@ export function getUpdateWarnings({
   now: number;
 }): Warning[] {
   const warnings: Warning[] = [];
-  const started = event?.startsAt
-    ? Date.parse(event.startsAt) <= now
-    : event !== null;
-  const notEnded = event?.endsAt
-    ? now < Date.parse(event.endsAt)
-    : event !== null;
 
-  if (event && started && notEnded) {
+  if (isEventRunning(event, now)) {
     warnings.push({
       id: "event",
       text: "The event is running: guests may be waiting.",
@@ -100,6 +96,10 @@ export function getUpdateWarnings({
 
   return warnings;
 }
+
+/** "3 minutes ago", for the panel's dates. */
+export const formatAgo = (iso: string) =>
+  formatDistanceToNowStrict(new Date(iso), { addSuffix: true });
 
 /** A job that ended this recently still shows its result. */
 export const isRecentJob = (job: BoothUpdateJob, now = Date.now()) =>

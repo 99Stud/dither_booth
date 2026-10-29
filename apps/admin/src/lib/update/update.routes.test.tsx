@@ -56,6 +56,7 @@ const createRoute = ({
       job,
       jobRunning,
       log: [],
+      history: job ? [job] : [],
       previous,
       freeBytes: 5 * 1024 ** 3,
     }),
@@ -108,7 +109,7 @@ describe("createUpdateRoute", () => {
       job: createJobFixture({
         state: "running",
         step: "download",
-        pid: 2_147_483_000,
+        process: { pid: 2_147_483_000, bootId: "gone", startedTicks: 0 },
       }),
       jobRunning: false,
     });

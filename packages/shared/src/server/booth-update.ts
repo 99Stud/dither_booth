@@ -12,8 +12,8 @@ import {
   boothUpdateHistorySchema,
   boothUpdateJobSchema,
 } from "#isomorphic/booth-update";
-
-import { RELEASE_MANIFEST_FILE } from "./release";
+import { isProcessAlive } from "#server/process-identity";
+import { RELEASE_MANIFEST_FILE } from "#server/release";
 
 /*
  * What `booth update` and `booth rollback` leave on the booth, as the
@@ -53,22 +53,10 @@ export async function readBoothRollbackTarget(
   return parsed.success ? parsed.data : null;
 }
 
-/**
- * Whether a process exists. Another user's process (root's job, read by
- * the service user) answers EPERM: it exists.
- */
-export function isProcessAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
-  }
-}
-
 /** Running, and its process still is: not a job a crash left behind. */
 export const isJobRunning = (job: BoothUpdateJob | null) =>
-  job?.state === "running" && (job.pid === null || isProcessAlive(job.pid));
+  job?.state === "running" &&
+  (job.process === null || isProcessAlive(job.process));
 
 /**
  * Whether a folder holds a release bundle (it carries release.json), as

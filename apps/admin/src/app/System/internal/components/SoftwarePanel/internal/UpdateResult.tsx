@@ -2,7 +2,8 @@ import type { BoothUpdateJob } from "@dither-booth/shared/booth-update";
 import type { FC } from "react";
 
 import clsx from "clsx";
-import { formatDistanceToNowStrict } from "date-fns";
+
+import { formatAgo } from "#lib/update/update.utils";
 
 import { useDrawOnce } from "../../../hooks/useUpdateMotion";
 
@@ -23,9 +24,7 @@ export const UpdateResult: FC<{ job: BoothUpdateJob }> = ({ job }) => {
   const state = job.state === "running" ? "failed" : job.state;
   const mark = MARKS[state];
   const ref = useDrawOnce<SVGSVGElement>(true);
-  const ago = formatDistanceToNowStrict(new Date(job.updatedAt), {
-    addSuffix: true,
-  });
+  const ago = formatAgo(job.updatedAt);
   const title =
     state === "done"
       ? `${job.kind === "update" ? "Updated" : "Went back"} to ${job.to} ${ago}.`

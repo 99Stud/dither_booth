@@ -40,6 +40,7 @@
     "./server/booth-update": "./src/server/booth-update.ts",
     "./server/network": "./src/server/network.ts",
     "./server/paths": "./src/server/paths.ts",
+    "./server/process-identity": "./src/server/process-identity.ts",
     "./server/release": "./src/server/release.ts",
     "./server/runtime": "./src/server/runtime.ts",
     "./server/systemctl": "./src/server/systemctl.ts",

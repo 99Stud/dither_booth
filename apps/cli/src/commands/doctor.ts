@@ -113,6 +113,22 @@ async function checkDataSymlink(
   }
 }
 
+/** `booth update` unpacks with `tar --zstd`; `booth install` installs it. */
+async function checkZstd(results: CheckResult[]): Promise<void> {
+  const which = await capture(["which", "zstd"], { allowFailure: true });
+
+  if (which.exitCode === 0) {
+    record(results, "pass", "zstd installed (release bundles unpack)");
+  } else {
+    record(
+      results,
+      "warn",
+      "zstd not installed: `booth update` can't unpack a release",
+      "Run `sudo apt-get install -y zstd`.",
+    );
+  }
+}
+
 async function checkBun(results: CheckResult[]): Promise<void> {
   if (await serviceBunExists()) {
     const version = await capture([SERVICE_BUN, "--version"], {
@@ -565,6 +581,7 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkSsdMounted(results);
   await checkDataSymlink(results, repoRoot);
   await checkBun(results);
+  await checkZstd(results);
   await checkCertIp(results, repoRoot);
   await checkServiceEnabled(results);
   await checkPm2Processes(results, repoRoot);

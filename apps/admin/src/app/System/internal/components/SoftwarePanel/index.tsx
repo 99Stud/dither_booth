@@ -1,35 +1,25 @@
-import type { BoothUpdateJob } from "@dither-booth/shared/booth-update";
 import type { FC } from "react";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@dither-booth/ui/components/ui/alert-dialog";
 import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { Button } from "@dither-booth/ui/components/ui/button";
 import clsx from "clsx";
-import { formatDistanceToNowStrict } from "date-fns";
 import { PackageCheck, RefreshCcw, Undo2 } from "lucide-react";
 import { useState } from "react";
 
-import { getSoftwareStatus, isRecentJob } from "#lib/update/update.utils";
+import {
+  formatAgo,
+  getSoftwareStatus,
+  isRecentJob,
+} from "#lib/update/update.utils";
 import { useUpdateState } from "#lib/update/useUpdateState";
 
 import { SystemPanel } from "../SystemPanel";
 import { InstallDialog } from "./internal/InstallDialog";
 import { ReleaseNotes } from "./internal/ReleaseNotes";
+import { RollbackDialog } from "./internal/RollbackDialog";
 import { UpdateLog } from "./internal/UpdateLog";
 import { UpdateProgress } from "./internal/UpdateProgress";
 import { UpdateResult } from "./internal/UpdateResult";
-
-const ago = (iso: string) =>
-  formatDistanceToNowStrict(new Date(iso), { addSuffix: true });
 
 /**
  * The release the booth runs, the latest one, and the buttons between
@@ -82,7 +72,7 @@ export const SoftwarePanel: FC = () => {
               {snapshot.check.state === "unreachable"
                 ? "Couldn't check for updates: is the booth on the internet?"
                 : snapshot.check.checkedAt
-                  ? `Checked ${ago(snapshot.check.checkedAt)}`
+                  ? `Checked ${formatAgo(snapshot.check.checkedAt)}`
                   : "Not checked yet"}
             </p>
           </div>
@@ -126,7 +116,7 @@ export const SoftwarePanel: FC = () => {
               </p>
               {snapshot.latest.publishedAt && (
                 <p className={clsx("text-sm text-muted-foreground")}>
-                  Released {ago(snapshot.latest.publishedAt)}
+                  Released {formatAgo(snapshot.latest.publishedAt)}
                 </p>
               )}
             </div>
@@ -178,36 +168,21 @@ export const SoftwarePanel: FC = () => {
         />
       )}
 
-      <AlertDialog
-        open={rollingBack && previous !== null}
-        onOpenChange={setRollingBack}
-      >
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Go back to {previous?.release}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {previous?.migrated
-                ? `${snapshot?.release} changed the database, so going back restores the copy taken${previous.backupTakenAt ? ` ${ago(previous.backupTakenAt)}` : " before that update"}. Visits and draws since then are lost.`
-                : "The booth restarts on the release it ran before. The database stays as it is."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant={previous?.migrated ? "destructive" : "default"}
-              onClick={() => {
-                setRollingBack(false);
-                void run({
-                  action: "rollback",
-                  mode: previous?.migrated ? "restore-db" : "keep-db",
-                });
-              }}
-            >
-              {previous?.migrated ? "Roll back and restore" : "Roll back"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {previous && (
+        <RollbackDialog
+          open={rollingBack}
+          release={snapshot?.release ?? ""}
+          previous={previous}
+          onCancel={() => setRollingBack(false)}
+          onConfirm={(restoreDb) => {
+            setRollingBack(false);
+            void run({
+              action: "rollback",
+              mode: restoreDb ? "restore-db" : "keep-db",
+            });
+          }}
+        />
+      )}
     </SystemPanel>
   );
 };

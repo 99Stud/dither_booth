@@ -1,9 +1,8 @@
 import { lstat, readlink } from "node:fs/promises";
-import { basename, dirname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import {
   ENGINE_DATA_RELATIVE,
-  ENGINE_DB_FILE,
   SSD_BOOTH_DIR,
   SSD_DATA_DIR,
 } from "#internal/config";
@@ -56,9 +55,6 @@ export function createUpdateLayout({
 export const engineDataPath = (releaseDir: string) =>
   join(releaseDir, ENGINE_DATA_RELATIVE);
 
-export const databasePath = (layout: UpdateLayout) =>
-  join(layout.dataDir, ENGINE_DB_FILE);
-
 export type RepoState =
   /** `repoLink` points at a release folder. */
   | { kind: "release"; dir: string }
@@ -81,9 +77,6 @@ export async function readRepoState(layout: UpdateLayout): Promise<RepoState> {
 
   return { kind: "checkout", dir: layout.repoLink };
 }
-
-/** A release folder's name: the version, or `legacy-<git describe>`. */
-export const releaseDirName = (dir: string) => basename(dir);
 
 export const releaseDirFor = (layout: UpdateLayout, version: string) =>
   join(layout.releasesDir, version);
