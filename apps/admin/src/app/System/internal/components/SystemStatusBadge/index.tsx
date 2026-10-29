@@ -4,7 +4,17 @@ import { Badge } from "@dither-booth/ui/components/ui/badge";
 import clsx from "clsx";
 import { TriangleAlert, WifiOff } from "lucide-react";
 
+import type { SystemStatus } from "#lib/system/system.utils";
+
+import { badgeToneClassName } from "../../System.utils";
+
 export type SystemConnectionState = "live" | "stale" | "offline";
+
+const STATUSES: Record<SystemConnectionState, SystemStatus> = {
+  live: "ok",
+  stale: "warning",
+  offline: "critical",
+};
 
 const LABELS: Record<SystemConnectionState, string> = {
   live: "Live",
@@ -24,11 +34,7 @@ export const SystemStatusBadge: FC<{ state: SystemConnectionState }> = ({
     role="status"
     aria-label={`Readings: ${LABELS[state]}`}
     variant="outline"
-    className={clsx(
-      "h-6 gap-1.5 px-2.5",
-      state === "stale" && "border-warning/50 text-warning",
-      state === "offline" && "border-destructive/40 text-destructive",
-    )}
+    className={clsx("h-6 gap-1.5 px-2.5", badgeToneClassName(STATUSES[state]))}
   >
     {state === "live" && (
       <span

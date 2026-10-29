@@ -8,6 +8,7 @@ import {
   getCpuStatus,
   getFreeStatus,
   getTemperatureStatus,
+  getThrottleFlagStatus,
   getThrottleStatus,
   isSystemStale,
   toPoints,
@@ -44,6 +45,17 @@ describe("statuses", () => {
         sinceBoot: { ...clean, throttled: true },
       }),
     ).toBe("critical");
+  });
+
+  it("rates each flag by its worst state", () => {
+    const throttle = {
+      now: { ...clean, throttled: true },
+      sinceBoot: { ...clean, underVoltage: true, throttled: true },
+    };
+
+    expect(getThrottleFlagStatus(throttle, "throttled")).toBe("critical");
+    expect(getThrottleFlagStatus(throttle, "underVoltage")).toBe("warning");
+    expect(getThrottleFlagStatus(throttle, "frequencyCapped")).toBe("ok");
   });
 
   it("rates free space, load, and takes the worst", () => {

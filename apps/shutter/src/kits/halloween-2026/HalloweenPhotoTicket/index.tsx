@@ -6,7 +6,7 @@ import { cn } from "@dither-booth/shared/styles";
 import clsx from "clsx";
 
 import { BalDesVampiresLogo } from "#components/svg/BalDesVampiresLogo/index";
-import { TartinesTicketBody } from "#kits/tartines/TartinesTicketBody/index";
+import { HalloweenTicketBody } from "#kits/halloween-2026/HalloweenTicketBody/index";
 
 import photoMaskPath from "./photo-mask.png";
 
@@ -23,7 +23,7 @@ const PHOTO_MASK_STYLE = {
 /**
  * The Bal des Vampires logo over the photo, cut out by a brush-stroke mask.
  * The mask is 576×576 like the photo and 1-bit, so the printed edge keeps its
- * grain. The body is Tartines' until Halloween gets its own.
+ * grain.
  */
 export const HalloweenPhotoTicket: FC<HalloweenPhotoTicketProps> = (props) => {
   const { className } = props;
@@ -57,7 +57,7 @@ export const HalloweenPhotoTicket: FC<HalloweenPhotoTicketProps> = (props) => {
           alt="booth photo"
         />
       </div>
-      <TartinesTicketBody />
+      <HalloweenTicketBody />
     </div>
   );
 };
