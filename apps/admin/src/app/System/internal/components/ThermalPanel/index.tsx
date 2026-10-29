@@ -39,7 +39,7 @@ interface ThermalPanelProps {
  * The page's lead: the SoC's temperature on a gauge that ends where the
  * Pi 5 throttles hard, and its course over the chart range. Heat is the
  * one thing a venue (a hot room, a blocked blower) changes. The chart
- * grows to the card's height, which the Throttling card beside it sets.
+ * fills the card's height, so the row never leaves a band under it.
  */
 export const ThermalPanel: FC<ThermalPanelProps> = ({
   thermal,
@@ -139,9 +139,7 @@ export const ThermalPanel: FC<ThermalPanelProps> = ({
           unit="°C"
           decimals={1}
           emptyText={CHART_WAITING_TEXT}
-          className={clsx(
-            "[&_[data-slot=chart]]:h-auto [&_[data-slot=chart]]:min-h-32 [&_[data-slot=chart]]:flex-1",
-          )}
+          fill
         />
       )}
     </SystemPanel>

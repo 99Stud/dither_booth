@@ -29,7 +29,7 @@ The footer gives the Pi's model, how long it has been up and since when, when it
 
 ## Reading the throttle flags
 
-The Pi's firmware keeps a flag for each thing it had to do to protect the board. Each flag shows one word: **Clear** (never set since the Pi started), **Since boot** (set at some point, not now) or **Now**. A flag that isn't clear says underneath what it means. **Now** is urgent: the booth is slower than it should be at this moment. **Since boot** is the diagnosis an event's worth of "fine now" would hide: a supply that dipped once will dip again.
+The Pi's firmware keeps a flag for each thing it had to do to protect the board. Each flag shows one word: **Clear** (never set since the Pi started), **Since boot** (set at some point, not now) or **Now**. A flag that isn't clear says underneath what it means; for a clear one, tap its name. **Now** is urgent: the booth is slower than it should be at this moment. **Since boot** is the diagnosis an event's worth of "fine now" would hide: a supply that dipped once will dip again.
 
 - **Under-voltage since boot** → use the official 27 W supply and check the USB-C cable. See [Troubleshooting](/docs/maintenance/troubleshooting/#the-pi-itself).
 - **Soft temperature limit** or **Throttled** with a warm gauge → the cooler: contact with the SoC, the blower's intake under the M.2 shield, the air around the case.

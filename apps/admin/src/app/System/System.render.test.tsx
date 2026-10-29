@@ -5,7 +5,12 @@ import {
   installReducedMotion,
 } from "#lib/system/system.render-testing";
 import { createSnapshotFixture } from "#lib/system/system.testing";
-import { renderWithProviders, screen, within } from "#lib/test/render";
+import {
+  fireEvent,
+  renderWithProviders,
+  screen,
+  within,
+} from "#lib/test/render";
 
 import { System } from "./index";
 
@@ -56,6 +61,46 @@ describe("System page", () => {
     expect(screen.getByText("2954 rpm")).toBeDefined();
     expect(screen.getByText("2.44 GB")).toBeDefined();
     expect(screen.getByText("Raspberry Pi 5 Model B Rev 1.0")).toBeDefined();
+  });
+
+  test("a flag set now says so and what it means", async () => {
+    const fixture = createSnapshotFixture();
+    const clean = fixture.thermal.throttle!.now;
+
+    fetchStub = installFakeSystemFetch(
+      createSnapshotFixture({
+        thermal: {
+          ...fixture.thermal,
+          throttle: {
+            now: { ...clean, throttled: true },
+            sinceBoot: { ...clean, throttled: true },
+          },
+        },
+      }),
+    );
+    renderSystem();
+
+    const flags = await screen.findByRole("list", { name: "Throttle flags" });
+    const throttled = within(flags).getByText("Throttled").closest("li")!;
+
+    expect(within(throttled).getByText("Now")).toBeDefined();
+    expect(
+      within(throttled).getByText(/ran slower than it could/),
+    ).toBeDefined();
+    expect(within(flags).getAllByText("Clear")).toHaveLength(3);
+  });
+
+  test("a clear flag's name opens what it means", async () => {
+    fetchStub = installFakeSystemFetch(createSnapshotFixture());
+    renderSystem();
+
+    const flags = await screen.findByRole("list", { name: "Throttle flags" });
+
+    fireEvent.click(
+      within(flags).getByRole("button", { name: "Clock capped" }),
+    );
+
+    expect(await screen.findByText(/capped the CPU clock/)).toBeDefined();
   });
 
   test("off the booth, says which readings only the Pi has", async () => {
