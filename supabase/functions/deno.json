@@ -5,6 +5,7 @@
     "@dither-booth/protocol/heartbeat.fixtures": "../../packages/protocol/src/isomorphic/heartbeat.fixtures.ts",
     "@dither-booth/protocol/push": "../../packages/protocol/src/isomorphic/push.ts",
     "@dither-booth/protocol/registration": "../../packages/protocol/src/isomorphic/registration.ts",
+    "@dither-booth/protocol/team": "../../packages/protocol/src/isomorphic/team.ts",
     "@std/assert": "jsr:@std/assert@1.0.13",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2.118.0",
     "@types/web-push": "npm:@types/web-push@3.6.4",

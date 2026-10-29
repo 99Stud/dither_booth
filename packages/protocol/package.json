@@ -10,7 +10,8 @@
     "./heartbeat": "./src/isomorphic/heartbeat.ts",
     "./heartbeat.fixtures": "./src/isomorphic/heartbeat.fixtures.ts",
     "./push": "./src/isomorphic/push.ts",
-    "./registration": "./src/isomorphic/registration.ts"
+    "./registration": "./src/isomorphic/registration.ts",
+    "./team": "./src/isomorphic/team.ts"
   },
   "scripts": {
     "update": "bun update -i",
