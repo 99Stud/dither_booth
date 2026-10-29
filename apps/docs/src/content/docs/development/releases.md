@@ -39,11 +39,11 @@ Booths install tagged releases: `sudo booth update` downloads the bundle, checks
 | `package.json`, `bun.lock`, `pm2.config.js`, `puppeteer.config.cjs` | The root files PM2 and Puppeteer read                                |
 | `node_modules`, `apps/{engine,admin,shutter}/node_modules`          | Production dependencies only, with the pinned `bun`; symlinks kept   |
 | `packages/`                                                         | The workspace packages, as source: the app builds import them        |
-| `apps/{engine,admin,shutter}/dist`, their `package.json`            | The built apps                                                       |
+| `apps/{engine,admin,shutter}/dist`, their `package.json`            | The built apps, each with its own code: no app ships its `src/`      |
 | `apps/engine/drizzle`, `apps/engine/fontconfig`                     | The database migrations and the receipt viewer's font settings       |
 | `apps/docs/dist`                                                    | These docs, which admin serves at `/docs/`                           |
 
-The job builds on Debian Bookworm, on an arm64 runner. Its glibc is as old as any booth's (Raspberry Pi OS Bookworm, or Debian 13 on the booth today), and a binary built against an older glibc runs on a newer one: `bun install` there picks prebuilt `sharp` and `usb` binaries every booth can load, so the Pi never compiles. It installs with `PUPPETEER_SKIP_DOWNLOAD`: on arm64 Puppeteer uses Debian's Chromium. After the build, it reinstalls with `--production` to drop the dev dependencies, packs the bundle, then unpacks it and loads `sharp` and `usb` from it with its own `bun`. A bundle whose native modules don't load is never published.
+The job builds on Debian Bookworm, on an arm64 runner. Its glibc is as old as any booth's (Raspberry Pi OS Bookworm, or Debian 13 on the booth today), and a binary built against an older glibc runs on a newer one: `bun install` there picks prebuilt `sharp` and `usb` binaries every booth can load, so the Pi never compiles. It installs with `PUPPETEER_SKIP_DOWNLOAD`: on arm64 Puppeteer uses Debian's Chromium. After the build, it reinstalls with `--production` to drop the dev dependencies, packs the bundle, then unpacks it and loads `sharp` and `usb` from it with its own `bun`. Then it starts the engine from the unpacked bundle, in production mode, and waits up to 60 s for its `/healthz`, as `booth update`'s check does. A bundle whose native modules don't load, or whose engine imports something it doesn't carry, is never published.
 
 `SHA256SUMS` lists every asset of the release. It catches a truncated or corrupt download, not a forged one: it comes from the same release.
 
