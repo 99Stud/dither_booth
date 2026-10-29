@@ -37,6 +37,9 @@ export const LOGROTATE_MAX_SIZE_MB = 20;
 /** Makes Debian's daily logrotate.timer hourly, so the size cap holds. */
 export const LOGROTATE_TIMER_DROP_IN_PATH =
   "/etc/systemd/system/logrotate.timer.d/ditherbooth.conf";
+/** Lets the admin restart the apps, reboot and power off the Pi. */
+export const SYSTEM_POLKIT_RULE_PATH =
+  "/etc/polkit-1/rules.d/50-ditherbooth-system.rules";
 /** Members read the whole system journal; the admin's Logs page needs it. */
 export const JOURNAL_GROUP = "systemd-journal";
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";

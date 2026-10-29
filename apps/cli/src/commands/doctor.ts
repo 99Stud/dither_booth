@@ -18,6 +18,7 @@ import {
 import {
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
+  buildSystemPolkitRule,
 } from "#commands/service";
 import { printCommandBanner } from "#internal/banner";
 import {
@@ -37,12 +38,14 @@ import {
   SERVICE_USER,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
+  SYSTEM_POLKIT_RULE_PATH,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import { readHubRegistration } from "#internal/hub-registration";
 import {
   capture,
   detectLanIp,
+  isRoot,
   serviceBun,
   serviceBunExists,
   SilentExit,
@@ -393,6 +396,47 @@ export function journalGroupCheck(groups: string | undefined): CheckResult {
   };
 }
 
+/**
+ * `installed` is the rule's content, undefined when it is missing. The
+ * rules folder is root-only: without sudo there is nothing to compare.
+ */
+export function powerControlsCheck(
+  installed: string | undefined,
+  asRoot: boolean,
+): CheckResult | undefined {
+  if (!asRoot) return undefined;
+
+  if (installed === undefined) {
+    return {
+      status: "warn",
+      label: "Admin can't restart, reboot or power off the booth",
+      detail: "Run `sudo booth service`.",
+    };
+  }
+
+  if (installed !== buildSystemPolkitRule()) {
+    return {
+      status: "warn",
+      label: `Power permissions out of date (${SYSTEM_POLKIT_RULE_PATH})`,
+      detail: "Run `sudo booth service`.",
+    };
+  }
+
+  return {
+    status: "pass",
+    label: "Admin can restart, reboot and power off the booth",
+  };
+}
+
+async function checkPowerControls(results: CheckResult[]): Promise<void> {
+  const installed = await Bun.file(SYSTEM_POLKIT_RULE_PATH)
+    .text()
+    .catch(() => undefined);
+  const check = powerControlsCheck(installed, isRoot());
+
+  if (check) results.push(check);
+}
+
 async function checkLogRotation(
   results: CheckResult[],
   repoRoot: string,
@@ -470,6 +514,7 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkPm2Processes(results, repoRoot);
   await checkLogRotation(results, repoRoot);
   await checkJournalGroup(results);
+  await checkPowerControls(results);
 
   const lanIp = (await detectLanIp()) ?? "127.0.0.1";
   await checkHealthz(
