@@ -47,10 +47,6 @@ export const KIOSK_COMMAND_SCHEMA = z.discriminatedUnion("type", [
     commandId: z.string().min(1),
   }),
   /**
-   * A live view signal for one page: every page gets the broadcast, only
-   * the one with `pageId` acts on it.
-   */
-  /**
    * The release the engine runs. State, like maintenance: every stream
    * opens with it. A page that saw another one on an earlier connection
    * was loaded from an older release, and reloads once idle.
@@ -73,6 +69,10 @@ export const KIOSK_COMMAND_SCHEMA = z.discriminatedUnion("type", [
     type: z.literal("lottery-updated"),
     commandId: z.string().min(1),
   }),
+  /**
+   * A live view signal for one page: every page gets the broadcast, only
+   * the one with `pageId` acts on it.
+   */
   z.object({
     type: z.literal("camera"),
     pageId: z.string().trim().min(1).max(64),
