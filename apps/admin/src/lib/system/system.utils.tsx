@@ -1,5 +1,6 @@
 import type { StatusDotVariant } from "#components/Misc/StatusDot/internal/StatusDot.types";
 
+import type { SystemThrottleFlagKey } from "./system.constants";
 import type {
   SystemHistory,
   SystemSample,
@@ -96,7 +97,16 @@ export function getTemperatureStatus(
 export const activeThrottleFlags = (flags: SystemThrottleFlags) =>
   SYSTEM_THROTTLE_FLAGS.filter((flag) => flags[flag.key]);
 
-/** Throttling now is critical; a flag since boot is a warning to read. */
+type SystemThrottle = NonNullable<SystemSample["thermal"]["throttle"]>;
+
+/** One flag: set now is critical, set at some point since boot a warning. */
+export const getThrottleFlagStatus = (
+  throttle: SystemThrottle,
+  key: SystemThrottleFlagKey,
+): SystemStatus =>
+  throttle.now[key] ? "critical" : throttle.sinceBoot[key] ? "warning" : "ok";
+
+/** The worst flag: throttling now is critical, a flag since boot a warning. */
 export function getThrottleStatus(
   throttle: SystemSample["thermal"]["throttle"],
 ): SystemStatus | null {
@@ -104,11 +114,11 @@ export function getThrottleStatus(
     return null;
   }
 
-  if (activeThrottleFlags(throttle.now).length > 0) {
-    return "critical";
-  }
-
-  return activeThrottleFlags(throttle.sinceBoot).length > 0 ? "warning" : "ok";
+  return worstStatus(
+    ...SYSTEM_THROTTLE_FLAGS.map((flag) =>
+      getThrottleFlagStatus(throttle, flag.key),
+    ),
+  );
 }
 
 export const getThermalStatus = (thermal: SystemSample["thermal"]) =>

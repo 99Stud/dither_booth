@@ -85,13 +85,21 @@ The engine binds **`127.0.0.1:3001`**. Nothing outside the Pi reaches it except 
 
 ## System privileges
 
-| Actor                       | Runs as     | Can                                                                                                                                                       |
-| --------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PM2 and the three apps      | `pi`        | Its files, the printer (`lp` group), the journal (`systemd-journal` group), `vcgencmd` (`video` group), NetworkManager actions allowed by the polkit rule |
-| Network watch               | root        | Bring the booth Wi-Fi up/down, nftables redirect, restart avahi                                                                                           |
-| `booth install` and friends | root (sudo) | Provisioning                                                                                                                                              |
+| Actor                       | Runs as     | Can                                                                                                                                            |
+| --------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| PM2 and the three apps      | `pi`        | Its files, the printer (`lp` group), the journal (`systemd-journal` group), `vcgencmd` (`video` group), the actions the two polkit rules allow |
+| Network watch               | root        | Bring the booth Wi-Fi up/down, nftables redirect, restart avahi                                                                                |
+| `booth install` and friends | root (sudo) | Provisioning                                                                                                                                   |
 
-The polkit rule grants the service user four NetworkManager actions and nothing wider: modify system connections, network control, Wi-Fi scan, Wi-Fi sharing.
+The network polkit rule (`booth network setup`) grants the service user four NetworkManager actions and nothing wider: modify system connections, network control, Wi-Fi scan, Wi-Fi sharing.
+
+The system polkit rule (`booth service`, `50-ditherbooth-system.rules`) grants it what the System page's **Power** panel runs, and nothing wider: restart `ditherbooth.service` (not stop it, not any other unit), reboot, power off. The reboot and power-off grants include logind's `-multiple-sessions` variants, which apply while someone is logged in over SSH, but not `-ignore-inhibit`: a process holding a shutdown lock still blocks them.
+
+## Power
+
+The Power panel posts to **`POST https://<booth>:3002/admin/power`** with `{"action": "restart-apps" | "reboot" | "power-off"}`. The admin server runs `systemctl --no-block` with the matching verb and answers 202 once systemd has queued the job, before it stops the admin itself. Like the rest of admin it is **network-trusted**: the POST is refused with 403 unless `Origin` is the admin's own (as the Logs socket checks it), so another site open on a staff device can't reboot the booth, but anyone who can load admin can. A GET on the same route says the actions are there.
+
+The admin server serves the route only under PM2, on the booth: under `bun run dev` it would restart or reboot the developer's machine. Code: `apps/admin/src/lib/power/`.
 
 ## System readings
 

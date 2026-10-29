@@ -1,7 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
-import { journalGroupCheck, logRotationCheck } from "./doctor";
-import { buildLogrotateRule, buildLogrotateTimerDropIn } from "./service";
+import {
+  journalGroupCheck,
+  logRotationCheck,
+  powerControlsCheck,
+} from "./doctor";
+import {
+  buildLogrotateRule,
+  buildLogrotateTimerDropIn,
+  buildSystemPolkitRule,
+} from "./service";
 
 describe("doctor: log rotation", () => {
   const installed = {
@@ -64,5 +72,26 @@ describe("doctor: journal access", () => {
 
   test("warns when the user's groups can't be read", () => {
     expect(journalGroupCheck(undefined).status).toBe("warn");
+  });
+});
+
+describe("doctor: power controls", () => {
+  test("passes when the rule is the one this CLI writes", () => {
+    expect(powerControlsCheck(buildSystemPolkitRule(), true)?.status).toBe(
+      "pass",
+    );
+  });
+
+  test("warns when the rule is missing or out of date", () => {
+    for (const installed of [undefined, "// an older rule\n"]) {
+      const check = powerControlsCheck(installed, true);
+
+      expect(check?.status).toBe("warn");
+      expect(check?.detail).toContain("sudo booth service");
+    }
+  });
+
+  test("says nothing without sudo: the rules folder is root-only", () => {
+    expect(powerControlsCheck(undefined, false)).toBeUndefined();
   });
 });

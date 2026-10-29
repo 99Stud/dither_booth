@@ -51,7 +51,8 @@ const randomPriceSplit = (total: number, count: number): number[] => {
 /**
  * Everything below the photo on Tartines' photo ticket: date, venue, items,
  * total, the event's partner row, QR, ticket number and the DitherBooth
- * badge. Other kits reuse it under their own header.
+ * badge. HalloweenTicketBody is a copy with ghosts around the thank-you
+ * line: change both.
  */
 export const TartinesTicketBody: FC = () => {
   const { ticketItems, ticketRef } = receiptViewerRoute.useSearch();

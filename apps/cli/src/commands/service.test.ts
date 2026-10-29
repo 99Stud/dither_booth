@@ -8,6 +8,7 @@ import {
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
   buildNetworkDispatcher,
+  buildSystemPolkitRule,
   buildUnit,
 } from "./service";
 
@@ -105,5 +106,71 @@ describe("network dispatcher on the booth Wi-Fi", () => {
     expect(buildNetworkDispatcher("/opt/dither-booth")).toContain(
       '[ "$current" = "10.42.0.1" ] && exit 0',
     );
+  });
+});
+
+describe("system polkit rule", () => {
+  type Action = { id: string; lookup: (key: string) => string | undefined };
+  type Rule = (action: Action, subject: { user: string }) => string;
+
+  // Runs the rule as polkit would: `addRule` hands over the function.
+  const loadRule = (): Rule => {
+    let rule: Rule | undefined;
+    const polkit = {
+      Result: { YES: "yes", NOT_HANDLED: "not-handled" },
+      addRule: (fn: Rule) => {
+        rule = fn;
+      },
+    };
+
+    new Function("polkit", buildSystemPolkitRule())(polkit);
+
+    if (!rule) throw new Error("the rule never called polkit.addRule");
+    return rule;
+  };
+
+  const unitAction = (unit: string, verb: string): Action => ({
+    id: "org.freedesktop.systemd1.manage-units",
+    lookup: (key) => ({ unit, verb })[key],
+  });
+  const loginAction = (id: string): Action => ({ id, lookup: () => undefined });
+  const pi = { user: "pi" };
+
+  test("lets the service user restart the booth's unit, and nothing else", () => {
+    const rule = loadRule();
+
+    expect(rule(unitAction("ditherbooth.service", "restart"), pi)).toBe("yes");
+    expect(rule(unitAction("ditherbooth.service", "stop"), pi)).toBe(
+      "not-handled",
+    );
+    expect(rule(unitAction("ssh.service", "restart"), pi)).toBe("not-handled");
+  });
+
+  test("lets the service user reboot and power off, even with an SSH session open", () => {
+    const rule = loadRule();
+
+    for (const id of [
+      "org.freedesktop.login1.reboot",
+      "org.freedesktop.login1.reboot-multiple-sessions",
+      "org.freedesktop.login1.power-off",
+      "org.freedesktop.login1.power-off-multiple-sessions",
+    ]) {
+      expect(rule(loginAction(id), pi)).toBe("yes");
+    }
+
+    expect(
+      rule(loginAction("org.freedesktop.login1.reboot-ignore-inhibit"), pi),
+    ).toBe("not-handled");
+  });
+
+  test("grants nothing to another user", () => {
+    const rule = loadRule();
+
+    expect(
+      rule(loginAction("org.freedesktop.login1.reboot"), { user: "guest" }),
+    ).toBe("not-handled");
+    expect(
+      rule(unitAction("ditherbooth.service", "restart"), { user: "guest" }),
+    ).toBe("not-handled");
   });
 });
