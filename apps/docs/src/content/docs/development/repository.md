@@ -48,7 +48,7 @@ import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/routes"; // good
 import { RECEIPT_VIEWER_PATH } from "@dither-booth/shared/src/routes"; // never
 ```
 
-**Private aliases = `package.json` `imports`** (`#internal/*`, `#server/*`…), valid only inside the package. Prefer scoped aliases over a broad `#*`.
+**Private aliases = `package.json` `imports`** (`#internal/*`, `#server/*`…), valid only inside the package. Prefer scoped aliases over a broad `#*`. An app's build bundles its own aliases into `dist/`: a release ships no `src/` for them to point at (`apps/engine/scripts/build.ts` maps them as `package.json` does).
 
 **No `tsconfig` `paths`** to fake workspace imports: it's TypeScript-only and bypasses package metadata. Need a module from another package → add an `exports` entry.
 

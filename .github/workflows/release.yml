@@ -56,7 +56,7 @@ jobs:
       - name: Install system tools
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends ca-certificates git unzip zstd
+          apt-get install -y --no-install-recommends ca-certificates curl git unzip zstd
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -126,6 +126,33 @@ jobs:
             if (typeof usb.getDeviceList !== "function") throw new Error("usb did not load");
             console.log("sharp", sharp.versions.sharp, "and usb load");
           '
+
+      # The engine started from the unpacked bundle, as PM2 starts it, and
+      # answering /healthz as `booth update`'s check waits for. A bundle that
+      # imports anything it doesn't carry (`src/`, a dev dependency) stops
+      # here, not on a booth. The TLS manifest only names the booth's address;
+      # the engine reads no certificate.
+      - name: Smoke-test the engine
+        env:
+          BUNDLE: ${{ steps.release.outputs.bundle }}
+        run: |
+          unpacked="$RUNNER_TEMP/bundle"
+          mkdir -p "$unpacked/.local/tls"
+          printf '{"caPath":"%s","certPath":"%s","keyPath":"%s","generatedAt":"%s","hostnames":["ci"],"publicIp":"127.0.0.1"}' \
+            /dev/null /dev/null /dev/null "$(date -u +%FT%TZ)" > "$unpacked/.local/tls/booth-manifest.json"
+          cd "$unpacked/apps/engine"
+          NODE_ENV=production ENGINE_PORT=39111 ../../node_modules/.bin/bun dist/server.js > "$RUNNER_TEMP/engine.log" 2>&1 &
+          engine=$!
+          for _ in $(seq 60); do
+            if curl -sf http://127.0.0.1:39111/healthz; then
+              kill "$engine"
+              exit 0
+            fi
+            kill -0 "$engine" 2>/dev/null || break
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/engine.log"
+          exit 1
 
       - name: Upload the bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
