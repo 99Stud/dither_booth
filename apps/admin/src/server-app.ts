@@ -21,7 +21,7 @@ import {
   TRPC_PROXY_PATH,
   getTrpcProxyUpstreamPath,
 } from "@dither-booth/shared/trpc-proxy";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { ADMIN_SERVER_LOG_SOURCE } from "#lib/constants";
 import { DOCS_DIST_RELATIVE_PATH } from "#lib/docs/docs.constants";
@@ -62,6 +62,9 @@ export async function runAdminServer(options: {
   const allowedHostnames = await getWebTlsHostnames({
     repoRoot: ADMIN_REPO_ROOT,
   });
+  // The action routes' check: a POST comes from this admin, not another site.
+  const isAdminOrigin = (origin: string | undefined) =>
+    isAllowedConfiguredOrigin(origin, adminOrigin, allowedHostnames);
 
   return await runBrowserServer({
     allowedHostnames,
@@ -108,25 +111,16 @@ export async function runAdminServer(options: {
       ...(isPm2Managed
         ? {
             [POWER_ROUTE_PATH]: createPowerRoute({
-              isAllowedOrigin: (origin) =>
-                isAllowedConfiguredOrigin(
-                  origin,
-                  adminOrigin,
-                  allowedHostnames,
-                ),
+              isAllowedOrigin: isAdminOrigin,
               runAction: (action) => runPowerAction(action, hostSystemctlRun),
             }),
             [UPDATE_ROUTE_PATH]: createUpdateRoute({
               release: readRelease(ADMIN_REPO_ROOT),
               checker: createReleaseChecker(),
-              isAllowedOrigin: (origin) =>
-                isAllowedConfiguredOrigin(
-                  origin,
-                  adminOrigin,
-                  allowedHostnames,
-                ),
+              isAllowedOrigin: isAdminOrigin,
               ...createHostUpdateDeps({
                 repoRoot: ADMIN_REPO_ROOT,
+                releasesParent: dirname(ADMIN_REPO_ROOT),
                 run: hostSystemctlRun,
               }),
             }),

@@ -1,4 +1,7 @@
-import type { BoothUpdateJob } from "@dither-booth/shared/booth-update";
+import type {
+  BoothRollbackTarget,
+  BoothUpdateJob,
+} from "@dither-booth/shared/booth-update";
 
 import { describe, expect, it } from "bun:test";
 
@@ -25,11 +28,13 @@ const post = (body: unknown, origin: string | null = ADMIN) =>
 
 const createRoute = ({
   job = null,
-  history = [],
+  jobRunning = job?.state === "running",
+  previous = null,
   release = "0.7.2",
 }: {
   job?: BoothUpdateJob | null;
-  history?: BoothUpdateJob[];
+  jobRunning?: boolean;
+  previous?: BoothRollbackTarget;
   release?: string;
 } = {}) => {
   const started: string[] = [];
@@ -47,8 +52,13 @@ const createRoute = ({
       },
       stop: () => {},
     },
-    readJob: async () => job,
-    readHistory: async () => history,
+    readBooth: async () => ({
+      job,
+      jobRunning,
+      log: [],
+      previous,
+      freeBytes: 5 * 1024 ** 3,
+    }),
     startUnit: async (unit) => {
       started.push(unit);
       return { ok: true };
@@ -93,6 +103,22 @@ describe("createUpdateRoute", () => {
     expect(started).toEqual([]);
   });
 
+  it("starts a new job over one a crash left running", async () => {
+    const { route, started } = createRoute({
+      job: createJobFixture({
+        state: "running",
+        step: "download",
+        pid: 2_147_483_000,
+      }),
+      jobRunning: false,
+    });
+
+    expect(
+      (await route(post({ action: "install", version: "0.8.0" })))?.status,
+    ).toBe(202);
+    expect(started).toEqual(["ditherbooth-update@0.8.0.service"]);
+  });
+
   it("refuses a second job while one runs", async () => {
     const { route, started } = createRoute({
       job: createJobFixture({ state: "running", step: "download" }),
@@ -112,7 +138,12 @@ describe("createUpdateRoute", () => {
   it("rolls back only with the database restored once the newer release migrated it", async () => {
     const { route, started } = createRoute({
       release: "0.8.0",
-      history: [createJobFixture({ migrated: true })],
+      previous: {
+        release: "0.7.2",
+        migrated: true,
+        backup: "/mnt/ssd/dither-booth/backups/update-x.sqlite",
+        backupTakenAt: "2026-10-29T10:00:00.000Z",
+      },
     });
 
     expect(
@@ -122,6 +153,15 @@ describe("createUpdateRoute", () => {
       (await route(post({ action: "rollback", mode: "restore-db" })))?.status,
     ).toBe(202);
     expect(started).toEqual(["ditherbooth-rollback@restore\\x2ddb.service"]);
+  });
+
+  it("offers no rollback the CLI would refuse", async () => {
+    const { route, started } = createRoute({ release: "0.8.0" });
+
+    expect(
+      (await route(post({ action: "rollback", mode: "keep-db" })))?.status,
+    ).toBe(409);
+    expect(started).toEqual([]);
   });
 
   it("checks GitHub when asked", async () => {

@@ -61,6 +61,17 @@ describe("createPreviewPrinter", () => {
     });
   });
 
+  test("is printing from a job's start to its end, queued ones included", async () => {
+    const { printer } = await setup();
+    const raster = await rasterCommand();
+
+    expect(printer.isPrinting()).toBe(false);
+    const jobs = Promise.all([printer.print(raster), printer.print(raster)]);
+    expect(printer.isPrinting()).toBe(true);
+    await jobs;
+    expect(printer.isPrinting()).toBe(false);
+  });
+
   test("saves each raster job as a PNG and opens it, in order", async () => {
     const { opened, previewDir, printer } = await setup();
     const raster = await rasterCommand();

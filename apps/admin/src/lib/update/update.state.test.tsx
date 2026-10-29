@@ -10,65 +10,80 @@ const latest = (version: string) => ({
   url: "",
   publishedAt: null,
 });
+const booth = {
+  isRelease: true,
+  check: CHECK,
+  job: null,
+  jobRunning: false,
+  log: [],
+  previous: null,
+  freeBytes: 5 * 1024 ** 3,
+};
 
 describe("buildUpdateSnapshot", () => {
   it("offers a newer release, not the same or an older one", () => {
-    const base = { isRelease: true, check: CHECK, job: null, history: [] };
-
     expect(
       buildUpdateSnapshot({
-        ...base,
+        ...booth,
         release: "0.7.2",
         latest: latest("0.8.0"),
       }).updateAvailable,
     ).toBe(true);
     expect(
       buildUpdateSnapshot({
-        ...base,
+        ...booth,
         release: "0.8.0",
         latest: latest("0.8.0"),
       }).updateAvailable,
     ).toBe(false);
     expect(
       buildUpdateSnapshot({
-        ...base,
+        ...booth,
         release: "0.9.0-rc.1",
         latest: latest("0.8.0"),
       }).updateAvailable,
     ).toBe(false);
   });
 
-  it("offers any release to a checkout, which has no rollback", () => {
+  it("offers any release to a checkout, which has nothing to go back to", () => {
     const snapshot = buildUpdateSnapshot({
+      ...booth,
       release: "0.7.2-2-g806eca4",
       isRelease: false,
       latest: latest("0.7.2"),
-      check: CHECK,
-      job: null,
-      history: [createJobFixture({ to: "0.7.2-2-g806eca4" })],
+      previous: {
+        release: "x",
+        migrated: false,
+        backup: null,
+        backupTakenAt: null,
+      },
     });
 
     expect(snapshot.updateAvailable).toBe(true);
     expect(snapshot.previous).toBeNull();
   });
 
-  it("goes back to where the update to this release came from, saying if it migrated", () => {
-    const snapshot = buildUpdateSnapshot({
-      release: "0.8.0",
-      isRelease: true,
-      latest: null,
-      check: CHECK,
-      job: null,
-      history: [
-        createJobFixture({ state: "failed", to: "0.9.0", from: "0.8.0" }),
-        createJobFixture({ migrated: true }),
-      ],
-    });
-
-    expect(snapshot.previous).toEqual({
+  it("passes on where the CLI says a rollback goes, and whether a job really runs", () => {
+    const previous = {
       release: "0.7.2",
       migrated: true,
+      backup: "/mnt/ssd/dither-booth/backups/update-x.sqlite",
       backupTakenAt: "2026-10-29T10:00:00.000Z",
+    };
+    const snapshot = buildUpdateSnapshot({
+      ...booth,
+      release: "0.8.0",
+      latest: null,
+      job: createJobFixture({ state: "running" }),
+      jobRunning: false,
+      previous,
+    });
+
+    expect(snapshot.previous).toEqual(previous);
+    expect(snapshot.jobRunning).toBe(false);
+    expect(snapshot.preflight).toEqual({
+      freeBytes: 5 * 1024 ** 3,
+      neededBytes: 1024 ** 3,
     });
   });
 });

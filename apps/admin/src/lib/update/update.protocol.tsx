@@ -1,6 +1,7 @@
 import {
   RELEASE_VERSION_PATTERN,
   boothRollbackModeSchema,
+  boothRollbackTargetSchema,
   boothUpdateJobSchema,
 } from "@dither-booth/shared/booth-update";
 import z from "zod";
@@ -40,15 +41,21 @@ export const updateSnapshotSchema = z.object({
   check: releaseCheckSchema,
   /** The job running now, or the last one. */
   job: boothUpdateJobSchema.nullable(),
-  /** The release the last update came from: where a rollback goes. */
-  previous: z
-    .object({
-      release: z.string(),
-      /** The newer release changed the database: a rollback restores it. */
-      migrated: z.boolean(),
-      backupTakenAt: z.string().nullable(),
-    })
-    .nullable(),
+  /**
+   * The job runs, and its process still does. A `running` job a crash
+   * left behind is not running: the booth ends it at its next start.
+   */
+  jobRunning: z.boolean(),
+  /** The job's last lines from the journal (`booth`), oldest first. */
+  log: z.array(z.string()),
+  /** Where `booth rollback` would go now, as the CLI wrote it. */
+  previous: boothRollbackTargetSchema,
+  /** What an update needs, as the admin server sees it now. */
+  preflight: z.object({
+    /** Free bytes next to the releases; null off the booth. */
+    freeBytes: z.number().nullable(),
+    neededBytes: z.number(),
+  }),
 });
 
 export type UpdateSnapshot = z.infer<typeof updateSnapshotSchema>;

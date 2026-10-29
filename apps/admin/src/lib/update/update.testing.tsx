@@ -16,7 +16,9 @@ export const createJobFixture = (
   updatedAt: "2026-10-29T10:04:00.000Z",
   error: null,
   backup: "/mnt/ssd/dither-booth/backups/update-x.sqlite",
+  migrationsBefore: 3,
   migrated: false,
+  pid: null,
   ...overrides,
 });
 
@@ -34,6 +36,9 @@ export const createSnapshotFixture = (
   updateAvailable: false,
   check: { state: "ok", checkedAt: new Date().toISOString(), message: null },
   job: null,
+  jobRunning: false,
+  log: [],
   previous: null,
+  preflight: { freeBytes: 5 * 1024 ** 3, neededBytes: 1024 ** 3 },
   ...overrides,
 });
