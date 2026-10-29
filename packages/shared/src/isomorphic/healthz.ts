@@ -18,6 +18,12 @@ export const healthzPayloadBaseSchema = z.object({
   timestamp: z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
     message: "Invalid ISO timestamp.",
   }),
+  /**
+   * The release the server runs, read once at its start. A kiosk page
+   * compares it with the engine's to know its code is the old one's. A
+   * server from before leaves it out.
+   */
+  release: z.string().optional(),
 });
 
 export const engineHealthzPayloadSchema = healthzPayloadBaseSchema.extend({
@@ -44,6 +50,7 @@ export type HealthzService = z.infer<typeof healthzServiceSchema>;
 export type HealthzPayload<TService extends string = HealthzService> = {
   ok: true;
   mode: HealthzMode;
+  release?: string;
   service: TService;
   timestamp: string;
 };
@@ -51,14 +58,17 @@ export type HealthzPayload<TService extends string = HealthzService> = {
 export function createHealthzPayload<const TService extends string>({
   mode,
   service,
+  release,
 }: {
   mode: HealthzMode;
   service: TService;
+  release?: string;
 }): HealthzPayload<TService> {
   return {
     ok: true,
     mode,
     service,
     timestamp: new Date().toISOString(),
+    ...(release ? { release } : {}),
   };
 }

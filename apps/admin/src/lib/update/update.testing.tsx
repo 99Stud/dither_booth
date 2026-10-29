@@ -18,7 +18,7 @@ export const createJobFixture = (
   backup: "/mnt/ssd/dither-booth/backups/update-x.sqlite",
   migrationsBefore: 3,
   migrated: false,
-  pid: null,
+  process: null,
   ...overrides,
 });
 
@@ -38,6 +38,7 @@ export const createSnapshotFixture = (
   job: null,
   jobRunning: false,
   log: [],
+  history: [],
   previous: null,
   preflight: { freeBytes: 5 * 1024 ** 3, neededBytes: 1024 ** 3 },
   ...overrides,

@@ -303,7 +303,11 @@ export async function runEngineServer(options: {
             service: ENGINE_HEALTHZ_SERVICE,
           }),
           // `booth update` asks this before its switch.
-          busy: visits.hasOpenVisit() ? "A guest is in a visit." : null,
+          busy: printer.isPrinting()
+            ? "A ticket is printing."
+            : visits.hasOpenVisit()
+              ? "A guest is in a visit."
+              : null,
         }),
       );
       return;

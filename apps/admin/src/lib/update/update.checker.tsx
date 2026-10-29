@@ -1,6 +1,8 @@
+import type { LatestRelease } from "@dither-booth/shared/booth-update";
+
 import { fetchLatestRelease } from "@dither-booth/shared/booth-update";
 
-import type { LatestRelease, ReleaseCheck } from "./update.protocol";
+import type { ReleaseCheck } from "./update.protocol";
 
 import { UPDATE_CHECK_INTERVAL_MS } from "./update.constants";
 

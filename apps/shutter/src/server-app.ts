@@ -17,6 +17,7 @@ import {
 } from "@dither-booth/ports";
 import { DARKROOM_PATH } from "@dither-booth/shared/darkroom";
 import { SHUTTER_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
+import { readRelease } from "@dither-booth/shared/server/release";
 import {
   TRPC_PROXY_PATH,
   getTrpcProxyUpstreamPath,
@@ -83,6 +84,7 @@ export async function runShutterServer(options: {
     getTrpcProxyUpstreamPath,
     healthz: {
       service: SHUTTER_HEALTHZ_SERVICE,
+      release: readRelease(SHUTTER_REPO_ROOT),
     },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {

@@ -254,7 +254,7 @@ describe("Software panel", () => {
         job: createJobFixture({
           state: "running",
           step: "download",
-          pid: 2_147_483_000,
+          process: { pid: 2_147_483_000, bootId: "gone", startedTicks: 0 },
           updatedAt: new Date().toISOString(),
         }),
         jobRunning: false,

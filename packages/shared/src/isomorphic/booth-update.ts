@@ -9,6 +9,9 @@ import { z } from "zod";
 /** Where releases are published: GitHub, `owner/name`. */
 export const BOOTH_RELEASES_REPO = "99Stud/dither_booth";
 
+/** Room an update needs next to the releases: the download and the unpacked bundle, with margin. */
+export const BOOTH_UPDATE_MIN_FREE_BYTES = 1024 ** 3;
+
 export const BOOTH_UPDATE_STATE_DIR = "/var/lib/ditherbooth/update";
 /** The job running now, or the last one. */
 export const BOOTH_UPDATE_STATUS_PATH = `${BOOTH_UPDATE_STATE_DIR}/status.json`;
@@ -236,3 +239,26 @@ export function compareReleaseVersions(a: string, b: string): number {
 
   return 0;
 }
+
+/**
+ * Whether an event runs at `now`, given its start and end: a side left
+ * empty is open. The engine's quiet check and admin's warnings agree.
+ */
+export const isEventRunning = (
+  event: {
+    startsAt: string | Date | null;
+    endsAt: string | Date | null;
+  } | null,
+  now: number,
+): boolean => {
+  if (!event) return false;
+  const at = (value: string | Date | null) =>
+    value === null
+      ? null
+      : value instanceof Date
+        ? value.getTime()
+        : Date.parse(value);
+  const starts = at(event.startsAt);
+  const ends = at(event.endsAt);
+  return (starts === null || starts <= now) && (ends === null || now < ends);
+};

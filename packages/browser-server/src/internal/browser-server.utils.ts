@@ -36,9 +36,11 @@ function getCacheControlHeader(
 export function createHealthzRoute({
   mode,
   service,
+  release,
 }: {
   mode: BrowserServerMode;
   service: string;
+  release?: string;
 }): RouteHandler {
   return (req) => {
     if (req.method !== "GET") {
@@ -53,6 +55,7 @@ export function createHealthzRoute({
     const payload = createHealthzPayload({
       mode,
       service,
+      release,
     }) satisfies BrowserServerHealthzPayload;
 
     return Response.json(payload);

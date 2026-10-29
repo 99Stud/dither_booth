@@ -1,3 +1,4 @@
+import type { LatestRelease } from "@dither-booth/shared/booth-update";
 import type { FC } from "react";
 
 import { Button } from "@dither-booth/ui/components/ui/button";
@@ -8,8 +9,6 @@ import {
 } from "@dither-booth/ui/components/ui/collapsible";
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
-
-import type { LatestRelease } from "#lib/update/update.protocol";
 
 import { ReleaseNotesBody } from "#lib/update/update.markdown";
 

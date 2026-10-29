@@ -55,6 +55,7 @@ export async function runAdminServer(options: {
   indexHtml: Bun.HTMLBundle;
 }) {
   const isPm2Managed = isPm2ManagedRuntime();
+  const release = readRelease(ADMIN_REPO_ROOT);
 
   const tlsCertPath = getWebTlsCertPath({ repoRoot: ADMIN_REPO_ROOT });
   const tlsKeyPath = getWebTlsKeyPath({ repoRoot: ADMIN_REPO_ROOT });
@@ -74,6 +75,7 @@ export async function runAdminServer(options: {
     getTrpcProxyUpstreamPath,
     healthz: {
       service: ADMIN_HEALTHZ_SERVICE,
+      release,
     },
     indexHtml: options.indexHtml,
     logStarted: ({ details }) => {
@@ -115,7 +117,7 @@ export async function runAdminServer(options: {
               runAction: (action) => runPowerAction(action, hostSystemctlRun),
             }),
             [UPDATE_ROUTE_PATH]: createUpdateRoute({
-              release: readRelease(ADMIN_REPO_ROOT),
+              release,
               checker: createReleaseChecker(),
               isAllowedOrigin: isAdminOrigin,
               ...createHostUpdateDeps({

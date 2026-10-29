@@ -2,6 +2,7 @@ import {
   isJobRunning,
   isReleaseBundle,
   readBoothRollbackTarget,
+  readBoothUpdateHistory,
   readBoothUpdateJob,
 } from "@dither-booth/shared/server/booth-update";
 import { statfs } from "node:fs/promises";
@@ -57,8 +58,9 @@ export const createHostUpdateDeps = ({
 }): Pick<UpdateRouteDeps, "isRelease" | "readBooth" | "startUnit"> => ({
   isRelease: isReleaseBundle(repoRoot),
   async readBooth() {
-    const [job, previous, free] = await Promise.all([
+    const [job, history, previous, free] = await Promise.all([
       readBoothUpdateJob(),
+      readBoothUpdateHistory(),
       readBoothRollbackTarget(),
       statfs(releasesParent).then(
         (stats) => stats.bavail * stats.bsize,
@@ -70,6 +72,7 @@ export const createHostUpdateDeps = ({
       job,
       jobRunning: isJobRunning(job),
       log: job ? await readJobLog(job.startedAt) : [],
+      history,
       previous,
       freeBytes: free,
     };

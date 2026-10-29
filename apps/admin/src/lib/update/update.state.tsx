@@ -1,18 +1,13 @@
 import {
+  BOOTH_UPDATE_MIN_FREE_BYTES,
   type BoothRollbackTarget,
   type BoothUpdateJob,
+  type LatestRelease,
   compareReleaseVersions,
   isReleaseVersion,
 } from "@dither-booth/shared/booth-update";
 
-import type {
-  LatestRelease,
-  ReleaseCheck,
-  UpdateSnapshot,
-} from "./update.protocol";
-
-/** Room an update needs next to the releases, as the CLI checks it. */
-export const UPDATE_NEEDED_BYTES = 1024 ** 3;
+import type { ReleaseCheck, UpdateSnapshot } from "./update.protocol";
 
 /** The Software panel's snapshot, from what the booth and GitHub say. */
 export function buildUpdateSnapshot({
@@ -23,6 +18,7 @@ export function buildUpdateSnapshot({
   job,
   jobRunning,
   log,
+  history,
   previous,
   freeBytes,
 }: {
@@ -33,6 +29,7 @@ export function buildUpdateSnapshot({
   job: BoothUpdateJob | null;
   jobRunning: boolean;
   log: string[];
+  history: BoothUpdateJob[];
   previous: BoothRollbackTarget;
   freeBytes: number | null;
 }): UpdateSnapshot {
@@ -51,8 +48,9 @@ export function buildUpdateSnapshot({
     job,
     jobRunning,
     log,
+    history,
     // The CLI writes it after every job; a checkout has none yet.
     previous: isRelease ? previous : null,
-    preflight: { freeBytes, neededBytes: UPDATE_NEEDED_BYTES },
+    preflight: { freeBytes, neededBytes: BOOTH_UPDATE_MIN_FREE_BYTES },
   };
 }

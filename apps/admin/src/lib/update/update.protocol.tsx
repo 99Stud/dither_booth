@@ -1,7 +1,9 @@
 import {
+  type LatestRelease,
   RELEASE_VERSION_PATTERN,
   boothRollbackModeSchema,
   boothRollbackTargetSchema,
+  boothUpdateHistorySchema,
   boothUpdateJobSchema,
 } from "@dither-booth/shared/booth-update";
 import z from "zod";
@@ -11,15 +13,13 @@ import z from "zod";
  * the System page.
  */
 
+/** `fetchLatestRelease`'s answer, as the snapshot carries it. */
 export const latestReleaseSchema = z.object({
   version: z.string(),
-  /** GitHub's release notes, as markdown. */
   notes: z.string(),
   url: z.string(),
   publishedAt: z.string().nullable(),
-});
-
-export type LatestRelease = z.infer<typeof latestReleaseSchema>;
+}) satisfies z.ZodType<LatestRelease>;
 
 export const releaseCheckSchema = z.object({
   /** `unreachable`: no internet, or GitHub didn't answer. Not an error. */
@@ -48,6 +48,8 @@ export const updateSnapshotSchema = z.object({
   jobRunning: z.boolean(),
   /** The job's last lines from the journal (`booth`), oldest first. */
   log: z.array(z.string()),
+  /** Finished jobs, newest first. */
+  history: boothUpdateHistorySchema,
   /** Where `booth rollback` would go now, as the CLI wrote it. */
   previous: boothRollbackTargetSchema,
   /** What an update needs, as the admin server sees it now. */

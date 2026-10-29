@@ -1,4 +1,5 @@
 import {
+  BOOTH_UPDATE_MIN_FREE_BYTES,
   type BoothRollbackMode,
   type BoothRollbackTarget,
   type BoothUpdateJob,
@@ -62,7 +63,7 @@ import {
  */
 
 /** Room the download and the unpacked release need, with margin. */
-export const MIN_FREE_BYTES = 1024 ** 3;
+export const MIN_FREE_BYTES = BOOTH_UPDATE_MIN_FREE_BYTES;
 /** How long a new release gets to come up before it's rolled back. */
 export const CHECK_TIMEOUT_MS = 120_000;
 const CHECK_INTERVAL_MS = 3_000;
