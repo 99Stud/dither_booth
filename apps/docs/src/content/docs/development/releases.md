@@ -43,7 +43,7 @@ Booths install tagged releases: `sudo booth update` downloads the bundle, checks
 | `apps/engine/drizzle`, `apps/engine/fontconfig`                     | The database migrations and the receipt viewer's font settings       |
 | `apps/docs/dist`                                                    | These docs, which admin serves at `/docs/`                           |
 
-The job builds on Debian Bookworm, Raspberry Pi OS's Debian, on an arm64 runner: `bun install` there picks the prebuilt `sharp` and `usb` binaries the Pi can load, so the Pi never compiles. It installs with `PUPPETEER_SKIP_DOWNLOAD`: on arm64 Puppeteer uses Debian's Chromium. After the build, it reinstalls with `--production` to drop the dev dependencies, packs the bundle, then unpacks it and loads `sharp` and `usb` from it with its own `bun`. A bundle whose native modules don't load is never published.
+The job builds on Debian Bookworm, on an arm64 runner. Its glibc is as old as any booth's (Raspberry Pi OS Bookworm, or Debian 13 on the booth today), and a binary built against an older glibc runs on a newer one: `bun install` there picks prebuilt `sharp` and `usb` binaries every booth can load, so the Pi never compiles. It installs with `PUPPETEER_SKIP_DOWNLOAD`: on arm64 Puppeteer uses Debian's Chromium. After the build, it reinstalls with `--production` to drop the dev dependencies, packs the bundle, then unpacks it and loads `sharp` and `usb` from it with its own `bun`. A bundle whose native modules don't load is never published.
 
 `SHA256SUMS` lists every asset of the release. It catches a truncated or corrupt download, not a forged one: it comes from the same release.
 
