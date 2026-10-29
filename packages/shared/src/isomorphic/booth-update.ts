@@ -14,6 +14,8 @@ export const BOOTH_UPDATE_STATE_DIR = "/var/lib/ditherbooth/update";
 export const BOOTH_UPDATE_STATUS_PATH = `${BOOTH_UPDATE_STATE_DIR}/status.json`;
 /** Finished jobs, newest first. */
 export const BOOTH_UPDATE_HISTORY_PATH = `${BOOTH_UPDATE_STATE_DIR}/history.json`;
+/** Where a rollback would go now, written after every job. */
+export const BOOTH_ROLLBACK_TARGET_PATH = `${BOOTH_UPDATE_STATE_DIR}/rollback.json`;
 /** Kept in the history. */
 export const BOOTH_UPDATE_HISTORY_LIMIT = 20;
 
@@ -27,15 +29,20 @@ export const RELEASE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/u;
 export const isReleaseVersion = (value: string) =>
   RELEASE_VERSION_PATTERN.test(value);
 
-/** In job order. `rollback` only runs when the check failed, or on request. */
+/**
+ * In job order. The booth serves guests up to `switch`; `setup` (the
+ * units, polkit rules, network setup the release's CLI installs) runs
+ * after it, so its restarts fold into the one at `restart`. `rollback`
+ * only runs when something after the switch failed.
+ */
 export const BOOTH_UPDATE_STEPS = [
   "preflight",
   "cli",
   "download",
   "unpack",
-  "setup",
   "backup",
   "switch",
+  "setup",
   "restart",
   "check",
   "rollback",
@@ -62,13 +69,90 @@ export const boothUpdateJobSchema = z.object({
   error: z.string().nullable(),
   /** The database as it was before the switch. */
   backup: z.string().nullable(),
+  /** Migrations applied before the switch, to tell whether `to` added any. */
+  migrationsBefore: z.number().int().nonnegative().nullable(),
   /** Whether `to` applied migrations: then `from` can't run on it as is. */
   migrated: z.boolean().nullable(),
+  /**
+   * The process running the job. A `running` job whose process is gone
+   * was interrupted (a crash, a timeout, a power cut): not running.
+   */
+  pid: z.number().int().positive().nullable(),
 });
 
 export type BoothUpdateJob = z.infer<typeof boothUpdateJobSchema>;
 
 export const boothUpdateHistorySchema = z.array(boothUpdateJobSchema);
+
+/**
+ * Where `booth rollback` would go now: the release before the last
+ * update, while its folder is still on the booth. Null when there is
+ * none. The CLI writes it; the admin offers what it says.
+ */
+export const boothRollbackTargetSchema = z
+  .object({
+    release: z.string(),
+    /** The newer release changed the database: going back restores `backup`. */
+    migrated: z.boolean(),
+    backup: z.string().nullable(),
+    backupTakenAt: z.string().nullable(),
+  })
+  .nullable();
+
+export type BoothRollbackTarget = z.infer<typeof boothRollbackTargetSchema>;
+
+/** The latest release on GitHub that isn't a pre-release. */
+export type LatestRelease = {
+  version: string;
+  /** Its release notes, as markdown. */
+  notes: string;
+  url: string;
+  publishedAt: string | null;
+};
+
+/**
+ * Asks GitHub for the latest release, as `install.sh` picks it. Throws
+ * when GitHub doesn't answer or the tag isn't a release version.
+ */
+export async function fetchLatestRelease({
+  fetch: fetchImpl = fetch,
+  repo = BOOTH_RELEASES_REPO,
+  signal,
+}: {
+  fetch?: typeof fetch;
+  /** `owner/name`; the CLI lets `BOOTH_RELEASES_REPO` change it. */
+  repo?: string;
+  signal?: AbortSignal;
+} = {}): Promise<LatestRelease> {
+  const response = await fetchImpl(
+    `https://api.github.com/repos/${repo}/releases/latest`,
+    { headers: { accept: "application/vnd.github+json" }, signal },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `GitHub answered ${response.status} for the latest release.`,
+    );
+  }
+
+  const body = (await response.json()) as Record<string, unknown>;
+  const text = (key: string) =>
+    typeof body[key] === "string" ? (body[key] as string) : null;
+  const version = (text("tag_name") ?? "").replace(/^v/u, "");
+
+  if (!isReleaseVersion(version)) {
+    throw new Error(
+      `The latest release's tag isn't a version: ${text("tag_name")}`,
+    );
+  }
+
+  return {
+    version,
+    notes: text("body") ?? "",
+    url: text("html_url") ?? "",
+    publishedAt: text("published_at"),
+  };
+}
 
 /*
  * The units the admin starts, as root, through the booth's polkit rule.

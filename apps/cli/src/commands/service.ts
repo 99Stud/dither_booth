@@ -3,6 +3,10 @@ import {
   PM2_LOG_RELATIVE_DIR,
   PM2_PROCESS_NAMES,
 } from "@dither-booth/shared/booth-system";
+import {
+  boothRollbackModeSchema,
+  getBoothRollbackUnit,
+} from "@dither-booth/shared/booth-update";
 import { defineCommand } from "citty";
 import { chmod, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -62,6 +66,9 @@ PIDFile=${home}/.pm2/pm2.pid
 # address before the apps start. Same CA, so trusted iPads keep working.
 # \`-\`: a failed re-issue still starts the booth on the old certificate.
 ExecStartPre=-${BOOTH_BIN} cert --if-changed --no-banner --color=never
+# An update a power cut or a crash interrupted after its switch goes back
+# before the apps start. As root (\`+\`): it moves /opt/dither-booth.
+ExecStartPre=-+${BOOTH_BIN} update --recover --no-restart --no-banner --color=never
 ExecStart=${bun} run pm2:start
 ExecReload=${bun} run pm2:reload
 ExecStop=${bun} ./node_modules/pm2/bin/pm2 kill
@@ -155,6 +162,10 @@ OnCalendar=hourly
  * someone is logged in over SSH. polkit reads the rules folder again on
  * its own.
  */
+/** One per rollback mode, as the admin starts them. */
+const ROLLBACK_UNITS =
+  boothRollbackModeSchema.options.map(getBoothRollbackUnit);
+
 export function buildSystemPolkitRule(): string {
   return `// Installed by \`booth service\`.
 polkit.addRule(function (action, subject) {
@@ -174,9 +185,7 @@ polkit.addRule(function (action, subject) {
     (/^ditherbooth-update@[0-9]+\\.[0-9]+\\.[0-9]+(\\\\x2d[0-9A-Za-z.]+)?\\.service$/.test(
       action.lookup("unit"),
     ) ||
-      /^ditherbooth-rollback@(keep|restore)\\\\x2ddb\\.service$/.test(
-        action.lookup("unit"),
-      ))
+      ${JSON.stringify(ROLLBACK_UNITS)}.indexOf(action.lookup("unit")) >= 0)
   ) {
     return polkit.Result.YES;
   }
@@ -207,6 +216,10 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=${BOOTH_BIN} update %I --no-banner --color=never
+# However the job's process ended (the new CLI dying after the handover,
+# this unit's timeout, an out-of-memory kill), an unfinished job is ended
+# here: back to the release before if it had switched.
+ExecStopPost=${BOOTH_BIN} update --recover --no-banner --color=never
 # The booth keeps serving while the update downloads and unpacks.
 Nice=10
 IOSchedulingClass=idle
@@ -259,7 +272,15 @@ async function joinJournalGroup(): Promise<boolean> {
   return true;
 }
 
-export async function runServiceCommand(context: BoothContext): Promise<void> {
+export async function runServiceCommand(
+  context: BoothContext,
+  {
+    restart = true,
+  }: {
+    /** False from `booth update`, which restarts the booth itself next. */
+    restart?: boolean;
+  } = {},
+): Promise<void> {
   const { repoRoot } = context;
 
   heading("Install systemd service");
@@ -301,7 +322,7 @@ export async function runServiceCommand(context: BoothContext): Promise<void> {
   await run(["systemctl", "enable", "--now", SERVICE_NAME]);
 
   // A running process keeps the groups it started with.
-  if (wasActive && joinedJournal) {
+  if (restart && wasActive && joinedJournal) {
     step(`Restarting ${SERVICE_NAME} so it can read the system journal`);
     await run(["systemctl", "restart", SERVICE_NAME]);
   }

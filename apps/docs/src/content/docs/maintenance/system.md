@@ -42,15 +42,17 @@ The **Software** panel, at the top of the page, says which release the booth run
 When a release is out, the panel says **0.8.0 is available**, with **What's new** (the release notes) and **Update to 0.8.0**:
 
 1. Update **between events**: not during one, and not just before doors open.
-2. Press **Update to 0.8.0**, then **Update** in the dialog.
-3. The panel lists the steps as they run: **Check**, **Update the booth tool**, **Download**, **Install**, **Set up the system**, **Back up the database**, **Switch**, **Restart**, **Check it started**. Guests can use the booth until **Restart**.
+2. Press **Update to 0.8.0**. The dialog lists what the update needs: the booth reaches GitHub, enough room on the SD card, nothing else running. A failed line keeps **Update** off. Under it, what you should know, in amber: the event is running, guests used the booth in the last 15 minutes, a ticket is printing. Those don't stop you; the button then reads **Update anyway**.
+3. The panel shows a gauge filling up and the steps as they run: **Check**, **Update the booth tool**, **Download**, **Install**, **Back up the database**, **Switch**, **Set up the system**, **Restart**, **Check it started**. Guests can use the booth until **Switch**. **Details** opens the update's own lines, and a link to the Logs page for all of them.
 4. At **Restart** the page says **The booth is restarting. This page reconnects on its own.** Stay on it. Once the admin is back on the new release, the page reloads, and so does the iPad's Shutter (once it's back on its landing screen).
-5. The panel ends on one of:
+5. The panel ends on one of, with a mark that draws itself:
    - **Updated to 0.8.0**: done. Do a test print from the Darkroom.
-   - **The update stopped. The booth still runs 0.7.2.**, with the reason: nothing changed. Fix the reason (internet, room on the SD card) and try again.
+   - **The update stopped. The booth still runs 0.7.2.**, with the reason: nothing changed. Fix the reason (internet, room on the SD card) and try again. "Interrupted during …" means the Pi lost power or the update crashed; the booth ended it at its next start.
    - **0.8.0 didn't start. The booth went back to 0.7.2.**: the booth went back on its own, with its database. Tell a developer, with the reason shown.
 
-**Before the last update: 0.7.2** with **Roll back** goes back by hand. When the newer release changed the database, the panel says so, and rolling back restores the copy taken before the update: the dialog says when it was taken, and visits and draws since then are lost. The button is then **Roll back and restore**.
+The sidebar's **System** link shows a dot while an update waits or the last one went wrong, and **Control Center → Health checks** has a **Software** row with the release and the latest one.
+
+**Before the last update: 0.7.2** with **Roll back** goes back by hand. The row only shows while the earlier release is still on the booth. When the newer release changed the database, the panel says so, and rolling back restores the copy taken before the update: the dialog says when it was taken, and visits and draws since then are lost. The button is then **Roll back and restore**.
 
 A booth that still runs a git checkout (set up before releases) offers the update too: its first update turns it into a release. It can't roll back until then. More: [Update the booth](/docs/maintenance/update-the-booth/).
 

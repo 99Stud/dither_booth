@@ -5,8 +5,8 @@ import {
   engineHealthzPayloadSchema,
   shutterHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
+import { isReleaseBundle } from "@dither-booth/shared/server/booth-update";
 import { defineCommand } from "citty";
-import { lstat } from "node:fs/promises";
 import { hostname } from "node:os";
 
 import type { BoothContext } from "#internal/context";
@@ -435,12 +435,12 @@ export function powerControlsCheck(
 
 /**
  * `installed` holds the two units' content, each undefined when missing;
- * `repoIsLink` says whether the repo is a release (a symlink) or a
+ * `runsRelease` says whether the booth runs a release bundle or a git
  * checkout from before releases.
  */
 export function updatesCheck(
   installed: { update: string | undefined; rollback: string | undefined },
-  repoIsLink: boolean,
+  runsRelease: boolean,
 ): CheckResult {
   if (
     installed.update !== buildUpdateUnit() ||
@@ -453,7 +453,7 @@ export function updatesCheck(
     };
   }
 
-  if (!repoIsLink) {
+  if (!runsRelease) {
     return {
       status: "warn",
       label: "Runs a git checkout, not a release",
@@ -473,15 +473,13 @@ async function checkUpdates(
     Bun.file(path)
       .text()
       .catch(() => undefined);
-  const repo = await lstat(repoRoot).catch(() => undefined);
-
   results.push(
     updatesCheck(
       {
         update: await read(UPDATE_UNIT_PATH),
         rollback: await read(ROLLBACK_UNIT_PATH),
       },
-      repo?.isSymbolicLink() ?? false,
+      isReleaseBundle(repoRoot),
     ),
   );
 }

@@ -1,4 +1,4 @@
-import { BOOTH_RELEASES_REPO } from "@dither-booth/shared/booth-update";
+import { fetchLatestRelease } from "@dither-booth/shared/booth-update";
 
 import type { LatestRelease, ReleaseCheck } from "./update.protocol";
 
@@ -16,15 +16,6 @@ export type ReleaseChecker = {
   stop: () => void;
 };
 
-type GithubRelease = {
-  tag_name?: unknown;
-  body?: unknown;
-  html_url?: unknown;
-  published_at?: unknown;
-};
-
-const asString = (value: unknown) => (typeof value === "string" ? value : null);
-
 export function createReleaseChecker({
   fetch: fetchImpl = fetch,
   now = () => new Date(),
@@ -40,29 +31,10 @@ export function createReleaseChecker({
 
   const run = async () => {
     try {
-      const response = await fetchImpl(
-        `https://api.github.com/repos/${BOOTH_RELEASES_REPO}/releases/latest`,
-        {
-          headers: { accept: "application/vnd.github+json" },
-          signal: AbortSignal.timeout(10_000),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`GitHub answered ${response.status}.`);
-      }
-
-      const body = (await response.json()) as GithubRelease;
-      const version = asString(body.tag_name)?.replace(/^v/u, "");
-
-      if (!version) throw new Error("GitHub's latest release has no tag.");
-
-      latest = {
-        version,
-        notes: asString(body.body) ?? "",
-        url: asString(body.html_url) ?? "",
-        publishedAt: asString(body.published_at),
-      };
+      latest = await fetchLatestRelease({
+        fetch: fetchImpl,
+        signal: AbortSignal.timeout(10_000),
+      });
       check = { state: "ok", checkedAt: now().toISOString(), message: null };
     } catch (error) {
       check = {

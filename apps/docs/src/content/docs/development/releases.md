@@ -51,7 +51,7 @@ To try a release without publishing it as the latest, push a pre-release tag (`v
 
 ### Versioning
 
-There is no version to bump in code: both the CLI and the bundle take it from the tag, without its `v` (`v0.8.0` → `0.8.0`). A tag that isn't `vX.Y.Z` (with an optional pre-release part) fails the build.
+There is no version to bump in code: both the CLI and the bundle take it from the tag, without its `v` (`v0.8.0` → `0.8.0`). A tag that isn't `vX.Y.Z`, or `vX.Y.Z-` and a dot-separated pre-release (`v0.8.0-rc.1`), fails the build: booths refuse any other version (`v0.8.0-rc-1`, `v0.8.0+build`), so none is ever released.
 
 `booth --version` is set at compile time. `apps/cli/scripts/build.ts` resolves it in this order:
 

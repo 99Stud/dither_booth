@@ -18,6 +18,7 @@ import { ThemeProvider } from "next-themes";
 import { VirtuosoMockContext } from "react-virtuoso";
 
 import { ADMIN_THEME_STORAGE_KEY } from "#lib/constants";
+import { TRPCProvider, trpcClient } from "#lib/trpc/trpc.client";
 
 export * from "@testing-library/react";
 
@@ -126,13 +127,16 @@ export const renderWithProviders = (
       storageKey={ADMIN_THEME_STORAGE_KEY}
     >
       <QueryClientProvider client={queryClient}>
-        <SidebarProvider>
-          <TooltipProvider>
-            <VirtuosoMockContext.Provider value={TEST_VIRTUAL_LIST_SIZE}>
-              {children}
-            </VirtuosoMockContext.Provider>
-          </TooltipProvider>
-        </SidebarProvider>
+        {/* The engine, through the proxy: a test answers `/engine/trpc` itself. */}
+        <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
+          <SidebarProvider>
+            <TooltipProvider>
+              <VirtuosoMockContext.Provider value={TEST_VIRTUAL_LIST_SIZE}>
+                {children}
+              </VirtuosoMockContext.Provider>
+            </TooltipProvider>
+          </SidebarProvider>
+        </TRPCProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

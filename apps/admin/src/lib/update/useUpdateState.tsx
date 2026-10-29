@@ -7,8 +7,7 @@ import type { UpdateRequest, UpdateSnapshot } from "./update.protocol";
 
 import { fetchUpdateSnapshot, requestUpdateAction } from "./update.client";
 import { UPDATE_POLL_ACTIVE_MS, UPDATE_POLL_IDLE_MS } from "./update.constants";
-
-export const UPDATE_QUERY_KEY = ["update"] as const;
+import { UPDATE_QUERY_KEY } from "./useUpdateSnapshot";
 
 /** How long an accepted request may go without its job appearing. */
 const PENDING_TIMEOUT_MS = 60_000;
@@ -17,7 +16,7 @@ const PENDING_TIMEOUT_MS = 60_000;
 export type PendingUpdate = { request: UpdateRequest; jobId: string | null };
 
 const isRunning = (snapshot: UpdateSnapshot | null | undefined) =>
-  snapshot?.job?.state === "running";
+  snapshot?.jobRunning === true;
 
 /**
  * The Software panel's state. While a job runs it reads every 3 s, and

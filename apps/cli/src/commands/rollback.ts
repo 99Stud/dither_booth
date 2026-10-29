@@ -1,10 +1,11 @@
 import { boothRollbackModeSchema } from "@dither-booth/shared/booth-update";
 import { defineCommand } from "citty";
 
-import { boothUpdateLayout, runGuarded } from "#commands/update";
 import { requireRoot } from "#internal/args";
+import { SilentExit } from "#internal/system";
 import { fail, heading, runBoothTask } from "#internal/ui";
 import { runRollback } from "#internal/update/update";
+import { boothUpdateLayout, runGuarded } from "#internal/update/update.command";
 import { hostUpdateHost } from "#internal/update/update.host";
 
 export default defineCommand({
@@ -36,7 +37,7 @@ export default defineCommand({
 
       if (!mode.success) {
         fail(`Unknown rollback mode: ${args.mode}`);
-        process.exit(1);
+        throw new SilentExit(1);
       }
 
       await runGuarded(() =>

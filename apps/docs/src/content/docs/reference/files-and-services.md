@@ -45,7 +45,9 @@ Logs: `log_type: "json"`, one combined `log_file` per process at `logs/pm2/<proc
 | `/opt/dither-booth-releases/legacy-<git describe>/`             | `booth update` (first run)       | The checkout the booth ran before releases                                            |
 | `/opt/dither-booth-shared/.local/`, `logs/`                     | `booth update`                   | What outlives a release, linked into each                                             |
 | `/var/cache/ditherbooth/`                                       | `booth update`                   | The last release's bundle and CLI download                                            |
-| `/var/lib/ditherbooth/update/status.json`, `history.json`       | `booth update`, `booth rollback` | The job running or last run; finished jobs, newest first                              |
+| `/var/lib/ditherbooth/update/status.json`, `history.json`       | `booth update`, `booth rollback` | The job running or last run (with its process id); finished jobs, newest first        |
+| `/var/lib/ditherbooth/update/rollback.json`                     | `booth update`, `booth rollback` | Where a rollback goes now, as admin offers it                                         |
+| `/var/lib/ditherbooth/update/lock`                              | `booth update`, `booth rollback` | The pid of the job running: one at a time                                             |
 | `/mnt/ssd/dither-booth/backups/update-*.sqlite`                 | `booth update`                   | The database before each switch, last 3 kept                                          |
 | `/etc/systemd/system/ditherbooth-update@.service`               | `booth service`                  | Runs `booth update <version>` as root for admin                                       |
 | `/etc/systemd/system/ditherbooth-rollback@.service`             | `booth service`                  | Runs `booth rollback` as root (`keep-db` or `restore-db`)                             |

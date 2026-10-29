@@ -55,7 +55,8 @@ export const hostUpdateHost: UpdateHost = {
   },
   chownToServiceUser,
   async setupSystem() {
-    await runServiceCommand(buildBoothContext());
+    // The update restarts the booth right after: no restart of its own.
+    await runServiceCommand(buildBoothContext(), { restart: false });
     await runNetworkSetupCommand();
   },
   restartBooth: async () => {

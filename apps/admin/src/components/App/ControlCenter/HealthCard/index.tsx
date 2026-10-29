@@ -36,6 +36,7 @@ import { HealthzAccordionItem } from "./internal/components/HealthzAccordionItem
 import { KioskReloadSection } from "./internal/components/KioskReloadSection";
 import { PrinterAccordionItem } from "./internal/components/PrinterAccordionItem";
 import { PuppeteerAccordionItem } from "./internal/components/PuppeteerAccordionItem";
+import { SoftwareAccordionItem } from "./internal/components/SoftwareAccordionItem";
 import { SystemAccordionItem } from "./internal/components/SystemAccordionItem";
 import {
   HEALTHZ_SERVICE_LABELS,
@@ -364,6 +365,7 @@ export const HealthCard = () => {
             isPending={isSystemPending}
             isError={isSystemError}
           />
+          <SoftwareAccordionItem />
         </Accordion>
       </CardContent>
     </Card>
