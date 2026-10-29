@@ -31,6 +31,7 @@ function createTestCaller(
     hubReporter: createHubReporterStub(),
     kioskChannel: createKioskChannel(),
     kioskMaintenance: {} as TRPCContext["kioskMaintenance"],
+    release: "0.0.0-test",
     cameraPreview: {} as TRPCContext["cameraPreview"],
     mode: "production",
     page: undefined,

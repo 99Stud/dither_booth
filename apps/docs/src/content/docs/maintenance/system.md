@@ -1,6 +1,6 @@
 ---
 title: System
-description: The Pi's temperature, throttling, memory, CPU and storage in admin, live with the last hour, what each reading means, and the Power panel to restart, reboot or power off.
+description: The Pi's software, temperature, throttling, memory, CPU and storage in admin, live with the last hour, what each reading means, and how to update, roll back, restart, reboot or power off.
 sidebar:
   order: 5
 ---
@@ -35,6 +35,25 @@ The Pi's firmware keeps a flag for each thing it had to do to protect the board.
 - **Soft temperature limit** or **Throttled** with a warm gauge → the cooler: contact with the SoC, the blower's intake under the M.2 shield, the air around the case.
 - Flags clear when the Pi restarts. A clean **Since boot** after a restart in a hot room says the fix held.
 
+## Update the software
+
+The **Software** panel, at the top of the page, says which release the booth runs and whether a newer one is out. The admin server asks GitHub at start and every 6 hours; **Check now** asks again. Without internet (on the booth Wi-Fi, for one) it says **Couldn't check for updates**: plug in Ethernet or join a Wi-Fi with internet.
+
+When a release is out, the panel says **0.8.0 is available**, with **What's new** (the release notes) and **Update to 0.8.0**:
+
+1. Update **between events**: not during one, and not just before doors open.
+2. Press **Update to 0.8.0**, then **Update** in the dialog.
+3. The panel lists the steps as they run: **Check**, **Update the booth tool**, **Download**, **Install**, **Set up the system**, **Back up the database**, **Switch**, **Restart**, **Check it started**. Guests can use the booth until **Restart**.
+4. At **Restart** the page says **The booth is restarting. This page reconnects on its own.** Stay on it. Once the admin is back on the new release, the page reloads, and so does the iPad's Shutter (once it's back on its landing screen).
+5. The panel ends on one of:
+   - **Updated to 0.8.0**: done. Do a test print from the Darkroom.
+   - **The update stopped. The booth still runs 0.7.2.**, with the reason: nothing changed. Fix the reason (internet, room on the SD card) and try again.
+   - **0.8.0 didn't start. The booth went back to 0.7.2.**: the booth went back on its own, with its database. Tell a developer, with the reason shown.
+
+**Before the last update: 0.7.2** with **Roll back** goes back by hand. When the newer release changed the database, the panel says so, and rolling back restores the copy taken before the update: the dialog says when it was taken, and visits and draws since then are lost. The button is then **Roll back and restore**.
+
+A booth that still runs a git checkout (set up before releases) offers the update too: its first update turns it into a release. It can't roll back until then. More: [Update the booth](/docs/maintenance/update-the-booth/).
+
 ## Restart, reboot or power off
 
 The **Power** panel, at the foot of the page, has three buttons. Each asks first.
@@ -51,7 +70,7 @@ Guests can't use the booth until it's back. Stay on the page: it reconnects on i
 
 ## Off the booth
 
-On a development machine the Temperature, Throttling and Memory panels say **Not on a Pi** and explain what only the Pi reports: heat, fan, throttling, and the kernel's available-memory figure. CPU, uptime and the root disk still read, from the machine you are on. The **Power** panel says **On the booth only** and its buttons stay off: there they would restart the computer you are on.
+On a development machine the Temperature, Throttling and Memory panels say **Not on a Pi** and explain what only the Pi reports: heat, fan, throttling, and the kernel's available-memory figure. CPU, uptime and the root disk still read, from the machine you are on. The **Software** and **Power** panels say **On the booth only**, and Power's buttons stay off: there they would restart the computer you are on.
 
 ## Over SSH
 

@@ -99,7 +99,9 @@ The system polkit rule (`booth service`, `50-ditherbooth-system.rules`) grants i
 
 The Power panel posts to **`POST https://<booth>:3002/admin/power`** with `{"action": "restart-apps" | "reboot" | "power-off"}`. The admin server runs `systemctl --no-block` with the matching verb and answers 202 once systemd has queued the job, before it stops the admin itself. Like the rest of admin it is **network-trusted**: the POST is refused with 403 unless `Origin` is the admin's own (as the Logs socket checks it), so another site open on a staff device can't reboot the booth, but anyone who can load admin can. A GET on the same route says the actions are there.
 
-The admin server serves the route only under PM2, on the booth: under `bun run dev` it would restart or reboot the developer's machine. Code: `apps/admin/src/lib/power/`.
+**`/admin/update`** ([Updates](/docs/architecture/updates/#from-admin)) works the same way: a GET is the update snapshot, and a POST from the admin's own `Origin` starts the update or rollback unit. The CLI the unit runs checks the version again. Anyone who can load admin can update the booth to a published release or roll it back, but can't choose what code runs: only a `v*` tag publishes a release.
+
+The admin server serves both routes only under PM2, on the booth: under `bun run dev` it would restart or reboot the developer's machine. Code: `apps/admin/src/lib/power/`.
 
 ## System readings
 

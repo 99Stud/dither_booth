@@ -6,6 +6,9 @@ import { z } from "zod";
  * files; anyone can read them.
  */
 
+/** Where releases are published: GitHub, `owner/name`. */
+export const BOOTH_RELEASES_REPO = "99Stud/dither_booth";
+
 export const BOOTH_UPDATE_STATE_DIR = "/var/lib/ditherbooth/update";
 /** The job running now, or the last one. */
 export const BOOTH_UPDATE_STATUS_PATH = `${BOOTH_UPDATE_STATE_DIR}/status.json`;

@@ -1,4 +1,7 @@
-import { isReleaseVersion } from "@dither-booth/shared/booth-update";
+import {
+  BOOTH_RELEASES_REPO,
+  isReleaseVersion,
+} from "@dither-booth/shared/booth-update";
 
 import type { SupportedArch } from "#internal/system";
 
@@ -8,7 +11,7 @@ import type { SupportedArch } from "#internal/system";
  */
 
 export const RELEASES_REPO =
-  process.env.BOOTH_RELEASES_REPO ?? "99Stud/dither_booth";
+  process.env.BOOTH_RELEASES_REPO ?? BOOTH_RELEASES_REPO;
 
 export const bundleAssetName = (version: string, arch: SupportedArch) =>
   `dither-booth-${version}-linux-${arch}.tar.zst`;

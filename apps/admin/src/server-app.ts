@@ -16,6 +16,7 @@ import {
   PM2_PROCESS_NAMES,
 } from "@dither-booth/shared/booth-system";
 import { ADMIN_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
+import { readRelease } from "@dither-booth/shared/server/release";
 import {
   TRPC_PROXY_PATH,
   getTrpcProxyUpstreamPath,
@@ -35,13 +36,18 @@ import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
 import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
 import { POWER_ROUTE_PATH } from "#lib/power/power.constants";
 import { createPowerRoute } from "#lib/power/power.routes";
-import { hostPowerRun, runPowerAction } from "#lib/power/power.server";
+import { runPowerAction } from "#lib/power/power.server";
 import { ADMIN_APP_ROOT, ADMIN_REPO_ROOT } from "#lib/server-constants";
 import { SYSTEM_ROUTE_PATH } from "#lib/system/system.constants";
 import { hostSystemReaderDeps } from "#lib/system/system.host";
 import { createSystemReader } from "#lib/system/system.reader";
 import { createSystemRoute } from "#lib/system/system.routes";
 import { createSystemSampler } from "#lib/system/system.sampler";
+import { hostSystemctlRun } from "#lib/systemctl/systemctl.server";
+import { createReleaseChecker } from "#lib/update/update.checker";
+import { UPDATE_ROUTE_PATH } from "#lib/update/update.constants";
+import { createHostUpdateDeps } from "#lib/update/update.host";
+import { createUpdateRoute } from "#lib/update/update.routes";
 const engineOrigin = getEngineInternalOrigin();
 
 export async function runAdminServer(options: {
@@ -108,7 +114,21 @@ export async function runAdminServer(options: {
                   adminOrigin,
                   allowedHostnames,
                 ),
-              runAction: (action) => runPowerAction(action, hostPowerRun),
+              runAction: (action) => runPowerAction(action, hostSystemctlRun),
+            }),
+            [UPDATE_ROUTE_PATH]: createUpdateRoute({
+              release: readRelease(ADMIN_REPO_ROOT),
+              checker: createReleaseChecker(),
+              isAllowedOrigin: (origin) =>
+                isAllowedConfiguredOrigin(
+                  origin,
+                  adminOrigin,
+                  allowedHostnames,
+                ),
+              ...createHostUpdateDeps({
+                repoRoot: ADMIN_REPO_ROOT,
+                run: hostSystemctlRun,
+              }),
             }),
           }
         : {}),

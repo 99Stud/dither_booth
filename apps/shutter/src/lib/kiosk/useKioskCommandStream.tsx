@@ -10,6 +10,13 @@ import { useTRPC } from "#lib/trpc/trpc.client";
 
 import { useKioskCamera } from "./kiosk-camera";
 
+/**
+ * The release the engine ran when this page's code was loaded: the first
+ * one any stream opened with. Module state, so it lasts as long as the
+ * code does, across screens and reconnections.
+ */
+let loadedRelease: string | undefined;
+
 /** Waits between status reports the engine couldn't match to the stream. */
 const STATUS_REPORT_RETRY_MS = 1_000;
 const STATUS_REPORT_ATTEMPTS = 5;
@@ -44,6 +51,22 @@ export const useKioskCommandStream = (
       // A live view signal is for one page only.
       onData: (command) => {
         if (command.type === "camera" && command.pageId !== page.pageId) return;
+
+        // After an update the engine comes back on another release: this
+        // page's code is the old one's. Each screen reloads the way it
+        // reloads for staff, the Experience once idle.
+        if (command.type === "release") {
+          loadedRelease ??= command.release;
+          if (command.release !== loadedRelease) {
+            onCommand({
+              type: "reload",
+              mode: "when-idle",
+              commandId: command.commandId,
+            });
+          }
+          return;
+        }
+
         onCommand(command);
       },
     }),

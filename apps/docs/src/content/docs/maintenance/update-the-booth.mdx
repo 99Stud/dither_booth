@@ -16,6 +16,10 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 
 The booth runs a [release](/docs/start-here/glossary/#releases). Updating installs the next one next to it, switches, checks that the booth came back, and goes back on its own if it didn't. How: [Updates](/docs/architecture/updates/).
 
+**From admin:** **System → Software → Update to …**. The panel shows each step and how it ended: [Update the software](/docs/maintenance/system/#update-the-software). The booth needs internet, and `sudo booth service` must have run once with a CLI that has `booth update` (`booth doctor` says **Admin can't update or roll back the booth** until then).
+
+**Over SSH**, the same job:
+
 <Steps>
 
 1. **Update:**
@@ -72,7 +76,7 @@ After the reboot, run `booth doctor`. A Chromium update from apt changes the bro
 
 ## Roll back
 
-To go back to the release that ran before the last update:
+From admin: **System → Software → Roll back**. Over SSH, to go back to the release that ran before the last update:
 
 ```bash
 sudo booth rollback

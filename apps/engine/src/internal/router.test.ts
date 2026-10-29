@@ -146,6 +146,7 @@ function createCaller(
       {},
       { get: unreachable },
     ) as TRPCContext["kioskMaintenance"],
+    release: "0.0.0-test",
     mode: "production",
     network: {
       later: unreachable,
