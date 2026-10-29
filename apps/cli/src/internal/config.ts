@@ -2,6 +2,11 @@ import {
   BOOTH_NETWORK_SERVICE_UNIT,
   BOOTH_SERVICE_UNIT,
 } from "@dither-booth/shared/booth-system";
+import {
+  BOOTH_RELEASES_REPO,
+  BOOTH_ROLLBACK_UNIT_TEMPLATE,
+  BOOTH_UPDATE_UNIT_TEMPLATE,
+} from "@dither-booth/shared/booth-update";
 
 // Replaced at compile time by `scripts/build.ts` with the release tag's
 // version. Running from source (`bun src/index.ts`) leaves it undefined.
@@ -11,6 +16,9 @@ export const CLI_VERSION =
   typeof BOOTH_CLI_VERSION === "string" ? BOOTH_CLI_VERSION : "0.0.0-dev";
 
 export const DEFAULT_REPO_ROOT = "/opt/dither-booth";
+/** The GitHub repository `booth update` installs releases from. */
+export const RELEASES_REPO =
+  process.env.BOOTH_RELEASES_REPO ?? BOOTH_RELEASES_REPO;
 export const REPO_GIT_URL =
   process.env.BOOTH_REPO_URL ?? "https://github.com/99Stud/dither_booth.git";
 
@@ -37,6 +45,12 @@ export const LOGROTATE_MAX_SIZE_MB = 20;
 /** Makes Debian's daily logrotate.timer hourly, so the size cap holds. */
 export const LOGROTATE_TIMER_DROP_IN_PATH =
   "/etc/systemd/system/logrotate.timer.d/ditherbooth.conf";
+/** Run `booth update <version>` and `booth rollback` as root for the admin. */
+export const UPDATE_UNIT_PATH = `/etc/systemd/system/${BOOTH_UPDATE_UNIT_TEMPLATE}`;
+export const ROLLBACK_UNIT_PATH = `/etc/systemd/system/${BOOTH_ROLLBACK_UNIT_TEMPLATE}`;
+/** Lets the admin restart the apps, reboot, power off, update and roll back. */
+export const SYSTEM_POLKIT_RULE_PATH =
+  "/etc/polkit-1/rules.d/50-ditherbooth-system.rules";
 /** Members read the whole system journal; the admin's Logs page needs it. */
 export const JOURNAL_GROUP = "systemd-journal";
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";

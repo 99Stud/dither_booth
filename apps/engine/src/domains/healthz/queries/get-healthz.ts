@@ -59,6 +59,8 @@ type GetHealthzResponse = {
   puppeteer: PuppeteerHealthz;
   printer: {
     healthz: PrinterHealthz;
+    /** A job is printing or queued: a restart now would cut it off. */
+    printing: boolean;
   };
   runtime: {
     processManager: RuntimeProcessManager;
@@ -131,6 +133,7 @@ export const getHealthz = darkroomProcedure.query(async ({ ctx }) => {
     puppeteer,
     printer: {
       healthz: printer,
+      printing: ctx.printer.isPrinting(),
     },
     runtime: {
       processManager: ctx.processManager,

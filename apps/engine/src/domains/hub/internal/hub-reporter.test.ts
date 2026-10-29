@@ -7,6 +7,8 @@ import { hubRegistrationTable } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 import { waitFor } from "#domains/printer/internal/printer.test-utils";
 
+import type { RemoteUpdates } from "./hub-updates";
+
 import { readHubRegistration } from "./hub-registration.service";
 import { createHubReporter, type HubReporter } from "./hub-reporter";
 
@@ -62,6 +64,12 @@ function setup({
   registered = true,
   dryRun = false,
   intervalMs = 60_000,
+  updates,
+}: {
+  registered?: boolean;
+  dryRun?: boolean;
+  intervalMs?: number;
+  updates?: RemoteUpdates;
 } = {}) {
   const { db } = createTestDb();
   if (registered) {
@@ -101,6 +109,7 @@ function setup({
     },
     release: "0.7.0",
     dryRun,
+    updates,
     log: () => {},
     intervalMs,
     fetch: hub.fetch,
@@ -242,5 +251,49 @@ describe("hub reporter", () => {
     const sent = heartbeatSchema.parse(hub.heartbeats[0]?.body);
     expect(sent.dryRun).toBe(true);
     expect(sent.printer.changedAt).toBe(NOW.toISOString());
+  });
+
+  test("tells the Hub how an update goes, and passes on the release it asks for", async () => {
+    const requested: string[] = [];
+    const { hub, reporter } = setup({
+      updates: {
+        report: async () => ({
+          release: "0.8.0",
+          state: "waiting",
+          error: "The event runs until 23:00.",
+        }),
+        request: async (release) => {
+          requested.push(release);
+        },
+      },
+    });
+    hub.answers.heartbeat = () =>
+      Response.json({ ok: true, update: { release: "0.8.0" } });
+
+    await reporter.report();
+
+    expect(heartbeatSchema.parse(hub.heartbeats[0]?.body).update).toEqual({
+      release: "0.8.0",
+      state: "waiting",
+      error: "The event runs until 23:00.",
+    });
+    expect(requested).toEqual(["0.8.0"]);
+  });
+
+  test("sends no update and asks nothing of a Hub from before updates", async () => {
+    const requested: string[] = [];
+    const { hub, reporter } = setup({
+      updates: {
+        report: async () => undefined,
+        request: async (release) => {
+          requested.push(release);
+        },
+      },
+    });
+
+    await reporter.report();
+
+    expect(hub.heartbeats[0]?.body).not.toHaveProperty("update");
+    expect(requested).toEqual([]);
   });
 });

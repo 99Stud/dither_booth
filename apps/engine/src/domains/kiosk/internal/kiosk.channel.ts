@@ -29,7 +29,7 @@ export type KioskChannel = {
   subscribe: (
     page: KioskPage,
     signal?: AbortSignal,
-    initial?: KioskCommand,
+    initial?: readonly KioskCommand[],
   ) => AsyncGenerator<KioskCommand, void, undefined>;
   /** Sends a command to every connected page and returns how many got it. */
   broadcast: (command: KioskCommand) => number;
@@ -65,10 +65,10 @@ export function createKioskChannel(): KioskChannel {
     connection: symbol,
     commands: AsyncIterableIterator<unknown[]>,
     signal: AbortSignal | undefined,
-    initial: KioskCommand | undefined,
+    initial: readonly KioskCommand[],
   ): AsyncGenerator<KioskCommand, void, undefined> {
     try {
-      if (initial) yield initial;
+      yield* initial;
       for await (const [command] of commands) {
         yield command as KioskCommand;
       }
@@ -84,7 +84,7 @@ export function createKioskChannel(): KioskChannel {
   async function* noCommands(): AsyncGenerator<KioskCommand, void, undefined> {}
 
   return {
-    subscribe(page, signal, initial) {
+    subscribe(page, signal, initial = []) {
       if (signal?.aborted) return noCommands();
 
       const connection = Symbol(page.pageId);

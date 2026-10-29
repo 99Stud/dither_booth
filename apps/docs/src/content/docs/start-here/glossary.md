@@ -20,6 +20,11 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 **Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts, shows how each booth is doing, sets their event times and gives their registration codes. It talks to the Hub, never to a booth.
 _Avoid_: Studio for Supabase's own dashboard (call that the Supabase dashboard).
 
+**Launch screen**: what a phone shows while it starts a Home Screen app, before the app draws anything: on Android the app icon on a dark background, on iOS a blank screen. It can't move.
+
+**Splash**: Studio's own opening screen, after the launch screen: the Dither Booth mark building itself on the same dark background, then fading into the app.
+_Avoid_: splash for the launch screen.
+
 **Engine**: the backend process. It is only reachable through the two web apps, which proxy `/engine/trpc` to it over loopback.
 
 ## Kits
@@ -145,9 +150,19 @@ _Avoid_: console, terminal.
 
 **System page**: admin's page (`/system`) with the Pi's readings, live with the last hour: temperature, throttling, memory, CPU and storage. The admin server reads the Pi every 5 s, so the page works while the engine is down.
 
-**Throttling**: the Pi's firmware running the CPU slower than it could, from heat or a weak supply. Its four flags are **under-voltage**, **clock capped**, **throttled** and **soft temperature limit**, each reported **now** and **since boot**.
+**Throttling**: the Pi's firmware running the CPU slower than it could, from heat or a weak supply. Its four flags are **under-voltage**, **clock capped**, **throttled** and **soft temperature limit**, each reported **now** and **since boot**. The System page shows each as one state: **Clear**, **Since boot** or **Now**.
 
 **Since boot**: a throttle flag that was set at some point since the Pi last started, even if it is clear now. It is the trace of a supply dip or an overheat during the event; a restart clears it.
+
+## Releases
+
+**Release**: one version of the booth software, cut by a `v*` Git tag: the apps, the docs and the `booth` CLI together. It is written without the `v` (`0.8.0`, `0.8.0-rc.1`); the heartbeat reports the one a booth runs.
+
+**Roll back**: go back to the release a booth ran before its last update. An update rolls back on its own when the new release doesn't start; staff can roll back by hand. Across a database change it means restoring the backup taken before the update.
+
+**Update request**: a release staff asked a booth to install, from the Studio app's **Booths**. The booth reads it in its heartbeat's answer and installs it when it's quiet: not during its event, nor within 15 minutes of a visit. It reports how it goes; Studio shows it under the booth.
+
+**Release bundle**: the file a release ships for booths, `dither-booth-<version>-linux-arm64.tar.zst`: the built apps, their dependencies and the docs, ready to run on the Pi. A booth only downloads and unpacks it; it never compiles.
 
 ## Booth state
 
@@ -198,6 +213,8 @@ _Avoid_: dismiss, mute.
 
 **Event times**: when a booth is expected to be running, set per booth in the Studio app (`live_from`, `live_until` in the code). Only then is a silent booth an alert. They live on the Hub and have nothing to do with the booth's event in admin, nor with its **start and end**: replacing that event leaves them as they are. Only the Hub can hold them, since a booth that never powers on can't report its own.
 _Avoid_: live window (in staff-facing text).
+
+**Update failed** (alert): an update Studio asked for stopped before its switch, or the new release didn't start and the booth went back. The booth's reason is under it in Studio; asking again closes it.
 
 **Silent booth**: a booth that has sent no heartbeat for three minutes between its event times. Only the Hub can notice it, since a booth that lost power or its network can't say so.
 _Avoid_: offline, down (in staff-facing text).

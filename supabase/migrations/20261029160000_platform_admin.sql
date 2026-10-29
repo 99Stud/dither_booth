@@ -90,6 +90,19 @@ alter policy "members ack their alerts" on public.alert
   using (org_id in (select public.visible_org_ids()))
   with check (org_id in (select public.visible_org_ids()));
 
+alter policy "members read their booths' updates" on public.booth_update
+  using (org_id in (select public.visible_org_ids()));
+
+alter policy "members ask their booths to update" on public.booth_update
+  with check (org_id in (select public.visible_org_ids()));
+
+alter policy "members ask again" on public.booth_update
+  using (org_id in (select public.visible_org_ids()))
+  with check (org_id in (select public.visible_org_ids()));
+
+alter policy "members cancel" on public.booth_update
+  using (org_id in (select public.visible_org_ids()));
+
 -- "members add their own devices" stays on memberships: a device of an
 -- admin's that named any team would get that team's alerts.
 

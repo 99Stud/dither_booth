@@ -35,6 +35,8 @@ export type TRPCContext = {
   cameraPreview: CameraPreview;
   /** Whether the booth is in maintenance, and why. */
   kioskMaintenance: KioskMaintenance;
+  /** The release this engine runs (`readRelease`), read once at start. */
+  release: string;
   mode: "development" | "production";
   /** NetworkManager, through `nmcli`, as the engine's user. */
   network: NetworkDeps;

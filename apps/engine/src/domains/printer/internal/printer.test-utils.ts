@@ -138,6 +138,7 @@ export function createStubPrinter({
     dryRun: false,
     getStatus: () => current,
     print,
+    isPrinting: () => false,
     setStatus(next) {
       current = { ...current, ...next };
     },

@@ -2,7 +2,7 @@
 -- their team, and a booth nothing. Being an admin is a row only the admin
 -- can read, added from the SQL editor. Team roles are owner and member.
 begin;
-select plan(38);
+select plan(42);
 
 insert into auth.users (id, email) values
   ('ad000000-0000-0000-0000-000000000001', 'admin@example.com'),
@@ -88,6 +88,11 @@ update public.booth
 select is(
   (select live_until from public.booth where id = 'b0b0b0b0-0000-0000-0000-0000000000b0'),
   '2026-11-01 02:00+00'::timestamptz, 'the admin sets any booth''s event times');
+select lives_ok(
+  $$insert into public.booth_update (booth_id, org_id, release)
+    values ('b0b0b0b0-0000-0000-0000-0000000000b0', 'bbbbbbbb-0000-0000-0000-00000000000b', '0.8.0')$$,
+  'the admin asks any booth to update');
+select is((select count(*) from public.booth_update), 1::bigint, 'the admin reads every update request');
 select throws_ok(
   $$insert into public.push_subscription (org_id, user_id, endpoint, p256dh_key, auth_secret)
     values ('bbbbbbbb-0000-0000-0000-00000000000b', 'ad000000-0000-0000-0000-000000000001',
@@ -106,6 +111,7 @@ select set_eq($$select public.visible_org_ids()$$,
 select is((select count(*) from public.org), 1::bigint, 'a member reads one org');
 select is((select count(*) from public.booth), 1::bigint, 'a member reads their booth only');
 select is((select count(*) from public.alert), 1::bigint, 'a member reads their alert only');
+select is_empty($$select 1 from public.booth_update$$, 'a member reads no other team''s update request');
 select is_empty($$select 1 from public.platform_admin$$, 'a member reads no admin row');
 select throws_ok(
   $$insert into public.org (name) values ('Mine')$$,
@@ -120,6 +126,7 @@ select is_empty($$select 1 from public.org_member$$, 'a booth reads no membershi
 select is_empty($$select 1 from public.org$$, 'a booth reads no org');
 select is_empty($$select 1 from public.booth_status$$, 'a booth reads no booth status');
 select is_empty($$select 1 from public.alert$$, 'a booth reads no alert');
+select is_empty($$select 1 from public.booth_update$$, 'a booth reads no update request');
 
 select * from finish();
 rollback;

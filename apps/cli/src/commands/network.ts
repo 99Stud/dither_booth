@@ -175,12 +175,20 @@ export async function runNetworkSetupCommand(): Promise<void> {
   step(`Writing ${CAPTIVE_DNSMASQ_PATH}`);
   await Bun.write(CAPTIVE_DNSMASQ_PATH, buildCaptiveDnsmasqConf());
 
+  const unit = buildNetworkUnit();
+  const unitChanged =
+    (await Bun.file(NETWORK_SERVICE_PATH)
+      .text()
+      .catch(() => undefined)) !== unit;
   step(`Writing ${NETWORK_SERVICE_PATH}`);
-  await Bun.write(NETWORK_SERVICE_PATH, buildNetworkUnit());
+  await Bun.write(NETWORK_SERVICE_PATH, unit);
   await run(["systemctl", "daemon-reload"]);
   await run(["systemctl", "enable", "--now", NETWORK_SERVICE_NAME]);
-  // A running watch keeps the old unit until restarted.
-  await run(["systemctl", "restart", NETWORK_SERVICE_NAME]);
+  // A running watch keeps the old unit until restarted. An unchanged one
+  // is left running: `booth update` runs this on every update.
+  if (unitChanged) {
+    await run(["systemctl", "restart", NETWORK_SERVICE_NAME]);
+  }
 
   ok(`${NETWORK_SERVICE_NAME} enabled`);
 }

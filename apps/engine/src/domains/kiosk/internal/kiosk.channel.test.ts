@@ -118,17 +118,17 @@ describe("createKioskChannel", () => {
     expect(createKioskChannel().broadcast(RELOAD)).toBe(0);
   });
 
-  test("a page gets its initial command before the live ones", async () => {
+  test("a page gets its opening commands, in order, before the live ones", async () => {
     const channel = createKioskChannel();
-    const initial: KioskCommand = {
-      type: "maintenance",
-      enabled: true,
-      commandId: "initial",
-    };
+    const initial: KioskCommand[] = [
+      { type: "maintenance", enabled: true, commandId: "initial" },
+      { type: "release", release: "0.8.0", commandId: "release" },
+    ];
     const stream = channel.subscribe(page("a"), undefined, initial);
     channel.broadcast(RELOAD);
 
-    expect((await stream.next()).value).toEqual(initial);
+    expect((await stream.next()).value).toEqual(initial[0]);
+    expect((await stream.next()).value).toEqual(initial[1]);
     expect((await stream.next()).value).toEqual(RELOAD);
   });
 
@@ -196,6 +196,7 @@ describe("kiosk channel through the router", () => {
       hubReporter: createHubReporterStub(),
       kioskChannel,
       kioskMaintenance,
+      release: "0.0.0-test",
       cameraPreview: cameraPreviewFor(kioskChannel),
       mode: "production",
       network: {} as TRPCContext["network"],
@@ -226,6 +227,7 @@ describe("kiosk channel through the router", () => {
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const iterator = commands[Symbol.asyncIterator]();
     await iterator.next(); // The maintenance snapshot.
+    await iterator.next(); // The release.
     const received = iterator.next();
     // The procedure registers the page once its stream starts.
     await Bun.sleep(0);
@@ -264,6 +266,7 @@ describe("kiosk channel through the router", () => {
       const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
       const iterator = commands[Symbol.asyncIterator]();
       await iterator.next(); // The maintenance snapshot.
+      await iterator.next(); // The release.
       const received = iterator.next();
       await Bun.sleep(0);
 
@@ -309,6 +312,7 @@ describe("kiosk channel through the router", () => {
       const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
       const iterator = commands[Symbol.asyncIterator]();
       await iterator.next(); // The maintenance snapshot.
+      await iterator.next(); // The release.
       const received = iterator.next();
       await Bun.sleep(0);
 
@@ -370,6 +374,7 @@ describe("kiosk channel through the router", () => {
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const iterator = commands[Symbol.asyncIterator]();
     await iterator.next(); // The maintenance snapshot.
+    await iterator.next(); // The release.
     const received = iterator.next();
     await Bun.sleep(0);
 
@@ -391,6 +396,7 @@ describe("kiosk channel through the router", () => {
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const iterator = commands[Symbol.asyncIterator]();
     await iterator.next(); // The maintenance snapshot.
+    await iterator.next(); // The release.
     const received = iterator.next();
     await Bun.sleep(0);
 
@@ -411,7 +417,7 @@ describe("kiosk channel through the router", () => {
     await iterator.return?.();
   });
 
-  test("a page opens with the saved maintenance state", async () => {
+  test("a page opens with the saved maintenance state, then the release", async () => {
     const kioskChannel = createKioskChannel();
     const kioskMaintenance = createKioskMaintenance({
       db: createTestDb().db,
@@ -429,6 +435,10 @@ describe("kiosk channel through the router", () => {
     expect((await iterator.next()).value).toMatchObject({
       type: "maintenance",
       enabled: true,
+    });
+    expect((await iterator.next()).value).toMatchObject({
+      type: "release",
+      release: "0.0.0-test",
     });
 
     await iterator.return?.();
@@ -449,6 +459,7 @@ describe("kiosk channel through the router", () => {
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const iterator = commands[Symbol.asyncIterator]();
     expect((await iterator.next()).value).toMatchObject({ enabled: false });
+    await iterator.next(); // The release.
     const received = iterator.next();
     await Bun.sleep(0);
 
@@ -485,6 +496,7 @@ describe("kiosk channel through the router", () => {
     const commands = await kiosk.booth.onKioskCommand(page("kiosk"));
     const pageStream = commands[Symbol.asyncIterator]();
     await pageStream.next(); // The maintenance snapshot.
+    await pageStream.next(); // The release.
     await kiosk.booth.reportKioskStatus({
       pageId: "kiosk",
       camera: { status: "ready", error: null },
