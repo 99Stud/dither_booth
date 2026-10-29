@@ -2,10 +2,11 @@ import {
   type BoothRollbackMode,
   type BoothRollbackTarget,
   type BoothUpdateJob,
+  type ProcessIdentity,
   fetchLatestRelease,
   isReleaseVersion,
+  processIdentitySchema,
 } from "@dither-booth/shared/booth-update";
-import { isProcessAlive } from "@dither-booth/shared/server/booth-update";
 import {
   lstat,
   mkdir,
@@ -65,6 +66,9 @@ export const MIN_FREE_BYTES = 1024 ** 3;
 /** How long a new release gets to come up before it's rolled back. */
 export const CHECK_TIMEOUT_MS = 120_000;
 const CHECK_INTERVAL_MS = 3_000;
+/** How long the switch waits for a busy booth (a print, a visit) to free up. */
+const BUSY_WAIT_MS = 10 * 60_000;
+const BUSY_POLL_MS = 15_000;
 
 export type UpdateHost = {
   now: () => Date;
@@ -83,6 +87,15 @@ export type UpdateHost = {
   stopBooth: () => Promise<void>;
   startBooth: () => Promise<void>;
   probeHealth: (repoLink: string) => Promise<HealthReading>;
+  /** This process, as the job file and the lock name it; null off Linux. */
+  processIdentity: () => ProcessIdentity | null;
+  /** Whether the process an identity names still runs. */
+  isProcessAlive: (identity: ProcessIdentity) => boolean;
+  /**
+   * Whether the booth may restart now (a ticket printing, a visit under
+   * way); null when there is no one to ask (the engine is down).
+   */
+  isBusy: () => Promise<string | null>;
   /** Installs a downloaded CLI binary; true when it differs from this one. */
   installCli: (binary: string) => Promise<boolean>;
   /** Runs the installed CLI with `args` to its end; its exit code. */
@@ -99,24 +112,37 @@ export class UpdateRefused extends Error {}
 
 // ---- the lock ----------------------------------------------------------------
 
-/** One job at a time: a file holding the pid of the process that runs it. */
-async function takeLock(stateDir: string): Promise<() => Promise<void>> {
+/**
+ * One job at a time: a file naming the process that runs it, by its full
+ * identity (pid, boot, start time), so a pid handed to another process
+ * after a crash or a reboot never holds the lock. The CLI that hands a
+ * job over keeps it until the new CLI ends.
+ */
+async function takeLock(
+  stateDir: string,
+  host: UpdateHost,
+): Promise<() => Promise<void>> {
+  const me = host.processIdentity();
   await mkdir(stateDir, { recursive: true, mode: 0o755 });
   const path = join(stateDir, "lock");
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const handle = await open(path, "wx");
-      await handle.writeFile(String(process.pid));
+      await handle.writeFile(JSON.stringify(me));
       await handle.close();
       return () => rm(path, { force: true });
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
 
-      const pid = Number(await readFile(path, "utf8").catch(() => ""));
-      if (pid > 0 && isProcessAlive(pid)) {
+      const holder = processIdentitySchema
+        .nullable()
+        .safeParse(
+          JSON.parse(await readFile(path, "utf8").catch(() => "null")),
+        );
+      if (holder.success && holder.data && host.isProcessAlive(holder.data)) {
         throw new UpdateRefused(
-          `Another update or rollback runs (pid ${pid}).`,
+          `Another update or rollback runs (pid ${holder.data.pid}).`,
         );
       }
       // Its process is gone: the lock is stale.
@@ -127,6 +153,25 @@ async function takeLock(stateDir: string): Promise<() => Promise<void>> {
   throw new UpdateRefused("Couldn't take the update lock.");
 }
 
+/**
+ * Every job's frame: the lock, a job a crash left behind ended first,
+ * the work, then where a rollback goes written for the admin.
+ */
+async function withLock<T>(
+  layout: UpdateLayout,
+  host: UpdateHost,
+  work: () => Promise<T>,
+): Promise<T> {
+  const unlock = await takeLock(layout.stateDir, host);
+
+  try {
+    return await work();
+  } finally {
+    await publishRollbackTarget(layout, host).catch(() => {});
+    await unlock();
+  }
+}
+
 // ---- folders -----------------------------------------------------------------
 
 const exists = (path: string) =>
@@ -134,6 +179,10 @@ const exists = (path: string) =>
     () => true,
     () => false,
   );
+
+/** A half-unpacked release folder, left by a job that didn't get to rename it. */
+const removeStaging = (layout: UpdateLayout, version: string) =>
+  rm(`${releaseDirFor(layout, version)}.tmp`, { recursive: true, force: true });
 
 /** Moves `/opt/dither-booth` to `target`, in one rename. */
 async function pointRepoAt(layout: UpdateLayout, target: string) {
@@ -353,7 +402,7 @@ function newJob(
     backup: null,
     migrationsBefore: null,
     migrated: null,
-    pid: process.pid,
+    process: host.processIdentity(),
   };
 }
 
@@ -510,15 +559,12 @@ export async function runUpdate({
   resumeJobId?: string;
 }): Promise<JobOutcome> {
   // The CLI that handed over holds the lock until this one ends.
-  const unlock = resumeJobId ? async () => {} : await takeLock(layout.stateDir);
+  if (resumeJobId) return update({ layout, host, requested, resumeJobId });
 
-  try {
-    if (!resumeJobId) await recover({ layout, host, restart: true });
-    return await update({ layout, host, requested, resumeJobId });
-  } finally {
-    await publishRollbackTarget(layout, host).catch(() => {});
-    await unlock();
-  }
+  return withLock(layout, host, async () => {
+    await recover({ layout, host, restart: true });
+    return update({ layout, host, requested, resumeJobId });
+  });
 }
 
 async function update({
@@ -559,7 +605,7 @@ async function update({
     now: host.now,
     job:
       resumed && resumed.jobId === resumeJobId
-        ? { ...resumed, pid: process.pid }
+        ? { ...resumed, process: host.processIdentity() }
         : newJob(host, {
             kind: "update",
             from,
@@ -651,6 +697,18 @@ async function update({
     }
 
     await recorder.update({ step: "switch" });
+    // The download took minutes: a guest may have come in since the job
+    // was found safe to start. Wait for the booth to be free, up to 10 min.
+    const busyDeadline = host.now().getTime() + BUSY_WAIT_MS;
+    for (;;) {
+      const busy = await host.isBusy();
+      if (!busy) break;
+      if (host.now().getTime() >= busyDeadline) {
+        throw new Error(`The booth stayed busy for 10 minutes: ${busy}`);
+      }
+      say(`${busy} Waiting before the switch.`);
+      await host.sleep(BUSY_POLL_MS);
+    }
     if (repo.kind === "checkout" && from) {
       previousDir = await moveCheckout(layout, repo.dir, from);
     }
@@ -687,10 +745,7 @@ async function update({
     const reason = errorMessage(error);
 
     if (!switched || !previousDir) {
-      await rm(`${releaseDirFor(layout, recorder.job.to)}.tmp`, {
-        recursive: true,
-        force: true,
-      });
+      await removeStaging(layout, recorder.job.to);
       await recorder.finish({ state: "failed", error: reason });
       return { kind: "finished", job: recorder.job };
     }
@@ -728,10 +783,11 @@ export async function recover({
   const status = await readStatus(layout.stateDir);
 
   if (!status || status.state !== "running") return null;
+  const me = host.processIdentity();
   if (
-    status.pid !== null &&
-    status.pid !== process.pid &&
-    isProcessAlive(status.pid)
+    status.process !== null &&
+    status.process.pid !== me?.pid &&
+    host.isProcessAlive(status.process)
   ) {
     return null;
   }
@@ -739,7 +795,7 @@ export async function recover({
   const recorder = await createJobRecorder({
     stateDir: layout.stateDir,
     now: host.now,
-    job: { ...status, pid: process.pid },
+    job: { ...status, process: me },
   });
   const reason = `Interrupted during ${status.step}.`;
   const repo = await readRepoState(layout);
@@ -750,13 +806,20 @@ export async function recover({
   if (status.kind === "rollback") {
     // A rollback moves the link last but one: wherever it points runs.
     await recorder.finish({ state: "failed", error: reason });
+  } else if (status.step === "rollback" && previousDir) {
+    // Going back was itself cut short: the link may point either way.
+    await switchBack({
+      layout,
+      host,
+      recorder,
+      previousDir,
+      reason: status.error ?? reason,
+      restart,
+    });
   } else if (switchedTo && previousDir) {
     await switchBack({ layout, host, recorder, previousDir, reason, restart });
   } else {
-    await rm(`${releaseDirFor(layout, status.to)}.tmp`, {
-      recursive: true,
-      force: true,
-    });
+    await removeStaging(layout, status.to);
     await recorder.finish({
       state: "failed",
       error: `${reason} Nothing changed.`,
@@ -777,20 +840,14 @@ export async function runRecover({
   host: UpdateHost;
   restart: boolean;
 }): Promise<BoothUpdateJob | null> {
-  let unlock: () => Promise<void>;
   try {
-    unlock = await takeLock(layout.stateDir);
+    return await withLock(layout, host, () =>
+      recover({ layout, host, restart }),
+    );
   } catch (error) {
-    // A live job holds it: nothing to recover.
+    // A live job holds the lock: nothing to recover.
     if (error instanceof UpdateRefused) return null;
     throw error;
-  }
-
-  try {
-    return await recover({ layout, host, restart });
-  } finally {
-    await publishRollbackTarget(layout, host).catch(() => {});
-    await unlock();
   }
 }
 
@@ -805,15 +862,10 @@ export async function runRollback({
   host: UpdateHost;
   mode: BoothRollbackMode;
 }): Promise<JobOutcome> {
-  const unlock = await takeLock(layout.stateDir);
-
-  try {
+  return withLock(layout, host, async () => {
     await recover({ layout, host, restart: true });
-    return await rollback({ layout, host, mode });
-  } finally {
-    await publishRollbackTarget(layout, host).catch(() => {});
-    await unlock();
-  }
+    return rollback({ layout, host, mode });
+  });
 }
 
 async function rollback({

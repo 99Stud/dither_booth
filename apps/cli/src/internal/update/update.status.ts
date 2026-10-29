@@ -81,7 +81,7 @@ export async function createJobRecorder({
     update,
     async finish(patch) {
       // A finished job has no process to watch.
-      await update({ ...patch, pid: null });
+      await update({ ...patch, process: null });
       const history = await readHistory(stateDir);
       await writeJson(
         historyPath(stateDir),

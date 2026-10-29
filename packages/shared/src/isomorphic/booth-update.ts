@@ -52,6 +52,19 @@ export const boothUpdateStepSchema = z.enum(BOOTH_UPDATE_STEPS);
 
 export type BoothUpdateStep = z.infer<typeof boothUpdateStepSchema>;
 
+/**
+ * One process, told apart from a later one that got its pid back: the
+ * boot it ran in, and when it started (clock ticks since that boot, as
+ * `/proc/<pid>/stat` counts them).
+ */
+export const processIdentitySchema = z.object({
+  pid: z.number().int().positive(),
+  bootId: z.string().min(1),
+  startedTicks: z.number().int().nonnegative(),
+});
+
+export type ProcessIdentity = z.infer<typeof processIdentitySchema>;
+
 export const boothUpdateJobSchema = z.object({
   kind: z.enum(["update", "rollback"]),
   jobId: z.string(),
@@ -77,7 +90,7 @@ export const boothUpdateJobSchema = z.object({
    * The process running the job. A `running` job whose process is gone
    * was interrupted (a crash, a timeout, a power cut): not running.
    */
-  pid: z.number().int().positive().nullable(),
+  process: processIdentitySchema.nullable(),
 });
 
 export type BoothUpdateJob = z.infer<typeof boothUpdateJobSchema>;

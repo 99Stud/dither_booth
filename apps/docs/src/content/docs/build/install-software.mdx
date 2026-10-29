@@ -29,7 +29,7 @@ The `booth` CLI is a single static binary. The Pi needs nothing installed before
 
    | Step            | What it does                                                                                                      |
    | --------------- | ----------------------------------------------------------------------------------------------------------------- |
-   | apt packages    | `git`, `curl`, `mkcert`, `libnss3-tools`, `iw`, `logrotate`, Chromium and its runtime libraries                   |
+   | apt packages    | `git`, `curl`, `mkcert`, `libnss3-tools`, `iw`, `logrotate`, `zstd`, Chromium and its runtime libraries           |
    | `bun`           | Installs Bun for the service user at `~/.bun/bin/bun`                                                             |
    | `repo`          | Clones the repo into `/opt/dither-booth` (or pulls it), `bun install`, `bun run build`, Puppeteer's browser       |
    | `ssd`           | Mounts the NVMe at `/mnt/ssd` via `/etc/fstab` and moves `apps/engine/data` onto it with a symlink                |

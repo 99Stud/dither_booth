@@ -5,10 +5,10 @@ import { join } from "node:path";
 
 import {
   isJobRunning,
-  isProcessAlive,
   isReleaseBundle,
   readBoothUpdateJob,
 } from "./booth-update";
+import { currentProcessIdentity } from "./process-identity";
 
 const job = {
   kind: "update" as const,
@@ -23,15 +23,21 @@ const job = {
   backup: null,
   migrationsBefore: null,
   migrated: null,
-  pid: process.pid,
+  process: null,
 };
 
 describe("booth update files", () => {
   test("a running job is running only while its process is", () => {
-    expect(isProcessAlive(process.pid)).toBe(true);
-    expect(isProcessAlive(2_147_483_000)).toBe(false);
+    const me = currentProcessIdentity();
+
+    // Unknown process (off Linux): taken as running, as the file says.
     expect(isJobRunning(job)).toBe(true);
-    expect(isJobRunning({ ...job, pid: 2_147_483_000 })).toBe(false);
+    if (me) {
+      expect(isJobRunning({ ...job, process: me })).toBe(true);
+      expect(
+        isJobRunning({ ...job, process: { ...me, pid: 2_147_483_000 } }),
+      ).toBe(false);
+    }
     expect(isJobRunning({ ...job, state: "done" })).toBe(false);
     expect(isJobRunning(null)).toBe(false);
   });
