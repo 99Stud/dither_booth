@@ -68,6 +68,8 @@ export const BOOTH_JOB_STATES = [
 ] as const;
 
 export const boothJobStateSchema = z.enum(BOOTH_JOB_STATES);
+
+/**
  * One process, told apart from a later one that got its pid back: the
  * boot it ran in, and when it started (clock ticks since that boot, as
  * `/proc/<pid>/stat` counts them).

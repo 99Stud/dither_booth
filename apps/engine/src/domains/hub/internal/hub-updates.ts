@@ -4,6 +4,7 @@ import type { SystemctlOutcome } from "@dither-booth/shared/server/systemctl";
 
 import {
   getBoothUpdateUnit,
+  isEventRunning,
   isReleaseVersion,
 } from "@dither-booth/shared/booth-update";
 import { isJobRunning } from "@dither-booth/shared/server/booth-update";
@@ -51,10 +52,7 @@ export function readQuietness(
     .from(campaignTable)
     .where(eq(campaignTable.status, "active"))
     .get();
-  const started = !event?.startsAt || event.startsAt <= now;
-  const notEnded = !event?.endsAt || now < event.endsAt;
-
-  if (event && started && notEnded) {
+  if (event && isEventRunning(event, now.getTime())) {
     return {
       quiet: false,
       reason: event.endsAt
@@ -101,6 +99,7 @@ export type RemoteUpdates = {
 export function createRemoteUpdates({
   release: running,
   readJob,
+  isJobRunning: jobRunning = isJobRunning,
   readQuietness: quietness,
   startUnit,
   log,
@@ -109,6 +108,8 @@ export function createRemoteUpdates({
   /** The release this engine runs. */
   release: string;
   readJob: () => Promise<BoothUpdateJob | null>;
+  /** Whether a job's process still runs (`isJobRunning` on the booth). */
+  isJobRunning?: (job: BoothUpdateJob | null) => boolean;
   readQuietness: () => Quietness;
   /** `systemctl --no-block start <unit>`. */
   startUnit: (unit: string) => Promise<SystemctlOutcome>;
@@ -123,7 +124,7 @@ export function createRemoteUpdates({
       if (release === running || !isReleaseVersion(release)) return;
 
       const job = await readJob();
-      if (isJobRunning(job)) return;
+      if (jobRunning(job)) return;
 
       const quiet = quietness();
       if (!quiet.quiet) {

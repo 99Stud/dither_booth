@@ -28,9 +28,13 @@ const job = (overrides: Partial<BoothUpdateJob> = {}): BoothUpdateJob => ({
   backup: null,
   migrationsBefore: null,
   migrated: null,
-  pid: null,
+  process: null,
   ...overrides,
 });
+
+/** A process that runs, and one a crash left behind, as the test sees them. */
+const ALIVE = { pid: 4242, bootId: "boot-a", startedTicks: 100 };
+const GONE = { pid: 4242, bootId: "boot-a", startedTicks: 1 };
 
 function setup({
   quietness = { quiet: true },
@@ -46,6 +50,9 @@ function setup({
   const updates = createRemoteUpdates({
     release: "0.7.0",
     readJob: async () => jobFile,
+    isJobRunning: (candidate) =>
+      candidate?.state === "running" &&
+      candidate.process?.startedTicks === ALIVE.startedTicks,
     readQuietness: () => quietness,
     startUnit: async (unit) => {
       started.push(unit);
@@ -94,12 +101,12 @@ describe("remote updates", () => {
   });
 
   test("never start a second job, the release it runs, or a non-version", async () => {
-    const running = setup({ current: job({ to: "0.7.5", pid: process.ppid }) });
+    const running = setup({ current: job({ to: "0.7.5", process: ALIVE }) });
     await running.updates.request("0.8.0");
     expect(running.started).toEqual([]);
 
     // A job a crash left running isn't running: the booth ends it.
-    const stale = setup({ current: job({ to: "0.7.5", pid: 2_147_483_000 }) });
+    const stale = setup({ current: job({ to: "0.7.5", process: GONE }) });
     await stale.updates.request("0.8.0");
     expect(stale.started).toEqual(["ditherbooth-update@0.8.0.service"]);
 

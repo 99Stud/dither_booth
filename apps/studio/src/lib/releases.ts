@@ -1,6 +1,6 @@
 import {
-  BOOTH_RELEASES_REPO,
   compareReleaseVersions,
+  fetchLatestRelease,
   isReleaseVersion,
 } from "@dither-booth/shared/booth-update";
 import { useEffect, useState } from "react";
@@ -10,17 +10,12 @@ import { useEffect, useState } from "react";
  * behind. Read once per screen: it changes a few times a month.
  */
 
-export async function fetchLatestRelease(): Promise<string | null> {
-  const response = await fetch(
-    `https://api.github.com/repos/${BOOTH_RELEASES_REPO}/releases/latest`,
-    { headers: { accept: "application/vnd.github+json" } },
+/** The latest release's version, or null when GitHub doesn't answer. */
+export const fetchLatestVersion = (): Promise<string | null> =>
+  fetchLatestRelease().then(
+    (latest) => latest.version,
+    () => null,
   );
-  if (!response.ok) return null;
-  const body = (await response.json()) as { tag_name?: unknown };
-  const version =
-    typeof body.tag_name === "string" ? body.tag_name.replace(/^v/u, "") : "";
-  return isReleaseVersion(version) ? version : null;
-}
 
 /** The latest release, or null while unknown (or GitHub didn't answer). */
 export function useLatestRelease(): string | null {
@@ -28,12 +23,9 @@ export function useLatestRelease(): string | null {
 
   useEffect(() => {
     let cancelled = false;
-    fetchLatestRelease().then(
-      (version) => {
-        if (!cancelled) setLatest(version);
-      },
-      () => {},
-    );
+    void fetchLatestVersion().then((version) => {
+      if (!cancelled) setLatest(version);
+    });
     return () => {
       cancelled = true;
     };
