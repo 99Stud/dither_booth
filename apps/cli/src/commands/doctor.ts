@@ -6,6 +6,7 @@ import {
   shutterHealthzPayloadSchema,
 } from "@dither-booth/shared/healthz";
 import { defineCommand } from "citty";
+import { lstat } from "node:fs/promises";
 import { hostname } from "node:os";
 
 import type { BoothContext } from "#internal/context";
@@ -18,7 +19,9 @@ import {
 import {
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
+  buildRollbackUnit,
   buildSystemPolkitRule,
+  buildUpdateUnit,
 } from "#commands/service";
 import { printCommandBanner } from "#internal/banner";
 import {
@@ -38,7 +41,9 @@ import {
   SERVICE_USER,
   SSD_DATA_DIR,
   SSD_MOUNT_POINT,
+  ROLLBACK_UNIT_PATH,
   SYSTEM_POLKIT_RULE_PATH,
+  UPDATE_UNIT_PATH,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import { readHubRegistration } from "#internal/hub-registration";
@@ -428,6 +433,59 @@ export function powerControlsCheck(
   };
 }
 
+/**
+ * `installed` holds the two units' content, each undefined when missing;
+ * `repoIsLink` says whether the repo is a release (a symlink) or a
+ * checkout from before releases.
+ */
+export function updatesCheck(
+  installed: { update: string | undefined; rollback: string | undefined },
+  repoIsLink: boolean,
+): CheckResult {
+  if (
+    installed.update !== buildUpdateUnit() ||
+    installed.rollback !== buildRollbackUnit()
+  ) {
+    return {
+      status: "warn",
+      label: "Admin can't update or roll back the booth",
+      detail: "Run `sudo booth service`.",
+    };
+  }
+
+  if (!repoIsLink) {
+    return {
+      status: "warn",
+      label: "Runs a git checkout, not a release",
+      detail:
+        "`sudo booth update` installs the latest release and keeps this checkout to roll back to.",
+    };
+  }
+
+  return { status: "pass", label: "Runs a release; admin can update it" };
+}
+
+async function checkUpdates(
+  results: CheckResult[],
+  repoRoot: string,
+): Promise<void> {
+  const read = (path: string) =>
+    Bun.file(path)
+      .text()
+      .catch(() => undefined);
+  const repo = await lstat(repoRoot).catch(() => undefined);
+
+  results.push(
+    updatesCheck(
+      {
+        update: await read(UPDATE_UNIT_PATH),
+        rollback: await read(ROLLBACK_UNIT_PATH),
+      },
+      repo?.isSymbolicLink() ?? false,
+    ),
+  );
+}
+
 async function checkPowerControls(results: CheckResult[]): Promise<void> {
   const installed = await Bun.file(SYSTEM_POLKIT_RULE_PATH)
     .text()
@@ -515,6 +573,7 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkLogRotation(results, repoRoot);
   await checkJournalGroup(results);
   await checkPowerControls(results);
+  await checkUpdates(results, repoRoot);
 
   const lanIp = (await detectLanIp()) ?? "127.0.0.1";
   await checkHealthz(

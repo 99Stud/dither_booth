@@ -26,6 +26,7 @@
     "./background-controls": "./src/isomorphic/background-controls.ts",
     "./backgrounds": "./src/isomorphic/backgrounds.ts",
     "./booth-system": "./src/isomorphic/booth-system.ts",
+    "./booth-update": "./src/isomorphic/booth-update.ts",
     "./kit-copy": "./src/isomorphic/kit-copy.ts",
     "./kit-fonts": "./src/isomorphic/kit-fonts.ts",
     "./kit-partners": "./src/isomorphic/kit-partners.ts",

@@ -1,10 +1,12 @@
 import { defineCommand } from "citty";
+import { lstat } from "node:fs/promises";
 
 import type { BoothContext } from "#internal/context";
 
 import { REPO_GIT_URL } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import {
+  SilentExit,
   asServiceUser,
   capture,
   chownToServiceUser,
@@ -13,7 +15,7 @@ import {
   run,
   serviceBun,
 } from "#internal/system";
-import { heading, info, ok, runBoothTask, step } from "#internal/ui";
+import { fail, heading, info, ok, runBoothTask, step } from "#internal/ui";
 
 async function isDir(path: string): Promise<boolean> {
   const result = await capture(["bash", "-lc", `test -d "${path}"`], {
@@ -27,6 +29,15 @@ export async function runRepoCommand(context: BoothContext): Promise<void> {
   const { repoRoot } = context;
 
   heading("Sync repository");
+
+  // A booth on releases has no checkout to pull: building into the running
+  // release would change it under the apps.
+  if ((await lstat(repoRoot).catch(() => undefined))?.isSymbolicLink()) {
+    fail(
+      `${repoRoot} runs a release, not a checkout. Update it with \`sudo booth update\`.`,
+    );
+    throw new SilentExit(1);
+  }
 
   // The repo lives under root-owned /opt, so root creates it, then hands it
   // (and anything an earlier root run left in it) to the service user.

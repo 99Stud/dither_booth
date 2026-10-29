@@ -24,7 +24,9 @@ import {
   SERVICE_PATH,
   SERVICE_USER,
   SSD_MOUNT_POINT,
+  ROLLBACK_UNIT_PATH,
   SYSTEM_POLKIT_RULE_PATH,
+  UPDATE_UNIT_PATH,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import { capture, run } from "#internal/system";
@@ -146,9 +148,12 @@ OnCalendar=hourly
 
 /**
  * The admin's System page runs `systemctl` as the service user: restart
- * this unit, reboot, power off. Nothing else: not other units, not stop.
- * The `-multiple-sessions` actions are what logind asks while someone is
- * logged in over SSH. polkit reads the rules folder again on its own.
+ * this unit, reboot, power off, and start an update or a rollback unit.
+ * Nothing else: not other units, not stop. The update instance must be a
+ * release version (systemd writes its `-` as `\x2d`); the CLI checks it
+ * again. The `-multiple-sessions` actions are what logind asks while
+ * someone is logged in over SSH. polkit reads the rules folder again on
+ * its own.
  */
 export function buildSystemPolkitRule(): string {
   return `// Installed by \`booth service\`.
@@ -164,6 +169,18 @@ polkit.addRule(function (action, subject) {
     return polkit.Result.YES;
   }
   if (
+    action.id === "org.freedesktop.systemd1.manage-units" &&
+    action.lookup("verb") === "start" &&
+    (/^ditherbooth-update@[0-9]+\\.[0-9]+\\.[0-9]+(\\\\x2d[0-9A-Za-z.]+)?\\.service$/.test(
+      action.lookup("unit"),
+    ) ||
+      /^ditherbooth-rollback@(keep|restore)\\\\x2ddb\\.service$/.test(
+        action.lookup("unit"),
+      ))
+  ) {
+    return polkit.Result.YES;
+  }
+  if (
     action.id === "org.freedesktop.login1.reboot" ||
     action.id === "org.freedesktop.login1.reboot-multiple-sessions" ||
     action.id === "org.freedesktop.login1.power-off" ||
@@ -173,6 +190,39 @@ polkit.addRule(function (action, subject) {
   }
   return polkit.Result.NOT_HANDLED;
 });
+`;
+}
+
+/**
+ * `booth update <version>` as root, in a unit of its own: it restarts
+ * PM2, and the admin that asked with it, and must outlive both. One run
+ * per version at a time; the CLI's lock stops two versions at once.
+ */
+export function buildUpdateUnit(): string {
+  return `[Unit]
+Description=Dither Booth update to %I
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=${BOOTH_BIN} update %I --no-banner --color=never
+# The booth keeps serving while the update downloads and unpacks.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=45min
+`;
+}
+
+/** `booth rollback` as root; the instance is keep-db or restore-db. */
+export function buildRollbackUnit(): string {
+  return `[Unit]
+Description=Dither Booth rollback (%I)
+
+[Service]
+Type=oneshot
+ExecStart=${BOOTH_BIN} rollback --mode %I --no-banner --color=never
+TimeoutStartSec=15min
 `;
 }
 
@@ -236,6 +286,8 @@ export async function runServiceCommand(context: BoothContext): Promise<void> {
     buildLogrotateTimerDropIn(),
   );
 
+  await writeIfChanged(UPDATE_UNIT_PATH, buildUpdateUnit());
+  await writeIfChanged(ROLLBACK_UNIT_PATH, buildRollbackUnit());
   await writeIfChanged(SYSTEM_POLKIT_RULE_PATH, buildSystemPolkitRule());
   await chmod(SYSTEM_POLKIT_RULE_PATH, 0o644);
 

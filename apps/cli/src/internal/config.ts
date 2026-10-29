@@ -2,6 +2,10 @@ import {
   BOOTH_NETWORK_SERVICE_UNIT,
   BOOTH_SERVICE_UNIT,
 } from "@dither-booth/shared/booth-system";
+import {
+  BOOTH_ROLLBACK_UNIT_TEMPLATE,
+  BOOTH_UPDATE_UNIT_TEMPLATE,
+} from "@dither-booth/shared/booth-update";
 
 // Replaced at compile time by `scripts/build.ts` with the release tag's
 // version. Running from source (`bun src/index.ts`) leaves it undefined.
@@ -37,7 +41,10 @@ export const LOGROTATE_MAX_SIZE_MB = 20;
 /** Makes Debian's daily logrotate.timer hourly, so the size cap holds. */
 export const LOGROTATE_TIMER_DROP_IN_PATH =
   "/etc/systemd/system/logrotate.timer.d/ditherbooth.conf";
-/** Lets the admin restart the apps, reboot and power off the Pi. */
+/** Run `booth update <version>` and `booth rollback` as root for the admin. */
+export const UPDATE_UNIT_PATH = `/etc/systemd/system/${BOOTH_UPDATE_UNIT_TEMPLATE}`;
+export const ROLLBACK_UNIT_PATH = `/etc/systemd/system/${BOOTH_ROLLBACK_UNIT_TEMPLATE}`;
+/** Lets the admin restart the apps, reboot, power off, update and roll back. */
 export const SYSTEM_POLKIT_RULE_PATH =
   "/etc/polkit-1/rules.d/50-ditherbooth-system.rules";
 /** Members read the whole system journal; the admin's Logs page needs it. */

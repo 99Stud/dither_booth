@@ -153,6 +153,8 @@ _Avoid_: console, terminal.
 
 **Release**: one version of the booth software, cut by a `v*` Git tag: the apps, the docs and the `booth` CLI together. It is written without the `v` (`0.8.0`, `0.8.0-rc.1`); the heartbeat reports the one a booth runs.
 
+**Roll back**: go back to the release a booth ran before its last update. An update rolls back on its own when the new release doesn't start; staff can roll back by hand. Across a database change it means restoring the backup taken before the update.
+
 **Release bundle**: the file a release ships for booths, `dither-booth-<version>-linux-arm64.tar.zst`: the built apps, their dependencies and the docs, ready to run on the Pi. A booth only downloads and unpacks it; it never compiles.
 
 ## Booth state

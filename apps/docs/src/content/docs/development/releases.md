@@ -27,7 +27,7 @@ Only repository admins can push, move or delete a `v*` tag: the **release tags**
 
 ### How booths get it
 
-Booths will install tagged releases: the booth updater, in a coming release of the CLI, downloads the bundle, checks it against `SHA256SUMS` and switches to it. Until it ships, a booth still updates from `main` with `sudo booth repo` ([Update the booth](/docs/maintenance/update-the-booth/)), so **`main` must stay deployable**: merge only what passed CI and, for hardware-facing changes, was checked on a booth.
+Booths install tagged releases: `sudo booth update` downloads the bundle, checks it against `SHA256SUMS`, unpacks it next to the running release and switches to it, rolling back on its own when it doesn't start ([Updates](/docs/architecture/updates/), [Update the booth](/docs/maintenance/update-the-booth/)). `main` no longer reaches a booth by itself: a booth gets a change once it is tagged. Merge only what passed CI and, for hardware-facing changes, was checked on a booth; try a release on a booth as a pre-release (`v0.8.0-rc.1`, `sudo booth update 0.8.0-rc.1`) before tagging it for everyone.
 
 ### The release bundle
 
