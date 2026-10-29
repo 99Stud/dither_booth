@@ -26,7 +26,7 @@ Every command is idempotent: re-running it on a provisioned booth changes only w
 | `install`            | yes  | Full provisioning: apt packages, `bun`, `repo`, `ssd`, `db`, `cert`, `service`, `network setup`, `doctor`, `qr`                                                                                                                                                                                                                    |
 | `bun`                |      | Install Bun for the service user if missing                                                                                                                                                                                                                                                                                        |
 | `repo`               |      | Clone or `git pull --ff-only` into `/opt/dither-booth`, `bun install`, `bun run build`, Puppeteer's browser (x64 only; arm64 uses apt's Chromium). Refuses on a booth that runs releases                                                                                                                                           |
-| `update [version]`   | yes  | Install a release (default: the latest) next to the running one, switch to it, roll back if it doesn't start. See [Updates](/docs/architecture/updates/)                                                                                                                                                                           |
+| `update [version]`   | yes  | Install a release (default: the latest) next to the running one, switch to it, roll back if it doesn't start. `--recover` ends an interrupted update (the units run it). See [Updates](/docs/architecture/updates/)                                                                                                                |
 | `rollback`           | yes  | Go back to the release before the last update. `--restore-db` also restores the database backup taken before it (what was recorded since is lost)                                                                                                                                                                                  |
 | `ssd`                | yes  | Mount the ext4 SSD partition at `/mnt/ssd` (via `/etc/fstab`) and move the database onto it. Never formats, never overwrites: refuses when the SD card and the SSD both hold a database                                                                                                                                            |
 | `db`                 |      | Apply migrations and seed the default print configuration                                                                                                                                                                                                                                                                          |
@@ -53,14 +53,15 @@ Every command is idempotent: re-running it on a provisioned booth changes only w
 
 ## Environment
 
-| Variable             | Default                                      | Purpose                                                          |
-| -------------------- | -------------------------------------------- | ---------------------------------------------------------------- |
-| `BOOTH_REPO`         | `/opt/dither-booth`                          | Repo root. The compiled binary can't derive it from its own path |
-| `BOOTH_REPO_URL`     | `https://github.com/99Stud/dither_booth.git` | Clone URL                                                        |
-| `BOOTH_SSD_DEVICE`   | auto-detected                                | Force the SSD partition, e.g. `/dev/nvme0n1p1`                   |
-| `BOOTH_SERVICE_USER` | `pi`                                         | System user the service runs as                                  |
-| `BOOTH_NO_BANNER`    | unset                                        | Disable the banner                                               |
-| `NO_COLOR`           | unset                                        | Disable colour ([no-color.org](https://no-color.org/))           |
+| Variable              | Default                                      | Purpose                                                          |
+| --------------------- | -------------------------------------------- | ---------------------------------------------------------------- |
+| `BOOTH_REPO`          | `/opt/dither-booth`                          | Repo root. The compiled binary can't derive it from its own path |
+| `BOOTH_REPO_URL`      | `https://github.com/99Stud/dither_booth.git` | Clone URL                                                        |
+| `BOOTH_SSD_DEVICE`    | auto-detected                                | Force the SSD partition, e.g. `/dev/nvme0n1p1`                   |
+| `BOOTH_SERVICE_USER`  | `pi`                                         | System user the service runs as                                  |
+| `BOOTH_RELEASES_REPO` | `99Stud/dither_booth`                        | GitHub repository `booth update` installs releases from          |
+| `BOOTH_NO_BANNER`     | unset                                        | Disable the banner                                               |
+| `NO_COLOR`            | unset                                        | Disable colour ([no-color.org](https://no-color.org/))           |
 
 ## Shell completions
 

@@ -1,20 +1,26 @@
 import {
   BOOTH_UPDATE_HISTORY_LIMIT,
+  type BoothRollbackTarget,
   type BoothUpdateJob,
-  boothUpdateHistorySchema,
   boothUpdateJobSchema,
 } from "@dither-booth/shared/booth-update";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import {
+  readBoothUpdateHistory,
+  readBoothUpdateJob,
+} from "@dither-booth/shared/server/booth-update";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /*
- * The job's state on disk, the only thing the admin reads. Each write
- * replaces the file whole (write, then rename), so a reader never sees
- * half of it.
+ * The job's state on disk, the only thing the admin and the engine read.
+ * Each write replaces the file whole (write, then rename), so a reader
+ * never sees half of it. The files' names and schemas are
+ * @dither-booth/shared/booth-update's.
  */
 
 const statusPath = (stateDir: string) => join(stateDir, "status.json");
 const historyPath = (stateDir: string) => join(stateDir, "history.json");
+const rollbackPath = (stateDir: string) => join(stateDir, "rollback.json");
 
 async function writeJson(path: string, value: unknown): Promise<void> {
   const tmp = `${path}.${process.pid}.tmp`;
@@ -22,28 +28,19 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await rename(tmp, path);
 }
 
-async function readJson(path: string): Promise<unknown> {
-  try {
-    return JSON.parse(await readFile(path, "utf8"));
-  } catch {
-    return undefined;
-  }
-}
+export const readStatus = (stateDir: string) =>
+  readBoothUpdateJob(statusPath(stateDir));
 
-export async function readStatus(
+export const readHistory = (stateDir: string) =>
+  readBoothUpdateHistory(historyPath(stateDir));
+
+/** Where a rollback goes now: written after every job, read by the admin. */
+export async function writeRollbackTarget(
   stateDir: string,
-): Promise<BoothUpdateJob | undefined> {
-  const parsed = boothUpdateJobSchema.safeParse(
-    await readJson(statusPath(stateDir)),
-  );
-  return parsed.success ? parsed.data : undefined;
-}
-
-export async function readHistory(stateDir: string): Promise<BoothUpdateJob[]> {
-  const parsed = boothUpdateHistorySchema.safeParse(
-    await readJson(historyPath(stateDir)),
-  );
-  return parsed.success ? parsed.data : [];
+  target: BoothRollbackTarget,
+): Promise<void> {
+  await mkdir(stateDir, { recursive: true, mode: 0o755 });
+  await writeJson(rollbackPath(stateDir), target);
 }
 
 export type JobRecorder = {
@@ -83,7 +80,8 @@ export async function createJobRecorder({
     },
     update,
     async finish(patch) {
-      await update(patch);
+      // A finished job has no process to watch.
+      await update({ ...patch, pid: null });
       const history = await readHistory(stateDir);
       await writeJson(
         historyPath(stateDir),

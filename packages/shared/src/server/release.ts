@@ -18,10 +18,19 @@ function readManifestVersion(repoRoot: string): string | null {
 }
 
 function describeCheckout(repoRoot: string): string | null {
-  const proc = Bun.spawnSync(["git", "describe", "--tags", "--always"], {
-    cwd: repoRoot,
-    stderr: "ignore",
-  });
+  // The checkout is the service user's: git refuses another user's repository
+  // (root's `booth update` in a unit, for one) unless it is named safe.
+  const proc = Bun.spawnSync(
+    [
+      "git",
+      "-c",
+      `safe.directory=${repoRoot}`,
+      "describe",
+      "--tags",
+      "--always",
+    ],
+    { cwd: repoRoot, stderr: "ignore" },
+  );
   const described = proc.exitCode === 0 ? proc.stdout.toString().trim() : "";
   return described ? described.replace(/^v/u, "") : null;
 }

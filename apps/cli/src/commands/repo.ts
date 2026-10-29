@@ -1,5 +1,5 @@
+import { isReleaseBundle } from "@dither-booth/shared/server/booth-update";
 import { defineCommand } from "citty";
-import { lstat } from "node:fs/promises";
 
 import type { BoothContext } from "#internal/context";
 
@@ -32,7 +32,7 @@ export async function runRepoCommand(context: BoothContext): Promise<void> {
 
   // A booth on releases has no checkout to pull: building into the running
   // release would change it under the apps.
-  if ((await lstat(repoRoot).catch(() => undefined))?.isSymbolicLink()) {
+  if (isReleaseBundle(repoRoot)) {
     fail(
       `${repoRoot} runs a release, not a checkout. Update it with \`sudo booth update\`.`,
     );

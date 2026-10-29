@@ -1,8 +1,11 @@
 import {
   type BoothRollbackMode,
+  type BoothRollbackTarget,
   type BoothUpdateJob,
+  fetchLatestRelease,
   isReleaseVersion,
 } from "@dither-booth/shared/booth-update";
+import { isProcessAlive } from "@dither-booth/shared/server/booth-update";
 import {
   lstat,
   mkdir,
@@ -19,7 +22,7 @@ import { basename, dirname, join, resolve } from "node:path";
 
 import type { SupportedArch } from "#internal/system";
 
-import { ENGINE_DB_FILE } from "#internal/config";
+import { ENGINE_DB_FILE, RELEASES_REPO } from "#internal/config";
 
 import type { HealthReading, HealthVerdict } from "./update.health";
 import type { UpdateLayout } from "./update.layout";
@@ -39,12 +42,17 @@ import {
   SHA256SUMS_ASSET,
   bundleAssetName,
   cliAssetName,
-  fetchLatestVersion,
   parseSha256Sums,
   releaseAssetUrl,
   sha256File,
 } from "./update.release";
-import { createJobRecorder, readHistory, readStatus } from "./update.status";
+import {
+  type JobRecorder,
+  createJobRecorder,
+  readHistory,
+  readStatus,
+  writeRollbackTarget,
+} from "./update.status";
 
 /*
  * `booth update` and `booth rollback`, behind the machine they act on.
@@ -106,7 +114,7 @@ async function takeLock(stateDir: string): Promise<() => Promise<void>> {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
 
       const pid = Number(await readFile(path, "utf8").catch(() => ""));
-      if (pid > 0 && isAlive(pid)) {
+      if (pid > 0 && isProcessAlive(pid)) {
         throw new UpdateRefused(
           `Another update or rollback runs (pid ${pid}).`,
         );
@@ -117,15 +125,6 @@ async function takeLock(stateDir: string): Promise<() => Promise<void>> {
   }
 
   throw new UpdateRefused("Couldn't take the update lock.");
-}
-
-function isAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 // ---- folders -----------------------------------------------------------------
@@ -335,7 +334,165 @@ async function waitHealthy(
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
+// ---- jobs ------------------------------------------------------------------
+
 const newJobId = (now: Date) => now.toISOString().replaceAll(/[:.]/gu, "-");
+
+function newJob(
+  host: UpdateHost,
+  fields: Pick<BoothUpdateJob, "kind" | "from" | "to" | "step">,
+): BoothUpdateJob {
+  const startedAt = host.now().toISOString();
+  return {
+    ...fields,
+    jobId: newJobId(host.now()),
+    state: "running",
+    startedAt,
+    updatedAt: startedAt,
+    error: null,
+    backup: null,
+    migrationsBefore: null,
+    migrated: null,
+    pid: process.pid,
+  };
+}
+
+/** The folder a recorded release is in, while it's still on the booth. */
+async function findReleaseDir(
+  layout: UpdateLayout,
+  release: string | null,
+): Promise<string | null> {
+  for (const candidate of release
+    ? releaseDirCandidates(layout, release)
+    : []) {
+    if (await exists(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Where `booth rollback` would go now: the release the last update to
+ * the running one came from, while its folder is still on the booth.
+ * Written to rollback.json after every job, so the admin offers exactly
+ * what the CLI would do.
+ */
+export async function findRollbackTarget(
+  layout: UpdateLayout,
+  host: UpdateHost,
+): Promise<(NonNullable<BoothRollbackTarget> & { dir: string }) | null> {
+  const repo = await readRepoState(layout);
+  if (repo.kind !== "release") return null;
+
+  const current = host.releaseOf(repo.dir);
+  const installed = (await readHistory(layout.stateDir)).find(
+    (job) =>
+      job.kind === "update" &&
+      job.state === "done" &&
+      job.to === current &&
+      job.from !== current,
+  );
+  const dir = await findReleaseDir(layout, installed?.from ?? null);
+
+  if (!installed?.from || !dir) return null;
+
+  return {
+    release: installed.from,
+    dir,
+    migrated: installed.migrated === true,
+    backup: installed.backup,
+    backupTakenAt: installed.backup ? installed.startedAt : null,
+  };
+}
+
+async function publishRollbackTarget(layout: UpdateLayout, host: UpdateHost) {
+  const target = await findRollbackTarget(layout, host);
+  await writeRollbackTarget(
+    layout.stateDir,
+    target
+      ? {
+          release: target.release,
+          migrated: target.migrated,
+          backup: target.backup,
+          backupTakenAt: target.backupTakenAt,
+        }
+      : null,
+  );
+}
+
+/** The database the running release uses, through its data link. */
+const databaseOf = (releaseDir: string) =>
+  realpath(join(engineDataPath(releaseDir), ENGINE_DB_FILE)).catch(() => null);
+
+/**
+ * Whether the release that ran since `job`'s backup changed the database:
+ * migrations are counted again now, against the count before the switch.
+ */
+function migratedSince(job: BoothUpdateJob, dbPath: string | null): boolean {
+  if (!dbPath || job.migrationsBefore === null) return false;
+  const now = countMigrations(dbPath);
+  return now !== null && now !== job.migrationsBefore;
+}
+
+/**
+ * Goes back to `previousDir` after the switch: stops the booth, puts the
+ * backup back only when the newer release migrated, moves the link,
+ * starts and checks. `restart: false` at boot, inside the booth's own
+ * start, which starts it afterwards anyway.
+ */
+async function switchBack({
+  layout,
+  host,
+  recorder,
+  previousDir,
+  reason,
+  restart,
+}: {
+  layout: UpdateLayout;
+  host: UpdateHost;
+  recorder: JobRecorder;
+  previousDir: string;
+  reason: string;
+  restart: boolean;
+}): Promise<void> {
+  const { job } = recorder;
+  host.log(`${reason} Going back to ${job.from}.`);
+  await recorder.update({ step: "rollback", error: reason });
+
+  try {
+    if (restart) await host.stopBooth();
+
+    const repo = await readRepoState(layout);
+    const dbPath = repo.kind === "release" ? await databaseOf(repo.dir) : null;
+    const migrated = migratedSince(job, dbPath);
+
+    if (dbPath && job.backup && migrated) {
+      await restoreDatabase(job.backup, dbPath);
+      await host.chownToServiceUser(dbPath);
+    }
+
+    await pointRepoAt(layout, previousDir);
+    await recorder.update({ migrated });
+
+    if (!restart) {
+      await recorder.finish({ state: "rolled-back", error: reason });
+      return;
+    }
+
+    await host.startBooth();
+    const again = await waitHealthy(host, layout);
+    await recorder.finish({
+      state: "rolled-back",
+      error: again.ok
+        ? reason
+        : `${reason} ${job.from} didn't start again either: ${again.reason}.`,
+    });
+  } catch (error) {
+    await recorder.finish({
+      state: "rolled-back",
+      error: `${reason} Going back failed too: ${errorMessage(error)}`,
+    });
+  }
+}
 
 // ---- update ------------------------------------------------------------------
 
@@ -356,8 +513,10 @@ export async function runUpdate({
   const unlock = resumeJobId ? async () => {} : await takeLock(layout.stateDir);
 
   try {
+    if (!resumeJobId) await recover({ layout, host, restart: true });
     return await update({ layout, host, requested, resumeJobId });
   } finally {
+    await publishRollbackTarget(layout, host).catch(() => {});
     await unlock();
   }
 }
@@ -373,54 +532,55 @@ async function update({
   requested: string | undefined;
   resumeJobId: string | undefined;
 }): Promise<JobOutcome> {
-  const version = requested ?? (await fetchLatestVersion(host.fetch));
-
-  if (!isReleaseVersion(version)) {
-    throw new UpdateRefused(`Not a release version: ${version}`);
-  }
-
-  if (host.arch !== "arm64") {
-    throw new UpdateRefused("Releases are built for arm64 only.");
-  }
-
   const repo = await readRepoState(layout);
   const runningDir = repo.kind === "missing" ? null : repo.dir;
   const from = runningDir ? host.releaseOf(runningDir) : null;
 
-  if (from === version && repo.kind === "release") {
+  // "Latest" is resolved first, so a booth already on it records no job.
+  // A failure to resolve it is recorded as a failed job below.
+  let latestError: unknown = null;
+  const version =
+    requested ??
+    (await fetchLatestRelease({ fetch: host.fetch, repo: RELEASES_REPO }).then(
+      (latest) => latest.version,
+      (error: unknown) => {
+        latestError = error;
+        return null;
+      },
+    ));
+
+  if (version !== null && version === from && repo.kind === "release") {
     return { kind: "up-to-date", version };
   }
 
-  const resumed = resumeJobId ? await readStatus(layout.stateDir) : undefined;
-  const startedAt = host.now();
+  const resumed = resumeJobId ? await readStatus(layout.stateDir) : null;
   const recorder = await createJobRecorder({
     stateDir: layout.stateDir,
     now: host.now,
     job:
-      resumed?.jobId === resumeJobId && resumed
-        ? resumed
-        : {
+      resumed && resumed.jobId === resumeJobId
+        ? { ...resumed, pid: process.pid }
+        : newJob(host, {
             kind: "update",
-            jobId: resumeJobId ?? newJobId(startedAt),
             from,
-            to: version,
-            state: "running",
+            to: version ?? "latest",
             step: "preflight",
-            startedAt: startedAt.toISOString(),
-            updatedAt: startedAt.toISOString(),
-            error: null,
-            backup: null,
-            migrated: null,
-          },
+          }),
   });
   const say = (message: string) => host.log(message);
   let switched = false;
   let previousDir = runningDir;
-  let dbPath: string | null = null;
-  let migrationsBefore: number | null = null;
 
   try {
-    await recorder.update({ step: "preflight" });
+    // Every refusal from here on is a failed job the admin and the Hub
+    // can read, not a silent exit.
+    if (version === null) throw latestError;
+    if (!isReleaseVersion(version)) {
+      throw new Error(`Not a release version: ${version}`);
+    }
+    if (host.arch !== "arm64") {
+      throw new Error("Releases are built for arm64 only.");
+    }
 
     const free = await host.freeBytes(dirname(layout.releasesDir));
     if (free < MIN_FREE_BYTES) {
@@ -449,15 +609,8 @@ async function update({
           "--resume",
           recorder.job.jobId,
         ]);
-        const after = await readStatus(layout.stateDir);
-
-        if (after?.jobId === recorder.job.jobId && after.state === "running") {
-          await recorder.finish({
-            state: "failed",
-            error: `The v${version} CLI stopped (exit ${exitCode}) during ${after.step}.`,
-          });
-        }
-
+        // The new CLI died before it finished: go back if it switched.
+        await recover({ layout, host, restart: true });
         return { kind: "handed-over", exitCode };
       }
     }
@@ -482,23 +635,18 @@ async function update({
     await rm(releaseDir, { recursive: true, force: true });
     await rename(staging, releaseDir);
 
-    await recorder.update({ step: "setup" });
-    await host.setupSystem();
-
     await recorder.update({ step: "backup" });
-    dbPath = runningDir
-      ? await realpath(join(engineDataPath(runningDir), ENGINE_DB_FILE)).catch(
-          () => null,
-        )
-      : null;
+    const dbPath = runningDir ? await databaseOf(runningDir) : null;
     if (dbPath) {
-      migrationsBefore = countMigrations(dbPath);
       const backup = await backupDatabase({
         dbPath,
         backupsDir: layout.backupsDir,
         label: `${recorder.job.jobId}-${from ?? "none"}-to-${version}`,
       });
-      await recorder.update({ backup });
+      await recorder.update({
+        backup,
+        migrationsBefore: countMigrations(dbPath),
+      });
       say(`Database backed up to ${backup}`);
     }
 
@@ -509,15 +657,17 @@ async function update({
     await pointRepoAt(layout, releaseDir);
     switched = true;
 
+    // After the switch, so its restarts (a new journal group, a changed
+    // network watch) fold into the restart below.
+    await recorder.update({ step: "setup" });
+    await host.setupSystem();
+
     await recorder.update({ step: "restart" });
     await host.restartBooth();
 
     await recorder.update({ step: "check" });
     const verdict = await waitHealthy(host, layout);
-    const migrated = dbPath
-      ? countMigrations(dbPath) !== migrationsBefore
-      : null;
-    await recorder.update({ migrated });
+    await recorder.update({ migrated: migratedSince(recorder.job, dbPath) });
 
     if (!verdict.ok) {
       throw new Error(`v${version} didn't start: ${verdict.reason}.`);
@@ -537,7 +687,7 @@ async function update({
     const reason = errorMessage(error);
 
     if (!switched || !previousDir) {
-      await rm(`${releaseDirFor(layout, version)}.tmp`, {
+      await rm(`${releaseDirFor(layout, recorder.job.to)}.tmp`, {
         recursive: true,
         force: true,
       });
@@ -545,33 +695,102 @@ async function update({
       return { kind: "finished", job: recorder.job };
     }
 
-    say(`${reason} Going back to ${from}.`);
-    await recorder.update({ step: "rollback", error: reason });
-
-    try {
-      await host.stopBooth();
-      const { backup, migrated } = recorder.job;
-      if (dbPath && backup && migrated !== false) {
-        await restoreDatabase(backup, dbPath);
-        await host.chownToServiceUser(dbPath);
-      }
-      await pointRepoAt(layout, previousDir);
-      await host.startBooth();
-      const again = await waitHealthy(host, layout);
-      await recorder.finish({
-        state: "rolled-back",
-        error: again.ok
-          ? reason
-          : `${reason} ${from} didn't start again either: ${again.reason}.`,
-      });
-    } catch (rollbackError) {
-      await recorder.finish({
-        state: "rolled-back",
-        error: `${reason} Going back failed too: ${errorMessage(rollbackError)}`,
-      });
-    }
-
+    await switchBack({
+      layout,
+      host,
+      recorder,
+      previousDir,
+      reason,
+      restart: true,
+    });
     return { kind: "finished", job: recorder.job };
+  }
+}
+
+// ---- recover -----------------------------------------------------------------
+
+/**
+ * Ends a job whose process is gone: a CLI that died after the handover,
+ * a unit killed at its timeout, a power cut. Before the switch nothing
+ * changed; after it, the booth goes back. Run after the handover, by the
+ * update unit's ExecStopPost, at every booth start (`restart: false`),
+ * and before each new job. Does nothing while the job's process lives.
+ */
+export async function recover({
+  layout,
+  host,
+  restart,
+}: {
+  layout: UpdateLayout;
+  host: UpdateHost;
+  restart: boolean;
+}): Promise<BoothUpdateJob | null> {
+  const status = await readStatus(layout.stateDir);
+
+  if (!status || status.state !== "running") return null;
+  if (
+    status.pid !== null &&
+    status.pid !== process.pid &&
+    isProcessAlive(status.pid)
+  ) {
+    return null;
+  }
+
+  const recorder = await createJobRecorder({
+    stateDir: layout.stateDir,
+    now: host.now,
+    job: { ...status, pid: process.pid },
+  });
+  const reason = `Interrupted during ${status.step}.`;
+  const repo = await readRepoState(layout);
+  const switchedTo =
+    repo.kind === "release" && host.releaseOf(repo.dir) === status.to;
+  const previousDir = await findReleaseDir(layout, status.from);
+
+  if (status.kind === "rollback") {
+    // A rollback moves the link last but one: wherever it points runs.
+    await recorder.finish({ state: "failed", error: reason });
+  } else if (switchedTo && previousDir) {
+    await switchBack({ layout, host, recorder, previousDir, reason, restart });
+  } else {
+    await rm(`${releaseDirFor(layout, status.to)}.tmp`, {
+      recursive: true,
+      force: true,
+    });
+    await recorder.finish({
+      state: "failed",
+      error: `${reason} Nothing changed.`,
+    });
+  }
+
+  host.log(`${status.kind} to ${status.to}: ${recorder.job.error}`);
+  return recorder.job;
+}
+
+/** `booth update --recover`, for the units: lock, recover, publish. */
+export async function runRecover({
+  layout,
+  host,
+  restart,
+}: {
+  layout: UpdateLayout;
+  host: UpdateHost;
+  restart: boolean;
+}): Promise<BoothUpdateJob | null> {
+  let unlock: () => Promise<void>;
+  try {
+    unlock = await takeLock(layout.stateDir);
+  } catch (error) {
+    // A live job holds it: nothing to recover.
+    if (error instanceof UpdateRefused) return null;
+    throw error;
+  }
+
+  try {
+    return await recover({ layout, host, restart });
+  } finally {
+    await publishRollbackTarget(layout, host).catch(() => {});
+    await unlock();
   }
 }
 
@@ -589,8 +808,10 @@ export async function runRollback({
   const unlock = await takeLock(layout.stateDir);
 
   try {
+    await recover({ layout, host, restart: true });
     return await rollback({ layout, host, mode });
   } finally {
+    await publishRollbackTarget(layout, host).catch(() => {});
     await unlock();
   }
 }
@@ -605,87 +826,63 @@ async function rollback({
   mode: BoothRollbackMode;
 }): Promise<JobOutcome> {
   const repo = await readRepoState(layout);
+  const target = await findRollbackTarget(layout, host);
 
-  if (repo.kind !== "release") {
-    throw new UpdateRefused(
-      "This booth doesn't run a release: nothing to go back to.",
-    );
-  }
-
-  const current = host.releaseOf(repo.dir);
-  const history = await readHistory(layout.stateDir);
-  const installed = history.find(
-    (job) =>
-      job.kind === "update" && job.state === "done" && job.to === current,
-  );
-  const target = installed?.from ?? null;
-  let targetDir: string | undefined;
-
-  for (const candidate of target ? releaseDirCandidates(layout, target) : []) {
-    if (await exists(candidate)) {
-      targetDir = candidate;
-      break;
-    }
-  }
-
-  if (!installed || !target || !targetDir) {
+  if (repo.kind !== "release" || !target) {
     throw new UpdateRefused("No earlier release on this booth to go back to.");
   }
 
-  if (installed.migrated && mode === "keep-db") {
+  const current = host.releaseOf(repo.dir);
+
+  if (target.migrated && mode === "keep-db") {
     throw new UpdateRefused(
-      `v${current} changed the database, so ${target} can't run on it. ` +
+      `v${current} changed the database, so ${target.release} can't run on it. ` +
         "`sudo booth rollback --restore-db` restores the backup taken before " +
-        `the update (${installed.updatedAt}): visits since are lost.`,
+        `the update (${target.backupTakenAt}): visits since are lost.`,
     );
   }
 
-  if (mode === "restore-db" && !installed.backup) {
-    throw new UpdateRefused("The update to v" + current + " kept no backup.");
+  if (mode === "restore-db" && !target.backup) {
+    throw new UpdateRefused(`The update to v${current} kept no backup.`);
   }
 
-  const startedAt = host.now();
   const recorder = await createJobRecorder({
     stateDir: layout.stateDir,
     now: host.now,
     job: {
-      kind: "rollback",
-      jobId: newJobId(startedAt),
-      from: current,
-      to: target,
-      state: "running",
-      step: "switch",
-      startedAt: startedAt.toISOString(),
-      updatedAt: startedAt.toISOString(),
-      error: null,
-      backup: mode === "restore-db" ? installed.backup : null,
-      migrated: null,
+      ...newJob(host, {
+        kind: "rollback",
+        from: current,
+        to: target.release,
+        step: "switch",
+      }),
+      backup: mode === "restore-db" ? target.backup : null,
     },
   });
 
   try {
     await host.stopBooth();
 
-    if (mode === "restore-db" && installed.backup) {
-      const dbPath = await realpath(
-        join(engineDataPath(repo.dir), ENGINE_DB_FILE),
-      );
-      await restoreDatabase(installed.backup, dbPath);
-      await host.chownToServiceUser(dbPath);
+    if (mode === "restore-db" && target.backup) {
+      const dbPath = await databaseOf(repo.dir);
+      if (dbPath) {
+        await restoreDatabase(target.backup, dbPath);
+        await host.chownToServiceUser(dbPath);
+      }
     }
 
-    await pointRepoAt(layout, targetDir);
+    await pointRepoAt(layout, target.dir);
     await recorder.update({ step: "restart" });
     await host.startBooth();
     await recorder.update({ step: "check" });
     const verdict = await waitHealthy(host, layout);
 
     if (!verdict.ok) {
-      throw new Error(`${target} didn't start: ${verdict.reason}.`);
+      throw new Error(`${target.release} didn't start: ${verdict.reason}.`);
     }
 
     await recorder.finish({ state: "done" });
-    host.log(`The booth runs ${target} again.`);
+    host.log(`The booth runs ${target.release} again.`);
   } catch (error) {
     // Back to the release it ran, which was up.
     await host.stopBooth().catch(() => {});
