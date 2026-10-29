@@ -32,7 +32,7 @@ bun run studio:dev
 - **Booths** (`/booths`) shows each booth's last report, its printer and maintenance state, and its [event times](/docs/start-here/glossary/), which staff set there. **Add a booth** creates one in the staff member's org, and **Get a registration code** issues its code (the `booth-code` function), to type in the booth's admin. Each registered booth shows the release it runs, **Behind: 0.8.0 is out** when GitHub's latest release is newer (read from `api.github.com` once per screen), and **Update to 0.8.0**, which asks the booth to install it (a `booth_update` row) after a confirm. How the request goes follows under it, from the booth's own reports: asked, waiting (and why), updating, updated, stopped, or gone back. **Cancel the update** removes a request the booth hasn't started. With two or more booths behind, **Update all behind** asks each at once. An update that stops or goes back is an **Update failed** alert, with the booth's reason under it.
 - **Team** (`/team`) lists the team's members, the staff member first, then owners, each with whether their phone will ring: _2 devices_, _No device yet: won't get alerts_, or _Hasn't signed in yet_. Above them, how many are in and how many get alerts. Owners and platform admins also get **Add someone** and, on each other member, **Share sign-in**, **Make owner** or **Make member**, and **Remove from team** (after a confirm). A platform admin who sees several teams picks one at the top. Everything goes through the `team` function ([The Hub](/docs/development/hub/#the-team-function)).
 - **The banner.** On Booths, Team and This device, the most urgent alert nobody acknowledged yet sits above the screen, and a tap opens it. A push can be muted by Focus; the banner can't.
-- **Live.** The screens and the banner read again when the Hub's Realtime says `alert`, `booth_status` or `booth_update` changed, when Studio comes back to the foreground (iOS drops the socket in the background), and every minute.
+- **Live.** Alerts, Booths and the banner read again when the Hub's Realtime says `alert`, `booth_status` or `booth_update` changed. Every screen also reads again when Studio comes back to the foreground (iOS drops the socket in the background), and every minute. Team has no Realtime: a member can't read the rest of the team's rows, so it would only hear about their own. It reads again after each change made there.
 - **The service worker** (`src/sw`, built to `/sw.js`) shows each push. Pushes for one alert share a tag, so a reminder or "back to normal" replaces the notification already there; if two arrive out of order, it keeps the newer one, by the push's `at`. A tap opens Studio on that alert (`/alerts/<id>`).
 - **The sign-in email** (`supabase/templates/magic_link.html`) puts the code first: in the subject (_123456 is your Studio code_), so the notification alone is enough, then large in the body, with how long it lasts and what to do if you didn't ask for it. It loads its two images from Studio (`{{ .SiteURL }}/email/`), PNGs because mail apps block SVG. Locally, `site_url` is Studio's dev server, so the local Hub's mail viewer shows them while `studio:dev` runs.
 - **The icons** come from the Dither Booth mark in `packages/ui/src/lib/brand.tsx`: run `bun run --filter @dither-booth/ui brand` after changing it, and commit what it writes (Studio's, Shutter's and admin's Home Screen icons, the docs' favicon and logos, the email's images). The browser-tab icon is drawn from the same mark at runtime.
@@ -62,14 +62,7 @@ The sign-in email needs no setup: every Hub deploy applies it (see [Production s
 
 ## Adding staff
 
-There is no sign-up: an owner or a platform admin adds people in Studio.
-
-1. Open **Team** and, under **Add someone**, type their address. Pick **Member**, or **Owner** for someone who should also add and remove people. Choose **Add**.
-2. Choose **Share** (or **Copy message**) and send them the message. It tells them to open Studio, sign in with that address and the code they're emailed, and turn on notifications in **This device**. No email goes out until they ask for their code.
-
-Their row reads _Hasn't signed in yet_ until they do, then _No device yet_ until their phone gets alerts. **Share sign-in** in their row's menu sends the message again. **Remove from team** takes them out: their devices stop getting the team's alerts and they no longer see its booths, but their login stays.
-
-Nobody removes or demotes themselves; ask another owner or a platform admin.
+There is no sign-up: an owner or a platform admin adds people in Studio's **Team**, as [Your team in Studio](/docs/venue/team/) says. Adding someone makes their login and sends no email; the message Studio offers to share tells them how to sign in.
 
 ### Without Studio
 

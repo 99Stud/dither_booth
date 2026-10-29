@@ -85,7 +85,7 @@ describe("addErrorMessage", () => {
       new Error("Failed to fetch"),
       "Couldn't add lea@example.com: Failed to fetch",
     ],
-    [null, "Couldn't add lea@example.com. Check the connection and try again."],
+    [null, "Couldn't add lea@example.com: check the connection and try again."],
   ])("%p", (error, message) => {
     expect(addErrorMessage(error, "lea@example.com", "99Stud")).toBe(message);
   });

@@ -25,7 +25,7 @@ import {
   turnOn,
 } from "#lib/device";
 import { messageOf } from "#lib/errors";
-import { staffOrgId } from "#lib/team";
+import { NOT_IN_A_TEAM, staffOrgId } from "#lib/team";
 
 /** Where this device stands, from "can't" to "gets the alerts". */
 type DeviceState =
@@ -132,10 +132,7 @@ export const DeviceCard = ({
         ) : null}
 
         {state.kind === "not-staff" ? (
-          <p className={clsx("text-sm")}>
-            You're signed in, but not in a team on the Hub yet. Ask a team owner
-            to add you, then open Studio again.
-          </p>
+          <p className={clsx("text-sm")}>{NOT_IN_A_TEAM}</p>
         ) : null}
 
         {state.kind === "blocked" ? (

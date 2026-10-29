@@ -134,7 +134,7 @@ Critical alerts go out with high urgency and live an hour at the push service; "
 
 ### The team function
 
-`team` is Studio's **Team**: one POST, with the caller's session, per action (`list`, `add`, `remove`, `set-role`; the shapes are `@dither-booth/protocol/team`). It uses the service role, because a team's list needs its members' addresses (Auth) and their devices, which no member may read, and adding someone needs a login.
+`team` is Studio's **Team**: one POST, with the caller's session, per action (`list`, `add`, `remove`, `set-role`; the shapes are `@dither-booth/protocol/team`). It uses the service role, because a team's list needs its members' addresses (Auth) and their devices, which no member may read, and adding someone needs a login. Why it's a function and not policies: [decision 0011](/docs/decisions/0011-team-members-through-one-function/).
 
 - **Who.** A team's members read it. Its owners and every platform admin change it; a member gets `403`. Anyone else gets `404`, as for a team that doesn't exist.
 - **Adding** makes a confirmed Auth user with no password and sends no email: the person signs in with Studio's code, as all staff do. An address that already has a login (on another team) joins as it is. Auth has no lookup by address, so the function reads every user, a page at a time; at a few dozen that's nothing, past a thousand it wants a SQL lookup instead.

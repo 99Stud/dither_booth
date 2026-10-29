@@ -1,8 +1,10 @@
 import { createSessionReader } from "../_shared/browser.ts";
 import { createServiceClient } from "../_shared/clients.ts";
+import { createMemberLookup } from "../_shared/members.ts";
 import { handleBoothCode } from "./handler.ts";
 
 const admin = createServiceClient();
+const members = createMemberLookup(admin);
 
 Deno.serve((req) =>
   handleBoothCode(req, {
@@ -19,25 +21,10 @@ Deno.serve((req) =>
     },
 
     async isMember(userId, orgId) {
-      const { data, error } = await admin
-        .from("org_member")
-        .select("user_id")
-        .eq("user_id", userId)
-        .eq("org_id", orgId)
-        .maybeSingle();
-      if (error) throw error;
-      return data !== null;
+      return (await members.roleIn(userId, orgId)) !== null;
     },
 
-    async isPlatformAdmin(userId) {
-      const { data, error } = await admin
-        .from("platform_admin")
-        .select("user_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (error) throw error;
-      return data !== null;
-    },
+    isPlatformAdmin: members.isPlatformAdmin,
 
     async issueCode(boothId) {
       const { data: code, error } = await admin.rpc(

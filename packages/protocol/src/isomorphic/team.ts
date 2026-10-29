@@ -51,8 +51,13 @@ export const teamMemberSchema = z.object({
 
 export type TeamMember = z.infer<typeof teamMemberSchema>;
 
+/** A team, as Studio names and picks it. */
+export const teamSchema = z.object({ id: z.string(), name: z.string() });
+
+export type Team = z.infer<typeof teamSchema>;
+
 export const teamListSchema = z.object({
-  team: z.object({ id: z.string(), name: z.string() }),
+  team: teamSchema,
   /** Whether the caller may add, remove and promote: an owner or an admin. */
   canManage: z.boolean(),
   /** The caller first, then owners, then by email. */

@@ -2,9 +2,11 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 import { createSessionReader } from "../_shared/browser.ts";
 import { createServiceClient } from "../_shared/clients.ts";
+import { createMemberLookup } from "../_shared/members.ts";
 import { handleTeam, type StoredMember } from "./handler.ts";
 
 const admin = createServiceClient();
+const members = createMemberLookup(admin);
 
 /** Postgres' unique violation: the membership is already there. */
 const UNIQUE_VIOLATION = "23505";
@@ -34,49 +36,21 @@ Deno.serve((req) =>
   handleTeam(req, {
     authenticate: createSessionReader(admin),
 
-    async access(userId, orgId) {
-      const [{ data: adminRow, error: adminError }, { data: member, error }] =
-        await Promise.all([
-          admin
-            .from("platform_admin")
-            .select("user_id")
-            .eq("user_id", userId)
-            .maybeSingle(),
-          admin
-            .from("org_member")
-            .select("role")
-            .eq("org_id", orgId)
-            .eq("user_id", userId)
-            .maybeSingle(),
-        ]);
-      if (adminError) throw adminError;
-      if (error) throw error;
-      if (member?.role === "owner") return "manage";
-      if (adminRow) {
-        // An admin manages any team, as long as it exists.
-        const { data: org, error: orgError } = await admin
-          .from("org")
-          .select("id")
-          .eq("id", orgId)
-          .maybeSingle();
-        if (orgError) throw orgError;
-        return org ? "manage" : null;
-      }
-      return member ? "read" : null;
-    },
+    isPlatformAdmin: members.isPlatformAdmin,
+    roleIn: members.roleIn,
 
     async teamName(orgId) {
       const { data, error } = await admin
         .from("org")
         .select("name")
         .eq("id", orgId)
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data.name;
+      return data?.name ?? null;
     },
 
     async listMembers(orgId): Promise<StoredMember[]> {
-      const [members, devices, users] = await Promise.all([
+      const [memberships, devices, users] = await Promise.all([
         admin
           .from("org_member")
           .select("user_id, role, created_at")
@@ -84,14 +58,14 @@ Deno.serve((req) =>
         admin.from("push_subscription").select("user_id").eq("org_id", orgId),
         allUsers(admin),
       ]);
-      if (members.error) throw members.error;
+      if (memberships.error) throw memberships.error;
       if (devices.error) throw devices.error;
       const byId = new Map(users.map((user) => [user.id, user]));
       const deviceCount = new Map<string, number>();
       for (const { user_id } of devices.data) {
         deviceCount.set(user_id, (deviceCount.get(user_id) ?? 0) + 1);
       }
-      return members.data.map((row) => {
+      return memberships.data.map((row) => {
         const user = byId.get(row.user_id);
         return {
           userId: row.user_id,
@@ -120,6 +94,11 @@ Deno.serve((req) =>
       );
       if (!user) throw new Error(`no user for an address Auth knows`);
       return { userId: user.id, created: false, isBooth: isBooth(user) };
+    },
+
+    async forgetUser(userId) {
+      const { error } = await admin.auth.admin.deleteUser(userId);
+      if (error) throw error;
     },
 
     async addMember(orgId, userId, role) {

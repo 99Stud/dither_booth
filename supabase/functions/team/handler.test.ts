@@ -25,6 +25,7 @@ const member = (
 
 /** A team of an owner and two members; an admin outside it. */
 function setup(overrides: Partial<TeamDeps> = {}) {
+  const forgotten: string[] = [];
   const members = [
     member(TOM, "tom@example.com"),
     member(LEA, "lea@example.com"),
@@ -38,17 +39,14 @@ function setup(overrides: Partial<TeamDeps> = {}) {
   const deps: TeamDeps = {
     authenticate: (token) =>
       Promise.resolve({ owner: OWNER, lea: LEA, admin: ADMIN }[token] ?? null),
-    access: (userId, orgId) =>
+    isPlatformAdmin: (userId) => Promise.resolve(userId === ADMIN),
+    roleIn: (userId, orgId) =>
       Promise.resolve(
-        orgId !== ORG
-          ? null
-          : userId === ADMIN || userId === OWNER
-            ? "manage"
-            : members.some((row) => row.userId === userId)
-              ? "read"
-              : null,
+        orgId === ORG
+          ? (members.find((row) => row.userId === userId)?.role ?? null)
+          : null,
       ),
-    teamName: () => Promise.resolve("99Stud"),
+    teamName: (orgId) => Promise.resolve(orgId === ORG ? "99Stud" : null),
     listMembers: () => Promise.resolve(members.map((row) => ({ ...row }))),
     findOrCreateUser: (email) => {
       const known = users.get(email);
@@ -64,6 +62,10 @@ function setup(overrides: Partial<TeamDeps> = {}) {
       }
       users.set(email, NEW);
       return Promise.resolve({ userId: NEW, created: true, isBooth: false });
+    },
+    forgetUser: (userId) => {
+      forgotten.push(userId);
+      return Promise.resolve();
     },
     addMember: (_orgId, userId, role) => {
       if (members.some((row) => row.userId === userId)) {
@@ -87,7 +89,7 @@ function setup(overrides: Partial<TeamDeps> = {}) {
     },
     ...overrides,
   };
-  return { deps, members };
+  return { deps, members, forgotten };
 }
 
 const post = (body: unknown, token?: string) =>
@@ -142,6 +144,38 @@ Deno.test("another team answers like a team that doesn't exist", async () => {
     ).status,
     404,
   );
+});
+
+Deno.test("a team that doesn't exist answers 404, even to an admin", async () => {
+  const { deps } = setup();
+  const res = await handleTeam(
+    post({ action: "list", orgId: OTHER_ORG }, "admin"),
+    deps,
+  );
+  assertEquals(res.status, 404);
+});
+
+Deno.test("a login made for an add that fails goes with it", async () => {
+  const { deps, forgotten } = setup({
+    addMember: () => Promise.reject(new Error("connection reset")),
+  });
+  const original = console.error;
+  console.error = () => {};
+  try {
+    const fresh = await handleTeam(
+      post({ action: "add", orgId: ORG, email: "sam@example.com" }, "owner"),
+      deps,
+    );
+    // An existing login stays: it may be on another team.
+    const known = await handleTeam(
+      post({ action: "add", orgId: ORG, email: "tom@example.com" }, "owner"),
+      deps,
+    );
+    assertEquals([fresh.status, known.status], [500, 500]);
+    assertEquals(forgotten, [NEW]);
+  } finally {
+    console.error = original;
+  }
 });
 
 Deno.test("an owner adds someone new, who has no sign-in yet", async () => {

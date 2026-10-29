@@ -1,4 +1,5 @@
 import {
+  type Team,
   type TeamAdded,
   teamAddedSchema,
   type TeamList,
@@ -10,9 +11,14 @@ import {
 } from "@dither-booth/protocol/team";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
+import { messageOf } from "./errors";
 import { hub } from "./hub";
 
-export type { TeamList, TeamMember, TeamRole };
+export type { Team, TeamList, TeamMember, TeamRole };
+
+/** What a signed-in user who isn't in any team is told, wherever it shows. */
+export const NOT_IN_A_TEAM =
+  "You're signed in, but not in a team on the Hub yet. Ask a team owner to add you, then open Studio again.";
 
 /** The Hub refused a Team action: its status, and why when it says. */
 export class TeamError extends Error {
@@ -63,10 +69,8 @@ export async function staffOrgId(): Promise<string | null> {
   return data?.[0]?.org_id ?? null;
 }
 
-export type TeamChoice = { id: string; name: string };
-
 /** The teams the signed-in user sees: their own, or every one for an admin. */
-export async function visibleTeams(): Promise<TeamChoice[]> {
+export async function visibleTeams(): Promise<Team[]> {
   const { data, error } = await hub
     .from("org")
     .select("id, name")
@@ -118,8 +122,15 @@ export function teamSummary(members: TeamMember[]): string {
   return `${people} · ${alerted} get${alerted === 1 ? "s" : ""} alerts`;
 }
 
-/** What to send someone just added, so they know how to sign in. */
-export const shareMessage = (team: string, email: string, studio: string) =>
+/**
+ * What to send someone just added, so they know how to sign in: Studio at
+ * the address this one is served from.
+ */
+export const shareMessage = (
+  team: string,
+  email: string,
+  studio = window.location.host,
+) =>
   `You're on the ${team} team in Studio, Dither Booth's alerts app. ` +
   `Open ${studio}, sign in with ${email} and the code we email you, ` +
   `then turn on notifications in This device.`;
@@ -143,7 +154,5 @@ export function addErrorMessage(
       return "Only owners and platform admins add people.";
     }
   }
-  return error instanceof Error && error.message
-    ? `Couldn't add ${email}: ${error.message}`
-    : `Couldn't add ${email}. Check the connection and try again.`;
+  return `Couldn't add ${email}: ${messageOf(error, "check the connection and try again.")}`;
 }

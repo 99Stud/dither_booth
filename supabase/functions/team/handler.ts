@@ -18,17 +18,18 @@ export type StoredMember = Omit<TeamMember, "you">;
 export type TeamDeps = {
   /** The signed-in user a token belongs to, or null. */
   authenticate: (token: string) => Promise<string | null>;
-  /**
-   * What the user may do on a team: "manage" for its owners and platform
-   * admins, "read" for its other members, null otherwise (or no such team).
-   */
-  access: (userId: string, orgId: string) => Promise<"manage" | "read" | null>;
-  teamName: (orgId: string) => Promise<string>;
+  isPlatformAdmin: (userId: string) => Promise<boolean>;
+  /** Their role in the team, or null when they aren't in it. */
+  roleIn: (userId: string, orgId: string) => Promise<TeamRole | null>;
+  /** The team's name, or null when there is no such team. */
+  teamName: (orgId: string) => Promise<string | null>;
   listMembers: (orgId: string) => Promise<StoredMember[]>;
   /** The login for an address, made (with no email sent) if there is none. */
   findOrCreateUser: (
     email: string,
   ) => Promise<{ userId: string; created: boolean; isBooth: boolean }>;
+  /** Undoes findOrCreateUser's new login, when adding it failed. */
+  forgetUser: (userId: string) => Promise<void>;
   /** False when they already are a member. */
   addMember: (
     orgId: string,
@@ -71,26 +72,34 @@ export async function handleTeam(
   const request = parsed.data;
 
   try {
-    // Someone else's team answers like a team that doesn't exist.
-    const access = await deps.access(callerId, request.orgId);
-    if (!access) return reply(404, { error: "unknown team" });
+    // A team's members read it; its owners and every platform admin change
+    // it. Someone else's team answers like a team that doesn't exist.
+    const [name, role, isAdmin] = await Promise.all([
+      deps.teamName(request.orgId),
+      deps.roleIn(callerId, request.orgId),
+      deps.isPlatformAdmin(callerId),
+    ]);
+    if (name === null || (role === null && !isAdmin)) {
+      return reply(404, { error: "unknown team" });
+    }
+    const canManage = isAdmin || role === "owner";
 
     const members = async () =>
       (await deps.listMembers(request.orgId))
         .map((member) => ({ ...member, you: member.userId === callerId }))
         .sort(byTeamOrder);
-    const memberOf = async (userId: string) =>
-      (await members()).find((member) => member.userId === userId)!;
+    const findMember = async (userId: string) =>
+      (await members()).find((member) => member.userId === userId);
 
     if (request.action === "list") {
       return reply(200, {
-        team: { id: request.orgId, name: await deps.teamName(request.orgId) },
-        canManage: access === "manage",
+        team: { id: request.orgId, name },
+        canManage,
         members: await members(),
       });
     }
 
-    if (access !== "manage") {
+    if (!canManage) {
       return reply(403, {
         error: "only owners and platform admins change the team",
       });
@@ -101,11 +110,16 @@ export async function handleTeam(
       if (user.isBooth) {
         return refuse(422, "booth-login", "that address is a booth's login");
       }
-      if (!(await deps.addMember(request.orgId, user.userId, request.role))) {
-        return refuse(409, "already-member", "already in the team");
-      }
+      const added = await deps
+        .addMember(request.orgId, user.userId, request.role)
+        .catch(async (error: unknown) => {
+          // A login made for this add, and nothing else, goes with it.
+          if (user.created) await deps.forgetUser(user.userId);
+          throw error;
+        });
+      if (!added) return refuse(409, "already-member", "already in the team");
       return reply(200, {
-        member: await memberOf(user.userId),
+        member: await findMember(user.userId),
         created: user.created,
       });
     }
@@ -115,9 +129,7 @@ export async function handleTeam(
     }
 
     if (request.action === "remove") {
-      const member = (await members()).find(
-        (row) => row.userId === request.userId,
-      );
+      const member = await findMember(request.userId);
       if (!member || !(await deps.removeMember(request.orgId, member.userId))) {
         return refuse(404, "not-a-member", "not in the team");
       }
@@ -127,7 +139,7 @@ export async function handleTeam(
     if (!(await deps.setRole(request.orgId, request.userId, request.role))) {
       return refuse(404, "not-a-member", "not in the team");
     }
-    return reply(200, { member: await memberOf(request.userId) });
+    return reply(200, { member: await findMember(request.userId) });
   } catch (error) {
     console.error("team", request.action, request.orgId, error);
     return reply(500, { error: "the Hub couldn't do that, try again" });

@@ -12,13 +12,7 @@ import {
 } from "@dither-booth/ui/components/ui/alert-dialog";
 import { Badge } from "@dither-booth/ui/components/ui/badge";
 import { Button } from "@dither-booth/ui/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@dither-booth/ui/components/ui/card";
+import { Card, CardContent } from "@dither-booth/ui/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +55,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { LiveFallback } from "#app/LiveFallback";
 import { messageOf } from "#lib/errors";
 import { useLive } from "#lib/live";
 import {
@@ -68,12 +63,13 @@ import {
   addMember,
   type MemberTone,
   memberStatus,
+  NOT_IN_A_TEAM,
   readTeam,
   removeMember,
   setRole,
   shareMessage,
   staffOrgId,
-  type TeamChoice,
+  type Team,
   type TeamMember,
   type TeamRole,
   teamSummary,
@@ -111,9 +107,6 @@ async function sendSignIn(text: string) {
   );
 }
 
-const signInText = (team: string, email: string) =>
-  shareMessage(team, email, window.location.host);
-
 /** After adding someone: the message that tells them how to sign in. */
 const SharePanel = ({
   team,
@@ -126,8 +119,8 @@ const SharePanel = ({
   created: boolean;
   onDone: () => void;
 }) => {
-  const heading = useRef<HTMLParagraphElement>(null);
-  const text = signInText(team, email);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const text = shareMessage(team, email);
   useEffect(() => heading.current?.focus(), []);
 
   return (
@@ -136,7 +129,7 @@ const SharePanel = ({
         "flex flex-col gap-3 rounded-lg border border-border p-3",
       )}
     >
-      <p
+      <h3
         ref={heading}
         tabIndex={-1}
         className={clsx("text-sm font-medium outline-none")}
@@ -145,7 +138,7 @@ const SharePanel = ({
           ? `${email} is in ${team}.`
           : `${email} already had a login. They're now in ${team} too.`}{" "}
         Tell them how to sign in:
-      </p>
+      </h3>
       <blockquote
         className={clsx(
           "rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground select-all",
@@ -346,7 +339,7 @@ const MemberMenu = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={6} className="w-auto">
           <DropdownMenuItem
-            onClick={() => void sendSignIn(signInText(team, member.email))}
+            onClick={() => void sendSignIn(shareMessage(team, member.email))}
           >
             <Share />
             Share sign-in
@@ -437,35 +430,40 @@ const MemberRow = ({
   );
 };
 
+/** The screen's shape while it loads: the summary, then the list. */
 const MembersSkeleton = () => (
-  <Card aria-busy="true" aria-label="Loading the team">
-    <CardHeader>
-      <Skeleton className={clsx("h-5 w-24")} />
+  <div
+    aria-busy="true"
+    aria-label="Loading the team"
+    className={clsx("flex flex-col gap-4")}
+  >
+    <div className={clsx("flex flex-col gap-1.5")}>
+      <Skeleton className={clsx("h-6 w-24")} />
       <Skeleton className={clsx("h-4 w-40")} />
-    </CardHeader>
-    <CardContent className={clsx("flex flex-col gap-4")}>
-      {[0, 1, 2].map((row) => (
-        <div key={row} className={clsx("flex flex-col gap-1.5")}>
-          <Skeleton className={clsx("h-4 w-48")} />
-          <Skeleton className={clsx("h-3 w-24")} />
-        </div>
-      ))}
-    </CardContent>
-  </Card>
+    </div>
+    <Card>
+      <CardContent className={clsx("flex flex-col gap-4")}>
+        {[0, 1, 2].map((row) => (
+          <div key={row} className={clsx("flex flex-col gap-1.5")}>
+            <Skeleton className={clsx("h-4 w-48")} />
+            <Skeleton className={clsx("h-3 w-24")} />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  </div>
 );
 
 /** One team: who is in it, whose phone rings, and for managers, changes. */
 const TeamView = ({ orgId }: { orgId: string }) => {
-  const live = useLive("team", () => readTeam(orgId), [
-    "org_member",
-    "push_subscription",
-  ]);
+  // No Realtime: a member can't read the rest of the team's rows, so it
+  // would only hear about their own. Team reads again after each change made
+  // here, when Studio comes back to the foreground, and every minute.
+  const live = useLive("team", () => readTeam(orgId), []);
 
   if (live.data === undefined) {
     return live.error ? (
-      <p className={clsx("text-sm text-destructive")}>
-        Couldn't load the team: {messageOf(live.error)} Check the connection.
-      </p>
+      <LiveFallback error={live.error} what="team" />
     ) : (
       <MembersSkeleton />
     );
@@ -476,13 +474,23 @@ const TeamView = ({ orgId }: { orgId: string }) => {
 
   return (
     <div className={clsx("flex flex-col gap-4")}>
+      <div>
+        <p className={clsx("text-lg font-semibold")}>{team.name}</p>
+        <p className={clsx("text-sm text-muted-foreground")}>
+          {teamSummary(members)}
+        </p>
+      </div>
+
+      {canManage ? (
+        <AddMember orgId={orgId} team={team.name} onAdded={live.reload} />
+      ) : null}
+
       <Card>
-        <CardHeader>
-          <CardTitle>{team.name}</CardTitle>
-          <CardDescription>{teamSummary(members)}</CardDescription>
-        </CardHeader>
         <CardContent>
-          <ul className={clsx("-my-3 divide-y divide-border")}>
+          <ul
+            aria-label="Members"
+            className={clsx("-my-3 divide-y divide-border")}
+          >
             {members.map((member) => (
               <MemberRow
                 key={member.userId}
@@ -511,9 +519,7 @@ const TeamView = ({ orgId }: { orgId: string }) => {
         </p>
       ) : null}
 
-      {canManage ? (
-        <AddMember orgId={orgId} team={team.name} onAdded={live.reload} />
-      ) : (
+      {canManage ? null : (
         <p className={clsx("text-sm text-muted-foreground")}>
           Only owners and platform admins change the team.
         </p>
@@ -528,7 +534,7 @@ const TeamView = ({ orgId }: { orgId: string }) => {
  * their own.
  */
 export const TeamScreen = () => {
-  const [teams, setTeams] = useState<TeamChoice[]>();
+  const [teams, setTeams] = useState<Team[]>();
   const [orgId, setOrgId] = useState<string | null>();
   const [error, setError] = useState<unknown>(null);
 
@@ -541,21 +547,14 @@ export const TeamScreen = () => {
 
   if (orgId === undefined || teams === undefined) {
     return error ? (
-      <p className={clsx("text-sm text-destructive")}>
-        Couldn't load the team. Check the connection.
-      </p>
+      <LiveFallback error={error} what="team" />
     ) : (
       <MembersSkeleton />
     );
   }
 
   if (orgId === null) {
-    return (
-      <p className={clsx("text-sm")}>
-        You're signed in, but not in a team on the Hub yet. Ask a team owner to
-        add you, then open Studio again.
-      </p>
-    );
+    return <p className={clsx("text-sm")}>{NOT_IN_A_TEAM}</p>;
   }
 
   return (
