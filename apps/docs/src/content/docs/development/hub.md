@@ -82,7 +82,7 @@ Once registered, the engine sends a heartbeat every 30 seconds, and at once when
 - **The session.** The access token stays in memory. The refresh token is single use: every renewal returns the next one, which the engine stores before using the access token that came with it.
 - **Refused.** If the Hub refuses the session (the booth was registered again elsewhere, or removed), the engine forgets its registration, and admin asks for a new code.
 - **Failures.** A Hub that can't be reached keeps the registration; the next tick tries again. Admin's Hub card shows the last report, or why it failed.
-- **Release.** The heartbeat's `release` is `git describe` of the checkout the engine runs from.
+- **Release.** The heartbeat's `release` is the version in `release.json` when the engine runs from a [release bundle](/docs/development/releases/), else `git describe` of the checkout it runs from.
 - **Dry run.** An engine in dry run (`RECEIPT_PRINT_DRY_RUN`) says so, and the Hub never alerts for it.
 
 To try it on a laptop, point the engine at the local stack (`HUB_URL`, `HUB_PUBLISHABLE_KEY` from `supabase status`), register it with a code from local Studio or the local SQL editor, and watch `booth_status`.
