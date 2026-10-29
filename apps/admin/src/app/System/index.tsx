@@ -18,6 +18,7 @@ import { useSystemMetrics } from "#lib/system/useSystemMetrics";
 import { CpuPanel } from "./internal/components/CpuPanel";
 import { MemoryPanel } from "./internal/components/MemoryPanel";
 import { PowerPanel } from "./internal/components/PowerPanel";
+import { SoftwarePanel } from "./internal/components/SoftwarePanel";
 import { StoragePanel } from "./internal/components/StoragePanel";
 import { SystemFooter } from "./internal/components/SystemFooter";
 import {
@@ -68,7 +69,7 @@ export const System = () => {
       <AppPageBody>
         <AppPageHeading
           title="System"
-          description="The Pi under the booth: heat, memory, CPU and storage, live. Restart or power it off from here."
+          description="The Pi under the booth: its software, heat, memory, CPU and storage, live. Update, restart or power it off from here."
           actions={
             <>
               <SystemStatusBadge state={connection} />
@@ -116,6 +117,7 @@ export const System = () => {
               </div>
             )}
             <div ref={gridRef} className={clsx("grid gap-4 lg:grid-cols-12")}>
+              <SoftwarePanel />
               <ThermalPanel
                 thermal={data.thermal}
                 source={data.sources.thermal}

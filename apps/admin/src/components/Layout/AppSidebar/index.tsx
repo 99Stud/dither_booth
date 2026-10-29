@@ -9,6 +9,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -17,7 +18,11 @@ import {
 import { Link, useLocation } from "@tanstack/react-router";
 import clsx from "clsx";
 
+import { StatusDot } from "#components/Misc/StatusDot/index";
 import { ROUTES_CONFIG } from "#lib/router/internal/router.constants";
+import { getStatusDotVariant } from "#lib/system/system.utils";
+import { getSoftwareStatus } from "#lib/update/update.utils";
+import { useUpdateSnapshot } from "#lib/update/useUpdateSnapshot";
 
 import {
   APP_DOCS_LINK,
@@ -40,6 +45,7 @@ interface AppSidebarProps extends Omit<
  */
 export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
   const { isMobile, setOpenMobile } = useSidebar();
+  const software = getSoftwareStatus(useUpdateSnapshot().data);
   const pathname = useLocation({
     select: (location) => location.pathname,
   });
@@ -144,6 +150,16 @@ export const AppSidebar: FC<AppSidebarProps> = ({ ...props }) => {
               {APP_SYSTEM_LINK.icon}
               <span>{APP_SYSTEM_LINK.label}</span>
             </SidebarMenuButton>
+            {/* An update to install, or one that went wrong: worth a look. */}
+            {software.status === "warning" || software.status === "critical" ? (
+              <SidebarMenuBadge>
+                <StatusDot
+                  size="md"
+                  variant={getStatusDotVariant(software.status)}
+                />
+                <span className={clsx("sr-only")}>{software.label}</span>
+              </SidebarMenuBadge>
+            ) : null}
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton

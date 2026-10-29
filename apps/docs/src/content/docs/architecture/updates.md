@@ -62,6 +62,20 @@ It runs in four places, so no interrupted job is left `running`: after the CLI i
 
 A rollback whose release doesn't come up within 120 s switches back to the release it left.
 
+## From admin
+
+The System page's **Software** panel ([Update the software](/docs/maintenance/system/#update-the-software)) reads and writes through **`/admin/update`** on the admin server, served only under PM2, on the booth (`apps/admin/src/lib/update/`):
+
+- `GET` is the snapshot: the release the admin runs (`readRelease`, at start), whether it is a release bundle (`release.json`) or a checkout, the latest release on GitHub, `status.json` as the job and whether its process still runs (a `running` job whose process is gone is over: the booth ends it at its next start), the job's last 40 journal lines, `history.json` as the finished jobs, `rollback.json` as where a rollback goes, and the room free next to the releases against the 1 GB an update needs.
+- The admin server asks GitHub's `releases/latest` at start and every **6 h**; `POST {action: "check"}` asks at once. No answer is the state `unreachable`, not an error.
+- `POST {action: "install", version}` runs `systemctl --no-block start ditherbooth-update@<version>.service`; `POST {action: "rollback", mode}` starts `ditherbooth-rollback@<mode>.service`. A version must be a release version; a job that runs (process and all) answers 409; a `keep-db` rollback across a migration, or a rollback with nothing to go back to, answers 409. Polkit refusing, or a unit not installed, comes back as "Run `sudo booth service` on the booth."
+
+The install dialog asks the engine for the event (`config.getCurrentEvent`), the visits of the last 15 min (`config.getVisitStats`) and whether a ticket is printing (`ops.getHealthz`, the printer's `printing`), and shows them as warnings; only the snapshot's own checks (GitHub reachable, room, nothing running) block. The page reads the snapshot every **3 s** while a job runs, and every 60 s otherwise. It keeps reading while the admin server restarts under it. Once the admin answers with another release, the page reloads: its code is the old release's. The Shutter on the iPad does the same through the kiosk channel's `release` opening message ([Kiosk channel](/docs/architecture/kiosk-channel/#commands)). A unit that starts but writes no job within 60 s is reported on the panel rather than waited on.
+
+The job's output (the `booth` CLI's lines) is on the Logs page, under **System**: the journal source reads `SYSLOG_IDENTIFIER=booth`, since the units are named by version and a journal match takes no wildcard. The panel's **Details** shows the same lines since the job started, read by the admin server with `journalctl --identifier=booth`.
+
+Motion, with anime.js as the rest of the page: the gauge's share tweens to each new step, a step that ends pops its check and the next slides in, and the result's mark (a check, an arrow back, a cross) draws itself once. `System.motion.tsx` holds every duration; `prefers-reduced-motion` turns all of it off. Nothing loops but the running step's spinner.
+
 ## Why its own unit
 
 The admin runs as `pi`, under PM2, which an update restarts. The update runs as root in a oneshot unit of its own (`Nice=10`, idle I/O, up to 45 min), so it outlives the PM2 restart and the admin that started it. systemd runs one job per unit at a time; `/var/lib/ditherbooth/update/lock`, holding the job's pid, stops an update and a rollback, or two versions, at once. A lock whose process is gone is taken over.

@@ -257,7 +257,7 @@ describe("the system journal on the /admin/logs socket", () => {
     ]);
   });
 
-  it("follows the booth's units and the kernel with one journalctl, killed when the last page closes", async () => {
+  it("follows the booth's units, the booth CLI and the kernel with one journalctl, killed when the last page closes", async () => {
     const journal = createFakeJournal({ records: [journalRecord(1, at(1))] });
     const client = setUp(journal)();
     client.send({ type: "history", filter: {}, limit: 10 });
@@ -271,6 +271,8 @@ describe("the system journal on the /admin/logs socket", () => {
       "UNIT=ditherbooth.service",
       "UNIT=ditherbooth-network.service",
       "UNIT=NetworkManager.service",
+      "+",
+      "SYSLOG_IDENTIFIER=booth",
       "+",
       "_TRANSPORT=kernel",
     ];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import type { PowerRun } from "./power.server";
+import type { SystemctlRun as PowerRun } from "#lib/systemctl/systemctl.server";
 
 import { getPowerCommand, runPowerAction } from "./power.server";
 

@@ -38,6 +38,8 @@ export type StaticAssetCachePolicy = "immutable" | "public";
 
 export type BrowserServerHealthzConfig = {
   service: string;
+  /** The release this server runs, for its `/healthz`. */
+  release?: string;
 };
 
 export type BrowserServerHealthzPayload = HealthzPayload<string>;

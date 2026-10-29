@@ -155,13 +155,14 @@ export async function runEngineServer(options: {
     maintenance: kioskMaintenance,
     printer,
   });
+  const release = readRelease(ENGINE_REPO_ROOT);
   // Reports to the Hub once the booth is registered; idle until then.
   const hubReporter = createHubReporter({
     db,
     hub: getHubOverride() ?? PRODUCTION_HUB,
     printer,
     maintenance: kioskMaintenance,
-    release: readRelease(ENGINE_REPO_ROOT),
+    release,
     dryRun: printer.dryRun,
     log: (level, event, details) =>
       logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
@@ -232,6 +233,7 @@ export async function runEngineServer(options: {
         typeof darkroomToken === "string" ? darkroomToken : undefined,
       kioskChannel,
       kioskMaintenance,
+      release,
       cameraPreview,
       mode: options.mode,
       network,
@@ -301,7 +303,11 @@ export async function runEngineServer(options: {
             service: ENGINE_HEALTHZ_SERVICE,
           }),
           // `booth update` asks this before its switch.
-          busy: visits.hasOpenVisit() ? "A guest is in a visit." : null,
+          busy: printer.isPrinting()
+            ? "A ticket is printing."
+            : visits.hasOpenVisit()
+              ? "A guest is in a visit."
+              : null,
         }),
       );
       return;

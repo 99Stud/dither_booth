@@ -50,13 +50,17 @@ const COMMON_ARGS = ["--output=json", "--no-pager"];
 
 /**
  * The booth's units (`_SYSTEMD_UNIT`), systemd's messages about them
- * (`UNIT`) and the kernel. `+` ORs the groups; values of one field are
- * ORed already. (`--unit` would AND with the kernel match.)
+ * (`UNIT`), the `booth` CLI wherever it runs (the update and rollback
+ * units are named by version, and a match takes no wildcard) and the
+ * kernel. `+` ORs the groups; values of one field are ORed already.
+ * (`--unit` would AND with the kernel match.)
  */
 const JOURNAL_MATCHES = [
   ...LOGS_JOURNAL_UNITS.map((unit) => `_SYSTEMD_UNIT=${unit}`),
   "+",
   ...LOGS_JOURNAL_UNITS.map((unit) => `UNIT=${unit}`),
+  "+",
+  "SYSLOG_IDENTIFIER=booth",
   "+",
   "_TRANSPORT=kernel",
 ];
