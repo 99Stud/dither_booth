@@ -12,9 +12,11 @@ const TARGETS = [
   { target: "bun-linux-x64", outfile: "booth-linux-x64" },
 ] as const;
 
-// Semver without the leading `v`, as tagged (`v0.4.0`, `v1.0.0-rc.1`).
-const SEMVER_PATTERN =
-  /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+// A release version without the leading `v`, as tagged (`v0.4.0`,
+// `v1.0.0-rc.1`): X.Y.Z, optionally `-` and a dot-separated pre-release.
+// No build metadata, no `-` inside the pre-release: the booth refuses
+// those, so the release workflow does too.
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/;
 
 async function describeGitVersion(): Promise<string | null> {
   const proc = Bun.spawn(
@@ -37,7 +39,7 @@ async function resolveVersion(): Promise<string> {
 
     if (!SEMVER_PATTERN.test(tagVersion)) {
       console.error(
-        `Release tag ${process.env.GITHUB_REF_NAME} is not a semver tag (vX.Y.Z).`,
+        `Release tag ${process.env.GITHUB_REF_NAME} is not a release tag (vX.Y.Z or vX.Y.Z-rc.N).`,
       );
       process.exit(1);
     }

@@ -63,14 +63,16 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
-      # Same rule as apps/cli/scripts/build.ts: the tag without its `v`, and
-      # only a semver tag releases. Checked first, before a long build.
+      # Same rule as apps/cli/scripts/build.ts and the booth's own check:
+      # the tag without its `v`, X.Y.Z with an optional dot-separated
+      # pre-release, nothing else. A tag a booth would refuse never becomes
+      # a release. Checked first, before a long build.
       - name: Write release.json
         id: release
         run: |
           version="${GITHUB_REF_NAME#v}"
-          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'; then
-            echo "Release tag $GITHUB_REF_NAME is not a semver tag (vX.Y.Z)." >&2
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+            echo "Release tag $GITHUB_REF_NAME is not a release tag (vX.Y.Z or vX.Y.Z-rc.N)." >&2
             exit 1
           fi
           printf '{"version":"%s","sha":"%s","builtAt":"%s"}\n' \
