@@ -1,7 +1,7 @@
 -- Staff ask their booths to update from Studio; the booth reads the request
 -- in its heartbeat's answer and reports how it goes.
 begin;
-select plan(17);
+select plan(22);
 
 insert into auth.users (id, email) values
   ('a1a1a1a1-0000-0000-0000-000000000001', 'staff-a@example.com'),
@@ -67,6 +67,22 @@ select is(
   null, 'once it runs, the answer no longer asks');
 select is(
   public.report_booth_update('a0a0a0a0-0000-0000-0000-0000000000a0',
+    '{"release": "0.7.2", "update": {"release": "0.8.0", "state": "rolled-back", "error": "v0.8.0 did not start."}}'),
+  null, 'a booth that went back is told nothing more');
+select results_eq(
+  $$select key, severity from public.alert
+    where booth_id = 'a0a0a0a0-0000-0000-0000-0000000000a0' and resolved_at is null$$,
+  $$values ('booth.update-failed', 'warn')$$,
+  'and staff get one alert for it');
+select is(
+  public.report_booth_update('a0a0a0a0-0000-0000-0000-0000000000a0',
+    '{"release": "0.7.2", "update": {"release": "0.8.0", "state": "rolled-back", "error": "v0.8.0 did not start."}}'),
+  null, 'reported again, the same news');
+select is(
+  (select count(*) from public.alert where booth_id = 'a0a0a0a0-0000-0000-0000-0000000000a0'),
+  1::bigint, 'is still one alert');
+select is(
+  public.report_booth_update('a0a0a0a0-0000-0000-0000-0000000000a0',
     '{"release": "0.8.0"}'),
   null, 'and a booth on the release is done');
 select is(
@@ -89,6 +105,10 @@ select results_eq(
   $$update public.booth_update set release = '0.8.0'
     where booth_id = 'a0a0a0a0-0000-0000-0000-0000000000a0' returning state$$,
   array['requested'], 'asking again starts over');
+select is(
+  (select count(*) from public.alert
+    where booth_id = 'a0a0a0a0-0000-0000-0000-0000000000a0' and resolved_at is null),
+  0::bigint, 'and closes the failed-update alert');
 select results_eq(
   $$delete from public.booth_update returning booth_id$$,
   array['a0a0a0a0-0000-0000-0000-0000000000a0'::uuid], 'staff cancel only their own requests');

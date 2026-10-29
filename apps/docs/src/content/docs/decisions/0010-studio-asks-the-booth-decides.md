@@ -32,5 +32,4 @@ Booths now update themselves from tagged releases ([decision 0009](/docs/decisio
 
 - An update asked for during an event happens after it: Studio shows **Waiting to update** and why.
 - A booth on the booth Wi-Fi, or offline, gets the request when it next reaches the Hub, and installs it then if it's quiet.
-- A failed or rolled-back update isn't retried: staff ask again once they know why.
-- There is no failed-update alert yet: Studio shows the state on the booth card.
+- A failed or rolled-back update isn't retried: staff get an **Update failed** alert, read why under the booth, and ask again.

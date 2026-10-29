@@ -17,7 +17,7 @@ import { readRelease } from "@dither-booth/shared/server/release";
 import { assertNonProductionNodeEnvForDevelopmentMode } from "@dither-booth/shared/server/runtime";
 import {
   hostSystemctlRun,
-  runSystemctl,
+  startUnit,
 } from "@dither-booth/shared/server/systemctl";
 import {
   createHTTPHandler,
@@ -177,9 +177,9 @@ export async function runEngineServer(options: {
         ? createRemoteUpdates({
             release,
             readJob: () => readBoothUpdateJob(),
-            readQuietness: () => readQuietness(db, new Date()),
-            startUnit: (unit) =>
-              runSystemctl(["--no-block", "start", unit], hostSystemctlRun),
+            readQuietness: () =>
+              readQuietness(db, new Date(), printer.isPrinting()),
+            startUnit: (unit) => startUnit(unit, hostSystemctlRun),
             log: (level, event, details) =>
               logKioskEvent(level, HUB_LOG_SOURCE, event, { details }),
           })

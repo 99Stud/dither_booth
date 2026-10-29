@@ -205,6 +205,8 @@ _Avoid_: dismiss, mute.
 **Event times**: when a booth is expected to be running, set per booth in the Studio app (`live_from`, `live_until` in the code). Only then is a silent booth an alert. They live on the Hub and have nothing to do with the booth's event in admin, nor with its **start and end**: replacing that event leaves them as they are. Only the Hub can hold them, since a booth that never powers on can't report its own.
 _Avoid_: live window (in staff-facing text).
 
+**Update failed** (alert): an update Studio asked for stopped before its switch, or the new release didn't start and the booth went back. The booth's reason is under it in Studio; asking again closes it.
+
 **Silent booth**: a booth that has sent no heartbeat for three minutes between its event times. Only the Hub can notice it, since a booth that lost power or its network can't say so.
 _Avoid_: offline, down (in staff-facing text).
 

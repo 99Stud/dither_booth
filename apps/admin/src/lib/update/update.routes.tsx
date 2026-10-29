@@ -1,4 +1,5 @@
 import type { RouteHandler } from "@dither-booth/browser-server/internal/browser-server.types";
+import type { SystemctlOutcome } from "@dither-booth/shared/server/systemctl";
 
 import { logKioskEvent } from "@dither-booth/logging";
 import {
@@ -7,8 +8,6 @@ import {
   getBoothRollbackUnit,
   getBoothUpdateUnit,
 } from "@dither-booth/shared/booth-update";
-
-import type { SystemctlOutcome } from "#lib/systemctl/systemctl.server";
 
 import { createAdminActionRoute } from "#lib/admin-api/admin-api.routes";
 import { ADMIN_UPDATE_LOG_SOURCE } from "#lib/constants";

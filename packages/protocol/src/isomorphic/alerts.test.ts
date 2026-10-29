@@ -14,8 +14,11 @@ describe("alerts", () => {
       .sort()
       .map((file) => readFileSync(join(MIGRATIONS, file), "utf8"))
       .join("\n");
+    // A later migration redefines the check: the last one is the Hub's.
     const check =
-      sql.match(/alert_key_known check \(key in \(([^)]*)\)\)/u)?.[1] ?? "";
+      [...sql.matchAll(/alert_key_known check \(key in \(([^)]*)\)\)/gu)].at(
+        -1,
+      )?.[1] ?? "";
     const keys = [...check.matchAll(/'([^']+)'/gu)].map((match) => match[1]);
     expect(keys.sort()).toEqual([...ALERT_KEYS].sort());
   });

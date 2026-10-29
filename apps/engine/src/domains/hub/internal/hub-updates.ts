@@ -6,6 +6,7 @@ import {
   getBoothUpdateUnit,
   isReleaseVersion,
 } from "@dither-booth/shared/booth-update";
+import { isJobRunning } from "@dither-booth/shared/server/booth-update";
 import { desc, eq } from "drizzle-orm";
 
 import type { DbExecutor } from "#db/internal/db.types";
@@ -37,28 +38,33 @@ const timeOfDay = (date: Date) =>
 
 /**
  * Whether the booth may restart now: not while its event runs (the booth
- * owns its start and end, ADR 0005), nor within 15 min of a visit.
+ * owns its start and end, ADR 0005; a side left empty is open), nor
+ * within 15 min of a visit, nor while a ticket prints.
  */
-export function readQuietness(db: DbExecutor, now: Date): Quietness {
+export function readQuietness(
+  db: DbExecutor,
+  now: Date,
+  printing = false,
+): Quietness {
   const event = db
     .select({ startsAt: campaignTable.startsAt, endsAt: campaignTable.endsAt })
     .from(campaignTable)
     .where(eq(campaignTable.status, "active"))
     .get();
+  const started = !event?.startsAt || event.startsAt <= now;
+  const notEnded = !event?.endsAt || now < event.endsAt;
 
-  if (event?.startsAt && event.startsAt <= now) {
-    if (!event.endsAt) {
-      return {
-        quiet: false,
-        reason: "The event has no end time: update from admin on the booth.",
-      };
-    }
-    if (now < event.endsAt) {
-      return {
-        quiet: false,
-        reason: `The event runs until ${timeOfDay(event.endsAt)}.`,
-      };
-    }
+  if (event && started && notEnded) {
+    return {
+      quiet: false,
+      reason: event.endsAt
+        ? `The event runs until ${timeOfDay(event.endsAt)}.`
+        : "The event has no end time: it waits for one, or for admin on the booth.",
+    };
+  }
+
+  if (printing) {
+    return { quiet: false, reason: "A ticket is printing." };
   }
 
   const lastVisit = db
@@ -82,7 +88,11 @@ export function readQuietness(db: DbExecutor, now: Date): Quietness {
 }
 
 export type RemoteUpdates = {
-  /** The Hub's answer asked for `release`. */
+  /**
+   * The Hub's answer asked for `release`. The booth keeps nothing: the
+   * Hub repeats the request in every answer until the job runs, so
+   * quietness is checked on every heartbeat until it starts.
+   */
   request: (release: string) => Promise<void>;
   /** What the next heartbeat says about it, if anything. */
   report: () => Promise<BoothUpdateReport | undefined>;
@@ -113,7 +123,7 @@ export function createRemoteUpdates({
       if (release === running || !isReleaseVersion(release)) return;
 
       const job = await readJob();
-      if (job?.state === "running") return;
+      if (isJobRunning(job)) return;
 
       const quiet = quietness();
       if (!quiet.quiet) {

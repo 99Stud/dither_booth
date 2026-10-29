@@ -469,6 +469,71 @@ const AddBooth = ({ onAdded }: { onAdded: () => void }) => {
   );
 };
 
+/** Asks every booth behind `latest` to update, each as its own request. */
+const UpdateAllBehind = ({
+  booths,
+  latest,
+  onChanged,
+}: {
+  booths: BoothRow[];
+  latest: string;
+  onChanged: () => void;
+}) => {
+  const [busy, setBusy] = useState(false);
+  const behind = booths.filter(
+    (booth) =>
+      booth.registeredAt &&
+      booth.status &&
+      isBehind(booth.status.release, latest) &&
+      !booth.update,
+  );
+
+  if (behind.length < 2) return null;
+
+  const updateAll = async () => {
+    setBusy(true);
+    const failed: string[] = [];
+    for (const booth of behind) {
+      await requestUpdate(booth, latest).catch(() => failed.push(booth.name));
+    }
+    setBusy(false);
+    onChanged();
+    if (failed.length > 0) {
+      toast.error(`Couldn't ask ${failed.join(", ")}.`);
+    } else {
+      toast.success(`${behind.length} booths will update to ${latest}.`);
+    }
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger
+        render={<Button type="button" variant="outline" disabled={busy} />}
+      >
+        Update all behind ({behind.length})
+      </AlertDialogTrigger>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Update {behind.length} booths to {latest}?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {behind.map((booth) => booth.name).join(", ")}. Each installs it
+            when it's quiet: not during its event, nor within 15 minutes of a
+            visit.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => void updateAll()}>
+            Update all
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
 /**
  * The org's booths: how each is doing, its event times, its release and
  * updates, its registration.
@@ -499,6 +564,13 @@ export const BoothsScreen = () => {
           />
         ))
       )}
+      {latest ? (
+        <UpdateAllBehind
+          booths={live.data}
+          latest={latest}
+          onChanged={live.reload}
+        />
+      ) : null}
       <AddBooth onAdded={live.reload} />
     </div>
   );

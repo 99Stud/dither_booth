@@ -73,3 +73,11 @@ export const hostSystemctlRun: SystemctlRun = async (args) => {
 
   return { exitCode, stderr };
 };
+
+/**
+ * `systemctl --no-block start <unit>`: the update and rollback units the
+ * admin and the engine start. `--no-block` because the job restarts the
+ * caller; the answer must leave before it does.
+ */
+export const startUnit = (unit: string, run: SystemctlRun) =>
+  runSystemctl(["--no-block", "start", unit], run);

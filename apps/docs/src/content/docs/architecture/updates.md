@@ -87,9 +87,9 @@ engine   quiet?  no  → next heartbeat: update {release, waiting, why}   state 
 Hub      heartbeat release = asked release → done
 ```
 
-- **Quiet** (`readQuietness`, `apps/engine/src/domains/hub/internal/hub-updates.ts`): no active event between its start and end, no active event that started with no end (then: update from admin on the booth), and no visit started in the last **15 min**.
+- **Quiet** (`readQuietness`, `apps/engine/src/domains/hub/internal/hub-updates.ts`): the active event isn't running, where a side left empty counts as open (an event with no end runs until it gets one, or until admin on the booth updates); no visit started in the last **15 min**; no ticket printing. Checked on every heartbeat until the job starts: the Hub repeats the request, so a booth busy at one check tries again 30 s later.
 - **The booth keeps nothing.** The Hub repeats the request in every answer until the booth reports it running, so a request survives the engine's own restart. After the update restarts the engine, its next heartbeats report the job from `status.json` (for a day), or simply run the new release, which marks the request done.
-- Only under PM2, on the booth. A unit that can't start (polkit, a missing unit) is reported as `failed` with the reason.
+- Only under PM2, on the booth. A unit that can't start (polkit, a missing unit) is reported as `failed` with the reason. A job that stopped or went back opens one **Update failed** alert (`booth.update-failed`, warn), pushed to staff like the printer's; the next request, or the booth running the release, closes it.
 
 ## Why its own unit
 

@@ -26,7 +26,9 @@ const job = (overrides: Partial<BoothUpdateJob> = {}): BoothUpdateJob => ({
   updatedAt: NOW.toISOString(),
   error: null,
   backup: null,
+  migrationsBefore: null,
   migrated: null,
+  pid: null,
   ...overrides,
 });
 
@@ -92,9 +94,14 @@ describe("remote updates", () => {
   });
 
   test("never start a second job, the release it runs, or a non-version", async () => {
-    const running = setup({ current: job({ to: "0.7.5" }) });
+    const running = setup({ current: job({ to: "0.7.5", pid: process.ppid }) });
     await running.updates.request("0.8.0");
     expect(running.started).toEqual([]);
+
+    // A job a crash left running isn't running: the booth ends it.
+    const stale = setup({ current: job({ to: "0.7.5", pid: 2_147_483_000 }) });
+    await stale.updates.request("0.8.0");
+    expect(stale.started).toEqual(["ditherbooth-update@0.8.0.service"]);
 
     const same = setup();
     await same.updates.request("0.7.0");
@@ -178,7 +185,7 @@ describe("readQuietness", () => {
     ).toEqual({ quiet: true });
   });
 
-  test("isn't during the event, nor in an event with no end", () => {
+  test("isn't during the event, a side left open counting as open", () => {
     expect(
       readQuietness(seed({ startsAt: minutes(-60), endsAt: minutes(60) }), NOW)
         .quiet,
@@ -187,14 +194,27 @@ describe("readQuietness", () => {
       quiet: false,
       reason: expect.stringContaining("no end time"),
     });
+    expect(readQuietness(seed({ endsAt: minutes(60) }), NOW).quiet).toBe(false);
+    expect(readQuietness(seed({}), NOW).quiet).toBe(false);
+  });
+
+  test("isn't while a ticket prints", () => {
+    expect(
+      readQuietness(
+        seed({ startsAt: minutes(60), endsAt: minutes(120) }),
+        NOW,
+        true,
+      ),
+    ).toEqual({ quiet: false, reason: "A ticket is printing." });
   });
 
   test("isn't within 15 minutes of a visit", () => {
-    expect(readQuietness(seed({ visitAt: minutes(-10) }), NOW).quiet).toBe(
-      false,
-    );
-    expect(readQuietness(seed({ visitAt: minutes(-20) }), NOW).quiet).toBe(
-      true,
-    );
+    const ended = { startsAt: minutes(-300), endsAt: minutes(-60) };
+    expect(
+      readQuietness(seed({ ...ended, visitAt: minutes(-10) }), NOW).quiet,
+    ).toBe(false);
+    expect(
+      readQuietness(seed({ ...ended, visitAt: minutes(-20) }), NOW).quiet,
+    ).toBe(true);
   });
 });

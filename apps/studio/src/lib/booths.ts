@@ -1,9 +1,11 @@
 import type {
+  BoothUpdateRequestState,
   Heartbeat,
   PrinterCondition,
 } from "@dither-booth/protocol/heartbeat";
 
 import { SILENT_AFTER_MS } from "@dither-booth/protocol/alerts";
+import { BOOTH_UPDATE_REQUEST_STATES } from "@dither-booth/protocol/heartbeat";
 import { format, formatDistanceToNowStrict } from "date-fns";
 
 import { hub } from "./hub";
@@ -11,13 +13,7 @@ import { hub } from "./hub";
 /** An update staff asked for, and how the booth says it goes. */
 export type BoothUpdateRequest = {
   release: string;
-  state:
-    | "requested"
-    | "waiting"
-    | "running"
-    | "done"
-    | "failed"
-    | "rolled-back";
+  state: BoothUpdateRequestState;
   stateAt: string;
   error: string | null;
 };
@@ -38,6 +34,12 @@ export type BoothRow = {
   } | null;
   update: BoothUpdateRequest | null;
 };
+
+/** The table's check holds the same list; an unknown word reads as requested. */
+const parseRequestState = (state: string): BoothUpdateRequestState =>
+  (BOOTH_UPDATE_REQUEST_STATES as readonly string[]).includes(state)
+    ? (state as BoothUpdateRequestState)
+    : "requested";
 
 export async function listBooths(): Promise<BoothRow[]> {
   const [booths, statuses, updates] = await Promise.all([
@@ -85,8 +87,7 @@ export async function listBooths(): Promise<BoothRow[]> {
       update: update
         ? {
             release: update.release,
-            // The table's check constraint keeps it to these.
-            state: update.state as BoothUpdateRequest["state"],
+            state: parseRequestState(update.state),
             stateAt: update.state_at,
             error: update.error,
           }

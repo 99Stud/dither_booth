@@ -52,6 +52,20 @@ export const boothUpdateStepSchema = z.enum(BOOTH_UPDATE_STEPS);
 
 export type BoothUpdateStep = z.infer<typeof boothUpdateStepSchema>;
 
+/**
+ * `@dither-booth/protocol`'s BOOTH_JOB_STATES, which the Hub reads; the
+ * protocol package can't be imported here (it is zod-only, read by Deno),
+ * so `booth-update.test.ts` keeps the two equal.
+ */
+export const BOOTH_JOB_STATES = [
+  "running",
+  "done",
+  "failed",
+  "rolled-back",
+] as const;
+
+export const boothJobStateSchema = z.enum(BOOTH_JOB_STATES);
+
 export const boothUpdateJobSchema = z.object({
   kind: z.enum(["update", "rollback"]),
   jobId: z.string(),
@@ -62,7 +76,7 @@ export const boothUpdateJobSchema = z.object({
    * `failed`: the booth still runs `from`. `rolled-back`: `to` didn't
    * start, and the booth went back to `from`.
    */
-  state: z.enum(["running", "done", "failed", "rolled-back"]),
+  state: boothJobStateSchema,
   step: boothUpdateStepSchema,
   startedAt: z.string(),
   updatedAt: z.string(),

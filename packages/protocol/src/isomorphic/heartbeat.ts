@@ -29,17 +29,41 @@ export const MAINTENANCE_REASONS = ["manual", "printer"] as const;
 export const maintenanceReasonSchema = z.enum(MAINTENANCE_REASONS);
 
 /**
- * How a booth stands with an update Studio asked for. `waiting`: it got
- * the request and waits for a quiet moment (`error` says why). Then its
- * job's own states, from `booth update`.
+ * How a job of `booth update` or `booth rollback` ends, or stands: the
+ * states its status file carries. `failed`: the booth still runs what it
+ * ran. `rolled-back`: the new release didn't start, and the booth went
+ * back. The Hub's `booth_update.state` check holds the same words.
  */
-export const BOOTH_UPDATE_REPORT_STATES = [
-  "waiting",
+export const BOOTH_JOB_STATES = [
   "running",
   "done",
   "failed",
   "rolled-back",
 ] as const;
+
+export type BoothJobState = (typeof BOOTH_JOB_STATES)[number];
+
+/**
+ * How a booth stands with an update Studio asked for, as it reports it.
+ * `waiting`: it got the request and waits for a quiet moment (`error`
+ * says why). Then its job's own states.
+ */
+export const BOOTH_UPDATE_REPORT_STATES = [
+  "waiting",
+  ...BOOTH_JOB_STATES,
+] as const;
+
+/**
+ * A request's state on the Hub: `requested` until the booth answers,
+ * then what the booth reports.
+ */
+export const BOOTH_UPDATE_REQUEST_STATES = [
+  "requested",
+  ...BOOTH_UPDATE_REPORT_STATES,
+] as const;
+
+export type BoothUpdateRequestState =
+  (typeof BOOTH_UPDATE_REQUEST_STATES)[number];
 
 export const boothUpdateReportSchema = z.object({
   /** The release asked for. */

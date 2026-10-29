@@ -4,6 +4,18 @@
 -- how it goes in its next heartbeats. One request per booth: asking again
 -- replaces it.
 
+alter table public.alert drop constraint alert_key_known;
+alter table public.alert
+  add constraint alert_key_known check (key in (
+    'printer.paper-out',
+    'printer.error',
+    'printer.disconnected',
+    'printer.paper-near-end',
+    'printer.cover-open',
+    'booth.silent',
+    'booth.update-failed'
+  ));
+
 create table public.booth_update (
   booth_id uuid primary key,
   org_id uuid not null,
@@ -60,6 +72,9 @@ begin
   new.state := 'requested';
   new.state_at := now();
   new.error := null;
+  -- A new request ends the news of the last one.
+  update public.alert set resolved_at = now()
+  where booth_id = new.booth_id and key = 'booth.update-failed' and resolved_at is null;
   return new;
 end;
 $$;
@@ -74,6 +89,9 @@ grant select, delete on public.booth_update to authenticated;
 grant insert (booth_id, org_id, release) on public.booth_update to authenticated;
 grant update (release) on public.booth_update to authenticated;
 grant select, insert, update, delete on public.booth_update to service_role;
+-- The request trigger closes the booth's update alert as staff: a column
+-- they may already write (acked_at's neighbour), under the alert's own policy.
+grant update (resolved_at) on public.alert to authenticated;
 
 -- Called by the heartbeat function after evaluate_heartbeat. Records what
 -- the booth says about the request, and returns the release it should
@@ -101,6 +119,8 @@ begin
     update public.booth_update
     set state = 'done', state_at = now(), error = null
     where booth_id = p_booth_id and state <> 'done';
+    update public.alert set resolved_at = now()
+    where booth_id = p_booth_id and key = 'booth.update-failed' and resolved_at is null;
     return null;
   end if;
 
@@ -114,6 +134,14 @@ begin
         error = left(v_report ->> 'error', 500)
     where booth_id = p_booth_id
     returning * into v_request;
+
+    -- An update that stopped or went back is news staff asked for: one
+    -- alert, pushed like the printer's. Asking again closes it (below).
+    if v_request.state in ('failed', 'rolled-back') then
+      insert into public.alert (org_id, booth_id, key, severity)
+      values (v_request.org_id, p_booth_id, 'booth.update-failed', 'warn')
+      on conflict (booth_id, key) where resolved_at is null do nothing;
+    end if;
   end if;
 
   if v_request.state in ('requested', 'waiting') then
