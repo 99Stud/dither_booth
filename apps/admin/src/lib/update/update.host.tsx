@@ -1,3 +1,5 @@
+import type { SystemctlRun } from "@dither-booth/shared/server/systemctl";
+
 import {
   isJobRunning,
   isReleaseBundle,
@@ -5,11 +7,8 @@ import {
   readBoothUpdateHistory,
   readBoothUpdateJob,
 } from "@dither-booth/shared/server/booth-update";
+import { startUnit } from "@dither-booth/shared/server/systemctl";
 import { statfs } from "node:fs/promises";
-
-import type { SystemctlRun } from "#lib/systemctl/systemctl.server";
-
-import { runSystemctl } from "#lib/systemctl/systemctl.server";
 
 import type { UpdateRouteDeps } from "./update.routes";
 
@@ -77,5 +76,5 @@ export const createHostUpdateDeps = ({
       freeBytes: free,
     };
   },
-  startUnit: (unit) => runSystemctl(["--no-block", "start", unit], run),
+  startUnit: (unit) => startUnit(unit, run),
 });

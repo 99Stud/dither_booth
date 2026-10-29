@@ -2,9 +2,11 @@ import type { MaintenanceReason } from "@dither-booth/shared/kiosk";
 import type { PrinterCondition as BoothPrinterCondition } from "@dither-booth/shared/printer";
 import type { z } from "zod";
 
+import { BOOTH_JOB_STATES as SHARED_JOB_STATES } from "@dither-booth/shared/booth-update";
 import { describe, expect, test } from "bun:test";
 
 import {
+  BOOTH_JOB_STATES,
   heartbeatSchema,
   type maintenanceReasonSchema,
   type printerConditionSchema,
@@ -42,6 +44,15 @@ describe("heartbeatSchema", () => {
       expect(heartbeatSchema.parse(fixture)).toEqual(fixture);
     },
   );
+
+  test("the job states a booth writes are the ones the Hub reads", () => {
+    expect([...BOOTH_JOB_STATES]).toEqual([...SHARED_JOB_STATES]);
+  });
+
+  test("reads a booth from before updates, which sends no update", () => {
+    const { ready } = HEARTBEAT_FIXTURES;
+    expect(heartbeatSchema.parse(ready).update).toBeUndefined();
+  });
 
   test("ignores a field a newer booth adds", () => {
     const { ready } = HEARTBEAT_FIXTURES;

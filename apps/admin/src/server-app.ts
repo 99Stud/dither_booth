@@ -17,6 +17,7 @@ import {
 } from "@dither-booth/shared/booth-system";
 import { ADMIN_HEALTHZ_SERVICE } from "@dither-booth/shared/healthz";
 import { readRelease } from "@dither-booth/shared/server/release";
+import { hostSystemctlRun } from "@dither-booth/shared/server/systemctl";
 import {
   TRPC_PROXY_PATH,
   getTrpcProxyUpstreamPath,
@@ -43,7 +44,6 @@ import { hostSystemReaderDeps } from "#lib/system/system.host";
 import { createSystemReader } from "#lib/system/system.reader";
 import { createSystemRoute } from "#lib/system/system.routes";
 import { createSystemSampler } from "#lib/system/system.sampler";
-import { hostSystemctlRun } from "#lib/systemctl/systemctl.server";
 import { createReleaseChecker } from "#lib/update/update.checker";
 import { UPDATE_ROUTE_PATH } from "#lib/update/update.constants";
 import { createHostUpdateDeps } from "#lib/update/update.host";

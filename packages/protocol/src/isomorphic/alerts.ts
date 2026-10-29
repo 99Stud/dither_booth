@@ -15,6 +15,7 @@ export const ALERT_KEYS = [
   "printer.paper-near-end",
   "printer.cover-open",
   "booth.silent",
+  "booth.update-failed",
 ] as const;
 
 export type AlertKey = (typeof ALERT_KEYS)[number];
@@ -67,6 +68,11 @@ export const ALERT_WORDING: Record<AlertKey, AlertWording> = {
     what: "Silent booth",
     todo: "No news for 3 minutes. Check its power and network.",
     fixed: "It's reporting again.",
+  },
+  "booth.update-failed": {
+    what: "Update failed",
+    todo: "The booth runs what it ran. See why under the booth, then ask again.",
+    fixed: "A new update was asked for, or it runs the release.",
   },
 };
 

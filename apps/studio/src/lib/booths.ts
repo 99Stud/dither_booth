@@ -1,12 +1,22 @@
 import type {
+  BoothUpdateRequestState,
   Heartbeat,
   PrinterCondition,
 } from "@dither-booth/protocol/heartbeat";
 
 import { SILENT_AFTER_MS } from "@dither-booth/protocol/alerts";
+import { BOOTH_UPDATE_REQUEST_STATES } from "@dither-booth/protocol/heartbeat";
 import { format, formatDistanceToNowStrict } from "date-fns";
 
 import { hub } from "./hub";
+
+/** An update staff asked for, and how the booth says it goes. */
+export type BoothUpdateRequest = {
+  release: string;
+  state: BoothUpdateRequestState;
+  stateAt: string;
+  error: string | null;
+};
 
 export type BoothRow = {
   id: string;
@@ -22,10 +32,17 @@ export type BoothRow = {
     maintenance: boolean;
     release: string;
   } | null;
+  update: BoothUpdateRequest | null;
 };
 
+/** The table's check holds the same list; an unknown word reads as requested. */
+const parseRequestState = (state: string): BoothUpdateRequestState =>
+  (BOOTH_UPDATE_REQUEST_STATES as readonly string[]).includes(state)
+    ? (state as BoothUpdateRequestState)
+    : "requested";
+
 export async function listBooths(): Promise<BoothRow[]> {
-  const [booths, statuses] = await Promise.all([
+  const [booths, statuses, updates] = await Promise.all([
     hub
       .from("booth")
       .select("id, org_id, name, live_from, live_until, registered_at")
@@ -33,16 +50,24 @@ export async function listBooths(): Promise<BoothRow[]> {
     hub
       .from("booth_status")
       .select("booth_id, last_seen_at, heartbeat, dry_run"),
+    hub
+      .from("booth_update")
+      .select("booth_id, release, state, state_at, error"),
   ]);
   if (booths.error) throw booths.error;
   if (statuses.error) throw statuses.error;
+  if (updates.error) throw updates.error;
   const byBooth = new Map(
     (statuses.data ?? []).map((status) => [status.booth_id, status]),
+  );
+  const updateByBooth = new Map(
+    (updates.data ?? []).map((update) => [update.booth_id, update]),
   );
   return (booths.data ?? []).map((booth) => {
     const status = byBooth.get(booth.id);
     // The heartbeat Edge Function stored it after checking it against the schema.
     const heartbeat = status?.heartbeat as Heartbeat | undefined;
+    const update = updateByBooth.get(booth.id);
     return {
       id: booth.id,
       orgId: booth.org_id,
@@ -57,6 +82,14 @@ export async function listBooths(): Promise<BoothRow[]> {
             conditions: heartbeat?.printer.conditions ?? [],
             maintenance: heartbeat?.maintenance.on ?? false,
             release: heartbeat?.release ?? "",
+          }
+        : null,
+      update: update
+        ? {
+            release: update.release,
+            state: parseRequestState(update.state),
+            stateAt: update.state_at,
+            error: update.error,
           }
         : null,
     };
@@ -81,6 +114,60 @@ export async function setEventTimes(
     .update({ live_from: from, live_until: until })
     .eq("id", boothId);
   if (error) throw error;
+}
+
+/**
+ * Asks the booth to install `release`. It hears about it in its next
+ * heartbeat's answer and installs it when it's quiet. Asking again starts
+ * over.
+ */
+export async function requestUpdate(
+  booth: Pick<BoothRow, "id" | "orgId">,
+  release: string,
+): Promise<void> {
+  const inserted = await hub
+    .from("booth_update")
+    .insert({ booth_id: booth.id, org_id: booth.orgId, release });
+  // Already asked once: staff may only change the release, which restarts it.
+  if (inserted.error?.code === "23505") {
+    const { error } = await hub
+      .from("booth_update")
+      .update({ release })
+      .eq("booth_id", booth.id);
+    if (error) throw error;
+    return;
+  }
+  if (inserted.error) throw inserted.error;
+}
+
+/** Forgets the request; a booth already updating carries on. */
+export async function cancelUpdate(boothId: string): Promise<void> {
+  const { error } = await hub
+    .from("booth_update")
+    .delete()
+    .eq("booth_id", boothId);
+  if (error) throw error;
+}
+
+/** How the update staff asked for goes, in a line; null when there is none. */
+export function updateLine(booth: BoothRow): string | null {
+  const { update } = booth;
+  if (!update) return null;
+  const why = update.error ? ` ${update.error}` : "";
+  switch (update.state) {
+    case "requested":
+      return `Asked to update to ${update.release}. It hears about it in its next report.`;
+    case "waiting":
+      return `Waiting to update to ${update.release}.${why}`;
+    case "running":
+      return `Updating to ${update.release}.`;
+    case "done":
+      return `Updated to ${update.release} ${formatDistanceToNowStrict(new Date(update.stateAt), { addSuffix: true })}.`;
+    case "failed":
+      return `The update to ${update.release} stopped; nothing changed.${why}`;
+    case "rolled-back":
+      return `${update.release} didn't start, so the booth went back.${why}`;
+  }
 }
 
 export type RegistrationCode = {

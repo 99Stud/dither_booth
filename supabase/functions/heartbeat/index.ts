@@ -7,6 +7,9 @@ const supabase = createServiceClient();
 
 const boothIdSchema = z.uuid();
 
+/** What report_booth_update returns: the release to install, or null. */
+const updateRequestSchema = z.object({ release: z.string() }).nullable();
+
 /** What evaluate_heartbeat raises for a booth the Hub doesn't have. */
 const UNKNOWN_BOOTH = "P0002";
 
@@ -32,6 +35,15 @@ Deno.serve((req) =>
       if (error?.code === UNKNOWN_BOOTH) return "unknown-booth";
       if (error) throw error;
       return "ok";
+    },
+
+    async reportUpdate(boothId, heartbeat) {
+      const { data, error } = await supabase.rpc("report_booth_update", {
+        p_booth_id: boothId,
+        p_heartbeat: heartbeat,
+      });
+      if (error) throw error;
+      return updateRequestSchema.parse(data);
     },
   }),
 );

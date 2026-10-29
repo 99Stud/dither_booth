@@ -1,10 +1,10 @@
+import type { SystemctlRun } from "@dither-booth/shared/server/systemctl";
+
 import { logKioskEvent } from "@dither-booth/logging";
 import { BOOTH_SERVICE_UNIT } from "@dither-booth/shared/booth-system";
-
-import type { SystemctlRun } from "#lib/systemctl/systemctl.server";
+import { runSystemctl } from "@dither-booth/shared/server/systemctl";
 
 import { ADMIN_POWER_LOG_SOURCE } from "#lib/constants";
-import { runSystemctl } from "#lib/systemctl/systemctl.server";
 
 import type { PowerAction, PowerResult } from "./power.protocol";
 

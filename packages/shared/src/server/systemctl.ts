@@ -1,7 +1,8 @@
 /*
- * `systemctl` as the service user, for the System page's actions. The
- * booth's polkit rule (`booth service`) says which ones it may run;
- * anything else comes back as `not-permitted`.
+ * `systemctl` as the service user: the admin's System page, and the
+ * engine starting an update Studio asked for. The booth's polkit rule
+ * (`booth service`) says which ones it may run; anything else comes back
+ * as `not-permitted`.
  */
 
 export type SystemctlRun = (
@@ -72,3 +73,11 @@ export const hostSystemctlRun: SystemctlRun = async (args) => {
 
   return { exitCode, stderr };
 };
+
+/**
+ * `systemctl --no-block start <unit>`: the update and rollback units the
+ * admin and the engine start. `--no-block` because the job restarts the
+ * caller; the answer must leave before it does.
+ */
+export const startUnit = (unit: string, run: SystemctlRun) =>
+  runSystemctl(["--no-block", "start", unit], run);
