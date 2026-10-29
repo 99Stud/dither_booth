@@ -10,6 +10,7 @@ import {
   getWebTlsHostnames,
   getWebTlsKeyPath,
 } from "@dither-booth/ports";
+import { isAllowedConfiguredOrigin } from "@dither-booth/ports/origin";
 import {
   PM2_LOG_RELATIVE_DIR,
   PM2_PROCESS_NAMES,
@@ -32,6 +33,9 @@ import { createLogsRoute } from "#lib/logs/logs.routes";
 import { PM2_RESTART_ROUTE_PATH } from "#lib/pm2/pm2-control.constants";
 import { createPm2RestartRoute } from "#lib/pm2/pm2-control.routes";
 import { isPm2ManagedRuntime } from "#lib/pm2/pm2-control.utils";
+import { POWER_ROUTE_PATH } from "#lib/power/power.constants";
+import { createPowerRoute } from "#lib/power/power.routes";
+import { hostPowerRun, runPowerAction } from "#lib/power/power.server";
 import { ADMIN_APP_ROOT, ADMIN_REPO_ROOT } from "#lib/server-constants";
 import { SYSTEM_ROUTE_PATH } from "#lib/system/system.constants";
 import { hostSystemReaderDeps } from "#lib/system/system.host";
@@ -93,6 +97,21 @@ export async function runAdminServer(options: {
           },
         }),
       ),
+      // Only on the booth: elsewhere these would restart or reboot the
+      // developer's machine.
+      ...(isPm2Managed
+        ? {
+            [POWER_ROUTE_PATH]: createPowerRoute({
+              isAllowedOrigin: (origin) =>
+                isAllowedConfiguredOrigin(
+                  origin,
+                  adminOrigin,
+                  allowedHostnames,
+                ),
+              runAction: (action) => runPowerAction(action, hostPowerRun),
+            }),
+          }
+        : {}),
     },
     webSocketRoutes: {
       // Not only under PM2: without its files, each source reports unavailable.

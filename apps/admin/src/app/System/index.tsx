@@ -17,6 +17,7 @@ import { useSystemMetrics } from "#lib/system/useSystemMetrics";
 
 import { CpuPanel } from "./internal/components/CpuPanel";
 import { MemoryPanel } from "./internal/components/MemoryPanel";
+import { PowerPanel } from "./internal/components/PowerPanel";
 import { StoragePanel } from "./internal/components/StoragePanel";
 import { SystemFooter } from "./internal/components/SystemFooter";
 import {
@@ -67,7 +68,7 @@ export const System = () => {
       <AppPageBody>
         <AppPageHeading
           title="System"
-          description="The Pi under the booth: heat, memory, CPU and storage, live."
+          description="The Pi under the booth: heat, memory, CPU and storage, live. Restart or power it off from here."
           actions={
             <>
               <SystemStatusBadge state={connection} />
@@ -127,6 +128,7 @@ export const System = () => {
               />
               <CpuPanel cpu={data.cpu} points={points.cpuPercent} />
               <StoragePanel disks={data.disks} />
+              <PowerPanel />
             </div>
             <SystemFooter snapshot={data} now={Date.now()} />
           </>

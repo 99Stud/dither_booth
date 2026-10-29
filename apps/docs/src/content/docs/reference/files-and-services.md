@@ -37,21 +37,22 @@ Logs: `log_type: "json"`, one combined `log_file` per process at `logs/pm2/<proc
 
 ## Files written by the CLI
 
-| Path                                                            | Written by                       | Purpose                           |
-| --------------------------------------------------------------- | -------------------------------- | --------------------------------- |
-| `/usr/local/bin/booth`                                          | `install.sh`                     | The CLI                           |
-| `/opt/dither-booth/`                                            | `booth repo`                     | The repo, owned by `pi`           |
-| `/etc/fstab` entry for `/mnt/ssd`                               | `booth ssd`                      | SSD mount                         |
-| `/etc/systemd/system/ditherbooth.service`                       | `booth service`                  | Main unit                         |
-| `/etc/NetworkManager/dispatcher.d/90-ditherbooth`               | `booth service`                  | Restarts the service on a new IP  |
-| `/etc/logrotate.d/ditherbooth`                                  | `booth service`                  | Rotates the PM2 log files         |
-| `/etc/systemd/system/logrotate.timer.d/ditherbooth.conf`        | `booth service`                  | Runs logrotate hourly, not daily  |
-| `pi` in group `systemd-journal`                                 | `booth service`                  | Lets `pi` read the system journal |
-| `/etc/systemd/system/ditherbooth-network.service`               | `booth network setup`            | Network watch unit                |
-| `/etc/polkit-1/rules.d/50-ditherbooth-network.rules`            | `booth network setup`            | Lets `pi` manage Wi-Fi            |
-| `/etc/NetworkManager/dnsmasq-shared.d/ditherbooth-captive.conf` | `booth network setup`            | Captive probe hosts → `10.42.0.1` |
-| NetworkManager profile `booth-hotspot`                          | `booth network setup`            | The booth Wi-Fi                   |
-| nftables table `ip ditherbooth`                                 | `booth network watch` (at start) | `10.42.0.1:80` → `:3003`          |
+| Path                                                            | Written by                       | Purpose                               |
+| --------------------------------------------------------------- | -------------------------------- | ------------------------------------- |
+| `/usr/local/bin/booth`                                          | `install.sh`                     | The CLI                               |
+| `/opt/dither-booth/`                                            | `booth repo`                     | The repo, owned by `pi`               |
+| `/etc/fstab` entry for `/mnt/ssd`                               | `booth ssd`                      | SSD mount                             |
+| `/etc/systemd/system/ditherbooth.service`                       | `booth service`                  | Main unit                             |
+| `/etc/NetworkManager/dispatcher.d/90-ditherbooth`               | `booth service`                  | Restarts the service on a new IP      |
+| `/etc/logrotate.d/ditherbooth`                                  | `booth service`                  | Rotates the PM2 log files             |
+| `/etc/systemd/system/logrotate.timer.d/ditherbooth.conf`        | `booth service`                  | Runs logrotate hourly, not daily      |
+| `pi` in group `systemd-journal`                                 | `booth service`                  | Lets `pi` read the system journal     |
+| `/etc/polkit-1/rules.d/50-ditherbooth-system.rules`             | `booth service`                  | Lets admin restart, reboot, power off |
+| `/etc/systemd/system/ditherbooth-network.service`               | `booth network setup`            | Network watch unit                    |
+| `/etc/polkit-1/rules.d/50-ditherbooth-network.rules`            | `booth network setup`            | Lets `pi` manage Wi-Fi                |
+| `/etc/NetworkManager/dnsmasq-shared.d/ditherbooth-captive.conf` | `booth network setup`            | Captive probe hosts → `10.42.0.1`     |
+| NetworkManager profile `booth-hotspot`                          | `booth network setup`            | The booth Wi-Fi                       |
+| nftables table `ip ditherbooth`                                 | `booth network watch` (at start) | `10.42.0.1:80` → `:3003`              |
 
 ## Files written at runtime
 

@@ -23,6 +23,7 @@ sidebar:
 | Logs socket      | `wss://<hostname>.local:3002/admin/logs`             | The Logs page's live logs. [Logging](/docs/architecture/logging/)                                       |
 | System page      | `https://<hostname>.local:3002/system`               | The Pi's heat, throttling, memory, CPU and storage. [System](/docs/maintenance/system/)                 |
 | System readings  | `GET https://<hostname>.local:3002/admin/system`     | JSON: the latest reading and the last hour. [System metrics](/docs/architecture/system-metrics/)        |
+| Power            | `POST https://<hostname>.local:3002/admin/power`     | Restart the apps, reboot, power off. Booth only. [Power](/docs/architecture/access-control/#power)      |
 
 On the booth Wi-Fi, the booth is always `10.42.0.1`.
 

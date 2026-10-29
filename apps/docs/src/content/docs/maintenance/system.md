@@ -1,6 +1,6 @@
 ---
 title: System
-description: The Pi's temperature, throttling, memory, CPU and storage in admin, live with the last hour, and what each reading means.
+description: The Pi's temperature, throttling, memory, CPU and storage in admin, live with the last hour, what each reading means, and the Power panel to restart, reboot or power off.
 sidebar:
   order: 5
 ---
@@ -35,9 +35,23 @@ The Pi's firmware keeps a flag for each thing it had to do to protect the board.
 - **Soft temperature limit** or **Throttled** with a warm gauge → the cooler: contact with the SoC, the blower's intake under the M.2 shield, the air around the case.
 - Flags clear when the Pi restarts. Every flag **Clear** after a restart in a hot room says the fix held.
 
+## Restart, reboot or power off
+
+The **Power** panel, at the foot of the page, has three buttons. Each asks first.
+
+| Button           | What happens                                                                        | The page then shows                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Restart apps** | The engine, the admin and the Shutter start again. The Pi stays on.                 | **Restarting**, then a **The booth is back.** message once admin answers again           |
+| **Reboot**       | The whole Pi starts again.                                                          | **Rebooting**, then **The booth is back.**                                               |
+| **Power off**    | The Pi shuts down. It can't be turned back on from admin: unplug it and plug it in. | **Shutting down**, then **The booth has shut down.** once admin has been silent for 10 s |
+
+Guests can't use the booth until it's back. Stay on the page: it reconnects on its own. If the booth hasn't answered after 5 minutes, the panel says so: check that it's plugged in and on the same network as your device.
+
+**The booth doesn't allow this yet** means the booth's permissions predate the Power panel: run `sudo booth service` once over SSH.
+
 ## Off the booth
 
-On a development machine the Temperature, Throttling and Memory panels say **Not on a Pi** and explain what only the Pi reports: heat, fan, throttling, and the kernel's available-memory figure. CPU, uptime and the root disk still read, from the machine you are on.
+On a development machine the Temperature, Throttling and Memory panels say **Not on a Pi** and explain what only the Pi reports: heat, fan, throttling, and the kernel's available-memory figure. CPU, uptime and the root disk still read, from the machine you are on. The **Power** panel says **On the booth only** and its buttons stay off: there they would restart the computer you are on.
 
 ## Over SSH
 

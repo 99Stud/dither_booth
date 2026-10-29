@@ -24,6 +24,7 @@ import {
   SERVICE_PATH,
   SERVICE_USER,
   SSD_MOUNT_POINT,
+  SYSTEM_POLKIT_RULE_PATH,
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import { capture, run } from "#internal/system";
@@ -143,6 +144,38 @@ OnCalendar=hourly
 `;
 }
 
+/**
+ * The admin's System page runs `systemctl` as the service user: restart
+ * this unit, reboot, power off. Nothing else: not other units, not stop.
+ * The `-multiple-sessions` actions are what logind asks while someone is
+ * logged in over SSH. polkit reads the rules folder again on its own.
+ */
+export function buildSystemPolkitRule(): string {
+  return `// Installed by \`booth service\`.
+polkit.addRule(function (action, subject) {
+  if (subject.user !== "${SERVICE_USER}") {
+    return polkit.Result.NOT_HANDLED;
+  }
+  if (
+    action.id === "org.freedesktop.systemd1.manage-units" &&
+    action.lookup("unit") === "${SERVICE_NAME}" &&
+    action.lookup("verb") === "restart"
+  ) {
+    return polkit.Result.YES;
+  }
+  if (
+    action.id === "org.freedesktop.login1.reboot" ||
+    action.id === "org.freedesktop.login1.reboot-multiple-sessions" ||
+    action.id === "org.freedesktop.login1.power-off" ||
+    action.id === "org.freedesktop.login1.power-off-multiple-sessions"
+  ) {
+    return polkit.Result.YES;
+  }
+  return polkit.Result.NOT_HANDLED;
+});
+`;
+}
+
 async function writeIfChanged(path: string, content: string): Promise<boolean> {
   const existing = await Bun.file(path)
     .text()
@@ -202,6 +235,9 @@ export async function runServiceCommand(context: BoothContext): Promise<void> {
     LOGROTATE_TIMER_DROP_IN_PATH,
     buildLogrotateTimerDropIn(),
   );
+
+  await writeIfChanged(SYSTEM_POLKIT_RULE_PATH, buildSystemPolkitRule());
+  await chmod(SYSTEM_POLKIT_RULE_PATH, 0o644);
 
   const wasActive = await isActive(SERVICE_NAME);
   const joinedJournal = await joinJournalGroup();
