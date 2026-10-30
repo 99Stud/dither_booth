@@ -127,6 +127,15 @@ jobs:
             console.log("sharp", sharp.versions.sharp, "and usb load");
           '
 
+      # `booth cert` runs the engine's built generator: a release has no
+      # `scripts/`. `--help` loads every import, then stops before mkcert.
+      - name: Smoke-test the certificate generator
+        env:
+          BUNDLE: ${{ steps.release.outputs.bundle }}
+        run: |
+          cd "$RUNNER_TEMP/bundle"
+          node_modules/.bin/bun apps/engine/dist/generate-local-cert.js --help
+
       # The engine started from the unpacked bundle, as PM2 starts it, and
       # answering /healthz as `booth update`'s check waits for. A bundle that
       # imports anything it doesn't carry (`src/`, a dev dependency) stops

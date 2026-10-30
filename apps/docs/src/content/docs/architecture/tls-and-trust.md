@@ -20,7 +20,7 @@ Devices trust the **CA**, once. Leaf certificates come and go with venues withou
 
 ## What the leaf covers
 
-`cert:generate` (run by `booth cert`) issues one certificate for:
+`cert:generate` (run by `booth cert`) issues one certificate for the list below. A release ships the engine's `dist/`, not its `scripts/`, so there `booth cert` runs the build's copy, `apps/engine/dist/generate-local-cert.js`. The certificate covers:
 
 - the current LAN IP,
 - `10.42.0.1`, the booth Wi-Fi address — so switching to the booth Wi-Fi needs no new certificate,

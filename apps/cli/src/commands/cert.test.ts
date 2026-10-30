@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { needsNewCertificate } from "./cert";
+import { certGenerateArgs, needsNewCertificate } from "./cert";
 
 describe("needsNewCertificate", () => {
   test("keeps the certificate while the booth stays on the same address", () => {
@@ -61,5 +61,37 @@ describe("needsNewCertificate", () => {
         lanIp: "192.168.1.42",
       }),
     ).toBe(true);
+  });
+});
+
+describe("certGenerateArgs", () => {
+  test("runs the engine's built generator on a release", () => {
+    expect(
+      certGenerateArgs({
+        publicIp: "192.168.1.195",
+        release: true,
+        skipInstall: true,
+      }),
+    ).toEqual([
+      "apps/engine/dist/generate-local-cert.js",
+      "192.168.1.195",
+      "--skip-install",
+    ]);
+  });
+
+  test("runs the engine's script on a checkout", () => {
+    expect(
+      certGenerateArgs({
+        publicIp: "192.168.1.42",
+        release: false,
+        skipInstall: false,
+      }),
+    ).toEqual([
+      "run",
+      "--filter",
+      "@dither-booth/engine",
+      "cert:generate",
+      "192.168.1.42",
+    ]);
   });
 });
