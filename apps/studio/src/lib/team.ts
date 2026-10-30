@@ -69,6 +69,24 @@ export async function staffOrgId(): Promise<string | null> {
   return data?.[0]?.org_id ?? null;
 }
 
+/** Whether the signed-in user is a platform admin: they see every team. */
+export async function isPlatformAdmin(): Promise<boolean> {
+  const { data, error } = await hub.rpc("is_platform_admin");
+  if (error) throw error;
+  return data === true;
+}
+
+/** A new team, for a client or for 99Stud; admins only. */
+export async function createTeam(name: string): Promise<Team> {
+  const { data, error } = await hub
+    .from("org")
+    .insert({ name: name.trim() })
+    .select("id, name")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 /** The teams the signed-in user sees: their own, or every one for an admin. */
 export async function visibleTeams(): Promise<Team[]> {
   const { data, error } = await hub

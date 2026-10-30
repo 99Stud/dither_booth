@@ -1,6 +1,8 @@
 import { assertEquals } from "@std/assert";
 
-import { handleTeam, type StoredMember, type TeamDeps } from "./handler.ts";
+import type { StoredMember } from "../_shared/members.ts";
+
+import { handleTeam, type TeamDeps } from "./handler.ts";
 
 const ORG = "8b1c2d3e-4f5a-4b6c-9d7e-0a1b2c3d4e5f";
 const OTHER_ORG = "c0ffee00-0000-4000-8000-000000000001";

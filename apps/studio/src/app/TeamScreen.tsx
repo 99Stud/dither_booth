@@ -42,8 +42,6 @@ import {
 } from "@dither-booth/ui/components/ui/toggle-group";
 import clsx from "clsx";
 import {
-  Bell,
-  BellOff,
   Copy,
   Crown,
   MoreHorizontal,
@@ -56,12 +54,13 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { LiveFallback } from "#app/LiveFallback";
+import { MemberStatusLine } from "#app/MemberStatusLine";
 import { messageOf } from "#lib/errors";
 import { useLive } from "#lib/live";
 import {
   addErrorMessage,
   addMember,
-  type MemberTone,
+  createTeam,
   memberStatus,
   NOT_IN_A_TEAM,
   readTeam,
@@ -75,20 +74,6 @@ import {
   teamSummary,
   visibleTeams,
 } from "#lib/team";
-
-const STATUS_STYLE: Record<
-  MemberTone,
-  { className: string; Icon: typeof Bell | null }
-> = {
-  ok: { className: "text-muted-foreground", Icon: Bell },
-  // IconBubble's amber text pair: the theme's --warning is a fill, too light
-  // for text on the card.
-  warn: {
-    className: "text-amber-700 dark:text-amber-300", // ds-allow-hardcode
-    Icon: BellOff,
-  },
-  off: { className: "text-muted-foreground", Icon: null },
-};
 
 /** Share sheet where the device has one, else the clipboard. */
 async function sendSignIn(text: string) {
@@ -408,8 +393,6 @@ const MemberRow = ({
   member: TeamMember;
   menu: React.ReactNode;
 }) => {
-  const status = memberStatus(member);
-  const { className, Icon } = STATUS_STYLE[status.tone];
   return (
     <li className={clsx("flex items-center gap-3 py-3")}>
       <div className={clsx("flex min-w-0 flex-1 flex-col gap-1")}>
@@ -420,10 +403,7 @@ const MemberRow = ({
             <Badge variant="secondary">Owner</Badge>
           ) : null}
         </p>
-        <p className={clsx("flex items-center gap-1.5 text-xs", className)}>
-          {Icon ? <Icon aria-hidden className={clsx("size-3.5")} /> : null}
-          {status.text}
-        </p>
+        <MemberStatusLine status={memberStatus(member)} />
       </div>
       {menu}
     </li>
@@ -528,12 +508,94 @@ const TeamView = ({ orgId }: { orgId: string }) => {
   );
 };
 
+/** A platform admin starts a team: a client's, or one more of 99Stud's. */
+const NewTeam = ({ onCreated }: { onCreated: (team: Team) => void }) => {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  if (!open) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={clsx("self-start")}
+        onClick={() => setOpen(true)}
+      >
+        <Plus data-icon="inline-start" />
+        New team
+      </Button>
+    );
+  }
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(undefined);
+    try {
+      const team = await createTeam(name);
+      toast.success(`${team.name} is on the Hub. Add its people next.`);
+      setName("");
+      setOpen(false);
+      onCreated(team);
+    } catch (caught) {
+      setError(`Couldn't create ${name.trim()}: ${messageOf(caught)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form
+      className={clsx(
+        "flex flex-col gap-3 rounded-lg border border-border p-3",
+      )}
+      onSubmit={submit}
+      noValidate
+    >
+      <Field data-invalid={error ? true : undefined}>
+        <FieldLabel htmlFor="new-team">Team name</FieldLabel>
+        <Input
+          id="new-team"
+          placeholder="Le Bar"
+          value={name}
+          aria-invalid={error ? true : undefined}
+          onChange={(changed) => {
+            setName(changed.target.value);
+            setError(undefined);
+          }}
+        />
+        <FieldDescription>
+          A client's team sees its events. Book them in Events.
+        </FieldDescription>
+        <FieldError>{error}</FieldError>
+      </Field>
+      <div className={clsx("flex justify-end gap-2")}>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={busy || name.trim() === ""}>
+          {busy ? <Spinner className="size-4" /> : null}
+          Create team
+        </Button>
+      </div>
+    </form>
+  );
+};
+
 /**
  * Studio's Team: the people in a team and whether their phones get its
  * alerts. A platform admin who sees several teams picks one; it starts on
- * their own.
+ * their own. Admins also start new teams here.
  */
-export const TeamScreen = () => {
+export const TeamScreen = ({ isAdmin }: { isAdmin: boolean }) => {
   const [teams, setTeams] = useState<Team[]>();
   const [orgId, setOrgId] = useState<string | null>();
   const [error, setError] = useState<unknown>(null);
@@ -553,12 +615,24 @@ export const TeamScreen = () => {
     );
   }
 
+  const created = (team: Team) => {
+    setTeams((now) =>
+      [...(now ?? []), team].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    setOrgId(team.id);
+  };
+
   if (orgId === null) {
-    return <p className={clsx("text-sm")}>{NOT_IN_A_TEAM}</p>;
+    return isAdmin ? (
+      <NewTeam onCreated={created} />
+    ) : (
+      <p className={clsx("text-sm")}>{NOT_IN_A_TEAM}</p>
+    );
   }
 
   return (
     <div className={clsx("flex flex-col gap-4")}>
+      {isAdmin ? <NewTeam onCreated={created} /> : null}
       {teams.length > 1 ? (
         // Base UI's listbox, not a native one. ds-allow-native-select
         <Select

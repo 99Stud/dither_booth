@@ -1,4 +1,7 @@
-import { type Heartbeat } from "@dither-booth/protocol/heartbeat";
+import {
+  type CurrentEvent,
+  type Heartbeat,
+} from "@dither-booth/protocol/heartbeat";
 import { HEARTBEAT_FIXTURES } from "@dither-booth/protocol/heartbeat.fixtures";
 import { assertEquals } from "@std/assert";
 
@@ -9,6 +12,7 @@ const BOOTH = "a0a0a0a0-0000-0000-0000-0000000000a0";
 function setup(
   auth: BoothAuth = { boothId: BOOTH },
   update: { release: string } | null = null,
+  event: CurrentEvent | null = null,
 ) {
   const evaluated: { boothId: string; heartbeat: Heartbeat }[] = [];
   const reported: string[] = [];
@@ -22,6 +26,7 @@ function setup(
       reported.push(boothId);
       return Promise.resolve(update);
     },
+    currentEvent: (_boothId: string) => Promise.resolve(event),
   };
   return { deps, evaluated, reported };
 }
@@ -48,14 +53,41 @@ Deno.test("answers with the release Studio asked the booth to install", async ()
     post(HEARTBEAT_FIXTURES.updateWaiting),
     deps,
   );
-  assertEquals(await res.json(), { ok: true, update: { release: "0.8.0" } });
+  assertEquals(await res.json(), {
+    ok: true,
+    update: { release: "0.8.0" },
+    event: null,
+  });
   assertEquals(reported, [BOOTH]);
 });
 
 Deno.test("answers with no update when nothing waits for the booth", async () => {
   const { deps } = setup();
   const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), deps);
-  assertEquals(await res.json(), { ok: true, update: null });
+  assertEquals(await res.json(), { ok: true, update: null, event: null });
+});
+
+Deno.test("answers with the event the booth is at", async () => {
+  const halloween = {
+    id: "e1000000-0000-4000-8000-0000000000e1",
+    name: "Halloween",
+    startsAt: "2026-10-31T18:00:00+00:00",
+    endsAt: "2026-11-01T02:00:00+00:00",
+  };
+  const { deps } = setup({ boothId: BOOTH }, null, halloween);
+  const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), deps);
+  assertEquals(await res.json(), { ok: true, update: null, event: halloween });
+});
+
+Deno.test("an event it can't read is none, and the heartbeat still counts", async () => {
+  const { deps, evaluated } = setup();
+  const res = await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), {
+    ...deps,
+    currentEvent: () => Promise.reject(new Error("bad row")),
+  });
+  assertEquals(res.status, 200);
+  assertEquals(await res.json(), { ok: true, update: null, event: null });
+  assertEquals(evaluated.length, 1);
 });
 
 Deno.test("accepts every fixture the protocol ships", async () => {

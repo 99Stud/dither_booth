@@ -1,11 +1,12 @@
 import clsx from "clsx";
-import { Bell, Printer, Smartphone, Users } from "lucide-react";
+import { Bell, CalendarDays, Printer, Smartphone, Users } from "lucide-react";
 
 import type { Route } from "#lib/route";
 
 const TABS = [
   { screen: "alerts", label: "Alerts", icon: Bell },
   { screen: "booths", label: "Booths", icon: Printer },
+  { screen: "events", label: "Events", icon: CalendarDays },
   { screen: "team", label: "Team", icon: Users },
   { screen: "device", label: "This device", icon: Smartphone },
 ] as const;
@@ -32,7 +33,10 @@ export const TabBar = ({
       style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}
     >
       {TABS.map(({ screen, label, icon: Icon }) => {
-        const current = route.screen === screen;
+        // An event's page sits under Events.
+        const current =
+          route.screen === screen ||
+          (screen === "events" && route.screen === "event");
         return (
           <li key={screen}>
             <button

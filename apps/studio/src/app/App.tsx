@@ -11,6 +11,8 @@ import { AlertBanner } from "#app/AlertBanner";
 import { AlertsScreen } from "#app/AlertsScreen";
 import { BoothsScreen } from "#app/BoothsScreen";
 import { DeviceCard } from "#app/DeviceCard";
+import { EventScreen } from "#app/EventScreen";
+import { EventsScreen } from "#app/EventsScreen";
 import { SignIn } from "#app/SignIn";
 import { Splash } from "#app/Splash";
 import { TabBar } from "#app/TabBar";
@@ -19,10 +21,13 @@ import { listAlerts } from "#lib/alerts";
 import { hub } from "#lib/hub";
 import { useLive } from "#lib/live";
 import { type Route, useRoute } from "#lib/route";
+import { isPlatformAdmin } from "#lib/team";
 
 const TITLES: Record<Route["screen"], string> = {
   alerts: "Alerts",
   booths: "Booths",
+  events: "Events",
+  event: "Event",
   team: "Team",
   device: "This device",
 };
@@ -30,6 +35,11 @@ const TITLES: Record<Route["screen"], string> = {
 /** The signed-in app: a screen, and the tab bar under it. */
 const SignedIn = ({ userId, email }: { userId: string; email: string }) => {
   const [route, go] = useRoute();
+  // Read once: who books events and puts people on call.
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    isPlatformAdmin().then(setIsAdmin, () => setIsAdmin(false));
+  }, []);
   // One read for the Alerts screen, the banner and the tab's count.
   const alerts = useLive("alerts", () => listAlerts(), ["alert"]);
   const openAlerts = (alerts.data ?? []).filter(
@@ -49,7 +59,22 @@ const SignedIn = ({ userId, email }: { userId: string; email: string }) => {
         <AlertsScreen live={alerts} focusId={route.alertId} />
       ) : null}
       {route.screen === "booths" ? <BoothsScreen /> : null}
-      {route.screen === "team" ? <TeamScreen /> : null}
+      {route.screen === "events" ? (
+        <EventsScreen
+          isAdmin={isAdmin}
+          onOpen={(eventId) => go({ screen: "event", eventId })}
+        />
+      ) : null}
+      {route.screen === "event" ? (
+        <EventScreen
+          key={route.eventId}
+          eventId={route.eventId}
+          isAdmin={isAdmin}
+          onBack={() => go({ screen: "events" })}
+          onOpenTeam={() => go({ screen: "team" })}
+        />
+      ) : null}
+      {route.screen === "team" ? <TeamScreen isAdmin={isAdmin} /> : null}
       {route.screen === "device" ? (
         <DeviceCard userId={userId} email={email} />
       ) : null}
@@ -58,7 +83,7 @@ const SignedIn = ({ userId, email }: { userId: string; email: string }) => {
   );
 };
 
-/** Studio: sign in, then the booths' alerts, the booths, the team, and this device. */
+/** Studio: sign in, then the booths' alerts, the booths, the events, the team, and this device. */
 export const App = () => {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [showSplash, setShowSplash] = useState(true);

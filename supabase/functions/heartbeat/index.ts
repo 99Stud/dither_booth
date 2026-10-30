@@ -1,6 +1,8 @@
+import { currentEventSchema } from "@dither-booth/protocol/heartbeat";
 import { z } from "zod";
 
 import { createServiceClient } from "../_shared/clients.ts";
+import { fromEventRow } from "../_shared/events.ts";
 import { type BoothAuth, handleHeartbeat } from "./handler.ts";
 
 const supabase = createServiceClient();
@@ -44,6 +46,19 @@ Deno.serve((req) =>
       });
       if (error) throw error;
       return updateRequestSchema.parse(data);
+    },
+
+    async currentEvent(boothId) {
+      const { data, error } = await supabase
+        .rpc("booth_current_event", { p_booth_id: boothId })
+        .maybeSingle<{
+          id: string;
+          name: string;
+          starts_at: string;
+          ends_at: string;
+        }>();
+      if (error) throw error;
+      return data ? currentEventSchema.parse(fromEventRow(data)) : null;
     },
   }),
 );

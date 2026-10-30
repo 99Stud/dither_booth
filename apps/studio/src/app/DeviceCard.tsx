@@ -11,7 +11,15 @@ import {
 } from "@dither-booth/ui/components/ui/card";
 import { Spinner } from "@dither-booth/ui/components/ui/spinner";
 import clsx from "clsx";
-import { Bell, BellOff, BellRing, Send, Share, SquarePlus } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  BellRing,
+  CalendarClock,
+  Send,
+  Share,
+  SquarePlus,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -25,6 +33,9 @@ import {
   turnOn,
 } from "#lib/device";
 import { messageOf } from "#lib/errors";
+import { eventWindow } from "#lib/events";
+import { useLive } from "#lib/live";
+import { myNextOnCall } from "#lib/on-call";
 import { NOT_IN_A_TEAM, staffOrgId } from "#lib/team";
 
 /** Where this device stands, from "can't" to "gets the alerts". */
@@ -48,6 +59,42 @@ async function readState(): Promise<DeviceState> {
     ? { kind: "on", orgId }
     : { kind: "off", orgId };
 }
+
+/**
+ * The soonest event the user is on call for, on now or to come: where
+ * staff already check that their phone will ring.
+ */
+const YoureOnCall = ({
+  userId,
+  notificationsOn,
+}: {
+  userId: string;
+  notificationsOn: boolean;
+}) => {
+  const live = useLive("my-on-call", () => myNextOnCall(userId), [
+    "event_on_call",
+    "event",
+  ]);
+  const next = live.data;
+  if (!next) return null;
+  return (
+    <div
+      className={clsx(
+        "flex items-start gap-2.5 rounded-lg border border-border p-3 text-sm",
+      )}
+    >
+      <CalendarClock
+        aria-hidden
+        className={clsx("mt-0.5 size-4 shrink-0 text-muted-foreground")}
+      />
+      <p>
+        <span className={clsx("font-medium")}>You're on call</span> for{" "}
+        {next.name} on {next.boothName ?? "a booth"}, {eventWindow(next)}.
+        {notificationsOn ? null : " Turn on notifications to get its alerts."}
+      </p>
+    </div>
+  );
+};
 
 const Step = ({ icon, children }: { icon: ReactNode; children: ReactNode }) => (
   <li className={clsx("flex items-start gap-3 text-sm")}>
@@ -108,6 +155,11 @@ export const DeviceCard = ({
       </CardHeader>
       <CardContent className={clsx("flex flex-col gap-4")}>
         {state.kind === "checking" ? <Spinner className="size-5" /> : null}
+
+        {/* Whatever the device can do: on call matters most when it can't. */}
+        {state.kind !== "checking" ? (
+          <YoureOnCall userId={userId} notificationsOn={on} />
+        ) : null}
 
         {state.kind === "unsupported" ? (
           <p className={clsx("text-sm")}>
@@ -171,7 +223,9 @@ export const DeviceCard = ({
         {on ? (
           <div className={clsx("flex flex-col gap-3")}>
             <p className={clsx("text-sm")}>
-              This device gets the booths' alerts.
+              This device gets your team's alerts. During an event, a booth's
+              alerts go to whoever is on call for it, if any of them has a
+              device.
             </p>
             {isAppleMobile ? (
               <p className={clsx("text-sm text-muted-foreground")}>

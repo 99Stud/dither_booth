@@ -101,13 +101,28 @@ export const heartbeatSchema = z.object({
 });
 
 /**
+ * The event a booth is at, as the Hub books it: when it is on. The booth
+ * keeps its own start and end for its stats (decision 0012).
+ */
+export const currentEventSchema = z.object({
+  id: z.uuid(),
+  name: z.string().min(1).max(120),
+  startsAt: z.iso.datetime({ offset: true }),
+  endsAt: z.iso.datetime({ offset: true }),
+});
+
+export type CurrentEvent = z.infer<typeof currentEventSchema>;
+
+/**
  * The Hub's answer to a heartbeat. `update`: the release Studio asked this
- * booth to install, until the booth reports it running. A booth from
- * before it ignores it.
+ * booth to install, until the booth reports it running. `event`: the event
+ * the booth is at now, or null. A booth from before either ignores it, and
+ * an event it can't read is none, so it never costs the update.
  */
 export const heartbeatReplySchema = z.object({
   ok: z.literal(true),
   update: z.object({ release: z.string().min(1).max(64) }).nullish(),
+  event: currentEventSchema.nullish().catch(null),
 });
 
 export type HeartbeatReply = z.infer<typeof heartbeatReplySchema>;
