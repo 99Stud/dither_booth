@@ -24,27 +24,40 @@ const engineSourceAliases: BunPlugin = {
 };
 
 const nodeEnv = Bun.env.NODE_ENV ?? "production";
-const serverResult = await Bun.build({
-  entrypoints: [resolve(appRoot, "src/production-entry.ts")],
-  outdir: distDirectory,
-  target: "bun",
-  packages: "external",
-  splitting: false,
-  minify: nodeEnv === "production",
-  sourcemap: "none",
-  naming: {
-    entry: "server.[ext]",
-  },
-  define: {
-    "process.env.NODE_ENV": JSON.stringify(nodeEnv),
-  },
-  plugins: [engineSourceAliases],
-});
 
-if (!serverResult.success) {
-  for (const log of serverResult.logs) {
-    console.error(log);
+/**
+ * The server, and the certificate generator `booth cert` runs on a release:
+ * a release has no `scripts/` either. `certGenerateArgs` in the CLI and the
+ * release workflow's smoke test name `dist/generate-local-cert.js`.
+ */
+const entries = [
+  { source: "src/production-entry.ts", name: "server" },
+  { source: "scripts/generate-local-cert.ts", name: "generate-local-cert" },
+];
+
+for (const entry of entries) {
+  const result = await Bun.build({
+    entrypoints: [resolve(appRoot, entry.source)],
+    outdir: distDirectory,
+    target: "bun",
+    packages: "external",
+    splitting: false,
+    minify: nodeEnv === "production",
+    sourcemap: "none",
+    naming: {
+      entry: `${entry.name}.[ext]`,
+    },
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+    },
+    plugins: [engineSourceAliases],
+  });
+
+  if (!result.success) {
+    for (const log of result.logs) {
+      console.error(log);
+    }
+
+    process.exit(1);
   }
-
-  process.exit(1);
 }

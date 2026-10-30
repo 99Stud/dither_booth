@@ -127,6 +127,35 @@ jobs:
             console.log("sharp", sharp.versions.sharp, "and usb load");
           '
 
+      # `booth cert` runs the engine's built generator: a release has no
+      # `scripts/`. It issues a certificate from the unpacked bundle, with a
+      # stand-in mkcert, and must write it to the bundle's `.local/tls`, where
+      # the apps read it.
+      - name: Smoke-test the certificate generator
+        run: |
+          unpacked="$RUNNER_TEMP/bundle"
+          fake="$RUNNER_TEMP/fake-mkcert"
+          mkdir -p "$fake/caroot"
+          : > "$fake/caroot/rootCA.pem"
+          cat > "$fake/mkcert" <<'SH'
+          #!/bin/sh
+          case "$1" in
+            -CAROOT) echo "$(dirname "$0")/caroot" ;;
+            -install) ;;
+            -cert-file) echo cert > "$2" && echo key > "$4" ;;
+            *) exit 1 ;;
+          esac
+          SH
+          chmod +x "$fake/mkcert"
+          cd "$unpacked"
+          PATH="$fake:$PATH" node_modules/.bin/bun apps/engine/dist/generate-local-cert.js 192.0.2.1 --skip-install
+          node_modules/.bin/bun -e '
+            const manifest = await Bun.file(".local/tls/booth-manifest.json").json();
+            if (manifest.publicIp !== "192.0.2.1") throw new Error(`The manifest names ${manifest.publicIp}.`);
+            if (!(await Bun.file(".local/tls/booth-cert.pem").exists())) throw new Error("No certificate in .local/tls.");
+            console.log("Certificate issued for", manifest.publicIp);
+          '
+
       # The engine started from the unpacked bundle, as PM2 starts it, and
       # answering /healthz as `booth update`'s check waits for. A bundle that
       # imports anything it doesn't carry (`src/`, a dev dependency) stops
