@@ -65,6 +65,16 @@ export const HEARTBEAT_FIXTURES = {
       error: "The event runs until 23:00.",
     },
   },
+  /** A live lottery with prizes to give. */
+  lotteryLive: { ...ready, lottery: { live: true, stockLeft: 12 } },
+  /** Live, with every prize out: every visit loses. */
+  lotteryOutOfStock: { ...ready, lottery: { live: true, stockLeft: 0 } },
+  /** Switched off: nothing to give, and nothing expected. */
+  lotteryOff: { ...ready, lottery: { live: false, stockLeft: 0 } },
   /** A development booth: never alerts. */
-  dryRun: { ...printerFault(["paper-out"]), dryRun: true },
+  dryRun: {
+    ...printerFault(["paper-out"]),
+    dryRun: true,
+    lottery: { live: true, stockLeft: 0 },
+  },
 } satisfies Record<string, Heartbeat>;

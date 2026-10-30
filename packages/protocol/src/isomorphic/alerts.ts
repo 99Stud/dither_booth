@@ -16,6 +16,7 @@ export const ALERT_KEYS = [
   "printer.cover-open",
   "booth.silent",
   "booth.update-failed",
+  "lottery.out-of-stock",
 ] as const;
 
 export type AlertKey = (typeof ALERT_KEYS)[number];
@@ -73,6 +74,11 @@ export const ALERT_WORDING: Record<AlertKey, AlertWording> = {
     what: "Update failed",
     todo: "The booth runs what it ran. See why under the booth, then ask again.",
     fixed: "A new update was asked for, or it runs the release.",
+  },
+  "lottery.out-of-stock": {
+    what: "Lottery empty",
+    todo: "It's live with no prize left, so every guest loses. Add or restock a prize, or switch the lottery off.",
+    fixed: "The lottery has prizes again, or it's off.",
   },
 };
 

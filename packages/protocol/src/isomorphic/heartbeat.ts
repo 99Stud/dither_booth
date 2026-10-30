@@ -94,6 +94,17 @@ export const heartbeatSchema = z.object({
     reasons: z.array(maintenanceReasonSchema).max(MAINTENANCE_REASONS.length),
   }),
   /**
+   * The active event's lottery. `stockLeft`: units left across its prizes,
+   * 0 when it is off. A booth from before it never sends it; a Hub from
+   * before it drops it.
+   */
+  lottery: z
+    .object({
+      live: z.boolean(),
+      stockLeft: z.number().int().min(0),
+    })
+    .optional(),
+  /**
    * Only while Studio has asked this booth to update. A booth from before
    * it never sends it; a Hub from before it drops it.
    */
@@ -128,6 +139,7 @@ export const heartbeatReplySchema = z.object({
 export type HeartbeatReply = z.infer<typeof heartbeatReplySchema>;
 
 export type Heartbeat = z.infer<typeof heartbeatSchema>;
+export type HeartbeatLottery = NonNullable<Heartbeat["lottery"]>;
 export type PrinterCondition = z.infer<typeof printerConditionSchema>;
 
 /** The glossary's word for each condition, as staff read it everywhere. */

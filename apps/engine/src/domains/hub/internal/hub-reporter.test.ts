@@ -12,6 +12,8 @@ import type { RemoteUpdates } from "./hub-updates";
 import { readHubRegistration } from "./hub-registration.service";
 import { createHubReporter, type HubReporter } from "./hub-reporter";
 
+type HubReporterDeps = Parameters<typeof createHubReporter>[0];
+
 const HUB = { url: "https://hub.test", publishableKey: "pk" };
 const NOW = new Date("2026-10-31T18:00:00.000Z");
 const NOW_S = NOW.getTime() / 1000;
@@ -65,11 +67,13 @@ function setup({
   dryRun = false,
   intervalMs = 60_000,
   updates,
+  getLotteryStatus,
 }: {
   registered?: boolean;
   dryRun?: boolean;
   intervalMs?: number;
   updates?: RemoteUpdates;
+  getLotteryStatus?: HubReporterDeps["getLotteryStatus"];
 } = {}) {
   const { db } = createTestDb();
   if (registered) {
@@ -86,6 +90,7 @@ function setup({
   }
   const hub = fakeHub();
   let status = READY;
+  let lottery = { enabled: true, remainingPrizes: 2 };
   const listeners = new Set<(s: PrinterStatus) => void>();
   const reporter = createHubReporter({
     db,
@@ -107,6 +112,7 @@ function setup({
         updatedAt: null,
       }),
     },
+    getLotteryStatus: getLotteryStatus ?? (() => Promise.resolve(lottery)),
     release: "0.7.0",
     dryRun,
     updates,
@@ -123,6 +129,9 @@ function setup({
     setPrinter(next: PrinterStatus) {
       status = next;
       for (const listener of listeners) listener(next);
+    },
+    setLottery(next: typeof lottery) {
+      lottery = next;
     },
   };
 }
@@ -149,6 +158,7 @@ describe("hub reporter", () => {
       release: "0.7.0",
       dryRun: false,
       printer: { conditions: [], canPrint: true },
+      lottery: { live: true, stockLeft: 2 },
     });
     expect(reporter.getState()).toEqual({
       lastReportedAt: NOW.toISOString(),
@@ -231,6 +241,44 @@ describe("hub reporter", () => {
     });
     await Bun.sleep(20);
     expect(hub.heartbeats).toHaveLength(2);
+  });
+
+  test("reports at once when the lottery runs out or has prizes again", async () => {
+    const { hub, reporter, setLottery } = setup();
+    await reporter.report();
+
+    // A win that leaves stock: nothing the Hub alerts on changed.
+    setLottery({ enabled: true, remainingPrizes: 1 });
+    await reporter.lotteryChanged();
+    expect(hub.heartbeats).toHaveLength(1);
+
+    setLottery({ enabled: true, remainingPrizes: 0 });
+    await reporter.lotteryChanged();
+    expect(hub.heartbeats).toHaveLength(2);
+    expect(heartbeatSchema.parse(hub.heartbeats[1]?.body).lottery).toEqual({
+      live: true,
+      stockLeft: 0,
+    });
+
+    setLottery({ enabled: false, remainingPrizes: 0 });
+    await reporter.lotteryChanged();
+    expect(hub.heartbeats).toHaveLength(3);
+    expect(heartbeatSchema.parse(hub.heartbeats[2]?.body).lottery).toEqual({
+      live: false,
+      stockLeft: 0,
+    });
+  });
+
+  test("a lottery that can't be read leaves the heartbeat without it", async () => {
+    const { hub, reporter } = setup({
+      getLotteryStatus: () => Promise.reject(new Error("disk I/O error")),
+    });
+    await reporter.report();
+    expect(hub.heartbeats).toHaveLength(1);
+    expect(
+      heartbeatSchema.parse(hub.heartbeats[0]?.body).lottery,
+    ).toBeUndefined();
+    expect(reporter.getState().lastError).toBeNull();
   });
 
   test("reports every interval", async () => {

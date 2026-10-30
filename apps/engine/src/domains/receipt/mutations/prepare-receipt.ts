@@ -11,7 +11,7 @@ import { boothProcedure } from "#internal/trpc";
  */
 export const prepareReceipt = boothProcedure
   .input(z.instanceof(FormData))
-  .mutation(({ ctx, input }) => {
+  .mutation(async ({ ctx, input }) => {
     const photo = input.get("photo");
     if (!(photo instanceof Blob)) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Photo missing." });
@@ -20,8 +20,11 @@ export const prepareReceipt = boothProcedure
     // and the draw starts its own visit.
     const visitId = visitIdSchema.safeParse(input.get("visitId"));
 
-    return ctx.tickets.prepareVisit(
+    const visit = await ctx.tickets.prepareVisit(
       photo,
       visitId.success ? visitId.data : null,
     );
+    // A win may have taken the last unit: the Hub hears it now, not in 30 s.
+    if (visit.draw.outcome === "win") void ctx.hubReporter.lotteryChanged();
+    return visit;
   });

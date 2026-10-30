@@ -30,12 +30,20 @@ export const notifyKiosk = (
   return { commandId, delivered };
 };
 
-/** Event authoring that notifies the kiosk once the save has succeeded. */
+/**
+ * Event authoring that notifies the kiosk once the save has succeeded. A
+ * lottery change also tells the Hub at once if the lottery ran out or has
+ * prizes again.
+ */
 const notifyingConfigProcedure = (types: EventKioskCommandType[]) =>
   configProcedure.use(async ({ ctx, next, path }) => {
     const result = await next();
 
     if (result.ok) {
+      if (types.includes("lottery-updated")) {
+        void ctx.hubReporter.lotteryChanged();
+      }
+
       for (const type of types) {
         const { commandId, delivered } = notifyKiosk(ctx.kioskChannel, type);
 

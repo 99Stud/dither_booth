@@ -55,6 +55,11 @@ describe("heartbeatSchema", () => {
     expect(heartbeatSchema.parse(ready).update).toBeUndefined();
   });
 
+  test("reads a booth from before the lottery's state, which sends none", () => {
+    const { ready } = HEARTBEAT_FIXTURES;
+    expect(heartbeatSchema.parse(ready).lottery).toBeUndefined();
+  });
+
   test("ignores a field a newer booth adds", () => {
     const { ready } = HEARTBEAT_FIXTURES;
     const parsed = heartbeatSchema.parse({ ...ready, spoolBacklog: 3 });
@@ -75,6 +80,7 @@ describe("heartbeatSchema", () => {
     ["a missing dry-run flag", { dryRun: undefined }],
     ["an empty release", { release: " " }],
     ["a negative protocol", { protocol: -1 }],
+    ["a negative stock", { lottery: { live: true, stockLeft: -1 } }],
     [
       "an unknown maintenance reason",
       { maintenance: { on: true, reasons: ["tired"] } },

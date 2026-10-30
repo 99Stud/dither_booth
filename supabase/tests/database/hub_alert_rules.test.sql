@@ -1,7 +1,8 @@
 -- When alerts open and close: evaluate_heartbeat for the printer's
--- conditions, evaluate_silence for a booth that stopped talking.
+-- conditions and the lottery's stock, evaluate_silence for a booth that
+-- stopped talking.
 begin;
-select plan(46);
+select plan(59);
 
 -- Booth n of the test, as a uuid.
 create function pg_temp.booth(p_n int) returns uuid language sql as $$
@@ -10,12 +11,14 @@ $$;
 
 -- A heartbeat as the protocol defines it: its printer has been in
 -- `p_conditions` for `p_condition_age_s` seconds, and it was sent
--- `p_sent_offset_s` seconds from now.
+-- `p_sent_offset_s` seconds from now. `p_lottery` ({live, stockLeft}) is
+-- left out when null, as a booth from before it does.
 create function pg_temp.heartbeat(
   p_conditions text[] default '{}',
   p_condition_age_s int default 120,
   p_dry_run boolean default false,
-  p_sent_offset_s int default 0
+  p_sent_offset_s int default 0,
+  p_lottery jsonb default null
 ) returns jsonb language sql as $$
   select jsonb_build_object(
     'protocol', 0,
@@ -30,7 +33,13 @@ create function pg_temp.heartbeat(
       )
     ),
     'maintenance', jsonb_build_object('on', false, 'reasons', '[]'::jsonb)
-  )
+  ) || case when p_lottery is null then '{}'::jsonb
+            else jsonb_build_object('lottery', p_lottery) end
+$$;
+
+-- A heartbeat from a ready booth whose lottery is `p_live` with `p_stock_left`.
+create function pg_temp.lottery_heartbeat(p_live boolean, p_stock_left int) returns jsonb language sql as $$
+  select pg_temp.heartbeat(p_lottery => jsonb_build_object('live', p_live, 'stockLeft', p_stock_left))
 $$;
 
 create function pg_temp.send(p_n int, p_heartbeat jsonb) returns void language sql as $$
@@ -49,14 +58,14 @@ $$;
 
 insert into public.org (id, name) values
   ('aaaaaaaa-0000-0000-0000-00000000000a', 'Org A');
--- 1, 5, 6: no event window. 2, 3, 4, 7: an event that is on right now; 7's
+-- 1, 5, 6, 8, 9: no event window. 2, 3, 4, 7: an event that is on right now; 7's
 -- window only opened a minute ago.
 insert into public.booth (id, org_id, name, live_from, live_until)
 select pg_temp.booth(n), 'aaaaaaaa-0000-0000-0000-00000000000a', 'Booth ' || n,
   case when n in (2, 3, 4) then now() - interval '1 hour'
        when n = 7 then now() - interval '1 minute' end,
   case when n in (2, 3, 4, 7) then now() + interval '1 hour' end
-from generate_series(1, 7) as n;
+from generate_series(1, 9) as n;
 
 -- Heartbeats ---------------------------------------------------------------
 
@@ -161,6 +170,53 @@ select is(pg_temp.open_alerts(4), '{}'::text[], 'a dry-run booth never alerts');
 select is((select dry_run from public.booth_status where booth_id = pg_temp.booth(4)), true, 'and its status says so');
 select pg_temp.send(6, pg_temp.heartbeat('{paper-out}', 600, true));
 select is(pg_temp.open_alerts(6), '{}'::text[], 'switching to dry run closes what was open');
+
+-- The lottery ------------------------------------------------------------
+
+select pg_temp.send(8, pg_temp.heartbeat());
+select is(pg_temp.open_alerts(8), '{}'::text[], 'a booth that sends no lottery state never alerts for it');
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 12));
+select is(pg_temp.open_alerts(8), '{}'::text[], 'a live lottery with prizes left is fine');
+
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
+select is(pg_temp.open_alerts(8), array['lottery.out-of-stock:warn'], 'a live lottery with every prize out warns');
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
+select is(pg_temp.alert_count(8), 1::bigint, 'the same heartbeat again opens nothing new');
+
+select pg_temp.send(8, pg_temp.heartbeat('{unknown}', 2, p_lottery => '{"live": true, "stockLeft": 0}'));
+select is(pg_temp.open_alerts(8), array['lottery.out-of-stock:warn'], 'a printer reconnecting does not hold it back');
+select pg_temp.send(8, pg_temp.heartbeat('{paper-out}', 5, p_lottery => '{"live": true, "stockLeft": 0}'));
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
+select is(pg_temp.open_alerts(8), array['lottery.out-of-stock:warn'], 'the paper coming back leaves it open');
+
+-- A heartbeat without the lottery's state (it couldn't be read) leaves it.
+create temp table lottery_empty_before as
+  select id from public.alert
+  where booth_id = pg_temp.booth(8) and key = 'lottery.out-of-stock' and resolved_at is null;
+select pg_temp.send(8, pg_temp.heartbeat());
+select is(pg_temp.open_alerts(8), array['lottery.out-of-stock:warn'], 'a heartbeat without the lottery''s state leaves it open');
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
+select is(
+  (select id from public.alert
+   where booth_id = pg_temp.booth(8) and key = 'lottery.out-of-stock' and resolved_at is null),
+  (select id from lottery_empty_before),
+  'and it is the same alert once the state is back');
+
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 3));
+select is(pg_temp.open_alerts(8), '{}'::text[], 'a restock closes it');
+
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
+select pg_temp.send(8, pg_temp.lottery_heartbeat(false, 0));
+select is(pg_temp.open_alerts(8), '{}'::text[], 'switching the lottery off closes it');
+select is(
+  (select count(*) from public.alert where booth_id = pg_temp.booth(8) and key = 'lottery.out-of-stock'),
+  2::bigint, 'running out again had opened a new one');
+
+select pg_temp.send(9, pg_temp.heartbeat(p_dry_run => true, p_lottery => '{"live": true, "stockLeft": 0}'));
+select is(pg_temp.open_alerts(9), '{}'::text[], 'a dry-run booth never warns that its lottery is empty');
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
+select pg_temp.send(8, pg_temp.heartbeat(p_dry_run => true, p_lottery => '{"live": true, "stockLeft": 0}'));
+select is(pg_temp.open_alerts(8), '{}'::text[], 'and switching to dry run closes it');
 
 -- Silence -------------------------------------------------------------------
 

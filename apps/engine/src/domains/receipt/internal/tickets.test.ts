@@ -28,7 +28,10 @@ import {
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
-import { createHubReporterStub } from "#domains/hub/internal/hub.test-utils";
+import {
+  createHubReporterStub,
+  createLotteryCountingHubReporter,
+} from "#domains/hub/internal/hub.test-utils";
 import {
   createKioskChannel,
   createKioskMaintenance,
@@ -554,7 +557,11 @@ describe("previewPhotoReceipt", () => {
 });
 
 describe("the receipt procedures", () => {
-  function createCaller(db: DB, printer: BoothPrinter) {
+  function createCaller(
+    db: DB,
+    printer: BoothPrinter,
+    hubReporter = createHubReporterStub(),
+  ) {
     const kioskChannel = createKioskChannel();
     const kioskMaintenance = createKioskMaintenance({ db, kioskChannel });
     const state = createInitialPuppeteerState();
@@ -568,7 +575,7 @@ describe("the receipt procedures", () => {
       allowedHostnames: [],
       db,
       darkroomAccess: createDarkroomAccessStub(),
-      hubReporter: createHubReporterStub(),
+      hubReporter,
       kioskChannel,
       kioskMaintenance,
       release: "0.0.0-test",
@@ -620,6 +627,27 @@ describe("the receipt procedures", () => {
       { id: visitId, printAttempts: 1, endReason: "completed" },
     ]);
   });
+
+  test.each([
+    ["a win", "win", 1],
+    ["a loss", "loss", 0],
+  ] as const)(
+    "after %s, prepareReceipt has the Hub reporter check the lottery %i time(s)",
+    async (_, outcome, expected) => {
+      const { reporter, counted } = createLotteryCountingHubReporter();
+      const caller = createCaller(
+        setupDb({ outcome }),
+        createRecordingPrinter().printer,
+        reporter,
+      );
+      const form = new FormData();
+      form.set("photo", PHOTO);
+
+      await caller.booth.prepareReceipt(form);
+
+      expect(counted.lotteryChanged).toBe(expected);
+    },
+  );
 
   test("prepareReceipt without a visit id starts one at the draw", async () => {
     const caller = createCaller(

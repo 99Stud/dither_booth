@@ -99,6 +99,25 @@ Deno.test("accepts every fixture the protocol ships", async () => {
   }
 });
 
+Deno.test("passes the lottery's state on for its rule", async () => {
+  for (const fixture of [
+    HEARTBEAT_FIXTURES.lotteryOutOfStock,
+    HEARTBEAT_FIXTURES.lotteryLive,
+    HEARTBEAT_FIXTURES.lotteryOff,
+    HEARTBEAT_FIXTURES.dryRun,
+  ]) {
+    const { deps, evaluated } = setup();
+    await handleHeartbeat(post(fixture), deps);
+    assertEquals(evaluated[0]?.heartbeat.lottery, fixture.lottery);
+  }
+});
+
+Deno.test("passes on a heartbeat with no lottery state, from an older booth", async () => {
+  const { deps, evaluated } = setup();
+  await handleHeartbeat(post(HEARTBEAT_FIXTURES.ready), deps);
+  assertEquals(evaluated[0]?.heartbeat.lottery, undefined);
+});
+
 Deno.test("the booth is the token's, whatever the body claims", async () => {
   const { deps, evaluated } = setup();
   await handleHeartbeat(
