@@ -47,7 +47,10 @@ const RENEW_BEFORE_S = 60;
 const sameConditions = (a: PrinterStatus, b: PrinterStatus) =>
   a.canPrint === b.canPrint && a.conditions.join() === b.conditions.join();
 
-/** Live with every prize out: what the Hub's Lottery empty alert is about. */
+/**
+ * Live with every prize out: what the Hub's Lottery empty alert is about
+ * (`v_lottery_empty` in its `evaluate_heartbeat`).
+ */
 const isLotteryEmpty = (lottery: HeartbeatLottery) =>
   lottery.live && lottery.stockLeft === 0;
 

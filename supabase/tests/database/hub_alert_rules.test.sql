@@ -2,7 +2,7 @@
 -- conditions and the lottery's stock, evaluate_silence for a booth that
 -- stopped talking.
 begin;
-select plan(57);
+select plan(59);
 
 -- Booth n of the test, as a uuid.
 create function pg_temp.booth(p_n int) returns uuid language sql as $$
@@ -188,6 +188,19 @@ select is(pg_temp.open_alerts(8), array['lottery.out-of-stock:warn'], 'a printer
 select pg_temp.send(8, pg_temp.heartbeat('{paper-out}', 5, p_lottery => '{"live": true, "stockLeft": 0}'));
 select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
 select is(pg_temp.open_alerts(8), array['lottery.out-of-stock:warn'], 'the paper coming back leaves it open');
+
+-- A heartbeat without the lottery's state (it couldn't be read) leaves it.
+create temp table lottery_empty_before as
+  select id from public.alert
+  where booth_id = pg_temp.booth(8) and key = 'lottery.out-of-stock' and resolved_at is null;
+select pg_temp.send(8, pg_temp.heartbeat());
+select is(pg_temp.open_alerts(8), array['lottery.out-of-stock:warn'], 'a heartbeat without the lottery''s state leaves it open');
+select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
+select is(
+  (select id from public.alert
+   where booth_id = pg_temp.booth(8) and key = 'lottery.out-of-stock' and resolved_at is null),
+  (select id from lottery_empty_before),
+  'and it is the same alert once the state is back');
 
 select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 3));
 select is(pg_temp.open_alerts(8), '{}'::text[], 'a restock closes it');

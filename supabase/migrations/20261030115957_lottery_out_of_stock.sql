@@ -1,8 +1,9 @@
 -- The lottery has nothing left to give: the booth's lottery is live and
 -- every prize is out of stock, so every visit loses. A warning, since the
 -- booth still prints photos. The heartbeat carries the lottery's state
--- (`lottery`: live, stockLeft); a booth from before it sends none and never
--- opens this alert.
+-- (`lottery`: live, stockLeft). A heartbeat without it (a booth from before
+-- it, or one that couldn't read its lottery) says nothing about the lottery:
+-- it neither opens this alert nor closes one that is open.
 
 alter table public.alert drop constraint alert_key_known;
 alter table public.alert
@@ -17,10 +18,11 @@ alter table public.alert
     'lottery.out-of-stock'
   ));
 
--- As in 20261020150353_alert_rules, plus the lottery's rule. `unknown` (the
--- printer reconnecting) only holds printer alerts as they are: it says
--- nothing about the lottery. A restock, or switching the lottery off, closes
--- it. `create or replace` keeps the function's grants.
+-- As in 20261020150353_alert_rules, plus the lottery's rule, the engine's
+-- isLotteryEmpty in SQL. `unknown` (the printer reconnecting) only holds
+-- printer alerts as they are: it says nothing about the lottery. A restock,
+-- or switching the lottery off, closes it. `create or replace` keeps the
+-- function's grants.
 create or replace function public.evaluate_heartbeat(p_booth_id uuid, p_heartbeat jsonb)
 returns void
 language plpgsql
@@ -36,6 +38,7 @@ declare
     - (p_heartbeat #>> '{printer,changedAt}')::timestamptz;
   v_past_grace boolean;
   v_unknown boolean := v_conditions @> '["unknown"]';
+  v_lottery_known boolean := p_heartbeat ? 'lottery';
   v_lottery_empty boolean := coalesce(
     (p_heartbeat #>> '{lottery,live}')::boolean
       and (p_heartbeat #>> '{lottery,stockLeft}')::integer = 0,
@@ -100,7 +103,11 @@ begin
           and a.key like 'printer.%'
           and a.key not in (select key from wanted)
         )
-        or (a.key = 'lottery.out-of-stock' and not v_lottery_empty)
+        or (
+          v_lottery_known
+          and a.key = 'lottery.out-of-stock'
+          and not v_lottery_empty
+        )
       )
   )
   insert into public.alert (org_id, booth_id, key, severity)

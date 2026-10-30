@@ -12,6 +12,8 @@ import type { RemoteUpdates } from "./hub-updates";
 import { readHubRegistration } from "./hub-registration.service";
 import { createHubReporter, type HubReporter } from "./hub-reporter";
 
+type HubReporterDeps = Parameters<typeof createHubReporter>[0];
+
 const HUB = { url: "https://hub.test", publishableKey: "pk" };
 const NOW = new Date("2026-10-31T18:00:00.000Z");
 const NOW_S = NOW.getTime() / 1000;
@@ -71,10 +73,7 @@ function setup({
   dryRun?: boolean;
   intervalMs?: number;
   updates?: RemoteUpdates;
-  getLotteryStatus?: () => Promise<{
-    enabled: boolean;
-    remainingPrizes: number;
-  }>;
+  getLotteryStatus?: HubReporterDeps["getLotteryStatus"];
 } = {}) {
   const { db } = createTestDb();
   if (registered) {
