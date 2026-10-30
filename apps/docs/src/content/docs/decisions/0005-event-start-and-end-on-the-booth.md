@@ -7,7 +7,7 @@ sidebar:
 
 **An event's start and end are set in the booth's admin and stored on the booth's event (`campaign.starts_at`, `campaign.ends_at`). Only visits that start in between count in the event's stats.**
 
-Status: accepted, 2026-10-27
+Status: accepted, 2026-10-27; amended by [0012](/docs/decisions/0012-events-are-booked-on-the-hub/) (events are booked on the Hub, the booth keeps its start and end)
 
 ## Context
 

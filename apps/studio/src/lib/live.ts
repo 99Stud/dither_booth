@@ -5,7 +5,8 @@ import { hub } from "./hub";
 export type Live<T> = {
   data: T | undefined;
   error: unknown;
-  reload: () => void;
+  /** Reads again; resolves once the new data (or error) is in. */
+  reload: () => Promise<void>;
 };
 
 /**
@@ -25,7 +26,7 @@ export function useLive<T>(
   readRef.current = read;
 
   const reload = useCallback(() => {
-    readRef.current().then(
+    return readRef.current().then(
       (next) => {
         setData(next);
         setError(null);

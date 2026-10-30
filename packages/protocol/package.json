@@ -9,6 +9,7 @@
     "./alerts": "./src/isomorphic/alerts.ts",
     "./heartbeat": "./src/isomorphic/heartbeat.ts",
     "./heartbeat.fixtures": "./src/isomorphic/heartbeat.fixtures.ts",
+    "./on-call": "./src/isomorphic/on-call.ts",
     "./push": "./src/isomorphic/push.ts",
     "./registration": "./src/isomorphic/registration.ts",
     "./team": "./src/isomorphic/team.ts"

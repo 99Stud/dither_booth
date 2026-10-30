@@ -3,6 +3,7 @@
     "@dither-booth/protocol/alerts": "../../packages/protocol/src/isomorphic/alerts.ts",
     "@dither-booth/protocol/heartbeat": "../../packages/protocol/src/isomorphic/heartbeat.ts",
     "@dither-booth/protocol/heartbeat.fixtures": "../../packages/protocol/src/isomorphic/heartbeat.fixtures.ts",
+    "@dither-booth/protocol/on-call": "../../packages/protocol/src/isomorphic/on-call.ts",
     "@dither-booth/protocol/push": "../../packages/protocol/src/isomorphic/push.ts",
     "@dither-booth/protocol/registration": "../../packages/protocol/src/isomorphic/registration.ts",
     "@dither-booth/protocol/team": "../../packages/protocol/src/isomorphic/team.ts",

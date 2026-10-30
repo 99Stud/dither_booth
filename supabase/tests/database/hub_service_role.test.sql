@@ -2,12 +2,12 @@
 -- every Hub table, not rely on the stack's default privileges (the hosted
 -- project grants nothing by default).
 begin;
-select plan(8);
+select plan(10);
 
 select ok(
   has_table_privilege('service_role', format('public.%I', t), 'select, insert, update, delete'),
   format('the service role reads and writes %s', t))
-from unnest(array['org', 'org_member', 'booth', 'booth_status', 'alert', 'push_subscription', 'booth_update', 'platform_admin']) as t;
+from unnest(array['org', 'org_member', 'booth', 'booth_status', 'alert', 'push_subscription', 'booth_update', 'platform_admin', 'event', 'event_on_call']) as t;
 
 select * from finish();
 rollback;

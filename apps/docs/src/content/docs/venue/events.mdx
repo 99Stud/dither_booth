@@ -1,0 +1,71 @@
+---
+title: Events and on call in Studio
+description: Book an event in Studio, pick who gets its booth's alerts, and check your phone will ring.
+sidebar:
+  order: 9
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+Studio's **Events** tab lists what each booth is booked for: **On now**, **Coming up** and **Past**. Platform admins book events; everyone in the client's team or the booth's team can read them.
+
+An [event](/docs/start-here/glossary/) in Studio is the booking: the client, the booth and when. The booth's own event in admin (look, lottery, prizes) is still set up there, as before: [Run the event](/docs/venue/run-the-event/).
+
+## Book an event
+
+Platform admins only.
+
+<Steps>
+
+1. In **Events**, choose **Book an event**.
+
+2. Fill in **Name**, the **Client** (the team it's for), the **Booth**, and when it **Starts** and **Ends**.
+
+3. Choose **Book event**.
+
+</Steps>
+
+A new client needs its team first: in **Team**, choose **New team**.
+
+If Studio says the booth **already has** another event then, pick another booth or time: a booth is at one event at a time. One can start when the last ends.
+
+While an event is on, a booth that goes quiet for 3 minutes is a **Silent booth** alert.
+
+## Pick who's on call
+
+Before the night, choose who gets the booth's alerts.
+
+<Steps>
+
+1. In **Events**, open the event.
+
+2. Under **On call**, switch on everyone who should get the alerts that night. They don't need to be on site.
+
+3. Read the line under **On call**: it says who gets the alerts.
+
+</Steps>
+
+| It says                                                               | Meaning                                                                            |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **They get Booth A's alerts during Halloween.**                       | Only the people switched on get them.                                              |
+| **Nobody on call: the whole team gets Booth A's alerts.**             | Nobody is switched on, so everyone in the booth's team gets them.                  |
+| **None of them has a device yet, so the whole team gets the alerts.** | The people on call never turned on notifications. Ask them to, in **This device**. |
+
+Each person's line says whether their phone will ring: **1 device**, **No device yet: won't get alerts**, or **Hasn't signed in yet**. For someone on call, the last two turn amber: they're counted on and won't hear. Only platform admins change who's on call; everyone else sees the switches greyed out.
+
+If you're the only one in the booth's team, Studio says so: choose **Open Team** and add people first.
+
+You can change it during the night: someone switched on gets the next reminder of an alert already open.
+
+## Check your phone will ring
+
+If you're on call, open **This device** on your phone. It says **You're on call** for the event, with the booth and the time. If it also says **Turn on notifications**, choose **Turn on notifications** below it, then **Send test notification**.
+
+## Change or cancel an event
+
+Platform admins only. Open the event, then:
+
+- **Change**: the name, the booth or the time. The client can't change: cancel and book it again.
+- **Cancel event**, then **Cancel event** to confirm. Nobody stays on call for it.
+
+Studio refuses to move an event to a booth of another team while people are on call for it: take them off call first.

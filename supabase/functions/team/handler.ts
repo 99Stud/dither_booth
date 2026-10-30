@@ -1,19 +1,17 @@
 import {
   byTeamOrder,
-  type TeamMember,
   type TeamRefusal,
   teamRequestSchema,
   type TeamRole,
 } from "@dither-booth/protocol/team";
+
+import type { StoredMember } from "../_shared/members.ts";
 
 import {
   bearerToken,
   preflight,
   replyToBrowser as reply,
 } from "../_shared/browser.ts";
-
-/** A member as the Hub stores them: `you` is the handler's to say. */
-export type StoredMember = Omit<TeamMember, "you">;
 
 export type TeamDeps = {
   /** The signed-in user a token belongs to, or null. */

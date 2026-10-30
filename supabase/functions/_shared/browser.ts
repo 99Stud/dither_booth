@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, apikey, content-type, x-client-info",
 };

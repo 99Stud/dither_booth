@@ -1,4 +1,5 @@
 import {
+  type CurrentEvent,
   type Heartbeat,
   type HeartbeatReply,
   heartbeatSchema,
@@ -23,6 +24,8 @@ export type HeartbeatDeps = {
     boothId: string,
     heartbeat: Heartbeat,
   ) => Promise<{ release: string } | null>;
+  /** The event the booth is at now, as the Hub books it, or null. */
+  currentEvent: (boothId: string) => Promise<CurrentEvent | null>;
 };
 
 const reply = (status: number, body: Record<string, unknown>) =>
@@ -71,16 +74,25 @@ export async function handleHeartbeat(
   }
 
   let update: { release: string } | null;
+  let event: CurrentEvent | null;
   try {
     const result = await deps.evaluate(auth.boothId, parsed.data);
     if (result === "unknown-booth") {
       return reply(404, { error: "unknown booth" });
     }
-    update = await deps.reportUpdate(auth.boothId, parsed.data);
+    [update, event] = await Promise.all([
+      deps.reportUpdate(auth.boothId, parsed.data),
+      // The event is news, not the heartbeat's job: a failure to read it
+      // answers none, and the heartbeat still counts.
+      deps.currentEvent(auth.boothId).catch((error: unknown) => {
+        console.error("current event failed", auth.boothId, error);
+        return null;
+      }),
+    ]);
   } catch (error) {
     console.error("heartbeat failed", auth.boothId, error);
     return reply(500, { error: "internal error" });
   }
 
-  return reply(200, { ok: true, update } satisfies HeartbeatReply);
+  return reply(200, { ok: true, update, event } satisfies HeartbeatReply);
 }

@@ -14,7 +14,7 @@ Deno.serve((req) =>
     send: sender.send,
     forget: devices.forget,
     markDelivered: devices.markDelivered,
-    listDevices: (userId) => devices.list({ userId }),
+    listDevices: devices.ofUser,
     authenticate: createSessionReader(admin),
   }),
 );

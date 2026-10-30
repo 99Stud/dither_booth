@@ -54,6 +54,8 @@ describe("routes", () => {
     ["/", { screen: "alerts" }],
     ["/alerts/abc", { screen: "alerts", alertId: "abc" }],
     ["/booths", { screen: "booths" }],
+    ["/events", { screen: "events" }],
+    ["/events/e1", { screen: "event", eventId: "e1" }],
     ["/team", { screen: "team" }],
     ["/device", { screen: "device" }],
     ["/anything-else", { screen: "alerts" }],
@@ -62,7 +64,15 @@ describe("routes", () => {
   });
 
   test("a route and its path round-trip", () => {
-    for (const path of ["/", "/alerts/abc", "/booths", "/team", "/device"]) {
+    for (const path of [
+      "/",
+      "/alerts/abc",
+      "/booths",
+      "/events",
+      "/events/e1",
+      "/team",
+      "/device",
+    ]) {
       expect(pathOf(parseRoute(path))).toBe(path);
     }
   });

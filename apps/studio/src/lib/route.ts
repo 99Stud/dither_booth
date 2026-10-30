@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 export type Route =
   | { screen: "alerts"; alertId?: string }
   | { screen: "booths" }
+  | { screen: "events" }
+  | { screen: "event"; eventId: string }
   | { screen: "team" }
   | { screen: "device" };
 
 export function parseRoute(path: string): Route {
   const [, first, second] = path.split("/");
   if (first === "booths") return { screen: "booths" };
+  if (first === "events" && second) return { screen: "event", eventId: second };
+  if (first === "events") return { screen: "events" };
   if (first === "team") return { screen: "team" };
   if (first === "device") return { screen: "device" };
   if (first === "alerts" && second)
@@ -17,12 +21,13 @@ export function parseRoute(path: string): Route {
   return { screen: "alerts" };
 }
 
-export const pathOf = (route: Route) =>
-  route.screen === "alerts"
-    ? route.alertId
-      ? `/alerts/${route.alertId}`
-      : "/"
-    : `/${route.screen}`;
+export const pathOf = (route: Route) => {
+  if (route.screen === "alerts") {
+    return route.alertId ? `/alerts/${route.alertId}` : "/";
+  }
+  if (route.screen === "event") return `/events/${route.eventId}`;
+  return `/${route.screen}`;
+};
 
 /** The current screen, kept in the address so back and links work. */
 export function useRoute(): [Route, (route: Route) => void] {

@@ -37,7 +37,7 @@ function setup(
     ready: true,
     now: () => NOW,
     getAlert: () => Promise.resolve(alert),
-    listDevices: () => Promise.resolve([PHONE]),
+    alertDevices: () => Promise.resolve([PHONE]),
     send: (_device, payload, options) => {
       sent.push({ message: JSON.parse(payload), options });
       return Promise.resolve({ status: 201 });
@@ -71,6 +71,20 @@ Deno.test("an opened critical alert pushes at high urgency, dated when it opened
   });
   assertEquals(sent[0]?.message.title, "Booth A: Out of paper");
   assertEquals(sent[0]?.message.at, ALERT.openedAt);
+});
+
+Deno.test("pushes to the devices alert_devices picks for the alert", async () => {
+  const asked: string[] = [];
+  const TOM: Device = { ...PHONE, id: "tom", endpoint: `${PHONE.endpoint}2` };
+  const { deps, sent } = setup(ALERT, {
+    alertDevices: (alertId) => (
+      asked.push(alertId),
+      Promise.resolve([PHONE, TOM])
+    ),
+  });
+  await handleNotify(event({ alertId: ALERT_ID, event: "reminder" }), deps);
+  assertEquals(asked, [ALERT_ID]);
+  assertEquals(sent.length, 2);
 });
 
 Deno.test("a warning opens at normal urgency", async () => {
