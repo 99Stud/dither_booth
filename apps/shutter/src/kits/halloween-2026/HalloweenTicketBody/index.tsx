@@ -3,10 +3,7 @@ import {
   formatPrice,
 } from "@dither-booth/shared/formatting";
 import { cn } from "@dither-booth/shared/styles";
-import {
-  DEFAULT_TICKET_ITEM_NAMES,
-  PHOTO_TICKET_TOTAL_CENTS,
-} from "@dither-booth/shared/ticket";
+import { DEFAULT_TICKET_ITEM_NAMES } from "@dither-booth/shared/ticket";
 import { NinetyNineStudQR } from "@dither-booth/ui/components/svg/99studQR/index";
 import { DitherBoothBadge } from "@dither-booth/ui/components/svg/DitherBoothBadge/index";
 import clsx from "clsx";
@@ -26,6 +23,9 @@ const RECEIPT_PRICE_CLASSNAME = clsx(
   "shrink-0 font-mono text-2xl font-normal tabular-nums",
 );
 const PRICE_CURRENCY_SUFFIX = formatPrice(0).replace(/^.*\d/u, "");
+/** The devil's own bill: 666,66 €. Split in cents so the items add up to it. */
+const HALLOWEEN_TICKET_TOTAL_CENTS = 66_666;
+const formatCents = (cents: number) => formatPrice(cents / 100);
 
 const randomPriceSplit = (total: number, count: number): number[] => {
   if (count < 1) {
@@ -52,7 +52,7 @@ const randomPriceSplit = (total: number, count: number): number[] => {
  * Everything below the photo on the Halloween photo ticket: date, venue,
  * items, total, the event's partner row, QR, ticket number and the
  * DitherBooth badge. A copy of TartinesTicketBody with ghosts around the
- * thank-you line: change both.
+ * thank-you line and a 666,66 € total: change both.
  */
 export const HalloweenTicketBody: FC = () => {
   const { ticketItems, ticketRef } = receiptViewerRoute.useSearch();
@@ -61,7 +61,7 @@ export const HalloweenTicketBody: FC = () => {
   const today = new Date();
   const itemNames = ticketItems ?? DEFAULT_TICKET_ITEM_NAMES;
   const prices = useMemo(
-    () => randomPriceSplit(PHOTO_TICKET_TOTAL_CENTS, itemNames.length),
+    () => randomPriceSplit(HALLOWEEN_TICKET_TOTAL_CENTS, itemNames.length),
     // ticketRef is unused by the split; a new ticket still needs a new roll.
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- re-roll per ticket
     [itemNames, ticketRef],
@@ -126,7 +126,7 @@ export const HalloweenTicketBody: FC = () => {
           </p>
         </div>
         <p className={clsx("font-mono text-2xl font-bold tabular-nums")}>
-          {formatPrice(PHOTO_TICKET_TOTAL_CENTS)}
+          {formatCents(HALLOWEEN_TICKET_TOTAL_CENTS)}
         </p>
       </div>
       <AsteriskLine className={clsx("mt-6")} />
@@ -175,7 +175,7 @@ const ReceiptItem: FC<ReceiptItemProps> = ({ quantity, name, price }) => {
         <p className={RECEIPT_QUANTITY_CLASSNAME}>{quantity}x</p>
         <p className={clsx("mt-1 min-w-0 truncate leading-[0.7]")}>{name}</p>
       </div>
-      <p className={RECEIPT_PRICE_CLASSNAME}>{formatPrice(price)}</p>
+      <p className={RECEIPT_PRICE_CLASSNAME}>{formatCents(price)}</p>
     </div>
   );
 };
