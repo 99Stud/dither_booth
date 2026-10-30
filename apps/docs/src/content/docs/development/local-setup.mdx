@@ -71,7 +71,7 @@ bun run build
 bun run start          # or: bun run pm2:start, then pm2:list / pm2:logs / pm2:stop
 ```
 
-Each app builds `src/production-entry.ts` into `dist/server.js`. The engine also builds `scripts/generate-local-cert.ts` into `dist/generate-local-cert.js`, which `booth cert` runs on a release. Native dependencies (Puppeteer, Sharp, the USB packages) stay external, so `node_modules` must be present where the build runs. In Shutter and admin, a PNG, JPEG, WebP or GIF a browser module imports is inlined as a data URL ([why](/docs/architecture/data-model/)), and so is a stylesheet's `url()`; files under `public/` are copied and served as they are.
+Each app builds `src/production-entry.ts` into `dist/server.js`. The engine also builds its certificate generator into `dist/generate-local-cert.js`, for releases ([why](/docs/architecture/tls-and-trust/#what-the-leaf-covers)). Native dependencies (Puppeteer, Sharp, the USB packages) stay external, so `node_modules` must be present where the build runs. In Shutter and admin, a PNG, JPEG, WebP or GIF a browser module imports is inlined as a data URL ([why](/docs/architecture/data-model/)), and so is a stylesheet's `url()`; files under `public/` are copied and served as they are.
 
 ## Per-app commands
 

@@ -27,7 +27,8 @@ const nodeEnv = Bun.env.NODE_ENV ?? "production";
 
 /**
  * The server, and the certificate generator `booth cert` runs on a release:
- * a release has no `scripts/` either.
+ * a release has no `scripts/` either. `certGenerateArgs` in the CLI and the
+ * release workflow's smoke test name `dist/generate-local-cert.js`.
  */
 const entries = [
   { source: "src/production-entry.ts", name: "server" },
