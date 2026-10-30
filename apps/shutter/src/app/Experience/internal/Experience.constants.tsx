@@ -3,9 +3,12 @@ export const COUNTDOWN_START = 3;
 export const COUNTDOWN_INTERVAL_MS = 1000;
 export const SMILE_HOLD_MS = 1000;
 /** How long the win/lose row stays on screen before the reels clear. */
-export const SLOT_RESULT_HOLD_MS = 2500;
-/** How long the claim text stays up before the ticket starts printing. */
-export const INSTRUCTIONS_HOLD_MS = 4000;
+export const SLOT_RESULT_HOLD_MS = 1500;
+/**
+ * How long the claim text stays up before the ticket starts printing. Short:
+ * the claim stays on screen while the ticket prints.
+ */
+export const INSTRUCTIONS_HOLD_MS = 1500;
 
 /**
  * Slot machine geometry, sized for the iPad Pro 11" kiosk in landscape

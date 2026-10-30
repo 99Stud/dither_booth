@@ -20,7 +20,6 @@ export const Experience = () => {
     countdown,
     drawResult,
     handleCameraAnimationComplete,
-    handlePromptAnimationComplete,
     handleReelsStopped,
     handleStartButtonAnimationComplete,
     handleStartExperience,
@@ -70,7 +69,6 @@ export const Experience = () => {
           isPromptInSquare={isPromptInSquare}
           isPromptVisible={isPromptVisible}
           onCameraAnimationComplete={handleCameraAnimationComplete}
-          onPromptAnimationComplete={handlePromptAnimationComplete}
           onSplitTile={setSplitTilePx}
           prompt={prompt}
           splitTilePx={splitTilePx}

@@ -80,7 +80,6 @@ interface CameraStageProps {
   isPromptVisible: boolean;
   onCameraAnimationComplete: () => void;
   onSplitTile: (tilePx: number) => void;
-  onPromptAnimationComplete: () => void;
   prompt: PromptKey;
   splitTilePx: number;
   webcamRef: RefObject<WebcamHandle | null>;
@@ -94,7 +93,6 @@ export const CameraStage = ({
   isPromptInSquare,
   isPromptVisible,
   onCameraAnimationComplete,
-  onPromptAnimationComplete,
   onSplitTile,
   prompt,
   splitTilePx,
@@ -200,7 +198,6 @@ export const CameraStage = ({
               y: showInStreamPrompt ? 0 : PROMPT_TEXT_SWAP_Y,
             }}
             transition={PROMPT_TRANSITION}
-            onAnimationComplete={onPromptAnimationComplete}
             className="absolute top-8 left-8"
           >
             {isPromptInSquare && <PromptLine text={promptText} />}
@@ -214,7 +211,6 @@ export const CameraStage = ({
           y: showStagePrompt ? "-33.33%" : "-100%",
         }}
         transition={PROMPT_TRANSITION}
-        onAnimationComplete={onPromptAnimationComplete}
         className={clsx(
           "absolute top-8 right-0 left-0 z-20",
           "flex justify-center",

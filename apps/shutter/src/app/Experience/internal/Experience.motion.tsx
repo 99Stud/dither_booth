@@ -48,9 +48,6 @@ export const SLIDE_ANIMATION_FALLBACK_MS =
 export const SHUTTER_ANIMATION_FALLBACK_MS =
   SHUTTER_MS + ANIMATION_FALLBACK_MARGIN_MS;
 
-export const PROMPT_ANIMATION_FALLBACK_MS =
-  PROMPT_TRANSITION.duration * 1000 + ANIMATION_FALLBACK_MARGIN_MS;
-
 /**
  * How long the capture flash stays mounted. Derived from FLASH_TRANSITION so the
  * shutter always lasts exactly one fade, however long the capture itself takes.

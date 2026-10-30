@@ -5,7 +5,6 @@ import { COUNTDOWN_START } from "./Experience.constants";
 export type ExperiencePhase =
   | "idle"
   | "introExiting"
-  | "promptEntering"
   | "countdown"
   | "smile"
   | "capturing"
@@ -53,7 +52,6 @@ export type ExperienceAction =
   | { type: "visitStarted"; visitId: string }
   | { type: "startButtonAnimationCompleted" }
   | { type: "cameraAnimationCompleted" }
-  | { type: "promptAnimationCompleted" }
   | { type: "countdownTicked" }
   | { type: "smileElapsed" }
   | { type: "reelsStopped" }
@@ -166,8 +164,14 @@ export const experienceReducer = (
     }
 
     case "cameraAnimationCompleted": {
+      // The countdown starts as soon as the shutter is open; the caption
+      // fades in alongside the first number.
       if (state.phase === "introExiting") {
-        return { ...state, phase: "promptEntering" };
+        return {
+          ...state,
+          phase: "countdown",
+          countdown: COUNTDOWN_START,
+        };
       }
 
       if (state.phase === "cameraExiting") {
@@ -179,16 +183,6 @@ export const experienceReducer = (
       }
 
       return state;
-    }
-
-    case "promptAnimationCompleted": {
-      if (state.phase !== "promptEntering") return state;
-
-      return {
-        ...state,
-        phase: "countdown",
-        countdown: COUNTDOWN_START,
-      };
     }
 
     case "countdownTicked": {
