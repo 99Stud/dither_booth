@@ -178,10 +178,15 @@
     @apply h-full overflow-hidden;
   }
   /* Kiosk shell only — do not lock #root height/overflow globally or receipt
-     screenshots (taller than the viewport) get clipped to empty white. */
+     screenshots (taller than the viewport) get clipped to empty white.
+     100lvh, not 100dvh: an iPadOS Home Screen app starts with a viewport
+     32 pt shorter than the screen, and a page that fits it stays that short
+     until the window is resized, leaving a strip of root background at the
+     bottom. 100lvh is the full screen from the start, and the viewport grows
+     to match. Black covers the strip in the moment before it does. */
   html.kiosk-shell,
   html.kiosk-shell body {
-    @apply h-dvh min-h-dvh overflow-hidden overscroll-none;
+    @apply h-lvh min-h-lvh overflow-hidden overscroll-none bg-black;
     touch-action: manipulation;
   }
   /* The receipt is screenshotted for a 1-bit thermal printer: every gray
