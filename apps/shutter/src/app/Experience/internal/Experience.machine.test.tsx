@@ -42,7 +42,6 @@ const enterCapturing = (hasLottery = true): ExperienceState => {
     withPhase("idle"),
     { type: "startRequested", hasLottery },
     { type: "cameraAnimationCompleted" },
-    { type: "promptAnimationCompleted" },
     ...Array.from(
       { length: COUNTDOWN_START },
       (): ExperienceAction => ({ type: "countdownTicked" }),
@@ -86,9 +85,6 @@ describe("experienceReducer", () => {
     expect(state.phase).toBe("introExiting");
 
     state = experienceReducer(state, { type: "cameraAnimationCompleted" });
-    expect(state.phase).toBe("promptEntering");
-
-    state = experienceReducer(state, { type: "promptAnimationCompleted" });
     expect(state).toMatchObject({
       phase: "countdown",
       countdown: COUNTDOWN_START,
@@ -415,7 +411,6 @@ describe("experienceReducer", () => {
     const idleState = withPhase("idle");
     const invalidActions: ExperienceAction[] = [
       { type: "cameraAnimationCompleted" },
-      { type: "promptAnimationCompleted" },
       { type: "smileElapsed" },
       { type: "countdownTicked" },
       { type: "reelsStopped" },
@@ -451,21 +446,13 @@ describe("experienceReducer", () => {
     const afterCamera = experienceReducer(introExiting, {
       type: "cameraAnimationCompleted",
     });
-    expect(afterCamera.phase).toBe("promptEntering");
-    expect(
-      experienceReducer(afterCamera, { type: "cameraAnimationCompleted" }),
-    ).toBe(afterCamera);
-
-    const afterPrompt = experienceReducer(afterCamera, {
-      type: "promptAnimationCompleted",
-    });
-    expect(afterPrompt).toMatchObject({
+    expect(afterCamera).toMatchObject({
       phase: "countdown",
       countdown: COUNTDOWN_START,
     });
     expect(
-      experienceReducer(afterPrompt, { type: "promptAnimationCompleted" }),
-    ).toBe(afterPrompt);
+      experienceReducer(afterCamera, { type: "cameraAnimationCompleted" }),
+    ).toBe(afterCamera);
   });
 
   describe("the visit", () => {

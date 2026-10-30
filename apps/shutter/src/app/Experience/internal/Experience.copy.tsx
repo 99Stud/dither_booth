@@ -49,7 +49,6 @@ export const isPromptInSquare = (prompt: PromptKey, hasLottery: boolean) =>
 export const PROMPT_BY_PHASE: Record<ExperiencePhase, PromptKey> = {
   idle: DEFAULT_PROMPT,
   introExiting: DEFAULT_PROMPT,
-  promptEntering: DEFAULT_PROMPT,
   countdown: DEFAULT_PROMPT,
   smile: STRIKE_A_POSE_PROMPT,
   capturing: STRIKE_A_POSE_PROMPT,

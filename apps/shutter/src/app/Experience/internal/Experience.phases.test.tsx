@@ -29,7 +29,6 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
   {
     cameraVisible: [
       "introExiting",
-      "promptEntering",
       "countdown",
       "smile",
       "capturing",
@@ -40,7 +39,6 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
       "printing",
     ],
     promptVisible: [
-      "promptEntering",
       "countdown",
       "smile",
       "capturing",
@@ -90,7 +88,6 @@ const EXPECTED_PHASES_BY_FLAG: Record<ExperiencePhaseFlag, ExperiencePhase[]> =
       "resettingButtonRevealing",
     ],
     cameraAnimationFallback: ["introExiting", "cameraExiting", "resetting"],
-    promptAnimationFallback: ["promptEntering"],
   };
 
 describe("PHASE_FLAGS", () => {

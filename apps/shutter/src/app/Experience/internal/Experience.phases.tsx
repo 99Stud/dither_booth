@@ -24,8 +24,7 @@ export type ExperiencePhaseFlag =
   | "instructionsHold"
   | "reelsAnimationFallback"
   | "startButtonAnimationFallback"
-  | "cameraAnimationFallback"
-  | "promptAnimationFallback";
+  | "cameraAnimationFallback";
 
 export const PHASE_FLAGS: Record<
   ExperiencePhase,
@@ -38,7 +37,6 @@ export const PHASE_FLAGS: Record<
     "startEnabled",
   ],
   introExiting: ["cameraVisible", "cameraAnimationFallback"],
-  promptEntering: ["cameraVisible", "promptVisible", "promptAnimationFallback"],
   countdown: ["cameraVisible", "promptVisible"],
   smile: ["cameraVisible", "promptVisible", "smileHold"],
   capturing: ["cameraVisible", "promptVisible", "printAttempt"],
@@ -110,7 +108,6 @@ export const AUTO_ADVANCE_ACTION_BY_PHASE: Record<
 > = {
   idle: null,
   introExiting: null,
-  promptEntering: null,
   countdown: null,
   smile: null,
   capturing: null,

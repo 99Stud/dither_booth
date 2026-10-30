@@ -20,7 +20,6 @@ import {
   initialExperienceState,
 } from "../Experience.machine";
 import {
-  PROMPT_ANIMATION_FALLBACK_MS,
   REELS_ANIMATION_FALLBACK_MS,
   SHUTTER_ANIMATION_FALLBACK_MS,
   SLIDE_ANIMATION_FALLBACK_MS,
@@ -150,13 +149,6 @@ export const useExperienceFlow = () => {
   });
 
   usePhaseTimeout({
-    delayMs: PROMPT_ANIMATION_FALLBACK_MS,
-    isActive: hasPhaseFlag(phase, "promptAnimationFallback"),
-    onElapsed: () => dispatch({ type: "promptAnimationCompleted" }),
-    phase,
-  });
-
-  usePhaseTimeout({
     delayMs: PHASE_AUTO_ADVANCE_MS,
     isActive: AUTO_ADVANCE_ACTION_BY_PHASE[phase] !== null,
     onElapsed: () => {
@@ -175,10 +167,6 @@ export const useExperienceFlow = () => {
     dispatch({ type: "cameraAnimationCompleted" });
   }, []);
 
-  const handlePromptAnimationComplete = useCallback(() => {
-    dispatch({ type: "promptAnimationCompleted" });
-  }, []);
-
   const handleReelsStopped = useCallback(() => {
     dispatch({ type: "reelsStopped" });
   }, []);
@@ -190,7 +178,6 @@ export const useExperienceFlow = () => {
     countdown,
     drawResult,
     handleCameraAnimationComplete,
-    handlePromptAnimationComplete,
     handleReelsStopped,
     handleStartButtonAnimationComplete,
     handleStartExperience,
