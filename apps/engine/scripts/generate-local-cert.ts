@@ -6,6 +6,7 @@ import {
   getWebTlsManifestPath,
 } from "@dither-booth/ports";
 import { getMachineCertificateHostnames } from "@dither-booth/ports/hostname";
+import { isReleaseBundle } from "@dither-booth/shared/server/booth-update";
 import { mkdirSync } from "node:fs";
 import { isIP } from "node:net";
 import { dirname, join } from "node:path";
@@ -20,9 +21,14 @@ const requestedPublicIp = cliArgs.find((arg) => !arg.startsWith("-"))?.trim();
 // Re-issuing the leaf on a new network: the CA is already trusted where it
 // needs to be, and `mkcert -install` would ask for sudo the service doesn't have.
 const skipInstall = cliArgs.includes("--skip-install");
-const CERT_GENERATE_COMMAND =
-  "bun run --filter @dither-booth/engine cert:generate <LAN_IP>";
-const CERT_CAROOT_COMMAND = "bun run --filter @dither-booth/engine cert:caroot";
+// A release has no `scripts/` to run through `bun run`: point at the CLI there.
+const release = isReleaseBundle(ENGINE_REPO_ROOT);
+const CERT_GENERATE_COMMAND = release
+  ? "sudo booth cert <LAN_IP>"
+  : "bun run --filter @dither-booth/engine cert:generate <LAN_IP>";
+const CERT_CAROOT_COMMAND = release
+  ? "booth cert copy"
+  : "bun run --filter @dither-booth/engine cert:caroot";
 
 function isCommandNotFoundError(error: unknown) {
   return error instanceof Error && "code" in error && error.code === "ENOENT";

@@ -26,6 +26,8 @@ Devices trust the **CA**, once. Leaf certificates come and go with venues withou
 - `10.42.0.1`, the booth Wi-Fi address — so switching to the booth Wi-Fi needs no new certificate,
 - the machine's hostnames: `<hostname>` and `<hostname>.local`.
 
+A release ships the engine's `dist/`, not its `scripts/`, so there `booth cert` runs the build's copy of the generator, `apps/engine/dist/generate-local-cert.js`. Its hints then name `booth cert` rather than `bun run`.
+
 It writes `.local/tls/booth-manifest.json` alongside, the runtime source of truth for the apps:
 
 ```json

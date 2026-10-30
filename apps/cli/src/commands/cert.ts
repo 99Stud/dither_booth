@@ -3,6 +3,7 @@ import {
   getWebPublicIp,
   getWebTlsCertPath,
 } from "@dither-booth/ports";
+import { isReleaseBundle } from "@dither-booth/shared/server/booth-update";
 import { defineCommand } from "citty";
 import { X509Certificate } from "node:crypto";
 
@@ -51,6 +52,26 @@ export function needsNewCertificate(options: {
   return (
     options.lanIp !== BOOTH_WIFI_IP && options.certificateIp !== options.lanIp
   );
+}
+
+/**
+ * The bun arguments that issue the certificate. A release ships the engine's
+ * `dist/`, not its `scripts/`: there the build's copy of the generator runs.
+ */
+export function certGenerateArgs(options: {
+  publicIp: string;
+  release: boolean;
+  skipInstall: boolean;
+}): string[] {
+  const generator = options.release
+    ? ["apps/engine/dist/generate-local-cert.js"]
+    : ["run", "--filter", "@dither-booth/engine", "cert:generate"];
+
+  return [
+    ...generator,
+    options.publicIp,
+    ...(options.skipInstall ? ["--skip-install"] : []),
+  ];
 }
 
 async function certificateCoversBoothWifi(certPath: string) {
@@ -118,14 +139,13 @@ export async function runCertCommand(
 
   step(`Generating certificate for ${publicIp}`);
   await run(
-    serviceBun([
-      "run",
-      "--filter",
-      "@dither-booth/engine",
-      "cert:generate",
-      publicIp,
-      ...(ifChanged ? ["--skip-install"] : []),
-    ]),
+    serviceBun(
+      certGenerateArgs({
+        publicIp,
+        release: isReleaseBundle(repoRoot),
+        skipInstall: ifChanged,
+      }),
+    ),
     { cwd: repoRoot },
   );
 

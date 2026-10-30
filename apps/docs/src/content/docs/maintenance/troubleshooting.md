@@ -18,6 +18,7 @@ Start with admin's **Control Center → Health checks** and, over SSH, `booth do
 | `<hostname>.local` doesn't open, the IP does                          | avahi renamed the booth (`booth-2.local`). `booth network watch` takes the name back within a minute; `sudo systemctl restart avahi-daemon` does it at once. If it comes back renamed, another device has the same name. |
 | Safari: certificate warning, or no camera                             | The iPad doesn't trust the booth CA. [Connect a device](/docs/venue/connect-a-device/). If it trusted it before, the booth may have a **new CA** (reflash, new mkcert): trust again.                                     |
 | Certificate for the wrong IP                                          | It's re-issued at service start. `booth cert --if-changed`, then `sudo systemctl restart ditherbooth`; `booth doctor` confirms.                                                                                          |
+| `booth cert`: **Module not found "scripts/generate-local-cert.ts"**   | The booth runs release 0.9.0 or older: those ship no certificate generator, so neither `booth cert` nor the service start can re-issue the certificate. `sudo booth update` to a later release, then `booth cert`.       |
 
 ## Wi-Fi
 
