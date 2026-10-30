@@ -6,7 +6,10 @@ import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createTestDb } from "#db/internal/db.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
-import { createHubReporterStub } from "#domains/hub/internal/hub.test-utils";
+import {
+  createHubReporterStub,
+  createLotteryCountingHubReporter,
+} from "#domains/hub/internal/hub.test-utils";
 import { createStubPrinter } from "#domains/printer/internal/printer.test-utils";
 import { engineRouter } from "#internal/router";
 import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
@@ -184,6 +187,7 @@ describe("kiosk channel through the router", () => {
       kioskChannel,
     }),
     db?: TRPCContext["db"],
+    hubReporter = createHubReporterStub(),
   ) {
     const unreachable = () => {
       throw new Error("The kiosk channel needs none of this.");
@@ -193,7 +197,7 @@ describe("kiosk channel through the router", () => {
       allowedHostnames: [],
       db: db ?? (new Proxy({}, { get: unreachable }) as TRPCContext["db"]),
       darkroomAccess: createDarkroomAccessStub(),
-      hubReporter: createHubReporterStub(),
+      hubReporter,
       kioskChannel,
       kioskMaintenance,
       release: "0.0.0-test",
@@ -329,6 +333,39 @@ describe("kiosk channel through the router", () => {
       expect((await kiosk.booth.getLotteryStatus()).enabled).toBe(true);
 
       await iterator.return?.();
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("a lottery save has the Hub reporter check the lottery; a failed save, nothing", async () => {
+    const { db, sqlite } = createTestDb();
+    const kioskChannel = createKioskChannel();
+    const { reporter, counted } = createLotteryCountingHubReporter();
+    const admin = createCaller(
+      kioskChannel,
+      ADMIN_ORIGIN,
+      createKioskMaintenance({ db, kioskChannel }),
+      db,
+      reporter,
+    );
+
+    try {
+      await admin.config.createEvent({ name: "Halloween" });
+      expect(counted.lotteryChanged).toBe(1);
+
+      await admin.config.updateLotterySettings({
+        enabled: true,
+        noWinWeight: 50,
+        winCooldownMinutes: 5,
+        printLoserTicket: false,
+      });
+      expect(counted.lotteryChanged).toBe(2);
+
+      await expect(
+        admin.config.deletePrize({ prizeId: "missing" }),
+      ).rejects.toThrow();
+      expect(counted.lotteryChanged).toBe(2);
     } finally {
       sqlite.close();
     }

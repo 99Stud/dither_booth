@@ -199,9 +199,9 @@ _Avoid_: org, organisation (in staff-facing text).
 
 **Platform admin**: a 99Stud person who sees every team, booth and alert on the Hub (`platform_admin` in the code). It isn't a team role: a platform admin's devices still only get the alerts of the teams they're in.
 
-**Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions and its maintenance state. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
+**Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions, its maintenance state and whether its lottery is live with stock left. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
 
-**Alert**: something staff must act on, opened by the Hub from a heartbeat or a silence: **Out of paper**, **Printer error**, **Printer not connected**, **Paper low**, **Cover open** or **Silent booth**. It closes by itself when the condition clears, and staff can acknowledge it meanwhile. **Paper low** never fires on our booth: the printer is mounted upright, where its near-end sensor must stay off.
+**Alert**: something staff must act on, opened by the Hub from a heartbeat or a silence: **Out of paper**, **Printer error**, **Printer not connected**, **Paper low**, **Cover open**, **Lottery empty**, **Update failed** or **Silent booth**. It closes by itself when the condition clears, and staff can acknowledge it meanwhile. **Paper low** never fires on our booth: the printer is mounted upright, where its near-end sensor must stay off.
 
 **Device**: a staff phone, iPad or computer that gets alerts as push notifications, once its owner turned them on in the Studio app (`push_subscription` in the code). A device the push service says is gone is forgotten, and so are the devices of someone removed from the team.
 _Avoid_: subscription (in staff-facing text).
@@ -215,6 +215,8 @@ _Avoid_: dismiss, mute.
 _Avoid_: live window (in staff-facing text).
 
 **Update failed** (alert): an update Studio asked for stopped before its switch, or the new release didn't start and the booth went back. The booth's reason is under it in Studio; asking again closes it.
+
+**Lottery empty** (alert): the lottery is live and every prize is out of stock, so every guest loses. A warning: the booth still prints photos. A **Restock**, or switching the lottery off, closes it.
 
 **Silent booth**: a booth that has sent no heartbeat for three minutes between its event times. Only the Hub can notice it, since a booth that lost power or its network can't say so.
 _Avoid_: offline, down (in staff-facing text).

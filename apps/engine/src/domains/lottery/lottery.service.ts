@@ -5,4 +5,5 @@ export {
   getPrizeStock,
   prizeStockColumns,
 } from "./internal/lottery.stock";
+export { getLotteryStatusForDb } from "./internal/lottery.status";
 export { createBoothTicketRef } from "./internal/lottery.ticket-ref";

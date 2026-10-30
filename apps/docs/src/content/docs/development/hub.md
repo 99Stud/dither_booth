@@ -82,13 +82,14 @@ Things to know:
 
 ## How a registered booth reports
 
-Once registered, the engine sends a heartbeat every 30 seconds, and at once when the printer's conditions change, so an alert doesn't wait for the next tick. It does nothing while the booth isn't registered.
+Once registered, the engine sends a heartbeat every 30 seconds, and at once when the printer's conditions change or the lottery runs out or has stock again, so an alert doesn't wait for the next tick. It does nothing while the booth isn't registered.
 
 - **The session.** The access token stays in memory. The refresh token is single use: every renewal returns the next one, which the engine stores before using the access token that came with it.
 - **Refused.** If the Hub refuses the session (the booth was registered again elsewhere, or removed), the engine forgets its registration, and admin asks for a new code.
 - **Failures.** A Hub that can't be reached keeps the registration; the next tick tries again. Admin's Hub card shows the last report, or why it failed.
 - **Release.** The heartbeat's `release` is the version in `release.json` when the engine runs from a [release bundle](/docs/development/releases/), else `git describe` of the checkout it runs from.
 - **Dry run.** An engine in dry run (`RECEIPT_PRINT_DRY_RUN`) says so, and the Hub never alerts for it.
+- **Lottery.** The heartbeat's `lottery` is `{ live, stockLeft }` for the active event, from `getLotteryStatusForDb` (`stockLeft` counts units across its prizes, 0 when it is off). Every lottery save (the procedures that send the kiosk `lottery-updated`) and every win calls `hubReporter.lotteryChanged()`, which sends a heartbeat at once only if the lottery became empty (live, 0 left) or stopped being so since the last one: a win that leaves stock sends nothing. A booth from before it sends no `lottery`; a Hub from before it drops it.
 - **Updates.** The answer is `{ ok: true, update }`: `update` is `{ release }` while a request from Studio is `requested` or `waiting`, else null. The heartbeat function gets it from `report_booth_update(booth_id, heartbeat)` after `evaluate_heartbeat`. That function also records the heartbeat's optional `update` report (`{ release, state, error }`) when its release is the one asked for, opens a `booth.update-failed` alert when it reports `failed` or `rolled-back`, and marks the request `done` (closing that alert) once the heartbeat's `release` is it. A booth from before updates sends no report and ignores the answer's `update`; a Hub from before it drops the report. See [Updates](/docs/architecture/updates/#from-studio).
 
 To try it on a laptop, point the engine at the local stack (`HUB_URL`, `HUB_PUBLISHABLE_KEY` from `supabase status`), register it with a code from local Studio or the local SQL editor, and watch `booth_status`.
@@ -104,11 +105,13 @@ A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edg
 | `printer.disconnected`   | critical | not connected for a minute                                      |
 | `printer.paper-near-end` | warn     | paper is running low                                            |
 | `printer.cover-open`     | warn     | the cover is open for a minute                                  |
+| `lottery.out-of-stock`   | warn     | the lottery is live with 0 stock left                           |
 | `booth.silent`           | critical | no heartbeat for 3 minutes while `live_from`–`live_until` is on |
 
 - An alert closes when its condition clears, and any heartbeat ends a silence. Closed alerts stay as history.
 - The minute of grace only holds an alert back from opening. It is counted on the booth's own clock (`changedAt` to `sentAt`), so a Pi with the wrong time doesn't skew it; a negative age (the clock went back) counts as past it. Once open, an alert stays open while its condition holds, whatever else changes.
 - `unknown` (the printer reconnecting) leaves printer alerts as they are: it says nothing about the paper.
+- `lottery.out-of-stock` closes on a restock or when the lottery goes off, and opens whatever the event times: the lottery's own switch says whether it should give prizes. It is a warning, so it is never reminded. A heartbeat without `lottery` (a booth from before it) never opens it, and closes one that is open.
 - A dry-run booth never alerts, and switching to dry run closes what was open.
 - A heartbeat older than the one stored (a late retry) is ignored.
 - Silence counts from `live_from` at the earliest, so a booth switched on as its event starts has three minutes to report.

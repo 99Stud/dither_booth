@@ -52,6 +52,7 @@ import {
   createKioskChannel,
   createKioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
+import { getLotteryStatusForDb } from "#domains/lottery/lottery.service";
 import {
   defaultLater,
   runNmcli,
@@ -169,6 +170,7 @@ export async function runEngineServer(options: {
     hub: getHubOverride() ?? PRODUCTION_HUB,
     printer,
     maintenance: kioskMaintenance,
+    getLotteryStatus: () => getLotteryStatusForDb(db),
     release,
     dryRun: printer.dryRun,
     // Only on the booth: elsewhere there's no update unit to start.

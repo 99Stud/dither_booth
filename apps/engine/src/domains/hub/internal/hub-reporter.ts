@@ -1,6 +1,9 @@
+import type { LotteryStatus } from "@dither-booth/shared/lottery";
+
 import {
   type BoothUpdateReport,
   type Heartbeat,
+  type HeartbeatLottery,
   heartbeatReplySchema,
   heartbeatSchema,
   PROTOCOL_VERSION,
@@ -44,10 +47,15 @@ const RENEW_BEFORE_S = 60;
 const sameConditions = (a: PrinterStatus, b: PrinterStatus) =>
   a.canPrint === b.canPrint && a.conditions.join() === b.conditions.join();
 
+/** Live with every prize out: what the Hub's Lottery empty alert is about. */
+const isLotteryEmpty = (lottery: HeartbeatLottery) =>
+  lottery.live && lottery.stockLeft === 0;
+
 /**
  * Tells the Hub how the booth is doing: a heartbeat every `intervalMs`, and
- * one as soon as the printer's conditions change, so an alert doesn't wait
- * for the next tick. Does nothing while the booth isn't registered.
+ * one as soon as the printer's conditions change, or the lottery runs out
+ * or has prizes again (`lotteryChanged`), so an alert doesn't wait for the
+ * next tick. Does nothing while the booth isn't registered.
  *
  * The booth's session lives here. The access token stays in memory; the
  * refresh token is single use, so each new one is stored before the access
@@ -60,6 +68,10 @@ export function createHubReporter(deps: {
   hub: HubEndpoint;
   printer: Pick<BoothPrinter, "getStatus" | "subscribe">;
   maintenance: Pick<KioskMaintenance, "get">;
+  /** The active event's lottery, as admin's lottery status reads it. */
+  getLotteryStatus: () => Promise<
+    Pick<LotteryStatus, "enabled" | "remainingPrizes">
+  >;
   release: string;
   dryRun: boolean;
   /** Updates Studio asks for, through the heartbeat's answer. */
@@ -86,6 +98,7 @@ export function createHubReporter(deps: {
   let sending: Promise<void> | null = null;
   let sendAgain = false;
   let lastSentPrinter: PrinterStatus | null = null;
+  let lastSentLottery: HeartbeatLottery | null = null;
   let unsubscribe: (() => void) | undefined;
 
   const headers = (extra: Record<string, string> = {}) => ({
@@ -161,8 +174,25 @@ export function createHubReporter(deps: {
     return session.accessToken;
   }
 
+  /**
+   * Null when it can't be read: the heartbeat then goes without it, so the
+   * printer's news and proof of life still reach the Hub.
+   */
+  async function readLottery(): Promise<HeartbeatLottery | null> {
+    try {
+      const { enabled, remainingPrizes } = await deps.getLotteryStatus();
+      return { live: enabled, stockLeft: remainingPrizes };
+    } catch (error) {
+      log("warn", "hub-lottery-read-failed", {
+        error: getErrorMessage(error),
+      });
+      return null;
+    }
+  }
+
   function heartbeat(
     status: PrinterStatus,
+    lottery: HeartbeatLottery | null,
     update: BoothUpdateReport | undefined,
   ): Heartbeat {
     const { enabled, reasons } = maintenance.get();
@@ -178,6 +208,7 @@ export function createHubReporter(deps: {
         changedAt: status.changedAt || now().toISOString(),
       },
       maintenance: { on: enabled, reasons },
+      ...(lottery ? { lottery } : {}),
       ...(update ? { update } : {}),
     });
   }
@@ -187,11 +218,12 @@ export function createHubReporter(deps: {
     if (!token) return;
 
     const status = printer.getStatus();
+    const lottery = await readLottery();
     const update = await deps.updates?.report();
     const res = await fetchFn(`${hub.url}/functions/v1/heartbeat`, {
       method: "POST",
       headers: headers({ Authorization: `Bearer ${token}` }),
-      body: JSON.stringify(heartbeat(status, update)),
+      body: JSON.stringify(heartbeat(status, lottery, update)),
       signal: AbortSignal.timeout(15_000),
     });
 
@@ -210,6 +242,7 @@ export function createHubReporter(deps: {
     if (!res.ok) throw new Error(`The Hub answered HTTP ${res.status}.`);
 
     lastSentPrinter = status;
+    lastSentLottery = lottery;
     if (state.lastError) log("info", "hub-report-recovered");
 
     // A Hub from before updates answers without one.
@@ -272,6 +305,20 @@ export function createHubReporter(deps: {
     },
     /** Sends now, for instance right after registering. */
     report,
+    /**
+     * After the lottery changed (its settings, prizes or stock, or a win):
+     * sends now if it ran out or has prizes again since the last heartbeat.
+     */
+    async lotteryChanged(): Promise<void> {
+      const lottery = await readLottery();
+      if (!lottery) return;
+      if (
+        !lastSentLottery ||
+        isLotteryEmpty(lottery) !== isLotteryEmpty(lastSentLottery)
+      ) {
+        await report();
+      }
+    },
     getState: (): HubReportState => ({ ...state }),
   };
 }
