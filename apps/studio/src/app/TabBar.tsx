@@ -1,15 +1,16 @@
 import clsx from "clsx";
-import { Bell, Printer, Smartphone } from "lucide-react";
+import { Bell, Printer, Smartphone, Users } from "lucide-react";
 
 import type { Route } from "#lib/route";
 
 const TABS = [
   { screen: "alerts", label: "Alerts", icon: Bell },
   { screen: "booths", label: "Booths", icon: Printer },
+  { screen: "team", label: "Team", icon: Users },
   { screen: "device", label: "This device", icon: Smartphone },
 ] as const;
 
-/** Studio's three screens, at the bottom where a thumb reaches them. */
+/** Studio's screens, at the bottom where a thumb reaches them. */
 export const TabBar = ({
   route,
   onGo,
@@ -26,7 +27,10 @@ export const TabBar = ({
       "pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]",
     )}
   >
-    <ul className={clsx("mx-auto grid max-w-md grid-cols-3")}>
+    <ul
+      className={clsx("mx-auto grid max-w-md")}
+      style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}
+    >
       {TABS.map(({ screen, label, icon: Icon }) => {
         const current = route.screen === screen;
         return (

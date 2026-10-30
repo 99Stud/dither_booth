@@ -14,6 +14,7 @@ import { DeviceCard } from "#app/DeviceCard";
 import { SignIn } from "#app/SignIn";
 import { Splash } from "#app/Splash";
 import { TabBar } from "#app/TabBar";
+import { TeamScreen } from "#app/TeamScreen";
 import { listAlerts } from "#lib/alerts";
 import { hub } from "#lib/hub";
 import { useLive } from "#lib/live";
@@ -22,6 +23,7 @@ import { type Route, useRoute } from "#lib/route";
 const TITLES: Record<Route["screen"], string> = {
   alerts: "Alerts",
   booths: "Booths",
+  team: "Team",
   device: "This device",
 };
 
@@ -47,6 +49,7 @@ const SignedIn = ({ userId, email }: { userId: string; email: string }) => {
         <AlertsScreen live={alerts} focusId={route.alertId} />
       ) : null}
       {route.screen === "booths" ? <BoothsScreen /> : null}
+      {route.screen === "team" ? <TeamScreen /> : null}
       {route.screen === "device" ? (
         <DeviceCard userId={userId} email={email} />
       ) : null}
@@ -55,7 +58,7 @@ const SignedIn = ({ userId, email }: { userId: string; email: string }) => {
   );
 };
 
-/** Studio: sign in, then the booths' alerts, the booths, and this device. */
+/** Studio: sign in, then the booths' alerts, the booths, the team, and this device. */
 export const App = () => {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [showSplash, setShowSplash] = useState(true);

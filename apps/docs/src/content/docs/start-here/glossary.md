@@ -190,12 +190,12 @@ _Avoid_: watchdog (in staff-facing text).
 
 **Booth**: one Dither Booth: its Pi, printer and iPad. Staff add and name it in the Studio app's **Booths**; the name can't be changed afterwards. It has one Hub registration at a time.
 
-**Team** (`org` in the code): the staff who share booths and their alerts. Staff see only their team's booths, alerts and devices; a platform admin sees every team's.
+**Team** (`org` in the code): the staff who share booths and their alerts, added in Studio's **Team**. Staff see only their team's booths, alerts and devices; a platform admin sees every team's and manages its members.
 _Avoid_: org, organisation (in staff-facing text).
 
 **Staff**: the people who set up and run booths. On the Hub, each one is in a team as a **member** or an **owner**.
 
-**Member**, **Owner** (`org_member.role` in the code): the two roles in a team. Both see the team's booths and alerts; an owner will also manage who is in the team.
+**Member**, **Owner** (`org_member.role` in the code): the two roles in a team. Both see the team's booths and alerts; an owner also adds and removes the team's members, in Studio's **Team**.
 
 **Platform admin**: a 99Stud person who sees every team, booth and alert on the Hub (`platform_admin` in the code). It isn't a team role: a platform admin's devices still only get the alerts of the teams they're in.
 
@@ -203,7 +203,7 @@ _Avoid_: org, organisation (in staff-facing text).
 
 **Alert**: something staff must act on, opened by the Hub from a heartbeat or a silence: **Out of paper**, **Printer error**, **Printer not connected**, **Paper low**, **Cover open** or **Silent booth**. It closes by itself when the condition clears, and staff can acknowledge it meanwhile. **Paper low** never fires on our booth: the printer is mounted upright, where its near-end sensor must stay off.
 
-**Device**: a staff phone, iPad or computer that gets alerts as push notifications, once its owner turned them on in the Studio app (`push_subscription` in the code). A device the push service says is gone is forgotten.
+**Device**: a staff phone, iPad or computer that gets alerts as push notifications, once its owner turned them on in the Studio app (`push_subscription` in the code). A device the push service says is gone is forgotten, and so are the devices of someone removed from the team.
 _Avoid_: subscription (in staff-facing text).
 
 **Reminder**: an alert pushed again: a critical alert still open and not acknowledged is pushed every 10 minutes.

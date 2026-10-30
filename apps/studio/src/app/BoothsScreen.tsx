@@ -55,10 +55,10 @@ import {
   setEventTimes,
   updateLine,
 } from "#lib/booths";
-import { staffOrgId } from "#lib/device";
 import { messageOf } from "#lib/errors";
 import { useLive } from "#lib/live";
 import { isBehind, useLatestRelease } from "#lib/releases";
+import { staffOrgId } from "#lib/team";
 
 const REPORT_TONE: Record<ReportTone, IconBubbleTone> = {
   ok: "emerald",
