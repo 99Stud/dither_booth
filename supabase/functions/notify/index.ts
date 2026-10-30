@@ -14,7 +14,7 @@ Deno.serve((req) =>
     send: sender.send,
     forget: devices.forget,
     markDelivered: devices.markDelivered,
-    listDevices: (orgId) => devices.list({ orgId }),
+    alertDevices: devices.forAlert,
 
     async getAlert(id) {
       const { data: alert, error } = await admin

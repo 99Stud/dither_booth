@@ -19,7 +19,8 @@ export type NotifyDeps = PushDeps & {
   /** False when the VAPID keys are missing: nothing could be pushed. */
   ready: boolean;
   getAlert: (id: string) => Promise<AlertToPush | null>;
-  listDevices: (orgId: string) => Promise<Device[]>;
+  /** Who the alert goes to: those on call for its event, else its team. */
+  alertDevices: (alertId: string) => Promise<Device[]>;
   now?: () => Date;
 };
 
@@ -55,7 +56,8 @@ function sameSecret(a: string, b: string): boolean {
 
 /**
  * One alert event from the database (opened, resolved, reminder), pushed to
- * every device of the alert's org.
+ * the devices of the staff on call for the event it opened in, or, with
+ * none, to every device of the booth's team.
  */
 export async function handleNotify(
   req: Request,
@@ -91,7 +93,7 @@ export async function handleNotify(
     (deps.now ?? (() => new Date()))(),
   );
   const outcome = await deliver(
-    await deps.listDevices(alert.orgId),
+    await deps.alertDevices(alert.id),
     JSON.stringify(message),
     { ...EVENT_POLICY[event](alert), topic: topicFor(alert.id) },
     deps,

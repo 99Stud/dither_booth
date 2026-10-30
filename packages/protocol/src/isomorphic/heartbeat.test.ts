@@ -7,6 +7,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   BOOTH_JOB_STATES,
+  heartbeatReplySchema,
   heartbeatSchema,
   type maintenanceReasonSchema,
   type printerConditionSchema,
@@ -89,5 +90,37 @@ describe("heartbeatSchema", () => {
     expect(heartbeatSchema.safeParse({ ...ready, ...change }).success).toBe(
       false,
     );
+  });
+});
+
+describe("the Hub's answer", () => {
+  const halloween = {
+    id: "e1000000-0000-4000-8000-0000000000e1",
+    name: "Halloween",
+    startsAt: "2026-10-31T18:00:00+00:00",
+    endsAt: "2026-11-01T02:00:00+00:00",
+  };
+
+  test("carries the event the booth is at", () => {
+    const reply = heartbeatReplySchema.parse({
+      ok: true,
+      update: null,
+      event: halloween,
+    });
+    expect(reply.event).toEqual(halloween);
+  });
+
+  test("reads a Hub from before events, which sends none", () => {
+    expect(heartbeatReplySchema.parse({ ok: true }).event).toBeUndefined();
+  });
+
+  test("reads an event it can't use as none, and keeps the update", () => {
+    const reply = heartbeatReplySchema.parse({
+      ok: true,
+      update: { release: "0.9.0" },
+      event: { ...halloween, startsAt: "Saturday" },
+    });
+    expect(reply.event).toBeNull();
+    expect(reply.update).toEqual({ release: "0.9.0" });
   });
 });

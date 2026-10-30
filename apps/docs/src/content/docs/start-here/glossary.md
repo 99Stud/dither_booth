@@ -17,7 +17,7 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Admin**: the staff web app (`https://<booth>:3002`): Control Center, Event, Settings, and the Logs and System pages for tech staff.
 
-**Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts, shows how each booth is doing, sets their event times and gives their registration codes. It talks to the Hub, never to a booth.
+**Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts, shows how each booth is doing, books events and who's on call for them, sets event times and gives registration codes. It talks to the Hub, never to a booth.
 _Avoid_: Studio for Supabase's own dashboard (call that the Supabase dashboard).
 
 **Launch screen**: what a phone shows while it starts a Home Screen app, before the app draws anything: on Android the app icon on a dark background, on iOS a blank screen. It can't move.
@@ -73,7 +73,10 @@ _Avoid_: shader, effect (in staff-facing text).
 
 ## Events and lottery
 
-**Event** (_campaign_ in the code): one booking of the booth. Exactly one is active at a time. Replacing an event archives the old one; events are never deleted.
+**Event**: one booking of a booth, for a client. It has two sides, not linked yet:
+
+- **In the Studio app** (`event` in the code), platform admins book it in **Events**: its client, its booth, its name and when it's on. A booth is at one event at a time. While it's on, a silent booth is an alert, and the staff **on call** for it get the booth's alerts.
+- **In admin** (_campaign_ in the code), staff run it on the booth: its look, its lottery, its **start and end**. Exactly one is active at a time. Replacing it archives the old one; these are never deleted.
 
 **Visit**: one guest's go at the booth, from the Start tap to the cut tickets or to giving up. Every visit gets a ticket number and prints a photo receipt; it runs a draw only while the lottery is live. The booth records each one, and it ends **completed** (the receipt printed), **failed** (printing failed) or **abandoned** (the guest or the page left before the end). The Event page's Overview counts them as **Guests**: a guest who comes back counts twice.
 
@@ -190,20 +193,25 @@ _Avoid_: watchdog (in staff-facing text).
 
 **Booth**: one Dither Booth: its Pi, printer and iPad. Staff add and name it in the Studio app's **Booths**; the name can't be changed afterwards. It has one Hub registration at a time.
 
-**Team** (`org` in the code): the staff who share booths and their alerts, added in Studio's **Team**. Staff see only their team's booths, alerts and devices; a platform admin sees every team's and manages its members.
+**Team** (`org` in the code): the staff who share booths and their alerts (unless some are **on call**), added in Studio's **Team**. Staff see only their team's booths, alerts and devices; a platform admin sees every team's and manages its members.
 _Avoid_: org, organisation (in staff-facing text).
 
 **Staff**: the people who set up and run booths. On the Hub, each one is in a team as a **member** or an **owner**.
 
 **Member**, **Owner** (`org_member.role` in the code): the two roles in a team. Both see the team's booths and alerts; an owner also adds and removes the team's members, in Studio's **Team**.
 
-**Platform admin**: a 99Stud person who sees every team, booth and alert on the Hub (`platform_admin` in the code). It isn't a team role: a platform admin's devices still only get the alerts of the teams they're in.
+**Platform admin**: a 99Stud person who sees every team, booth and alert on the Hub (`platform_admin` in the code), books events and puts staff on call. It isn't a team role: a platform admin's devices still only get the alerts of the teams they're in.
+
+**Client**: the team an event is for (`event.org_id` in the code): 99Stud's own, or a customer's. Its members see its events in the Studio app; they never see who runs the booth nor get its alerts.
+
+**On call**: the staff picked for an event to get its booth's alerts while it's on, from the booth's team. With nobody on call, or none of them with a device, the whole team gets them. Staff see it in Studio's **This device**: **You're on call**.
+_Avoid_: crew, on duty, recipients (in staff-facing text).
 
 **Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions, its maintenance state and whether its lottery is live with stock left. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
 
 **Alert**: something staff must act on, opened by the Hub from a heartbeat or a silence: **Out of paper**, **Printer error**, **Printer not connected**, **Paper low**, **Cover open**, **Lottery empty**, **Update failed** or **Silent booth**. It closes by itself when the condition clears, and staff can acknowledge it meanwhile. **Paper low** never fires on our booth: the printer is mounted upright, where its near-end sensor must stay off.
 
-**Device**: a staff phone, iPad or computer that gets alerts as push notifications, once its owner turned them on in the Studio app (`push_subscription` in the code). A device the push service says is gone is forgotten, and so are the devices of someone removed from the team.
+**Device**: a staff phone, iPad or computer that gets the alerts meant for its owner (see **on call**) as push notifications, once its owner turned them on in the Studio app (`push_subscription` in the code). A device the push service says is gone is forgotten, and so are the devices of someone removed from the team.
 _Avoid_: subscription (in staff-facing text).
 
 **Reminder**: an alert pushed again: a critical alert still open and not acknowledged is pushed every 10 minutes.
@@ -211,14 +219,14 @@ _Avoid_: subscription (in staff-facing text).
 **Acknowledge**: what staff do in the Studio app to say "I'm on it". It stops the reminders; the alert still closes by itself when the condition clears.
 _Avoid_: dismiss, mute.
 
-**Event times**: when a booth is expected to be running, set per booth in the Studio app (`live_from`, `live_until` in the code). Only then is a silent booth an alert. They live on the Hub and have nothing to do with the booth's event in admin, nor with its **start and end**: replacing that event leaves them as they are. Only the Hub can hold them, since a booth that never powers on can't report its own.
+**Event times**: when a booth is expected to be running, set per booth in the Studio app (`live_from`, `live_until` in the code). Then, and during its events, a silent booth is an alert. They live on the Hub and have nothing to do with the booth's event in admin, nor with its **start and end**: replacing that event leaves them as they are. Only the Hub can hold them, since a booth that never powers on can't report its own.
 _Avoid_: live window (in staff-facing text).
 
 **Update failed** (alert): an update Studio asked for stopped before its switch, or the new release didn't start and the booth went back. The booth's reason is under it in Studio; asking again closes it.
 
 **Lottery empty** (alert): the lottery is live and every prize is out of stock, so every guest loses. A warning: the booth still prints photos. A **Restock**, or switching the lottery off, closes it.
 
-**Silent booth**: a booth that has sent no heartbeat for three minutes between its event times. Only the Hub can notice it, since a booth that lost power or its network can't say so.
+**Silent booth**: a booth that has sent no heartbeat for three minutes between its event times or during one of its events. Only the Hub can notice it, since a booth that lost power or its network can't say so.
 _Avoid_: offline, down (in staff-facing text).
 
 **Hub registration**: the booth's own identity on the Hub, made once with a registration code from admin's **Settings → Hub**. A registered booth reports to the Hub; **forgetting the registration** stops that, on the booth only.

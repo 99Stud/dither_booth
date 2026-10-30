@@ -24,23 +24,27 @@ For the Edge Functions, also run `supabase functions serve`; they answer on `htt
 
 ## What's in the database
 
-| Table               | Holds                                                                                                                                                                                                                                                                                            |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `org`, `org_member` | Who may see what. A member's `role` is `member` (the default) or `owner`: an owner manages the team's members in Studio's **Team**, through the `team` function.                                                                                                                                 |
-| `platform_admin`    | The platform admins: one row per user. A user reads only their own row; rows are added from the SQL editor.                                                                                                                                                                                      |
-| `booth`             | One booth: its [event times](/docs/start-here/glossary/) (`live_from`, `live_until`), when silence is an alert, and its registration (the code's hash and expiry, its Auth user, when it registered). Staff read only `id`, `org_id`, `name`, the event times, `created_at` and `registered_at`. |
-| `booth_status`      | The last [heartbeat](/docs/start-here/glossary/) of each booth.                                                                                                                                                                                                                                  |
-| `alert`             | An alert opened from a heartbeat: one open per booth and key.                                                                                                                                                                                                                                    |
-| `push_subscription` | A staff device that gets web push. Its `(org_id, user_id)` is a membership: removing someone from a team removes their devices on it.                                                                                                                                                            |
-| `booth_update`      | The [update request](/docs/start-here/glossary/#releases) staff made for a booth from Studio, one per booth: the release, who asked and when, and how the booth says it goes (`requested`, `waiting`, `running`, `done`, `failed`, `rolled-back`, with the booth's reason).                      |
+| Table               | Holds                                                                                                                                                                                                                                                                                                           |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `org`, `org_member` | Who may see what. A member's `role` is `member` (the default) or `owner`: an owner manages the team's members in Studio's **Team**, through the `team` function.                                                                                                                                                |
+| `platform_admin`    | The platform admins: one row per user. A user reads only their own row; rows are added from the SQL editor.                                                                                                                                                                                                     |
+| `booth`             | One booth: its [event times](/docs/start-here/glossary/) (`live_from`, `live_until`), when silence is an alert, and its registration (the code's hash and expiry, its Auth user, when it registered). Staff read only `id`, `org_id`, `name`, the event times, `created_at` and `registered_at`.                |
+| `booth_status`      | The last [heartbeat](/docs/start-here/glossary/) of each booth.                                                                                                                                                                                                                                                 |
+| `alert`             | An alert opened from a heartbeat: one open per booth and key.                                                                                                                                                                                                                                                   |
+| `push_subscription` | A staff device that gets web push. Its `(org_id, user_id)` is a membership: removing someone from a team removes their devices on it.                                                                                                                                                                           |
+| `event`             | An [event](/docs/start-here/glossary/): a client (`org_id`, the client's team), a booth, a name and a window (`starts_at`, `ends_at`, half-open). A booth is at one event at a time (`event_one_at_a_time`, an exclusion constraint). Who booked it (`created_by`) and when it last changed come from triggers. |
+| `event_on_call`     | Who is [on call](/docs/start-here/glossary/) for an event: one row per event and person. The person is a member of the booth's team (`org_id`, filled in from the event's booth by `event_on_call_fill`), never the client's. Leaving the team, or cancelling the event, removes the row.                       |
+| `booth_update`      | The [update request](/docs/start-here/glossary/#releases) staff made for a booth from Studio, one per booth: the release, who asked and when, and how the booth says it goes (`requested`, `waiting`, `running`, `done`, `failed`, `rolled-back`, with the booth's reason).                                     |
 
 Every table has `org_id` and row level security. Rules worth knowing:
 
 - **Who sees a team.** Its members, and every platform admin. Policies say so with `org_id in (select public.visible_org_ids())`: the caller's teams, or every team for an admin. `org` and `org_member` check memberships and `is_platform_admin()` themselves, since `visible_org_ids()` reads them and would recurse.
-- **Platform admins act as staff of every team**: they read, add booths, set event times, acknowledge alerts, ask booths to update and add teams (`insert (name)` on `org`). They get no push for a team they aren't in: a user can only add a device for a team they're in.
+- **Platform admins act as staff of every team**: they read, add booths, set event times, acknowledge alerts, ask booths to update and add teams (`insert (name)` on `org`). Only they book, change and cancel events and put staff on call. They get no push for a team they aren't in: a user can only add a device for a team they're in.
 - **Staff read their org's rows and write little.** On `booth` they add one to their org (`org_id`, `name`) and set its event times (`live_from`, `live_until`); never its registration, nor its name. The only column they write on `alert` is `acked_at`; a trigger records who. Asking a booth to update again closes its **Update failed** alert: the request trigger (`private.booth_update_requested`, `security definer`) does it for that booth only, without giving staff the column. They manage their own `push_subscription` rows. Nobody writes `org_member` directly: the `team` function does (below).
+- **Events.** A name is stored trimmed, 120 characters at most: the booth gets it as is. Two teams read one: the client's (`org_id`) and the booth's, whose staff go there and may be on call. Platform admins write them: `insert (org_id, booth_id, name, starts_at, ends_at)`, `update (booth_id, name, starts_at, ends_at)` (the client stays), `delete`. An event can't move to another team's booth while anyone is on call for it (`23503`), and a booth or a team with events can't be deleted.
+- **On call.** The booth's team reads who is on call; platform admins add and remove rows (`insert (event_id, user_id)`, `delete`). The client's team sees none of it.
 - **Update requests.** On `booth_update` staff insert a row for their org's booth (`booth_id`, `org_id`, `release`), change its `release` (asking again), or delete it (cancel). A trigger sets who asked and when and resets the state to `requested`. Only the heartbeat function writes the state, through `report_booth_update`.
-- **Realtime** publishes `alert`, `booth_status` and `booth_update`, so Studio updates without polling. It applies the same row level security: staff only hear about their team's rows, and a platform admin about every team's.
+- **Realtime** publishes `alert`, `booth_status`, `booth_update`, `event` and `event_on_call`, so Studio updates without polling. It applies the same row level security: staff only hear about their team's rows, and a platform admin about every team's.
 - **A booth never touches these tables.** Its JWT carries `booth_id` in `app_metadata` (never `user_metadata`, which users can edit), and an Edge Function writes with the service role after checking it.
 - **No `security definer` functions in `public`**: Postgres lets every role call them.
 
@@ -90,7 +94,8 @@ Once registered, the engine sends a heartbeat every 30 seconds, and at once when
 - **Release.** The heartbeat's `release` is the version in `release.json` when the engine runs from a [release bundle](/docs/development/releases/), else `git describe` of the checkout it runs from.
 - **Dry run.** An engine in dry run (`RECEIPT_PRINT_DRY_RUN`) says so, and the Hub never alerts for it.
 - **Lottery.** The heartbeat's `lottery` is `{ live, stockLeft }` for the active event, from `getLotteryStatusForDb` (`stockLeft` counts units across its prizes, 0 when it is off). Every lottery save (the procedures that send the kiosk `lottery-updated`) and every win calls `hubReporter.lotteryChanged()`, which sends a heartbeat at once only if the lottery became empty (live, 0 left) or stopped being so since the last one: a win that leaves stock sends nothing. A booth from before it sends no `lottery`; a Hub from before it drops it.
-- **Updates.** The answer is `{ ok: true, update }`: `update` is `{ release }` while a request from Studio is `requested` or `waiting`, else null. The heartbeat function gets it from `report_booth_update(booth_id, heartbeat)` after `evaluate_heartbeat`. That function also records the heartbeat's optional `update` report (`{ release, state, error }`) when its release is the one asked for, opens a `booth.update-failed` alert when it reports `failed` or `rolled-back`, and marks the request `done` (closing that alert) once the heartbeat's `release` is it. A booth from before updates sends no report and ignores the answer's `update`; a Hub from before it drops the report. See [Updates](/docs/architecture/updates/#from-studio).
+- **Its event.** The answer also carries `event`: the event the booth is at now (`{ id, name, startsAt, endsAt }`, from `booth_current_event(booth_id)`), or null. A failure to read it answers null and logs it: the heartbeat still counts. The booth doesn't act on it yet: it keeps its own start and end for its stats ([decision 0012](/docs/decisions/0012-events-are-booked-on-the-hub/)). An `event` a booth can't read parses as null, so it never costs the `update` next to it.
+- **Updates.** The answer is `{ ok: true, update, event }`: `update` is `{ release }` while a request from Studio is `requested` or `waiting`, else null. The heartbeat function gets it from `report_booth_update(booth_id, heartbeat)` after `evaluate_heartbeat`. That function also records the heartbeat's optional `update` report (`{ release, state, error }`) when its release is the one asked for, opens a `booth.update-failed` alert when it reports `failed` or `rolled-back`, and marks the request `done` (closing that alert) once the heartbeat's `release` is it. A booth from before updates sends no report and ignores the answer's `update`; a Hub from before it drops the report. See [Updates](/docs/architecture/updates/#from-studio).
 
 To try it on a laptop, point the engine at the local stack (`HUB_URL`, `HUB_PUBLISHABLE_KEY` from `supabase status`), register it with a code from local Studio or the local SQL editor, and watch `booth_status`.
 
@@ -98,23 +103,23 @@ To try it on a laptop, point the engine at the local stack (`HUB_URL`, `HUB_PUBL
 
 A booth posts its [heartbeat](/docs/start-here/glossary/) to the `heartbeat` Edge Function every 30 seconds. The function takes the booth from the session (`app_metadata.booth_id`, checked with Auth), checks the body against `@dither-booth/protocol`, and calls `evaluate_heartbeat`, which stores it and opens or closes alerts:
 
-| Key                      | Severity | Opens when                                                      |
-| ------------------------ | -------- | --------------------------------------------------------------- |
-| `printer.paper-out`      | critical | the printer is out of paper                                     |
-| `printer.error`          | critical | the printer reports an error                                    |
-| `printer.disconnected`   | critical | not connected for a minute                                      |
-| `printer.paper-near-end` | warn     | paper is running low                                            |
-| `printer.cover-open`     | warn     | the cover is open for a minute                                  |
-| `lottery.out-of-stock`   | warn     | the lottery is live with 0 stock left                           |
-| `booth.silent`           | critical | no heartbeat for 3 minutes while `live_from`–`live_until` is on |
+| Key                      | Severity | Opens when                                                    |
+| ------------------------ | -------- | ------------------------------------------------------------- |
+| `printer.paper-out`      | critical | the printer is out of paper                                   |
+| `printer.error`          | critical | the printer reports an error                                  |
+| `printer.disconnected`   | critical | not connected for a minute                                    |
+| `printer.paper-near-end` | warn     | paper is running low                                          |
+| `printer.cover-open`     | warn     | the cover is open for a minute                                |
+| `lottery.out-of-stock`   | warn     | the lottery is live with 0 stock left                         |
+| `booth.silent`           | critical | no heartbeat for 3 minutes during its event times or an event |
 
 - An alert closes when its condition clears, and any heartbeat ends a silence. Closed alerts stay as history.
 - The minute of grace only holds an alert back from opening. It is counted on the booth's own clock (`changedAt` to `sentAt`), so a Pi with the wrong time doesn't skew it; a negative age (the clock went back) counts as past it. Once open, an alert stays open while its condition holds, whatever else changes.
 - `unknown` (the printer reconnecting) leaves printer alerts as they are: it says nothing about the paper.
-- `lottery.out-of-stock` closes on a restock or when the lottery goes off, and opens whatever the event times: the lottery's own switch says whether it should give prizes. It is a warning, so it is never reminded. A heartbeat without `lottery` (a booth from before it) never opens it, and closes one that is open.
+- `lottery.out-of-stock` closes on a restock or when the lottery goes off, and opens outside event times and events too: the lottery's own switch says whether it should give prizes. It is a warning, so it is never reminded. A heartbeat without `lottery` (a booth from before it) never opens it, and closes one that is open.
 - A dry-run booth never alerts, and switching to dry run closes what was open.
 - A heartbeat older than the one stored (a late retry) is ignored.
-- Silence counts from `live_from` at the earliest, so a booth switched on as its event starts has three minutes to report.
+- A booth is live between its event times (`live_from`–`live_until`) and during each of its [events](/docs/start-here/glossary/). Silence counts from the earliest start among the windows that are on, so a booth switched on as its event starts has three minutes to report.
 - `alert.key` only takes the keys above: a new rule adds its key to the `alert_key_known` constraint.
 - `evaluate_silence` runs every minute from `pg_cron` (job `booth-silence`).
 - Both functions are for the service role only. The thresholds are constants in the migration, until an event needs others.
@@ -125,13 +130,24 @@ The database pushes alert events itself:
 
 1. A trigger on `alert` queues **opened** (a new alert) and **resolved** (it closed) for the `notify` Edge Function, through `pg_net`, after the transaction commits.
 2. A `pg_cron` job (`alert-reminders`, every minute) queues a **reminder** for each critical alert that is still open, not acknowledged, and was last pushed 10 minutes ago.
-3. `notify` checks the shared secret, words the message from `@dither-booth/protocol/alerts` (the glossary's terms), and sends an encrypted web push (VAPID) to every [device](/docs/start-here/glossary/) of the alert's org at once. A device the push service says is gone (404, 410, or Apple's 400 `BadWebPushToken`) is forgotten. Its answer counts what was sent, removed and failed, and lists every refusal by push service, which the function's log keeps too.
+3. `notify` checks the shared secret, words the message from `@dither-booth/protocol/alerts` (the glossary's terms), and sends an encrypted web push (VAPID) at once to the [devices](/docs/start-here/glossary/) `alert_devices(alert_id)` picks (below). A device the push service says is gone (404, 410, or Apple's 400 `BadWebPushToken`) is forgotten. Its answer counts what was sent, removed and failed, and lists every refusal by push service, which the function's log keeps too.
 
 Critical alerts go out with high urgency and live an hour at the push service; "back to normal" goes out with normal urgency. Every push for an alert carries the alert's id as its tag and topic, so a reminder or "back to normal" replaces the notification already on the device. Each push also says when what it reports happened (`at`): two pushes for one alert can arrive out of order, and the Studio app keeps the newer one.
 
 **Only push services are fetched.** A device's endpoint is a URL its owner writes and `notify` fetches, so the database only accepts `https` on Apple's, Google's, Mozilla's and Windows' push services (`push_subscription_endpoint_push_service`, the same list as `@dither-booth/protocol/push`), and `notify` refuses and forgets anything else without fetching it.
 
 **A push that fails is not retried.** `pg_net` calls `notify` once: if that call fails, a warning's only push is lost, and a critical alert's next chance is its reminder, up to about 11 minutes later. The alert itself is never lost; Studio shows it.
+
+### Who an alert goes to
+
+`alert_devices(alert_id)` holds the rule, in one place, for the service role only:
+
+- **The event** is the one on the alert's booth whose window covers when the alert **opened**, not now. A reminder after the event ended still reaches that night's people, and so does "back to normal".
+- **The devices** are those of the staff [on call](/docs/start-here/glossary/) for it.
+- **Otherwise the whole team**: with no event, nobody on call, or no device among those on call, every device of the booth's team. A few extra phones beat a silent critical alert.
+- It is read on every push: someone put on call during the night gets the next reminder of an alert already open.
+
+The client's team never gets a booth's alerts: devices belong to the booth's team.
 
 `send-test` pushes a test notification to the caller's own devices (it takes the caller's session), for the Studio app's "Send test notification" button.
 
@@ -143,6 +159,10 @@ Critical alerts go out with high urgency and live an hour at the push service; "
 - **Adding** makes a confirmed Auth user with no password and sends no email: the person signs in with Studio's code, as all staff do. An address that already has a login (on another team) joins as it is. Auth has no lookup by address, so the function reads every user, a page at a time; at a few dozen that's nothing, past a thousand it wants a SQL lookup instead.
 - **Refusals** carry a `reason`: `already-member` (`409`), `booth-login` (`422`: a booth's Auth user, `app_metadata.booth_id`, never joins a team), `own-row` (`422`: nobody removes or demotes themselves, so nobody locks themselves out; a platform admin can still fix any team), `not-a-member` (`404`).
 - **Removing** keeps the person's login: they may be in another team. Their devices on this team go with the membership (the foreign key above), so their phones stop getting its alerts at once.
+
+### The on-call function
+
+`on-call` is the read behind Studio's **On call** section: `GET ?eventId=` with the caller's session (shapes in `@dither-booth/protocol/on-call`). It answers the event and the booth's team, each with their address, devices and whether they're on call: the caller first, then by email. Studio knows from `is_platform_admin()` whether the caller may change it. It uses the service role for the same reason as `team`: addresses and others' devices. The booth's team and platform admins read it; anyone else, the client's team included, gets `404`. Putting someone on or off call is a plain write on `event_on_call`, under its policies.
 
 ### Setting it up on a project
 

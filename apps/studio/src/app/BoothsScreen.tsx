@@ -59,16 +59,13 @@ import { messageOf } from "#lib/errors";
 import { useLive } from "#lib/live";
 import { isBehind, useLatestRelease } from "#lib/releases";
 import { staffOrgId } from "#lib/team";
+import { toLocalInput } from "#lib/time";
 
 const REPORT_TONE: Record<ReportTone, IconBubbleTone> = {
   ok: "emerald",
   warn: "amber",
   off: "zinc",
 };
-
-/** A datetime-local input's value, in this device's time zone. */
-const toLocalInput = (iso: string | null) =>
-  iso ? format(new Date(iso), "yyyy-MM-dd'T'HH:mm") : "";
 
 const EventTimes = ({
   booth,
