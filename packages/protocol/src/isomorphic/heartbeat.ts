@@ -105,6 +105,19 @@ export const heartbeatSchema = z.object({
     })
     .optional(),
   /**
+   * The booth camera: `ready` while a kiosk page on the iPad reports a
+   * camera showing a picture, false with no page connected (the iPad off or
+   * asleep, the Shutter closed) or a camera that failed. `changedAt` is
+   * when `ready` last flipped, which the Hub's grace period counts from. A
+   * booth from before it never sends it; a Hub from before it drops it.
+   */
+  camera: z
+    .object({
+      ready: z.boolean(),
+      changedAt: z.iso.datetime(),
+    })
+    .optional(),
+  /**
    * Only while Studio has asked this booth to update. A booth from before
    * it never sends it; a Hub from before it drops it.
    */
@@ -140,6 +153,7 @@ export type HeartbeatReply = z.infer<typeof heartbeatReplySchema>;
 
 export type Heartbeat = z.infer<typeof heartbeatSchema>;
 export type HeartbeatLottery = NonNullable<Heartbeat["lottery"]>;
+export type HeartbeatCamera = NonNullable<Heartbeat["camera"]>;
 export type PrinterCondition = z.infer<typeof printerConditionSchema>;
 
 /** The glossary's word for each condition, as staff read it everywhere. */

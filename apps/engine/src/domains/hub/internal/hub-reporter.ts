@@ -12,7 +12,11 @@ import { getErrorMessage } from "@dither-booth/shared/errors";
 import { eq } from "drizzle-orm";
 
 import type { DbExecutor } from "#db/internal/db.types";
-import type { KioskMaintenance } from "#domains/kiosk/kiosk.service";
+import type {
+  KioskCamera,
+  KioskCameraState,
+  KioskMaintenance,
+} from "#domains/kiosk/kiosk.service";
 import type {
   BoothPrinter,
   PrinterStatus,
@@ -56,9 +60,10 @@ const isLotteryEmpty = (lottery: HeartbeatLottery) =>
 
 /**
  * Tells the Hub how the booth is doing: a heartbeat every `intervalMs`, and
- * one as soon as the printer's conditions change, or the lottery runs out
- * or has prizes again (`lotteryChanged`), so an alert doesn't wait for the
- * next tick. Does nothing while the booth isn't registered.
+ * one as soon as the printer's conditions change, the camera goes off or
+ * comes back, or the lottery runs out or has prizes again
+ * (`lotteryChanged`), so an alert doesn't wait for the next tick. Does
+ * nothing while the booth isn't registered.
  *
  * The booth's session lives here. The access token stays in memory; the
  * refresh token is single use, so each new one is stored before the access
@@ -71,6 +76,8 @@ export function createHubReporter(deps: {
   hub: HubEndpoint;
   printer: Pick<BoothPrinter, "getStatus" | "subscribe">;
   maintenance: Pick<KioskMaintenance, "get">;
+  /** The booth camera, as the kiosk pages report it. */
+  camera: Pick<KioskCamera, "get" | "subscribe">;
   /** The active event's lottery, as admin's lottery status reads it. */
   getLotteryStatus: () => Promise<
     Pick<LotteryStatus, "enabled" | "remainingPrizes">
@@ -89,6 +96,7 @@ export function createHubReporter(deps: {
     hub,
     printer,
     maintenance,
+    camera,
     log,
     intervalMs = 30_000,
     fetch: fetchFn = fetch,
@@ -102,7 +110,7 @@ export function createHubReporter(deps: {
   let sendAgain = false;
   let lastSentPrinter: PrinterStatus | null = null;
   let lastSentLottery: HeartbeatLottery | null = null;
-  let unsubscribe: (() => void) | undefined;
+  const unsubscribes: Array<() => void> = [];
 
   const headers = (extra: Record<string, string> = {}) => ({
     apikey: hub.publishableKey,
@@ -195,6 +203,7 @@ export function createHubReporter(deps: {
 
   function heartbeat(
     status: PrinterStatus,
+    cameraState: KioskCameraState,
     lottery: HeartbeatLottery | null,
     update: BoothUpdateReport | undefined,
   ): Heartbeat {
@@ -211,6 +220,10 @@ export function createHubReporter(deps: {
         changedAt: status.changedAt || now().toISOString(),
       },
       maintenance: { on: enabled, reasons },
+      camera: {
+        ready: cameraState.ready,
+        changedAt: cameraState.changedAt.toISOString(),
+      },
       ...(lottery ? { lottery } : {}),
       ...(update ? { update } : {}),
     });
@@ -221,12 +234,13 @@ export function createHubReporter(deps: {
     if (!token) return;
 
     const status = printer.getStatus();
+    const cameraState = camera.get();
     const lottery = await readLottery();
     const update = await deps.updates?.report();
     const res = await fetchFn(`${hub.url}/functions/v1/heartbeat`, {
       method: "POST",
       headers: headers({ Authorization: `Bearer ${token}` }),
-      body: JSON.stringify(heartbeat(status, lottery, update)),
+      body: JSON.stringify(heartbeat(status, cameraState, lottery, update)),
       signal: AbortSignal.timeout(15_000),
     });
 
@@ -293,18 +307,23 @@ export function createHubReporter(deps: {
     start() {
       if (running) return;
       running = true;
-      unsubscribe = printer.subscribe((status) => {
-        if (!lastSentPrinter || !sameConditions(lastSentPrinter, status)) {
-          void report();
-        }
-      });
+      unsubscribes.push(
+        printer.subscribe((status) => {
+          if (!lastSentPrinter || !sameConditions(lastSentPrinter, status)) {
+            void report();
+          }
+        }),
+        // Every flip matters: off starts the Hub's grace period, back closes
+        // the alert.
+        camera.subscribe(() => void report()),
+      );
       void report();
       schedule();
     },
     stop() {
       running = false;
       clearTimeout(timer);
-      unsubscribe?.();
+      for (const unsubscribe of unsubscribes.splice(0)) unsubscribe();
     },
     /** Sends now, for instance right after registering. */
     report,

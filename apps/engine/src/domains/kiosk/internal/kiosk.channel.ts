@@ -41,10 +41,16 @@ export type KioskChannel = {
   listPages: () => KioskPageConnection[];
   /** Calls `listener` with a page's id once it disconnects; returns an unsubscribe. */
   onPageLeft: (listener: (pageId: string) => void) => () => void;
+  /**
+   * Calls `listener` whenever `listPages()` would answer differently: a
+   * page connected, reported its status or left. Returns an unsubscribe.
+   */
+  onPagesChanged: (listener: () => void) => () => void;
 };
 
 const COMMAND_EVENT = "command";
 const PAGE_LEFT_EVENT = "page-left";
+const PAGES_CHANGED_EVENT = "pages-changed";
 
 export function createKioskChannel(): KioskChannel {
   const emitter = new EventEmitter();
@@ -59,6 +65,7 @@ export function createKioskChannel(): KioskChannel {
     if (!page) return;
     pages.delete(connection);
     emitter.emit(PAGE_LEFT_EVENT, page.pageId);
+    emitter.emit(PAGES_CHANGED_EVENT);
   };
 
   async function* streamCommands(
@@ -102,6 +109,7 @@ export function createKioskChannel(): KioskChannel {
       signal?.addEventListener("abort", () => removePage(connection), {
         once: true,
       });
+      emitter.emit(PAGES_CHANGED_EVENT);
 
       return streamCommands(connection, commands, signal, initial);
     },
@@ -114,6 +122,7 @@ export function createKioskChannel(): KioskChannel {
       for (const [connection, page] of pages) {
         if (page.pageId !== pageId) continue;
         pages.set(connection, { ...page, ...status, reportedAt: new Date() });
+        emitter.emit(PAGES_CHANGED_EVENT);
         return true;
       }
       return false;
@@ -124,6 +133,10 @@ export function createKioskChannel(): KioskChannel {
     onPageLeft(listener) {
       emitter.on(PAGE_LEFT_EVENT, listener);
       return () => emitter.off(PAGE_LEFT_EVENT, listener);
+    },
+    onPagesChanged(listener) {
+      emitter.on(PAGES_CHANGED_EVENT, listener);
+      return () => emitter.off(PAGES_CHANGED_EVENT, listener);
     },
   };
 }

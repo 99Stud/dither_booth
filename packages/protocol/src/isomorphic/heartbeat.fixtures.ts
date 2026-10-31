@@ -71,6 +71,15 @@ export const HEARTBEAT_FIXTURES = {
   lotteryOutOfStock: { ...ready, lottery: { live: true, stockLeft: 0 } },
   /** Switched off: nothing to give, and nothing expected. */
   lotteryOff: { ...ready, lottery: { live: false, stockLeft: 0 } },
+  /** A kiosk page on the iPad shows a picture. */
+  cameraReady: { ...ready, camera: { ready: true, changedAt: LONG_AGO } },
+  /** No picture for 10 s: a reload, a restart. Not an alert yet. */
+  cameraOffJustNow: {
+    ...ready,
+    camera: { ready: false, changedAt: "2026-10-31T18:00:20.000Z" },
+  },
+  /** No picture for an hour: the iPad is off, asleep, or lost the Shutter. */
+  cameraOffForLong: { ...ready, camera: { ready: false, changedAt: LONG_AGO } },
   /** A development booth: never alerts. */
   dryRun: {
     ...printerFault(["paper-out"]),

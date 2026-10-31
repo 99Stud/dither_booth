@@ -4,6 +4,11 @@ export {
   type KioskPageConnection,
 } from "./internal/kiosk.channel";
 export {
+  createKioskCamera,
+  type KioskCamera,
+  type KioskCameraState,
+} from "./internal/kiosk.camera";
+export {
   type CameraPreview,
   createCameraPreview,
 } from "./internal/kiosk.camera-preview";

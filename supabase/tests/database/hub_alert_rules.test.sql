@@ -1,24 +1,26 @@
 -- When alerts open and close: evaluate_heartbeat for the printer's
--- conditions and the lottery's stock, evaluate_silence for a booth that
--- stopped talking.
+-- conditions, the lottery's stock and the camera, evaluate_silence for a
+-- booth that stopped talking.
 begin;
-select plan(59);
+select plan(71);
 
--- Booth n of the test, as a uuid.
+-- Booth n of the test (up to 99), as a uuid.
 create function pg_temp.booth(p_n int) returns uuid language sql as $$
-  select format('b%s000000-0000-0000-0000-00000000000%s', p_n, p_n)::uuid
+  select format('b%s00000-0000-0000-0000-0000000000%s', lpad(p_n::text, 2, '0'), lpad(p_n::text, 2, '0'))::uuid
 $$;
 
 -- A heartbeat as the protocol defines it: its printer has been in
 -- `p_conditions` for `p_condition_age_s` seconds, and it was sent
--- `p_sent_offset_s` seconds from now. `p_lottery` ({live, stockLeft}) is
--- left out when null, as a booth from before it does.
+-- `p_sent_offset_s` seconds from now. `p_lottery` ({live, stockLeft}) and
+-- `p_camera` ({ready, changedAt}) are left out when null, as a booth from
+-- before them does.
 create function pg_temp.heartbeat(
   p_conditions text[] default '{}',
   p_condition_age_s int default 120,
   p_dry_run boolean default false,
   p_sent_offset_s int default 0,
-  p_lottery jsonb default null
+  p_lottery jsonb default null,
+  p_camera jsonb default null
 ) returns jsonb language sql as $$
   select jsonb_build_object(
     'protocol', 0,
@@ -35,11 +37,21 @@ create function pg_temp.heartbeat(
     'maintenance', jsonb_build_object('on', false, 'reasons', '[]'::jsonb)
   ) || case when p_lottery is null then '{}'::jsonb
             else jsonb_build_object('lottery', p_lottery) end
+    || case when p_camera is null then '{}'::jsonb
+            else jsonb_build_object('camera', p_camera) end
 $$;
 
 -- A heartbeat from a ready booth whose lottery is `p_live` with `p_stock_left`.
 create function pg_temp.lottery_heartbeat(p_live boolean, p_stock_left int) returns jsonb language sql as $$
   select pg_temp.heartbeat(p_lottery => jsonb_build_object('live', p_live, 'stockLeft', p_stock_left))
+$$;
+
+-- A heartbeat from a ready booth whose camera has been `p_ready` (or not)
+-- for `p_age_s` seconds, on the booth's clock.
+create function pg_temp.camera_heartbeat(p_ready boolean, p_age_s int, p_dry_run boolean default false) returns jsonb language sql as $$
+  select pg_temp.heartbeat(p_dry_run => p_dry_run, p_camera => jsonb_build_object(
+    'ready', p_ready,
+    'changedAt', to_jsonb(now() - make_interval(secs => p_age_s))))
 $$;
 
 create function pg_temp.send(p_n int, p_heartbeat jsonb) returns void language sql as $$
@@ -58,14 +70,14 @@ $$;
 
 insert into public.org (id, name) values
   ('aaaaaaaa-0000-0000-0000-00000000000a', 'Org A');
--- 1, 5, 6, 8, 9: no event window. 2, 3, 4, 7: an event that is on right now; 7's
--- window only opened a minute ago.
+-- 1, 5, 6, 8, 9: no event window. 2, 3, 4, 7, 10: an event that is on right
+-- now; 7's window only opened a minute ago.
 insert into public.booth (id, org_id, name, live_from, live_until)
 select pg_temp.booth(n), 'aaaaaaaa-0000-0000-0000-00000000000a', 'Booth ' || n,
-  case when n in (2, 3, 4) then now() - interval '1 hour'
+  case when n in (2, 3, 4, 10) then now() - interval '1 hour'
        when n = 7 then now() - interval '1 minute' end,
-  case when n in (2, 3, 4, 7) then now() + interval '1 hour' end
-from generate_series(1, 9) as n;
+  case when n in (2, 3, 4, 7, 10) then now() + interval '1 hour' end
+from generate_series(1, 10) as n;
 
 -- Heartbeats ---------------------------------------------------------------
 
@@ -218,6 +230,39 @@ select pg_temp.send(8, pg_temp.lottery_heartbeat(true, 0));
 select pg_temp.send(8, pg_temp.heartbeat(p_dry_run => true, p_lottery => '{"live": true, "stockLeft": 0}'));
 select is(pg_temp.open_alerts(8), '{}'::text[], 'and switching to dry run closes it');
 
+-- The camera -------------------------------------------------------------
+
+select pg_temp.send(10, pg_temp.heartbeat());
+select is(pg_temp.open_alerts(10), '{}'::text[], 'a booth that sends no camera state never alerts for it');
+select pg_temp.send(10, pg_temp.camera_heartbeat(false, 30));
+select is(pg_temp.open_alerts(10), '{}'::text[], 'a camera off for 30 s is a reload, not an alert');
+select pg_temp.send(10, pg_temp.camera_heartbeat(false, 120));
+select is(pg_temp.open_alerts(10), array['booth.camera-off:critical'], 'two minutes without a picture during the event is critical');
+select pg_temp.send(10, pg_temp.camera_heartbeat(false, 150));
+select is(pg_temp.alert_count(10), 1::bigint, 'the next heartbeat opens nothing new');
+select pg_temp.send(10, pg_temp.heartbeat());
+select is(pg_temp.open_alerts(10), array['booth.camera-off:critical'], 'a heartbeat without the camera''s state leaves it open');
+select pg_temp.send(10, pg_temp.camera_heartbeat(true, 0));
+select is(pg_temp.open_alerts(10), '{}'::text[], 'a picture closes it');
+
+select pg_temp.send(10, pg_temp.camera_heartbeat(false, 600, p_dry_run => true));
+select is(pg_temp.open_alerts(10), '{}'::text[], 'a dry-run booth never alerts for its camera');
+select pg_temp.send(10, pg_temp.camera_heartbeat(false, 600));
+select is(pg_temp.open_alerts(10), array['booth.camera-off:critical'], 'and does once it is not');
+-- Left open: the silence check closes it below, once the window is over.
+
+-- Between events the iPad may well be off.
+select pg_temp.send(8, pg_temp.camera_heartbeat(false, 600));
+select is(pg_temp.open_alerts(8), '{}'::text[], 'a booth with no event window never alerts for its camera');
+insert into public.event (id, org_id, booth_id, name, starts_at, ends_at) values
+  ('e8000000-0000-4000-8000-0000000000e8', 'aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.booth(8),
+   'Halloween', now() - interval '1 hour', now() + interval '1 hour');
+select pg_temp.send(8, pg_temp.camera_heartbeat(false, 600));
+select is(pg_temp.open_alerts(8), array['booth.camera-off:critical'], 'during one of its events it does');
+update public.event set ends_at = now() - interval '1 minute' where id = 'e8000000-0000-4000-8000-0000000000e8';
+select pg_temp.send(8, pg_temp.camera_heartbeat(false, 600));
+select is(pg_temp.open_alerts(8), '{}'::text[], 'the event ending closes it on the next heartbeat');
+
 -- Silence -------------------------------------------------------------------
 
 update public.booth_status set last_seen_at = now() - interval '10 minutes'
@@ -244,6 +289,11 @@ select is(pg_temp.open_alerts(2), '{}'::text[], 'the next heartbeat ends the sil
 update public.booth set live_until = now() - interval '1 minute' where id = pg_temp.booth(3);
 select public.evaluate_silence();
 select is(pg_temp.open_alerts(3), '{}'::text[], 'when the event is over its silence is closed');
+
+-- Booth 10's camera is still off (above), and its iPad off, it went quiet.
+update public.booth set live_until = now() - interval '1 minute' where id = pg_temp.booth(10);
+select public.evaluate_silence();
+select is(pg_temp.open_alerts(10), '{}'::text[], 'and so is its camera off');
 
 select throws_ok(
   $$insert into public.alert (org_id, booth_id, key, severity)

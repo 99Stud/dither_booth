@@ -1,6 +1,7 @@
 import { heartbeatSchema } from "@dither-booth/protocol/heartbeat";
 import { afterEach, describe, expect, test } from "bun:test";
 
+import type { KioskCameraState } from "#domains/kiosk/kiosk.service";
 import type { PrinterStatus } from "#domains/printer/printer.service";
 
 import { hubRegistrationTable } from "#db/internal/db.schema";
@@ -17,6 +18,7 @@ type HubReporterDeps = Parameters<typeof createHubReporter>[0];
 const HUB = { url: "https://hub.test", publishableKey: "pk" };
 const NOW = new Date("2026-10-31T18:00:00.000Z");
 const NOW_S = NOW.getTime() / 1000;
+const CAMERA_SINCE = new Date("2026-10-31T17:00:00.000Z");
 
 const READY: PrinterStatus = {
   canPrint: true,
@@ -90,8 +92,10 @@ function setup({
   }
   const hub = fakeHub();
   let status = READY;
+  let camera: KioskCameraState = { ready: true, changedAt: CAMERA_SINCE };
   let lottery = { enabled: true, remainingPrizes: 2 };
   const listeners = new Set<(s: PrinterStatus) => void>();
+  const cameraListeners = new Set<(s: KioskCameraState) => void>();
   const reporter = createHubReporter({
     db,
     hub: HUB,
@@ -112,6 +116,13 @@ function setup({
         updatedAt: null,
       }),
     },
+    camera: {
+      get: () => camera,
+      subscribe: (listener) => {
+        cameraListeners.add(listener);
+        return () => cameraListeners.delete(listener);
+      },
+    },
     getLotteryStatus: getLotteryStatus ?? (() => Promise.resolve(lottery)),
     release: "0.7.0",
     dryRun,
@@ -129,6 +140,10 @@ function setup({
     setPrinter(next: PrinterStatus) {
       status = next;
       for (const listener of listeners) listener(next);
+    },
+    setCamera(next: KioskCameraState) {
+      camera = next;
+      for (const listener of cameraListeners) listener(next);
     },
     setLottery(next: typeof lottery) {
       lottery = next;
@@ -158,12 +173,36 @@ describe("hub reporter", () => {
       release: "0.7.0",
       dryRun: false,
       printer: { conditions: [], canPrint: true },
+      camera: { ready: true, changedAt: CAMERA_SINCE.toISOString() },
       lottery: { live: true, stockLeft: 2 },
     });
     expect(reporter.getState()).toEqual({
       lastReportedAt: NOW.toISOString(),
       lastError: null,
     });
+  });
+
+  test("reports at once when the camera goes off or comes back", async () => {
+    const { hub, reporter, setCamera } = setup();
+    reporter.start();
+    await waitFor(() => hub.heartbeats.length >= 1);
+
+    setCamera({ ready: false, changedAt: NOW });
+    await waitFor(() => hub.heartbeats.length >= 2);
+    expect(heartbeatSchema.parse(hub.heartbeats[1]?.body).camera).toEqual({
+      ready: false,
+      changedAt: NOW.toISOString(),
+    });
+
+    setCamera({ ready: true, changedAt: NOW });
+    await waitFor(() => hub.heartbeats.length >= 3);
+    expect(heartbeatSchema.parse(hub.heartbeats[2]?.body).camera?.ready).toBe(
+      true,
+    );
+
+    reporter.stop();
+    setCamera({ ready: false, changedAt: NOW });
+    expect(hub.heartbeats).toHaveLength(3);
   });
 
   test("uses the access token until it nears expiry", async () => {

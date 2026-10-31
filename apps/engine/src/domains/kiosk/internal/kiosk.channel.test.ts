@@ -150,6 +150,26 @@ describe("createKioskChannel", () => {
     expect(left).toEqual(["a"]);
   });
 
+  test("reports every change to the listed pages, until unsubscribed", () => {
+    const channel = createKioskChannel();
+    let changes = 0;
+    const stop = channel.onPagesChanged(() => (changes += 1));
+    const controller = new AbortController();
+
+    channel.subscribe(page("a"), controller.signal);
+    expect(changes).toBe(1);
+    channel.reportStatus("a", { camera: null, maintenance: false });
+    expect(changes).toBe(2);
+    channel.reportStatus("ghost", { camera: null, maintenance: false });
+    expect(changes).toBe(2);
+    controller.abort();
+    expect(changes).toBe(3);
+
+    stop();
+    channel.subscribe(page("b"));
+    expect(changes).toBe(3);
+  });
+
   test("commands are not replayed to pages that connect later", async () => {
     const channel = createKioskChannel();
     channel.broadcast(RELOAD);

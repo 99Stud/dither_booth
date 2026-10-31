@@ -55,6 +55,7 @@ import {
   CAMERA_PREVIEW_MAX_DURATION_MS,
   CAMERA_PREVIEW_MAX_VIEWERS,
   createCameraPreview,
+  createKioskCamera,
   createKioskChannel,
   createKioskMaintenance,
 } from "#domains/kiosk/kiosk.service";
@@ -180,6 +181,7 @@ export async function runEngineServer(options: {
     maintenance: kioskMaintenance,
     printer,
   });
+  const kioskCamera = createKioskCamera({ kioskChannel });
   const release = readRelease(ENGINE_REPO_ROOT);
   // Reports to the Hub once the booth is registered; idle until then.
   const hubReporter = createHubReporter({
@@ -187,6 +189,7 @@ export async function runEngineServer(options: {
     hub: getHubOverride() ?? PRODUCTION_HUB,
     printer,
     maintenance: kioskMaintenance,
+    camera: kioskCamera,
     getLotteryStatus: () => getLotteryStatusForDb(db),
     release,
     dryRun: printer.dryRun,
