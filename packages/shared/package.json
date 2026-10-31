@@ -38,6 +38,7 @@
     "./routes": "./src/isomorphic/routes.ts",
     "./runtime": "./src/isomorphic/runtime.ts",
     "./server/booth-update": "./src/server/booth-update.ts",
+    "./server/database-backup": "./src/server/database-backup.ts",
     "./server/network": "./src/server/network.ts",
     "./server/paths": "./src/server/paths.ts",
     "./server/process-identity": "./src/server/process-identity.ts",

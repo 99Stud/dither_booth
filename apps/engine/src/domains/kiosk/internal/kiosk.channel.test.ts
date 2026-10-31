@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createTestDb } from "#db/internal/db.test-utils";
+import { createEventBackupsStub } from "#domains/backup/internal/backup.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
 import {
   createHubReporterStub,
@@ -197,6 +198,7 @@ describe("kiosk channel through the router", () => {
       allowedHostnames: [],
       db: db ?? (new Proxy({}, { get: unreachable }) as TRPCContext["db"]),
       darkroomAccess: createDarkroomAccessStub(),
+      eventBackups: createEventBackupsStub(),
       hubReporter,
       kioskChannel,
       kioskMaintenance,
