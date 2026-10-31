@@ -1,6 +1,6 @@
+import { backupDatabase as backupInto } from "@dither-booth/shared/server/database-backup";
 import { Database } from "bun:sqlite";
-import { copyFile, mkdir, readdir, rename, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { copyFile, rename, rm } from "node:fs/promises";
 
 /*
  * The engine's database around an update. Migrations only go forward, so
@@ -31,40 +31,32 @@ export function countMigrations(dbPath: string): number | null {
 }
 
 /**
- * A consistent copy while the engine keeps writing: `VACUUM INTO` reads
- * one snapshot. Returns the copy's path.
+ * A consistent copy while the engine keeps writing. Returns the copy's
+ * path. `booth restore` keeps its own, as many, under its prefix.
  */
 export async function backupDatabase({
   dbPath,
   backupsDir,
   label,
+  prefix = BACKUP_PREFIX,
 }: {
   dbPath: string;
   backupsDir: string;
   label: string;
+  prefix?: string;
 }): Promise<string> {
-  await mkdir(backupsDir, { recursive: true });
-
-  const dest = join(backupsDir, `${BACKUP_PREFIX}${label}.sqlite`);
   const db = new Database(dbPath, { readwrite: true, create: false });
 
   try {
-    await rm(dest, { force: true });
-    db.run("VACUUM INTO ?", [dest]);
+    return await backupInto(db, {
+      dir: backupsDir,
+      prefix,
+      label,
+      keep: UPDATE_BACKUPS_KEPT,
+    });
   } finally {
     db.close();
   }
-
-  const backups = (await readdir(backupsDir))
-    .filter((name) => name.startsWith(BACKUP_PREFIX))
-    .toSorted()
-    .toReversed();
-
-  for (const old of backups.slice(UPDATE_BACKUPS_KEPT)) {
-    await rm(join(backupsDir, old), { force: true });
-  }
-
-  return dest;
 }
 
 /** Puts a backup back. The engine must be stopped. */

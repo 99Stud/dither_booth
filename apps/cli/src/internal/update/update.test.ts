@@ -25,6 +25,7 @@ import {
   cliAssetName,
   releaseAssetUrl,
 } from "./update.release";
+import { findBackup, listBackups, runRestore } from "./update.restore";
 import { readHistory, readStatus } from "./update.status";
 
 const PM2_ONLINE = (startedAt: number) =>
@@ -638,5 +639,81 @@ describe("the rollback target", () => {
     await runRollback({ layout, host, mode: "keep-db" });
 
     expect(target()).toBeNull();
+  });
+});
+
+describe("booth restore", () => {
+  const eventBackups = () => join(layout.dataDir, "backups");
+
+  /** A booth on a release, with a backup the engine took at 19:05. */
+  async function boothWithBackup() {
+    createCheckout();
+    createDatabase();
+    const booth = await createHost();
+    await runUpdate({ layout, host: booth.host, version: "0.8.0" });
+    booth.calls.length = 0;
+
+    mkdirSync(eventBackups(), { recursive: true });
+    const db = new Database(dbPath());
+    db.run("VACUUM INTO ?", [
+      join(eventBackups(), "event-2026-10-31T19-05-00-000Z-interval.sqlite"),
+    ]);
+    db.run("INSERT INTO visit DEFAULT VALUES");
+    db.close();
+    return booth;
+  }
+
+  test("lists the engine's and the updates' backups, newest first", async () => {
+    await boothWithBackup();
+
+    const backups = await listBackups(layout);
+
+    expect(backups.map((b) => [b.kind, b.takenAt?.toISOString()])).toEqual([
+      ["event", "2026-10-31T19:05:00.000Z"],
+      ["update", "2026-10-29T10:00:00.000Z"],
+    ]);
+  });
+
+  test("puts the backup back and keeps the database it replaced", async () => {
+    const { host, calls } = await boothWithBackup();
+    expect(visits()).toBe(1);
+
+    const backup = await findBackup(
+      layout,
+      "event-2026-10-31T19-05-00-000Z-interval",
+    );
+    const outcome = await runRestore({ layout, host, backup });
+
+    expect(outcome.verdict.ok).toBe(true);
+    expect(calls).toEqual(["stop", "start 0.8.0"]);
+    expect(visits()).toBe(0);
+
+    // Undone the same way.
+    expect(outcome.replaced).toStartWith(join(layout.backupsDir, "restore-"));
+    await runRestore({ layout, host, backup: outcome.replaced! });
+    expect(visits()).toBe(1);
+  });
+
+  test("refuses a newer release's database, with the booth untouched", async () => {
+    const { host, calls } = await boothWithBackup();
+    const newer = join(root, "newer.sqlite");
+    const db = new Database(dbPath());
+    db.run("VACUUM INTO ?", [newer]);
+    db.close();
+    const copy = new Database(newer);
+    copy.run("INSERT INTO __drizzle_migrations (hash) VALUES ('two')");
+    copy.close();
+
+    expect(runRestore({ layout, host, backup: newer })).rejects.toThrow(
+      "newer release",
+    );
+    expect(calls).toEqual([]);
+    expect(visits()).toBe(1);
+  });
+
+  test("refuses a name it doesn't know", async () => {
+    await boothWithBackup();
+
+    expect(findBackup(layout, "event-nope")).rejects.toThrow(UpdateRefused);
   });
 });

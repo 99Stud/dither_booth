@@ -145,6 +145,24 @@ An event's photo receipt look is its **kit**, `campaign.kit_id`.
 
 Appearance that belongs to an event (logo, background colours) goes on the campaign next to `kit_id`, not on the lottery. The lottery stays odds and stock.
 
+## Backups
+
+The engine copies its database while it runs (`createEventBackups`, in `apps/engine/src/domains/backup`), into `apps/engine/data/backups/`, on the SSD:
+
+| When                       | Condition                                                             | Name                            |
+| -------------------------- | --------------------------------------------------------------------- | ------------------------------- |
+| At start, after migrations | Always                                                                | `event-<UTC time>-start.sqlite` |
+| Checked every minute       | 5 minutes since the last one, a row changed since, no ticket printing | `…-interval.sqlite`             |
+| At a clean stop            | A row changed since the last one; after the HTTP server closed        | `…-stop.sqlite`                 |
+
+- **Consistent.** Each is a `VACUUM INTO` on the engine's own connection: one snapshot, compacted, while the kiosk keeps writing. It blocks the event loop for as long as it runs (a few milliseconds for a 150 KB database), so it waits for a print to finish.
+- **Changed.** SQLite's `total_changes()` counts the rows the engine's connection wrote; the engine is the only writer. `VACUUM INTO` doesn't move it.
+- **Kept.** The newest 288 by name, a day at one every 5 minutes. Each kind of backup has its prefix (`event-`, `update-`, `restore-`) and prunes only its own (`backupDatabase`, `packages/shared/src/server/database-backup.ts`).
+- **Never in the way.** A failure is logged (`engine.backup`, `event-backup-failed`) and retried at the next check; the engine keeps running.
+- **Restored by `booth restore`**, which holds the update lock, stops the booth, copies the database it replaces to `/mnt/ssd/dither-booth/backups/restore-<time>.sqlite`, restores, and starts. It refuses a backup with more migrations than the database it replaces: this release couldn't run on it.
+
+The engine's backups sit in the data folder, not next to the update backups in `/mnt/ssd/dither-booth/backups/`: that folder is root's, written by the CLI, and the engine runs as `pi`.
+
 ## Migrations
 
 | Command (from `apps/engine`) | Does                                                            |
@@ -153,7 +171,7 @@ Appearance that belongs to an event (logo, background colours) goes on the campa
 | `bun run db:migrate`         | Applies pending migrations                                      |
 | `bun run db:studio`          | Drizzle Studio, to inspect a local database                     |
 
-The engine **applies pending migrations at every start**, so an update needs no separate migration step. Migrations are forward-only: back up before an update that ships one.
+The engine **applies pending migrations at every start**, so an update needs no separate migration step. Migrations are forward-only: `booth update` backs the database up before its switch.
 
 When a migration needs something drizzle-kit doesn't model (triggers, partial indexes, data moves), write it by hand in the generated `migration.sql` and cover it in `db.migrations.test.ts`.
 

@@ -158,7 +158,7 @@ async function takeLock(
  * Every job's frame: the lock, a job a crash left behind ended first,
  * the work, then where a rollback goes written for the admin.
  */
-async function withLock<T>(
+export async function withLock<T>(
   layout: UpdateLayout,
   host: UpdateHost,
   work: () => Promise<T>,
@@ -365,7 +365,7 @@ async function fetchSums(host: UpdateHost, version: string) {
 
 // ---- checking ----------------------------------------------------------------
 
-async function waitHealthy(
+export async function waitHealthy(
   host: UpdateHost,
   layout: UpdateLayout,
 ): Promise<HealthVerdict> {

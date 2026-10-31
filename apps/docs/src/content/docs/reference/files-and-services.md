@@ -49,6 +49,7 @@ Logs: `log_type: "json"`, one combined `log_file` per process at `logs/pm2/<proc
 | `/var/lib/ditherbooth/update/rollback.json`                     | `booth update`, `booth rollback` | Where a rollback goes now, as admin offers it                                         |
 | `/var/lib/ditherbooth/update/lock`                              | `booth update`, `booth rollback` | The process running a job (pid, boot, start time): one at a time                      |
 | `/mnt/ssd/dither-booth/backups/update-*.sqlite`                 | `booth update`                   | The database before each switch, last 3 kept                                          |
+| `/mnt/ssd/dither-booth/backups/restore-*.sqlite`                | `booth restore`                  | The database each restore replaced, last 3 kept                                       |
 | `/etc/systemd/system/ditherbooth-update@.service`               | `booth service`                  | Runs `booth update <version>` as root for admin                                       |
 | `/etc/systemd/system/ditherbooth-rollback@.service`             | `booth service`                  | Runs `booth rollback` as root (`keep-db` or `restore-db`)                             |
 | `/etc/fstab` entry for `/mnt/ssd`                               | `booth ssd`                      | SSD mount                                                                             |
@@ -70,7 +71,7 @@ Paths relative to `/opt/dither-booth` unless absolute. On a booth that runs rele
 
 | Path                                                | Written by                                      | Purpose                                                                                                   |
 | --------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `apps/engine/data/` → `/mnt/ssd/dither-booth/data/` | engine                                          | SQLite database, added fonts (`fonts/`) and logos (`logos/`)                                              |
+| `apps/engine/data/` → `/mnt/ssd/dither-booth/data/` | engine                                          | SQLite database, added fonts (`fonts/`) and logos (`logos/`), event backups (`backups/`, the last 288)    |
 | `.local/tls/booth-cert.pem`, `booth-key.pem`        | `booth cert`                                    | Leaf certificate and key                                                                                  |
 | `.local/tls/booth-manifest.json`                    | `booth cert`                                    | Public IP, hostnames, CA path                                                                             |
 | `.local/runtime/setup-server-token`                 | engine, at start                                | Owner-only token for `captive.*`                                                                          |
