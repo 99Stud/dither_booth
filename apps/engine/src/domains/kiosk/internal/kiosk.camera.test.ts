@@ -71,21 +71,17 @@ describe("createKioskCamera", () => {
   });
 
   test("a page whose reports stopped is gone, once its last one is stale", () => {
-    const { advance, camera, flips, kioskChannel } = setup();
+    const { advance, camera, clock, flips, kioskChannel } = setup();
     kioskChannel.subscribe(page("a"));
     kioskChannel.reportStatus("a", { camera: READY, maintenance: false });
 
     advance(STALE_AFTER_MS - 1);
     expect(camera.get().on).toBe(true);
     advance(1);
-    expect(camera.get()).toEqual({
-      on: false,
-      changedAt: camera.get().changedAt,
-    });
-    expect(flips.at(-1)).toEqual({
-      on: false,
-      changedAt: flips.at(-1)?.changedAt,
-    });
+    // Off from when the engine noticed.
+    const noticedAt = clock.at;
+    expect(camera.get()).toEqual({ on: false, changedAt: noticedAt });
+    expect(flips.at(-1)).toEqual({ on: false, changedAt: noticedAt });
 
     // The same report again: the page is back.
     kioskChannel.reportStatus("a", { camera: READY, maintenance: false });
