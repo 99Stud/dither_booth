@@ -1,6 +1,6 @@
 ---
 title: Access control
-description: Who can call what — the four tRPC base procedures, the Darkroom PIN and tokens, and the setup server token.
+description: Who can call what — the four tRPC base procedures, the staff PIN and its tokens, admin's session cookie, and the setup server token.
 sidebar:
   order: 7
 ---
@@ -13,35 +13,54 @@ Code: `apps/engine/src/internal/trpc.ts`. `apps/engine/src/internal/router.test.
 
 The router is split by caller, and each group is built on one base procedure that carries its access check:
 
-| Group / base                                  | Access                                    | Used for                                                                                                                                                       |
-| --------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `booth.*` — `boothProcedure`                  | **Any origin**                            | What the kiosk needs during a visit: start and end the visit, prepare and print, lottery status, the kiosk stream, camera signalling, unlock/lock the Darkroom |
-| `config.*` — `configProcedure`                | **Admin origin only**                     | Event, lottery and prize authoring, draws, the Darkroom PIN                                                                                                    |
-| `ops.*` — `opsProcedure`                      | **Admin origin only**                     | Recovery and control: reload, maintenance, booth screen, restarts, printer watch, camera live view                                                             |
-| `darkroomProcedure` (in `config.*` / `ops.*`) | Admin origin **or** a live Darkroom token | Print tuning and the checks around it, Wi-Fi, device setup, health                                                                                             |
-| `captive.*` — `captiveProcedure`              | **Setup server token** only               | The captive page's status and join                                                                                                                             |
+| Group / base                                  | Access                                | Used for                                                                                                                                                       |
+| --------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `booth.*` — `boothProcedure`                  | **Any origin**                        | What the kiosk needs during a visit: start and end the visit, prepare and print, lottery status, the kiosk stream, camera signalling, unlock/lock the Darkroom |
+| `config.*` — `configProcedure`                | **Admin origin + a live staff token** | Event, lottery and prize authoring, draws, the staff PIN                                                                                                       |
+| `ops.*` — `opsProcedure`                      | **Admin origin + a live staff token** | Recovery and control: reload, maintenance, booth screen, restarts, printer watch, camera live view                                                             |
+| `darkroomProcedure` (in `config.*` / `ops.*`) | A live staff token, from any origin   | Print tuning and the checks around it, Wi-Fi, device setup, health                                                                                             |
+| `captive.*` — `captiveProcedure`              | **Setup server token** only           | The captive page's status and join (the join also checks the staff PIN)                                                                                        |
 
 A new procedure goes in the group of whoever calls it, on that group's base. The full list is in [Engine API](/docs/reference/engine-api/).
 
-## Admin origin
+## Admin: origin and staff PIN
 
-“Admin origin” means the request's `Origin` header is the admin app's own origin, on one of the booth's hostnames or its IP (from the TLS manifest). Browsers set `Origin` themselves; a page served from elsewhere can't claim to be admin.
+An admin call needs both:
 
-That makes admin **network-trusted**: anyone who can load `https://<booth>:3002` can use it. Keep the booth on networks you're comfortable with, or on its own Wi-Fi, whose password is printed only on tickets staff keep.
+- **The admin origin**: the request's `Origin` header is the admin app's own origin, on one of the booth's hostnames or its IP (from the TLS manifest). Browsers set `Origin` themselves, so a page served from elsewhere can't claim to be admin.
+- **A live staff token** in `x-darkroom-token`.
 
-## Darkroom PIN and tokens
+The origin alone isn't enough. Anything but a browser (`curl`, a script) can send any `Origin`, through either proxy. And the booth prints its setup and Wi-Fi tickets on the guests' printer: they lead to the setup page, which links to admin, and the Wi-Fi ticket carries the booth Wi-Fi's password. Whoever picks one up reaches admin, and finds the PIN screen ([0013](/docs/decisions/0013-admin-needs-the-staff-pin/)).
 
-The Darkroom runs on the **kiosk origin** (the Shutter), which guests use too, so it needs its own secret.
+### The session cookie
 
-- **The PIN** (4–8 digits) is set in admin (`config.setDarkroomPin`, admin only). Only its **argon2id** hash is stored, in the singleton `darkroom_access` table. No PIN: the Darkroom stays locked.
+Admin's page never holds the token. The admin server keeps it in a cookie:
+
+- **`POST /admin/session`** with `{"pin": "…"}` and the admin's own `Origin` calls `booth.unlockDarkroom` and sets **`dither_staff=<token>; HttpOnly; Secure; SameSite=Strict; Path=/`**. It has no expiry date, so it ends with the browser session; the token ends sooner, after 30 idle minutes. A wrong PIN answers 401, a lockout 429, each with the engine's message.
+- **`DELETE /admin/session`** (the **Lock** button) calls `booth.lockDarkroom` and clears the cookie.
+- **The `/engine/trpc` proxy** turns the cookie into `x-darkroom-token`, and drops any `x-darkroom-token` or cookie the browser sent itself.
+- **The admin server's own routes** (`/admin/system`, `/admin/power`, `/admin/update`, and the logs and PM2 restart sockets) ask the engine `booth.getDarkroomSession` with the cookie's token, and answer **401** without a live one. Browsers send the cookie on a socket's upgrade request too.
+- **While the engine doesn't answer** (restarting, updating, crashed), those routes still accept a token the engine confirmed in the last **30 minutes**, so staff who are signed in can read the logs and restart the apps. Nobody can sign in until the engine is back.
+- **Open without the PIN:** the page itself (it shows the PIN screen), `/docs/`, `/healthz` and `/client-log`.
+
+The page asks `booth.getDarkroomSession` when it loads and whenever an engine call answers `FORBIDDEN`, and shows the PIN screen until it's signed in. Its polling keeps the token alive while an admin tab is open.
+
+Code: `apps/admin/src/lib/staff-session/`.
+
+## Staff PIN and tokens
+
+One PIN, the **staff PIN**, opens admin and the Darkroom. The Darkroom runs on the **kiosk origin** (the Shutter), which guests use too, so it can't rely on its origin either.
+
+- **The PIN** (4–8 digits) is set with **`booth pin`** on the booth, or in admin (`config.setDarkroomPin`, admin only). Only its **argon2id** hash is stored, in the singleton `darkroom_access` table. No PIN: admin and the Darkroom stay locked. The first PIN can only come from `booth pin`: admin needs one to open.
 - **`booth.unlockDarkroom({ pin })`** returns `{ token, expiresAt }`. Tokens live **in memory**:
   - a token expires **30 minutes** after its last use;
-  - a new PIN, or an engine restart, revokes every token;
-  - after **5 wrong PINs** in a row, unlocking answers `TOO_MANY_REQUESTS` for **60 s**;
+  - a new PIN, or an engine restart, revokes every token (`booth pin` restarts the booth for that);
+  - after **5 wrong PINs** in a row, the PIN is refused with `TOO_MANY_REQUESTS` for **60 s**. Each later run of 5 doubles the pause (2, 4, 8 min), up to **15 min**. The right PIN resets it. At 5 guesses per 15 minutes, a 4-digit PIN takes weeks to guess;
   - `booth.lockDarkroom` ends the caller's session.
-- The token travels in the **`x-darkroom-token`** header. The Darkroom keeps it in `sessionStorage`: it survives a reload, not a closed tab.
+- **`booth.getDarkroomSession`** answers `{ pinSet, signedIn }` for the caller's token.
+- The token travels in the **`x-darkroom-token`** header. The Darkroom keeps it in `sessionStorage`: it survives a reload, not a closed tab. Admin keeps it in its cookie.
 
-A token opens only `darkroomProcedure` calls:
+A token from any origin opens `darkroomProcedure` calls. With the admin origin, it opens everything in `config.*` and `ops.*`. Without the admin origin, it opens only:
 
 | Area              | Procedures                                                                                                              |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -60,6 +79,7 @@ The captive page must work for a device that trusts nothing and has no PIN, yet 
 - The setup server sends it as **`x-setup-server-token`** with `captive.*` calls. A browser, even one on the booth, can't read the file.
 - The setup server only serves the captive page to clients on the booth Wi-Fi's subnet.
 - The engine refuses `captive.joinFromCaptive` unless the booth opened its Wi-Fi **for want of a network**. While staff run the event on the booth Wi-Fi, the captive page is gone and joining is refused.
+- **Joining asks for the staff PIN.** The Wi-Fi ticket prints the booth Wi-Fi's password, and a guest can end up with it: without the PIN, they could move the booth to a network of their own. A wrong PIN counts toward the same lockout as everywhere else. The page asks for it with the network's password.
 
 ## Browser reports
 
@@ -81,7 +101,7 @@ Code: `packages/browser-server/src/internal/client-log.routes.ts`; the report sc
 
 ## Engine exposure
 
-The engine binds **`127.0.0.1:3001`**. Nothing outside the Pi reaches it except through the two web servers' `/engine/trpc` proxies, which forward the browser's headers (so the engine sees the real `Origin`) and its abort signal.
+The engine binds **`127.0.0.1:3001`**. Nothing outside the Pi reaches it except through the two web servers' `/engine/trpc` proxies, which forward the browser's headers (so the engine sees the real `Origin`) and its abort signal. Admin's proxy also turns its session cookie into `x-darkroom-token`.
 
 ## System privileges
 
@@ -99,22 +119,22 @@ polkit runs rules in Duktape, an ES5 engine. A rule it can't compile is skipped 
 
 ## Power
 
-The Power panel posts to **`POST https://<booth>:3002/admin/power`** with `{"action": "restart-apps" | "reboot" | "power-off"}`. The admin server runs `systemctl --no-block` with the matching verb and answers 202 once systemd has queued the job, before it stops the admin itself. Like the rest of admin it is **network-trusted**: the POST is refused with 403 unless `Origin` is the admin's own (as the Logs socket checks it), so another site open on a staff device can't reboot the booth, but anyone who can load admin can. A GET on the same route says the actions are there.
+The Power panel posts to **`POST https://<booth>:3002/admin/power`** with `{"action": "restart-apps" | "reboot" | "power-off"}`. The admin server runs `systemctl --no-block` with the matching verb and answers 202 once systemd has queued the job, before it stops the admin itself. Like the rest of admin it needs the [staff session](#the-session-cookie): without it, 401. The POST is also refused with 403 unless `Origin` is the admin's own (as the Logs socket checks it), so another site open on a staff device can't reboot the booth. A GET on the same route says the actions are there.
 
-**`/admin/update`** ([Updates](/docs/architecture/updates/#from-admin)) works the same way: a GET is the update snapshot, and a POST from the admin's own `Origin` starts the update or rollback unit. The CLI the unit runs checks the version again. Anyone who can load admin can update the booth to a published release or roll it back, but can't choose what code runs: only a `v*` tag publishes a release.
+**`/admin/update`** ([Updates](/docs/architecture/updates/#from-admin)) works the same way: a GET is the update snapshot, and a POST from the admin's own `Origin` starts the update or rollback unit. The CLI the unit runs checks the version again. Staff signed in to admin can update the booth to a published release or roll it back, but can't choose what code runs: only a `v*` tag publishes a release.
 
 The admin server serves both routes only under PM2, on the booth: under `bun run dev` it would restart or reboot the developer's machine. Code: `apps/admin/src/lib/power/`.
 
 ## System readings
 
-The admin's System page reads the Pi over **`GET https://<booth>:3002/admin/system`** ([System metrics](/docs/architecture/system-metrics/)): one JSON snapshot, read-only, nothing a page sends reaches a file or a process. Like the rest of admin it is network-trusted: anyone who can load admin can read it. It exposes the Pi's model, uptime, heat, memory, load and disk sizes, nothing from the data.
+The admin's System page reads the Pi over **`GET https://<booth>:3002/admin/system`** ([System metrics](/docs/architecture/system-metrics/)): one JSON snapshot, read-only, nothing a page sends reaches a file or a process. Like the rest of admin it needs the staff session. It exposes the Pi's model, uptime, heat, memory, load and disk sizes, nothing from the data.
 
 ## Logs socket
 
-The admin's Logs page reads every service's logs over **`wss://<booth>:3002/admin/logs`** ([Logging](/docs/architecture/logging/)). Like the rest of admin it is **network-trusted**: the upgrade only checks that `Origin` is the admin's own origin, on one of the booth's hostnames or its IP, and refuses others with 403. Anyone who can load admin can read the logs.
+The admin's Logs page reads every service's logs over **`wss://<booth>:3002/admin/logs`** ([Logging](/docs/architecture/logging/)). The upgrade checks that `Origin` is the admin's own origin, on one of the booth's hostnames or its IP (403 otherwise), and that the cookie holds a live staff token (401 otherwise). Only staff signed in to admin can read the logs.
 
 - **Read-only.** The socket only answers history requests and streams lines; nothing a page sends reaches a file or a process.
 - **Secrets.** Lines carry what the logger wrote, which redacted secret-looking detail keys first ([Logs → Line format](/docs/maintenance/logs/#line-format)).
 - **System journal.** Only the booth's units, NetworkManager and the kernel are read; the rest of the journal stays on the booth. Those lines are shown as journald stored them, not redacted ([Logging → The system journal](/docs/architecture/logging/#the-system-journal)).
-- **One way in.** `createLogsRoute` in `apps/admin/src/lib/logs/logs.routes.tsx` is the only place logs leave the booth. Restricting them to tech staff later is one change there (its `validateUpgrade` hook), plus the page.
+- **One way in.** `createLogsRoute` in `apps/admin/src/lib/logs/logs.routes.tsx` is the only place logs leave the booth. The admin server sets its `validateUpgrade` hook to the staff session check.
 - **The page** (`/logs`) is an ordinary admin route, linked from the sidebar, Settings and the health items. It holds nothing itself: without the socket it shows no lines.

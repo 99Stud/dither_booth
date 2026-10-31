@@ -33,6 +33,7 @@ export const engineRouter = router({
     onKioskCommand: kiosk.onKioskCommand,
     reportKioskStatus: kiosk.reportKioskStatus,
     sendKioskCameraSignal: kiosk.sendKioskCameraSignal,
+    getDarkroomSession: darkroom.getDarkroomSession,
     unlockDarkroom: darkroom.unlockDarkroom,
     lockDarkroom: darkroom.lockDarkroom,
   }),

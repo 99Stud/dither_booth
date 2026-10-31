@@ -13,9 +13,12 @@ One word per idea, used the same way on screen, in these docs and in the code. W
 
 **Experience**: the guest flow inside the Shutter: landing screen, countdown, photo, slot machine (only when the lottery is on), print.
 
-**Darkroom**: the staff screen inside the Shutter, behind a PIN, for print tuning, sample tickets, Wi-Fi and printer status. Opened by tapping the logo four times within two seconds.
+**Darkroom**: the staff screen inside the Shutter, behind the staff PIN, for print tuning, sample tickets, Wi-Fi and printer status. Opened by tapping the logo four times within two seconds.
 
-**Admin**: the staff web app (`https://<booth>:3002`): Control Center, Event, Settings, and the Logs and System pages for tech staff.
+**Admin**: the staff web app (`https://<booth>:3002`), behind the staff PIN: Control Center, Event, Settings, and the Logs and System pages for tech staff.
+
+**Staff PIN**: the 4 to 8 digits that open admin and the Darkroom. Set with `booth pin` on the booth, changed in admin's **Settings → Staff PIN**. The captive page asks for it too.
+_Avoid_: Darkroom PIN (its old name, still the name in the code), admin password.
 
 **Studio**: the staff app, on staff phones and computers, outside the booth: it gets the booths' alerts, shows how each booth is doing, books events and who's on call for them, sets event times and gives registration codes. It talks to the Hub, never to a booth.
 _Avoid_: Studio for Supabase's own dashboard (call that the Supabase dashboard).
@@ -247,7 +250,7 @@ _Avoid_: hotspot, access point (in staff-facing text).
 
 **Wi-Fi ticket**: what the printer prints when the booth Wi-Fi opens: a QR to join it and a QR to the setup page.
 
-**Captive page**: the Wi-Fi picker a phone, iPad or laptop shows on its own when it joins the booth Wi-Fi while the booth waits for a network, the way hotel Wi-Fi shows its login page. Staff pick the venue's network there. It never needs the Darkroom PIN, and it's gone once the booth has a network or staff run the event on the booth Wi-Fi.
+**Captive page**: the Wi-Fi picker a phone, iPad or laptop shows on its own when it joins the booth Wi-Fi while the booth waits for a network, the way hotel Wi-Fi shows its login page. Staff pick the venue's network there, with the staff PIN, so a guest holding a Wi-Fi ticket can't move the booth. It's gone once the booth has a network or staff run the event on the booth Wi-Fi.
 _Avoid_: captive portal, login page (in staff-facing text).
 
 **Booth CA**: the booth's own certificate authority (mkcert). A device trusts it once; after that, every certificate the booth issues for a new address is trusted too.

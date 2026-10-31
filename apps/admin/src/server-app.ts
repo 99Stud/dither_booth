@@ -39,6 +39,9 @@ import { POWER_ROUTE_PATH } from "#lib/power/power.constants";
 import { createPowerRoute } from "#lib/power/power.routes";
 import { runPowerAction } from "#lib/power/power.server";
 import { ADMIN_APP_ROOT, ADMIN_REPO_ROOT } from "#lib/server-constants";
+import { STAFF_SESSION_ROUTE_PATH } from "#lib/staff-session/staff-session.constants";
+import { createStaffSessionEngine } from "#lib/staff-session/staff-session.engine";
+import { createStaffSession } from "#lib/staff-session/staff-session.routes";
 import { SYSTEM_ROUTE_PATH } from "#lib/system/system.constants";
 import { hostSystemReaderDeps } from "#lib/system/system.host";
 import { createSystemReader } from "#lib/system/system.reader";
@@ -66,6 +69,12 @@ export async function runAdminServer(options: {
   // The action routes' check: a POST comes from this admin, not another site.
   const isAdminOrigin = (origin: string | undefined) =>
     isAllowedConfiguredOrigin(origin, adminOrigin, allowedHostnames);
+  // Every admin route below, and every engine call, needs the staff PIN.
+  // The docs, `/healthz` and the page itself stay open, for the PIN screen.
+  const staffSession = createStaffSession({
+    engine: createStaffSessionEngine(engineOrigin),
+    isAllowedOrigin: isAdminOrigin,
+  });
 
   return await runBrowserServer({
     allowedHostnames,
@@ -85,66 +94,82 @@ export async function runAdminServer(options: {
     },
     mode: options.mode,
     port: getPort("ADMIN_PORT"),
+    proxyHeaders: staffSession.proxyHeaders,
     publicOrigin: adminOrigin,
     routes: {
       ...createDocsRoutes(resolve(ADMIN_REPO_ROOT, DOCS_DIST_RELATIVE_PATH)),
+      [STAFF_SESSION_ROUTE_PATH]: staffSession.route,
       // Off the Pi, its own readings (heat, fan, throttling) report
       // unavailable; memory, CPU and the root disk still work.
-      [SYSTEM_ROUTE_PATH]: createSystemRoute(
-        createSystemSampler({
-          reader: createSystemReader(hostSystemReaderDeps),
-          onError: (error) => {
-            logKioskEvent(
-              "warn",
-              ADMIN_SERVER_LOG_SOURCE,
-              "system-read-failed",
-              {
-                details: {
-                  message:
-                    error instanceof Error ? error.message : String(error),
+      [SYSTEM_ROUTE_PATH]: staffSession.guard(
+        createSystemRoute(
+          createSystemSampler({
+            reader: createSystemReader(hostSystemReaderDeps),
+            onError: (error) => {
+              logKioskEvent(
+                "warn",
+                ADMIN_SERVER_LOG_SOURCE,
+                "system-read-failed",
+                {
+                  details: {
+                    message:
+                      error instanceof Error ? error.message : String(error),
+                  },
                 },
-              },
-            );
-          },
-        }),
+              );
+            },
+          }),
+        ),
       ),
       // Only on the booth: elsewhere these would restart or reboot the
       // developer's machine.
       ...(isPm2Managed
         ? {
-            [POWER_ROUTE_PATH]: createPowerRoute({
-              isAllowedOrigin: isAdminOrigin,
-              runAction: (action) => runPowerAction(action, hostSystemctlRun),
-            }),
-            [UPDATE_ROUTE_PATH]: createUpdateRoute({
-              release,
-              checker: createReleaseChecker(),
-              isAllowedOrigin: isAdminOrigin,
-              ...createHostUpdateDeps({
-                repoRoot: ADMIN_REPO_ROOT,
-                releasesParent: dirname(ADMIN_REPO_ROOT),
-                run: hostSystemctlRun,
+            [POWER_ROUTE_PATH]: staffSession.guard(
+              createPowerRoute({
+                isAllowedOrigin: isAdminOrigin,
+                runAction: (action) => runPowerAction(action, hostSystemctlRun),
               }),
-            }),
+            ),
+            [UPDATE_ROUTE_PATH]: staffSession.guard(
+              createUpdateRoute({
+                release,
+                checker: createReleaseChecker(),
+                isAllowedOrigin: isAdminOrigin,
+                ...createHostUpdateDeps({
+                  repoRoot: ADMIN_REPO_ROOT,
+                  releasesParent: dirname(ADMIN_REPO_ROOT),
+                  run: hostSystemctlRun,
+                }),
+              }),
+            ),
           }
         : {}),
     },
     webSocketRoutes: {
       // Not only under PM2: without its files, each source reports unavailable.
-      [LOGS_ROUTE_PATH]: createLogsRoute({
-        hub: createLogHub({
-          sources: [
-            ...createPm2LogSources({
-              logDir: resolve(ADMIN_REPO_ROOT, PM2_LOG_RELATIVE_DIR),
-              processNames: PM2_PROCESS_NAMES,
-            }),
-            // Off the Pi (no journalctl), it reports unavailable.
-            createJournalLogSource(),
-          ],
+      [LOGS_ROUTE_PATH]: {
+        ...createLogsRoute({
+          hub: createLogHub({
+            sources: [
+              ...createPm2LogSources({
+                logDir: resolve(ADMIN_REPO_ROOT, PM2_LOG_RELATIVE_DIR),
+                processNames: PM2_PROCESS_NAMES,
+              }),
+              // Off the Pi (no journalctl), it reports unavailable.
+              createJournalLogSource(),
+            ],
+          }),
         }),
-      }),
+        validateUpgrade: staffSession.validateUpgrade,
+      },
       ...(isPm2Managed
-        ? { [PM2_RESTART_ROUTE_PATH]: createPm2RestartRoute() }
+        ? {
+            [PM2_RESTART_ROUTE_PATH]: {
+              ...createPm2RestartRoute(),
+              validateUpgrade: staffSession.validateUpgrade,
+            },
+          }
         : {}),
     },
     serverName: "runAdminServer",

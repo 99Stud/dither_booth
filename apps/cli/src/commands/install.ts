@@ -7,6 +7,7 @@ import { runCertCommand } from "#commands/cert";
 import { runDbCommand } from "#commands/db";
 import { runDoctorCommand } from "#commands/doctor";
 import { runNetworkSetupCommand } from "#commands/network";
+import { ensureStaffPin } from "#commands/pin";
 import { runQrCommand } from "#commands/qr";
 import { runRepoCommand } from "#commands/repo";
 import { runServiceCommand } from "#commands/service";
@@ -67,6 +68,7 @@ export async function runInstallCommand(context: BoothContext): Promise<void> {
   await runRepoCommand(context);
   await runSsdCommand(context);
   await runDbCommand(context);
+  await ensureStaffPin(context);
   await runCertCommand(context);
   await runServiceCommand(context);
   await runNetworkSetupCommand();

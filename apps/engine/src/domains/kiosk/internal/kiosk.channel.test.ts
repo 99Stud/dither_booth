@@ -196,7 +196,9 @@ describe("kiosk channel through the router", () => {
       adminOrigin: ADMIN_ORIGIN,
       allowedHostnames: [],
       db: db ?? (new Proxy({}, { get: unreachable }) as TRPCContext["db"]),
-      darkroomAccess: createDarkroomAccessStub(),
+      // Signed in: admin's calls carry a staff token.
+      darkroomAccess: createDarkroomAccessStub("staff-token"),
+      darkroomToken: "staff-token",
       hubReporter,
       kioskChannel,
       kioskMaintenance,

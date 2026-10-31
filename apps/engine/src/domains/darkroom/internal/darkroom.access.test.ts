@@ -7,6 +7,7 @@ import { createDarkroomAccess } from "./darkroom.access";
 import {
   DARKROOM_LOCKOUT_MS,
   DARKROOM_MAX_FAILED_UNLOCKS,
+  DARKROOM_MAX_LOCKOUT_MS,
   DARKROOM_TOKEN_IDLE_TTL_MS,
 } from "./darkroom.constants";
 
@@ -65,6 +66,54 @@ describe("createDarkroomAccess", () => {
 
     clock.at += DARKROOM_LOCKOUT_MS;
     await expect(access.unlock("2468")).resolves.toHaveProperty("token");
+  });
+
+  test("each lockout doubles the next, up to the cap, until the right PIN", async () => {
+    const { access, clock } = setup();
+    await access.setPin("2468");
+
+    const guessUntilLocked = async () => {
+      for (let i = 0; i < DARKROOM_MAX_FAILED_UNLOCKS; i++) {
+        await expect(access.checkPin("0000")).rejects.toMatchObject({
+          code: "UNAUTHORIZED",
+        });
+      }
+    };
+    const expectLockedFor = async (ms: number) => {
+      clock.at += ms - 1;
+      await expect(access.checkPin("2468")).rejects.toMatchObject({
+        code: "TOO_MANY_REQUESTS",
+      });
+      clock.at += 1;
+    };
+
+    await guessUntilLocked();
+    await expectLockedFor(DARKROOM_LOCKOUT_MS);
+    await guessUntilLocked();
+    await expectLockedFor(DARKROOM_LOCKOUT_MS * 2);
+    // 4 and 8 minutes, then the 15 minute cap instead of 16.
+    for (let i = 0; i < 2; i++) {
+      await guessUntilLocked();
+      clock.at += DARKROOM_MAX_LOCKOUT_MS;
+    }
+    await guessUntilLocked();
+    await expectLockedFor(DARKROOM_MAX_LOCKOUT_MS);
+
+    // The right PIN resets the escalation.
+    await expect(access.checkPin("2468")).resolves.toBeUndefined();
+    await guessUntilLocked();
+    await expectLockedFor(DARKROOM_LOCKOUT_MS);
+    // Each wrong PIN is an argon2 check: this test makes about 40.
+  }, 30_000);
+
+  test("checkPin opens no session", async () => {
+    const { access } = setup();
+    await access.setPin("2468");
+
+    await expect(access.checkPin("2468")).resolves.toBeUndefined();
+    await expect(access.checkPin("1357")).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
   });
 
   test("a token expires when idle, and each use pushes the expiry back", async () => {

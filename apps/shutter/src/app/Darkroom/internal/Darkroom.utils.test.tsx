@@ -8,7 +8,7 @@ describe("getUnlockErrorMessage", () => {
       "Wrong PIN.",
     );
     expect(getUnlockErrorMessage("TOO_MANY_REQUESTS", "x")).toContain(
-      "Wait a minute",
+      "Wait a few minutes",
     );
     expect(getUnlockErrorMessage("BAD_REQUEST", "x")).toBe(
       "The PIN is 4 to 8 digits.",

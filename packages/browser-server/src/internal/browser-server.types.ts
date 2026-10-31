@@ -70,6 +70,11 @@ export type RunBrowserServerOptions = {
   publicOrigin: string;
   /** Extra hostnames from the TLS manifest (machine name + `.local`). */
   allowedHostnames?: readonly string[];
+  /**
+   * Changes the headers forwarded to the engine, after the usual filtering:
+   * admin turns its session cookie into the engine's token header.
+   */
+  proxyHeaders?: (headers: Headers, req: Request) => void;
   routes?: Record<string, RouteHandler>;
   serverName: string;
   tlsCertPath: string;

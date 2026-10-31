@@ -20,10 +20,11 @@ afterAll(() => {
 });
 
 let captiveState: CaptiveStatus["state"] = "pick-network";
-const joined: Array<{ ssid: string; password?: string }> = [];
+const joined: Array<{ ssid: string; password?: string; pin: string }> = [];
 const captive: CaptiveBackend = {
   getStatus: async () => ({ nearby: [], state: captiveState }),
   join: async (input) => {
+    if (input.pin !== "2468") throw new Error("Wrong PIN.");
     joined.push(input);
   },
 };
@@ -114,10 +115,14 @@ describe("device setup server", () => {
     });
 
     it("joins only with a JSON request from the booth Wi-Fi", async () => {
-      const join = (contentType: string) =>
+      const join = (contentType: string, pin = "2468") =>
         handle(
           new Request("http://10.42.0.1/wifi/join", {
-            body: JSON.stringify({ password: "venue-pass", ssid: "Venue" }),
+            body: JSON.stringify({
+              password: "venue-pass",
+              pin,
+              ssid: "Venue",
+            }),
             headers: { "content-type": contentType },
             method: "POST",
           }),
@@ -126,7 +131,15 @@ describe("device setup server", () => {
 
       expect((await join("text/plain")).status).toBe(405);
       expect((await join("application/json")).status).toBe(200);
-      expect(joined).toEqual([{ password: "venue-pass", ssid: "Venue" }]);
+      expect(joined).toEqual([
+        { password: "venue-pass", pin: "2468", ssid: "Venue" },
+      ]);
+
+      // A guest with the Wi-Fi ticket but not the staff PIN.
+      const refused = await join("application/json", "1357");
+      expect(refused.status).toBe(400);
+      expect(await refused.json()).toEqual({ error: "Wrong PIN." });
+      expect(joined).toHaveLength(1);
     });
   });
 });

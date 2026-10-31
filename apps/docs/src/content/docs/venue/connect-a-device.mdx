@@ -59,7 +59,7 @@ Also worth setting on the booth iPad: **Display & Brightness → Auto-Lock → N
 
 ## Admin on a phone or laptop
 
-- **Phone or tablet:** trust the booth exactly as above, then use the **admin** link on the setup page (`https://<booth>:3002`).
+- **Phone or tablet:** trust the booth exactly as above, then use the **admin** link on the setup page (`https://<booth>:3002`). Enter the **staff PIN** and tap **Unlock**.
 - **Mac or PC:** over SSH, `booth cert copy` prints an `scp` command that copies the root CA (`rootCA.pem`) to your computer. Import it into the system keychain (macOS: Keychain Access → System → set to **Always Trust**) or the browser's certificate store.
 
-The admin only accepts requests from its own origin, and Darkroom-only actions need the PIN; see [Access control](/docs/architecture/access-control/).
+Admin asks for the **staff PIN** every time the browser was closed, after 30 minutes with no admin page open, and after the booth restarts. **Lock**, at the bottom of the sidebar (or in **Settings → Staff PIN** on a phone), signs out straight away. The setup ticket leads anyone who finds it to admin's PIN screen, never further. See [Access control](/docs/architecture/access-control/).

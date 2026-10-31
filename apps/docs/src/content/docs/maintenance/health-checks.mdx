@@ -47,6 +47,7 @@ Over SSH, `booth doctor` checks the whole Pi, in this order:
 | `ditherbooth-network.service` running | Not running (warn: no booth Wi-Fi fallback)                                                                      | `sudo booth network setup`                                                                        |
 | Network setup up to date              | The booth Wi-Fi's captive DNS or Wi-Fi permissions are older than the software (warn)                            | `sudo booth network setup`                                                                        |
 | Reachable as `<hostname>.local`       | avahi not answering, or the booth was renamed (warn)                                                             | `sudo systemctl restart avahi-daemon`                                                             |
+| Staff PIN set                         | No staff PIN: admin and the Darkroom stay locked                                                                 | `sudo booth pin`                                                                                  |
 
 `doctor` exits with code `1` if any check **fails**; warnings don't fail it. Run it with `sudo` to include the root-only checks (the polkit rules).
 

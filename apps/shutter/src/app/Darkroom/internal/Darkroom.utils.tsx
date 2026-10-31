@@ -17,7 +17,7 @@ export const getUnlockErrorMessage = (
 ): string => {
   switch (code) {
     case "TOO_MANY_REQUESTS":
-      return "Too many wrong PINs. Wait a minute and try again.";
+      return "Too many wrong PINs. Wait a few minutes and try again.";
     case "UNAUTHORIZED":
       return message ?? "Wrong PIN.";
     case "BAD_REQUEST":

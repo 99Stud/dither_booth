@@ -47,6 +47,7 @@ import {
 } from "#internal/config";
 import { buildBoothContext } from "#internal/context";
 import { readHubRegistration } from "#internal/hub-registration";
+import { readStaffPinSet } from "#internal/staff-pin";
 import {
   capture,
   detectLanIp,
@@ -571,6 +572,24 @@ function checkHubRegistration(results: CheckResult[], repoRoot: string): void {
   }
 }
 
+/** No PIN fails: admin and the Darkroom stay locked without one. */
+function checkStaffPin(results: CheckResult[], repoRoot: string): void {
+  const check = readStaffPinSet(`${repoRoot}/${ENGINE_DB_RELATIVE}`);
+
+  if ("unreadable" in check) {
+    record(results, "warn", "Staff PIN unknown", check.unreadable);
+  } else if (check.set) {
+    record(results, "pass", "Staff PIN set");
+  } else {
+    record(
+      results,
+      "fail",
+      "No staff PIN",
+      "admin and the Darkroom stay locked; run `sudo booth pin`",
+    );
+  }
+}
+
 export async function runDoctorCommand(context: BoothContext): Promise<void> {
   const { repoRoot } = context;
 
@@ -614,6 +633,7 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkNetworkSetupFiles(results);
   await checkMdnsName(results);
   checkHubRegistration(results, repoRoot);
+  checkStaffPin(results, repoRoot);
 
   plain("");
   printResults(results);

@@ -4,8 +4,8 @@ import type { SystemSampler } from "./system.sampler";
 
 /*
  * `/admin/system`: the System page's one way in, and the Health card's Pi
- * row. One JSON snapshot per request, never cached. Gate access here when
- * the page is restricted.
+ * row. One JSON snapshot per request, never cached. The admin server opens
+ * it only to a page signed in with the staff PIN (`staffSession.guard`).
  */
 
 const NO_STORE = { "cache-control": "no-store" } as const;

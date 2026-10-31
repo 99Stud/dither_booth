@@ -11,6 +11,7 @@ import { createInitialPuppeteerState } from "#lib/puppeteer/puppeteer.utils";
 
 const ADMIN_ORIGIN = "https://admin.local";
 const ADMIN_LAN_ORIGIN = "https://192.168.1.10:3002";
+const STAFF_TOKEN = "staff-token";
 
 function createTestCaller(
   requestOrigin?: string,
@@ -27,7 +28,8 @@ function createTestCaller(
     adminOrigin,
     allowedHostnames,
     db: {} as TRPCContext["db"],
-    darkroomAccess: createDarkroomAccessStub(),
+    darkroomAccess: createDarkroomAccessStub(STAFF_TOKEN),
+    darkroomToken: STAFF_TOKEN,
     hubReporter: createHubReporterStub(),
     kioskChannel: createKioskChannel(),
     kioskMaintenance: {} as TRPCContext["kioskMaintenance"],
@@ -106,7 +108,7 @@ describe("restartPuppeteerReceiptViewer", () => {
       caller.ops.restartPuppeteerReceiptViewer(),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
-      message: "Request origin not allowed.",
+      message: "Sign in with the staff PIN.",
     });
     expect(getRestartCalls()).toBe(0);
   });
@@ -118,7 +120,7 @@ describe("restartPuppeteerReceiptViewer", () => {
       caller.ops.restartPuppeteerReceiptViewer(),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
-      message: "Request origin not allowed.",
+      message: "Sign in with the staff PIN.",
     });
     expect(getRestartCalls()).toBe(0);
   });

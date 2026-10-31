@@ -71,9 +71,9 @@ Phones and laptops probe a known URL over plain HTTP when they join a Wi-Fi, to 
 1. **DNS.** `/etc/NetworkManager/dnsmasq-shared.d/ditherbooth-captive.conf` resolves those probe hosts — and only those — to `10.42.0.1`. Apple (`captive.apple.com` and its legacy hosts), Android (`connectivitycheck.gstatic.com`…), Windows (`msftconnecttest.com`) and Firefox (`detectportal.firefox.com`). The rest of the internet still resolves, for a booth with an Ethernet uplink.
 2. **Port 80.** Only root can open it, so the watch installs an nftables rule (table `ip ditherbooth`) that redirects `10.42.0.1:80` to the setup server on `:3003`. The rules go in through stdin, never a file the service user could edit.
 3. **Answer.** The setup server (inside the Shutter process) asks the engine for the captive status:
-   - `pick-network` — the booth opened its Wi-Fi for want of a network: answer the probe with a **302 to `/captive`**, the Wi-Fi picker. The device shows it on its own.
+   - `pick-network` — the booth opened its Wi-Fi for want of a network: answer the probe with a **302 to `/wifi`**, the Wi-Fi picker. The device shows it on its own.
    - `booth-wifi-chosen` or not on the booth Wi-Fi: answer with the **expected success** body, so the device sees a normal network and shows nothing.
-4. **Join.** The picker posts `{ ssid, password }` (JSON only, so another site can't post it without a preflight nothing answers) to the setup server, which calls `captive.joinFromCaptive` with its token. The engine refuses unless the state is `pick-network`: during an event on the booth Wi-Fi, a guest who joined it can't move the booth.
+4. **Join.** The picker posts `{ ssid, password, pin }` (JSON only, so another site can't post it without a preflight nothing answers) to the setup server, which calls `captive.joinFromCaptive` with its token. The engine checks the staff PIN, then refuses unless the state is `pick-network`: a guest who joined the booth Wi-Fi with the ticket's password can't move the booth.
 
 Only requests from the booth Wi-Fi's subnet (`10.42.0.0/24`, IPv4-mapped included) are treated as captive.
 

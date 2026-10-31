@@ -11,6 +11,7 @@ import { engineRouter } from "./router";
 const ADMIN_ORIGIN = "https://admin.local";
 const KIOSK_ORIGIN = "https://192.168.1.10:3000";
 const DARKROOM_TOKEN = "darkroom-token";
+const STAFF_PIN = "2468";
 
 const SETUP_SERVER_TOKEN = "setup-server-token";
 
@@ -25,6 +26,7 @@ const GROUPS = {
     "onKioskCommand",
     "prepareReceipt",
     "endVisit",
+    "getDarkroomSession",
     "printPreparedReceipt",
     "reportKioskStatus",
     "sendKioskCameraSignal",
@@ -128,7 +130,7 @@ function createCaller(
   const context = {
     adminOrigin: ADMIN_ORIGIN,
     allowedHostnames: [],
-    darkroomAccess: createDarkroomAccessStub(DARKROOM_TOKEN),
+    darkroomAccess: createDarkroomAccessStub(DARKROOM_TOKEN, STAFF_PIN),
     darkroomToken,
     db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
     hubReporter: new Proxy(
@@ -219,6 +221,33 @@ describe("engineRouter", () => {
             code: "FORBIDDEN",
           });
         });
+
+        // Anything but a browser can claim admin's origin: a ticket's link
+        // must not be enough.
+        test(`${path} rejects admin's origin without the staff PIN`, async () => {
+          for (const token of [undefined, "stolen-or-expired"]) {
+            const call = getProcedure(createCaller(ADMIN_ORIGIN, token), path);
+
+            await expect(call(undefined)).rejects.toMatchObject({
+              code: "FORBIDDEN",
+            });
+          }
+        });
+
+        test(`${path} opens to admin's origin with a live token`, async () => {
+          const call = getProcedure(
+            createCaller(ADMIN_ORIGIN, DARKROOM_TOKEN),
+            path,
+          );
+          const error = await call(undefined).then(
+            () => undefined,
+            (cause: unknown) => cause,
+          );
+
+          expect((error as { code?: string } | undefined)?.code).not.toBe(
+            "FORBIDDEN",
+          );
+        });
       }
     });
   }
@@ -273,7 +302,7 @@ describe("engineRouter", () => {
     for (const path of groupPaths("captive")) {
       test(`${path} refuses the admin and the Darkroom`, async () => {
         for (const caller of [
-          createCaller(ADMIN_ORIGIN),
+          createCaller(ADMIN_ORIGIN, DARKROOM_TOKEN),
           createCaller(KIOSK_ORIGIN, DARKROOM_TOKEN),
           createCaller(KIOSK_ORIGIN, undefined, "guessed"),
         ]) {
@@ -298,6 +327,32 @@ describe("engineRouter", () => {
         );
       });
     }
+  });
+
+  describe("captive.joinFromCaptive", () => {
+    const join = (pin: string) =>
+      getProcedure(
+        createCaller(undefined, undefined, SETUP_SERVER_TOKEN),
+        "captive.joinFromCaptive",
+      )({ ssid: "Venue", password: "venue-password", pin });
+
+    test("refuses a wrong staff PIN before it touches the network", async () => {
+      await expect(join("1357")).rejects.toMatchObject({
+        code: "UNAUTHORIZED",
+      });
+    });
+
+    test("with the right PIN, goes on to the network", async () => {
+      // Past the PIN, the call reaches the (throwing) network.
+      const error = await join(STAFF_PIN).then(
+        () => undefined,
+        (cause: unknown) => cause,
+      );
+
+      expect((error as { code?: string } | undefined)?.code).not.toBe(
+        "UNAUTHORIZED",
+      );
+    });
   });
 
   test("booth.* is reachable from the kiosk origin", async () => {

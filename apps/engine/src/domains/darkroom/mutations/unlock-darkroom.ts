@@ -7,7 +7,7 @@ import { boothProcedure } from "#internal/trpc";
 
 import { DARKROOM_LOG_SOURCE } from "../internal/darkroom.constants";
 
-/** Trades the Darkroom PIN for a short-lived token. */
+/** Trades the staff PIN for a short-lived token: admin or the Darkroom. */
 export const unlockDarkroom = boothProcedure
   .input(z.object({ pin: darkroomPinSchema }))
   .mutation(async ({ ctx, input }) => {

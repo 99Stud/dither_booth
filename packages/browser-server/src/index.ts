@@ -105,14 +105,17 @@ export async function runBrowserServer(options: RunBrowserServerOptions) {
       options.engineOrigin,
     );
 
+    const headers = getProxiedRequestHeaders(req.headers, {
+      fallbackOrigin: url.origin,
+    });
+    options.proxyHeaders?.(headers, req);
+
     return fetch(upstreamUrl, {
       method: req.method,
       // Ends the upstream request when the browser goes away, so a closed
       // kiosk page also closes its engine subscription stream.
       signal: req.signal,
-      headers: getProxiedRequestHeaders(req.headers, {
-        fallbackOrigin: url.origin,
-      }),
+      headers,
       body:
         req.method === "GET" || req.method === "HEAD" ? undefined : req.body,
     });

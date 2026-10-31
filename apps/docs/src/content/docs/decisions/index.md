@@ -58,5 +58,6 @@ What becomes easier, what becomes harder, what we now have to maintain.
 | [0010](/docs/decisions/0010-studio-asks-the-booth-decides/)        | Studio asks for an update; the booth decides when                   |
 | [0011](/docs/decisions/0011-team-members-through-one-function/)    | Team members change through one function; devices follow membership |
 | [0012](/docs/decisions/0012-events-are-booked-on-the-hub/)         | Events are booked on the Hub; the booth keeps its start and end     |
+| [0013](/docs/decisions/0013-admin-needs-the-staff-pin/)            | Admin needs the staff PIN                                           |
 
 Longer design work — measurements, state models, acceptance criteria — goes in a [spec](/docs/specs/printer-watchdog/) that the ADR links to.

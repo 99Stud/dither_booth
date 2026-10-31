@@ -26,13 +26,15 @@ const engineSourceAliases: BunPlugin = {
 const nodeEnv = Bun.env.NODE_ENV ?? "production";
 
 /**
- * The server, and the certificate generator `booth cert` runs on a release:
- * a release has no `scripts/` either. `certGenerateArgs` in the CLI and the
- * release workflow's smoke test name `dist/generate-local-cert.js`.
+ * The server, and what the CLI runs on a release, which has no `scripts/`
+ * or `src/`: the certificate generator for `booth cert` (named by
+ * `certGenerateArgs` and the release workflow's smoke test), and the staff
+ * PIN setter for `booth pin` (named by `setStaffPinArgs`).
  */
 const entries = [
   { source: "src/production-entry.ts", name: "server" },
   { source: "scripts/generate-local-cert.ts", name: "generate-local-cert" },
+  { source: "src/domains/darkroom/darkroom.set-pin.ts", name: "set-staff-pin" },
 ];
 
 for (const entry of entries) {
