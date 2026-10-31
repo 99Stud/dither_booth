@@ -1,5 +1,6 @@
 import type { FC } from "react";
 
+import { getKioskCameraHealth } from "@dither-booth/shared/kiosk";
 import { format } from "date-fns";
 import { Camera } from "lucide-react";
 
@@ -9,7 +10,6 @@ import { HealthAccordionShell } from "#components/App/ControlCenter/HealthCard/i
 import { HealthDetailRow } from "#components/App/ControlCenter/HealthCard/internal/components/HealthDetailRow/index";
 import { HEALTH_LOGS_SEARCH } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.constants";
 import { getHealthStatusVariant } from "#components/App/ControlCenter/HealthCard/internal/HealthCard.utils";
-import { getKioskCameraHealth } from "#lib/healthz/healthz.utils";
 
 interface CameraAccordionItemProps {
   isHealthzSuccess: boolean;
