@@ -83,13 +83,13 @@ export const MaintenanceScreen: FC<{ isVisible: boolean }> = ({
           <span
             aria-hidden
             className={clsx(
-              "ml-3 inline-block h-[0.6em] w-[0.4em]",
+              "ml-3 inline-block h-[0.6em] w-[0.15em]",
               "animate-flashing bg-white/90",
             )}
           />
         </p>
         {copy["maintenance.body"] ? (
-          <p className={clsx("text-3xl text-white/80")}>
+          <p className={clsx("text-5xl leading-tight text-white/80")}>
             <KitText text={copy["maintenance.body"]} />
           </p>
         ) : null}
