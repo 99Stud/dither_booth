@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
 import { createTestDb } from "#db/internal/db.test-utils";
+import { createEventBackupsStub } from "#domains/backup/internal/backup.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
 import {
   createHubReporterStub,
@@ -199,6 +200,7 @@ describe("kiosk channel through the router", () => {
       // Signed in: admin's calls carry a staff token.
       darkroomAccess: createDarkroomAccessStub("staff-token"),
       darkroomToken: "staff-token",
+      eventBackups: createEventBackupsStub(),
       hubReporter,
       kioskChannel,
       kioskMaintenance,

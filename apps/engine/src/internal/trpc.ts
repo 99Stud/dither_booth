@@ -60,8 +60,18 @@ const adminOriginProcedure = publicProcedure.use(({ ctx, next }) => {
 /** What the kiosk calls during a guest visit. Reachable from any origin. */
 export const boothProcedure = publicProcedure;
 
-/** Event, prize and print authoring, plus operator test prints. Admin only. */
-export const configProcedure = adminOriginProcedure;
+/**
+ * Event, prize and print authoring, plus operator test prints. Admin only.
+ * A change first backs the database up, when something changed since the
+ * last backup and none was taken in the last minute, so `booth restore` can
+ * undo a bad edit.
+ */
+export const configProcedure = adminOriginProcedure.use(
+  async ({ ctx, next, type }) => {
+    if (type === "mutation") await ctx.eventBackups.beforeEdit();
+    return next();
+  },
+);
 
 /** Health checks and recovery actions for the booth's own services. Admin only. */
 export const opsProcedure = adminOriginProcedure;

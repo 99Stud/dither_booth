@@ -28,6 +28,12 @@ import { resolve } from "node:path";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import {
+  BACKUP_LOG_SOURCE,
+  createEventBackups,
+  EVENT_BACKUPS_DIR,
+  EVENT_BACKUPS_MIRROR_DIR,
+} from "#domains/backup/backup.service";
 import { createSetupServerAccess } from "#domains/captive/captive.service";
 import { createDarkroomAccess } from "#domains/darkroom/darkroom.service";
 import {
@@ -84,7 +90,7 @@ import {
   ENGINE_SERVER_ORIGIN,
 } from "#lib/server/server.constants";
 
-import { db } from "./db";
+import { db, sqlite } from "./db";
 import { applySqliteMigrations } from "./db/internal/db.migrate";
 import { ensureDefaultPrintConfiguration } from "./db/internal/db.seed";
 
@@ -144,6 +150,17 @@ export async function runEngineServer(options: {
       },
     );
   }
+
+  const eventBackups = createEventBackups({
+    sqlite,
+    dir: EVENT_BACKUPS_DIR,
+    mirrorDir: EVENT_BACKUPS_MIRROR_DIR,
+    isBusy: () => printer.isPrinting(),
+    log: (level, event, details) =>
+      logKioskEvent(level, BACKUP_LOG_SOURCE, event, { details }),
+  });
+  // Migrated and seeded, before the first guest or staff edit.
+  void eventBackups.start();
 
   const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle();
 
@@ -250,6 +267,7 @@ export async function runEngineServer(options: {
       page,
       db,
       darkroomAccess,
+      eventBackups,
       hubReporter,
       darkroomToken:
         typeof darkroomToken === "string" ? darkroomToken : undefined,
@@ -403,6 +421,8 @@ export async function runEngineServer(options: {
       };
 
       await closeResource("http-server", () => closeHttpServer(server));
+      // After the last request: the backup holds everything it wrote.
+      await closeResource("event-backups", () => eventBackups.stop());
       await closeResource("hub-reporter", () => hubReporter.stop());
       await closeResource("browser", () => puppeteerLifecycle.close());
       await closeResource("printer", async () => {

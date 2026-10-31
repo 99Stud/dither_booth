@@ -1,3 +1,4 @@
+import { backupDatabase as backupOpenDatabase } from "@dither-booth/shared/server/database-backup";
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
@@ -13,13 +14,19 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import type { UpdateHost } from "./update";
 import type { HealthReading } from "./update.health";
 import type { UpdateLayout } from "./update.layout";
 
 import { UpdateRefused, runRecover, runRollback, runUpdate } from "./update";
+import {
+  findBackup,
+  listBackups,
+  runBackup,
+  runRestore,
+} from "./update.backup";
 import {
   bundleAssetName,
   cliAssetName,
@@ -638,5 +645,133 @@ describe("the rollback target", () => {
     await runRollback({ layout, host, mode: "keep-db" });
 
     expect(target()).toBeNull();
+  });
+});
+
+describe("booth backup and restore", () => {
+  const eventBackups = () => join(layout.dataDir, "backups");
+
+  /** A booth on a release, with a backup the engine took at 19:05. */
+  async function boothWithBackup() {
+    createCheckout();
+    createDatabase();
+    const booth = await createHost();
+    await runUpdate({ layout, host: booth.host, version: "0.8.0" });
+    booth.calls.length = 0;
+
+    const db = new Database(dbPath());
+    const backup = await backupOpenDatabase(db, {
+      dir: eventBackups(),
+      kind: "event",
+      label: "2026-10-31T19-05-00-000Z-interval",
+    });
+    db.run("INSERT INTO visit DEFAULT VALUES");
+    db.close();
+    return { ...booth, backup };
+  }
+
+  test("lists the backups by folder, the engine's first", async () => {
+    await boothWithBackup();
+
+    const backups = await listBackups(layout);
+
+    expect(
+      backups.map((b) => [b.folder.kind, b.takenAt?.toISOString()]),
+    ).toEqual([
+      ["event", "2026-10-31T19:05:00.000Z"],
+      ["update", "2026-10-29T10:00:00.000Z"],
+    ]);
+  });
+
+  test("backs up by hand, with the booth running", async () => {
+    const { host, calls } = await boothWithBackup();
+
+    const path = await runBackup({ layout, host });
+
+    expect(path).toStartWith(join(layout.backupsDir, "manual-00000001-"));
+    expect(calls).toEqual([]);
+    expect((await listBackups(layout)).map((b) => b.folder.kind)).toContain(
+      "manual",
+    );
+  });
+
+  test("puts the backup back and keeps the database it replaced", async () => {
+    const { host, calls, backup } = await boothWithBackup();
+    expect(visits()).toBe(1);
+
+    const outcome = await runRestore({
+      layout,
+      host,
+      backup: await findBackup(layout, basename(backup, ".sqlite")),
+    });
+
+    expect(outcome.verdict.ok).toBe(true);
+    expect(calls).toEqual(["stop", "start 0.8.0"]);
+    expect(visits()).toBe(0);
+
+    // Undone the same way.
+    expect(outcome.replaced).toStartWith(join(layout.backupsDir, "restore-"));
+    await runRestore({ layout, host, backup: outcome.replaced! });
+    expect(visits()).toBe(1);
+  });
+
+  test("replaces a damaged database, keeping it as it was", async () => {
+    const { host, backup } = await boothWithBackup();
+    // A journal SQLite can't roll back: the database won't open.
+    writeFileSync(`${dbPath()}-journal`, "damaged");
+
+    const outcome = await runRestore({ layout, host, backup });
+
+    expect(outcome.verdict.ok).toBe(true);
+    expect(visits()).toBe(0);
+    expect(readdirSync(layout.dataDir)).not.toContain(
+      "dither-booth.sqlite-journal",
+    );
+    expect(outcome.replaced).toStartWith(
+      join(layout.backupsDir, "restore-damaged-"),
+    );
+    expect(readFileSync(`${outcome.replaced}-journal`, "utf8")).toBe("damaged");
+  });
+
+  test("restores the oldest copy, which the copy it takes first prunes", async () => {
+    const { host } = await boothWithBackup();
+    let oldest: string | undefined;
+
+    for (let restores = 0; restores < 3; restores += 1) {
+      const { replaced } = await runRestore({
+        layout,
+        host,
+        backup: join(eventBackups(), readdirSync(eventBackups())[0]!),
+      });
+      oldest ??= replaced!;
+    }
+    // The fourth restore's copy pushes the first one out.
+    const outcome = await runRestore({ layout, host, backup: oldest! });
+
+    expect(outcome.verdict.ok).toBe(true);
+    expect(visits()).toBe(1);
+  });
+
+  test("refuses a newer release's database, with the booth untouched", async () => {
+    const { host, calls } = await boothWithBackup();
+    const newer = join(root, "newer.sqlite");
+    const db = new Database(dbPath());
+    db.run("VACUUM INTO ?", [newer]);
+    db.close();
+    const copy = new Database(newer);
+    copy.run("INSERT INTO __drizzle_migrations (hash) VALUES ('two')");
+    copy.close();
+
+    expect(runRestore({ layout, host, backup: newer })).rejects.toThrow(
+      "newer release",
+    );
+    expect(calls).toEqual([]);
+    expect(visits()).toBe(1);
+  });
+
+  test("refuses a name it doesn't know", async () => {
+    await boothWithBackup();
+
+    expect(findBackup(layout, "event-nope")).rejects.toThrow(UpdateRefused);
   });
 });

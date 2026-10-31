@@ -119,6 +119,7 @@ function createCaller(
   requestOrigin?: string,
   darkroomToken?: string,
   setupServerToken?: string,
+  eventBackups?: TRPCContext["eventBackups"],
 ) {
   const state = createInitialPuppeteerState();
   const unreachable = () => {
@@ -133,6 +134,9 @@ function createCaller(
     darkroomAccess: createDarkroomAccessStub(DARKROOM_TOKEN, STAFF_PIN),
     darkroomToken,
     db: new Proxy({}, { get: unreachable }) as TRPCContext["db"],
+    eventBackups:
+      eventBackups ??
+      (new Proxy({}, { get: unreachable }) as TRPCContext["eventBackups"]),
     hubReporter: new Proxy(
       {},
       {
@@ -353,6 +357,30 @@ describe("engineRouter", () => {
         "UNAUTHORIZED",
       );
     });
+  });
+
+  test("an admin change backs the database up first, a read doesn't", async () => {
+    let backups = 0;
+    const caller = createCaller(ADMIN_ORIGIN, DARKROOM_TOKEN, undefined, {
+      start: () => Promise.resolve(),
+      beforeEdit: async () => {
+        backups += 1;
+      },
+      stop: async () => {},
+    });
+
+    // Both go on to the (throwing) database.
+    await getProcedure(
+      caller,
+      "config.getCurrentEvent",
+    )(undefined).catch(() => {});
+    expect(backups).toBe(0);
+
+    await getProcedure(
+      caller,
+      "config.updateEvent",
+    )({ name: "Bal" }).catch(() => {});
+    expect(backups).toBe(1);
   });
 
   test("booth.* is reachable from the kiosk origin", async () => {

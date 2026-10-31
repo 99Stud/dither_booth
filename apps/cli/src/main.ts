@@ -31,6 +31,8 @@ export const main = defineCommand({
     doctor: () => import("#commands/doctor").then((m) => m.default),
     update: () => import("#commands/update").then((m) => m.default),
     rollback: () => import("#commands/rollback").then((m) => m.default),
+    restore: () => import("#commands/restore").then((m) => m.default),
+    backup: () => import("#commands/backup").then((m) => m.default),
   },
 });
 

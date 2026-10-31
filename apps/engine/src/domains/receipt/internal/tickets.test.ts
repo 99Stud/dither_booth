@@ -27,6 +27,7 @@ import {
   visitTable,
 } from "#db/internal/db.schema";
 import { createTestDb } from "#db/internal/db.test-utils";
+import { createEventBackupsStub } from "#domains/backup/internal/backup.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
 import {
   createHubReporterStub,
@@ -576,6 +577,7 @@ describe("the receipt procedures", () => {
       db,
       darkroomAccess: createDarkroomAccessStub("staff-token"),
       darkroomToken: "staff-token",
+      eventBackups: createEventBackupsStub(),
       hubReporter,
       kioskChannel,
       kioskMaintenance,

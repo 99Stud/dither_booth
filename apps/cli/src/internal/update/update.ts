@@ -29,7 +29,11 @@ import { ENGINE_DB_FILE, RELEASES_REPO } from "#internal/config";
 import type { HealthReading, HealthVerdict } from "./update.health";
 import type { UpdateLayout } from "./update.layout";
 
-import { backupDatabase, countMigrations, restoreDatabase } from "./update.db";
+import {
+  backupDatabaseFile,
+  countMigrations,
+  restoreDatabase,
+} from "./update.db";
 import { assessBoothHealth } from "./update.health";
 import {
   LEGACY_RELEASE_PREFIX,
@@ -158,7 +162,7 @@ async function takeLock(
  * Every job's frame: the lock, a job a crash left behind ended first,
  * the work, then where a rollback goes written for the admin.
  */
-async function withLock<T>(
+export async function withLock<T>(
   layout: UpdateLayout,
   host: UpdateHost,
   work: () => Promise<T>,
@@ -365,7 +369,7 @@ async function fetchSums(host: UpdateHost, version: string) {
 
 // ---- checking ----------------------------------------------------------------
 
-async function waitHealthy(
+export async function waitHealthy(
   host: UpdateHost,
   layout: UpdateLayout,
 ): Promise<HealthVerdict> {
@@ -685,9 +689,10 @@ async function update({
     await recorder.update({ step: "backup" });
     const dbPath = runningDir ? await databaseOf(runningDir) : null;
     if (dbPath) {
-      const backup = await backupDatabase({
+      const backup = await backupDatabaseFile({
         dbPath,
-        backupsDir: layout.backupsDir,
+        dir: layout.backupsDir,
+        kind: "update",
         label: `${recorder.job.jobId}-${from ?? "none"}-to-${version}`,
       });
       await recorder.update({

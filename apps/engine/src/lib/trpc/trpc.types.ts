@@ -1,6 +1,7 @@
 import type { Page } from "puppeteer";
 
 import type { DB } from "#db/internal/db.types";
+import type { EventBackups } from "#domains/backup/backup.service";
 import type { SetupServerAccess } from "#domains/captive/captive.service";
 import type { DarkroomAccess } from "#domains/darkroom/darkroom.service";
 import type { HubReporter } from "#domains/hub/hub.service";
@@ -30,6 +31,8 @@ export type TRPCContext = {
    * adds it from its session cookie.
    */
   darkroomToken?: string;
+  /** The database's backups while the engine runs, one per engine process. */
+  eventBackups: EventBackups;
   /** The booth's reports to the Hub, one per engine process. */
   hubReporter: HubReporter;
   /** Push channel to the connected kiosk pages, one per engine process. */

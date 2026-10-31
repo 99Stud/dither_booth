@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import type { TRPCContext } from "#lib/trpc/trpc.types";
 
+import { createEventBackupsStub } from "#domains/backup/internal/backup.test-utils";
 import { createDarkroomAccessStub } from "#domains/darkroom/internal/darkroom.test-utils";
 import { createHubReporterStub } from "#domains/hub/internal/hub.test-utils";
 import { createKioskChannel } from "#domains/kiosk/kiosk.service";
@@ -30,6 +31,7 @@ function createTestCaller(
     db: {} as TRPCContext["db"],
     darkroomAccess: createDarkroomAccessStub(STAFF_TOKEN),
     darkroomToken: STAFF_TOKEN,
+    eventBackups: createEventBackupsStub(),
     hubReporter: createHubReporterStub(),
     kioskChannel: createKioskChannel(),
     kioskMaintenance: {} as TRPCContext["kioskMaintenance"],
