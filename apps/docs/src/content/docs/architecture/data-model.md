@@ -147,21 +147,33 @@ Appearance that belongs to an event (logo, background colours) goes on the campa
 
 ## Backups
 
-The engine copies its database while it runs (`createEventBackups`, in `apps/engine/src/domains/backup`), into `apps/engine/data/backups/`, on the SSD:
+The engine copies its database while it runs (`createEventBackups`, in `apps/engine/src/domains/backup`):
 
-| When                       | Condition                                                             | Name                            |
-| -------------------------- | --------------------------------------------------------------------- | ------------------------------- |
-| At start, after migrations | Always                                                                | `event-<UTC time>-start.sqlite` |
-| Checked every minute       | 5 minutes since the last one, a row changed since, no ticket printing | `…-interval.sqlite`             |
-| At a clean stop            | A row changed since the last one; after the HTTP server closed        | `…-stop.sqlite`                 |
+| When                       | Condition                                                             | Ends in            |
+| -------------------------- | --------------------------------------------------------------------- | ------------------ |
+| At start, after migrations | Always                                                                | `-start.sqlite`    |
+| Checked every minute       | 5 minutes since the last one, a row changed since, no ticket printing | `-interval.sqlite` |
+| Before an admin mutation   | A row changed since the last one, none in the last minute             | `-edit.sqlite`     |
+| At a clean stop            | A row changed since the last one; after the HTTP server closed        | `-stop.sqlite`     |
 
-- **Consistent.** Each is a `VACUUM INTO` on the engine's own connection: one snapshot, compacted, while the kiosk keeps writing. It blocks the event loop for as long as it runs (a few milliseconds for a 150 KB database), so it waits for a print to finish.
+- **Two disks.** Each goes to `apps/engine/data/backups/` on the SSD (the newest 288, a day at one every 5 minutes) and to `.local/backups/` on the SD card (the newest 12; on a booth `/opt/dither-booth-shared/.local/backups/`, shared by every release). One failing doesn't stop the other.
+- **Consistent.** Each is a `VACUUM INTO` on the engine's own connection: one snapshot, compacted, while the kiosk keeps writing. It blocks the event loop for as long as it runs (a few milliseconds for a 150 KB database), so the 5-minute one waits for a print to finish.
 - **Changed.** SQLite's `total_changes()` counts the rows the engine's connection wrote; the engine is the only writer. `VACUUM INTO` doesn't move it.
-- **Kept.** The newest 288 by name, a day at one every 5 minutes. Each kind of backup has its prefix (`event-`, `update-`, `restore-`) and prunes only its own (`backupDatabase`, `packages/shared/src/server/database-backup.ts`).
-- **Never in the way.** A failure is logged (`engine.backup`, `event-backup-failed`) and retried at the next check; the engine keeps running.
-- **Restored by `booth restore`**, which holds the update lock, stops the booth, copies the database it replaces to `/mnt/ssd/dither-booth/backups/restore-<time>.sqlite`, restores, and starts. It refuses a backup with more migrations than the database it replaces: this release couldn't run on it.
+- **Before an edit.** `configProcedure` (`apps/engine/src/internal/trpc.ts`) awaits `eventBackups.beforeEdit()` before every admin mutation, so a bad edit can be undone exactly. Darkroom print tuning goes through `darkroomProcedure` and isn't preceded by one.
+- **Ordered by a number, not the clock.** A file is `<kind>-<8-digit sequence>-<label>.sqlite`. The sequence is one more than the folder's highest; listing and pruning go by it. The Pi has no clock battery: after a power cut without internet it boots at the time `fake-hwclock` last saved, up to an hour behind, and names by time alone would sort the new backups before the old ones. The spacing uses `performance.now()`, so a clock set back doesn't stop them either.
+- **Kinds.** `event-` (the engine's), `update-` (`booth update`, last 3), `restore-` (the database a restore replaced, last 3) and `manual-` (`sudo booth backup`, last 10), each pruning only its own (`BACKUP_KINDS`, `packages/shared/src/server/database-backup.ts`). Update backups named before sequences read as sequence 0 and are pruned first.
+- **Never in the way.** A failure is logged (`engine.backup`, `event-backup-failed`, with its folder) and retried at the next check; the engine keeps running.
+- **Not in them.** Fonts and logos are files in the data folder, not rows: a backup holds their rows only.
 
-The engine's backups sit in the data folder, not next to the update backups in `/mnt/ssd/dither-booth/backups/`: that folder is root's, written by the CLI, and the engine runs as `pi`.
+The CLI's backups sit in `/mnt/ssd/dither-booth/backups/`, root's folder; the engine's in the data folder, because the engine runs as `pi`.
+
+`sudo booth restore <name|path>` (`runRestore`, `apps/cli/src/internal/update/update.backup.ts`):
+
+1. Refuses a backup with more migrations than the current database: this release couldn't run on it.
+2. Takes the update lock, so it never runs during an update or a rollback.
+3. Copies the backup next to the database (`dither-booth.sqlite.staged`) before anything else: the engine's backup at stop and the copy of the replaced database each prune the oldest of their kind, which can be the one being restored.
+4. Stops the booth; copies the current database to `restore-…` (`VACUUM INTO`), or as it is with its journals to `restore-damaged-…` when SQLite can't open it.
+5. Deletes the old `-wal`, `-shm` and `-journal`, renames the staged copy into place, gives it to `pi`, starts the booth and waits for it to be healthy, as an update does.
 
 ## Migrations
 

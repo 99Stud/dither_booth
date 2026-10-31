@@ -163,7 +163,7 @@ _Avoid_: console, terminal.
 
 **Roll back**: go back to the release a booth ran before its last update. An update rolls back on its own when the new release doesn't start; staff can roll back by hand. Across a database change it means restoring the backup taken before the update.
 
-**Event backup**: a copy of the booth's database the engine takes on its own: at every start, every 5 minutes while something changed, and at a clean stop. The last 288 are kept on the SSD; `sudo booth restore` puts one back.
+**Event backup**: a copy of the booth's database the engine takes on its own: at every start, every 5 minutes while something changed, before a change in admin, and at a clean stop. The last 288 are kept on the SSD and the newest 12 on the SD card; `sudo booth restore` puts one back.
 
 **Update request**: a release staff asked a booth to install, from the Studio app's **Booths**. The booth reads it in its heartbeat's answer and installs it when it's quiet: not during its event, nor within 15 minutes of a visit. It reports how it goes; Studio shows it under the booth.
 

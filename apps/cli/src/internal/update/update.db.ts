@@ -1,15 +1,14 @@
-import { backupDatabase as backupInto } from "@dither-booth/shared/server/database-backup";
+import {
+  type BackupKind,
+  backupDatabase,
+} from "@dither-booth/shared/server/database-backup";
 import { Database } from "bun:sqlite";
 import { copyFile, rename, rm } from "node:fs/promises";
 
 /*
- * The engine's database around an update. Migrations only go forward, so
- * the copy taken before the switch is what a rollback restores.
+ * The engine's database around an update or a restore. Migrations only go
+ * forward, so the copy taken before the switch is what a rollback restores.
  */
-
-/** Update backups kept on the SSD; older ones are deleted. */
-export const UPDATE_BACKUPS_KEPT = 3;
-const BACKUP_PREFIX = "update-";
 
 /** Applied migrations, or null when there is no database (yet). */
 export function countMigrations(dbPath: string): number | null {
@@ -30,30 +29,22 @@ export function countMigrations(dbPath: string): number | null {
   }
 }
 
-/**
- * A consistent copy while the engine keeps writing. Returns the copy's
- * path. `booth restore` keeps its own, as many, under its prefix.
- */
-export async function backupDatabase({
+/** A consistent copy of the database file, while the engine keeps writing. */
+export async function backupDatabaseFile({
   dbPath,
-  backupsDir,
+  dir,
+  kind,
   label,
-  prefix = BACKUP_PREFIX,
 }: {
   dbPath: string;
-  backupsDir: string;
+  dir: string;
+  kind: BackupKind;
   label: string;
-  prefix?: string;
 }): Promise<string> {
   const db = new Database(dbPath, { readwrite: true, create: false });
 
   try {
-    return await backupInto(db, {
-      dir: backupsDir,
-      prefix,
-      label,
-      keep: UPDATE_BACKUPS_KEPT,
-    });
+    return await backupDatabase(db, { dir, kind, label });
   } finally {
     db.close();
   }
@@ -66,8 +57,9 @@ export async function restoreDatabase(
 ): Promise<void> {
   const next = `${dbPath}.restore`;
   await copyFile(backup, next);
-  // The old journal belongs to the database being replaced.
-  await rm(`${dbPath}-wal`, { force: true });
-  await rm(`${dbPath}-shm`, { force: true });
+  // The old journals belong to the database being replaced.
+  for (const journal of ["-wal", "-shm", "-journal"]) {
+    await rm(`${dbPath}${journal}`, { force: true });
+  }
   await rename(next, dbPath);
 }

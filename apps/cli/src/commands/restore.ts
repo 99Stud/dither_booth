@@ -14,17 +14,18 @@ import {
   warn,
 } from "#internal/ui";
 import { UpdateRefused } from "#internal/update/update";
-import { boothUpdateLayout } from "#internal/update/update.command";
-import { hostUpdateHost } from "#internal/update/update.host";
 import {
+  type EventRows,
   countEventRows,
   findBackup,
   listBackups,
   runRestore,
-} from "#internal/update/update.restore";
+} from "#internal/update/update.backup";
+import { boothUpdateLayout } from "#internal/update/update.command";
+import { hostUpdateHost } from "#internal/update/update.host";
 
-/** Listed without `--all`. */
-const LISTED = 20;
+/** Listed per folder without `--all`. */
+const LISTED = 12;
 
 const formatTime = (date: Date | null) =>
   date
@@ -34,6 +35,11 @@ const formatTime = (date: Date | null) =>
       })
     : "?";
 
+const describeRows = (rows: EventRows | null) =>
+  rows
+    ? `${rows.events} events, ${rows.visits} visits, ${rows.draws} draws`
+    : "unreadable";
+
 async function printBackups(all: boolean) {
   const backups = await listBackups(boothUpdateLayout());
 
@@ -42,26 +48,28 @@ async function printBackups(all: boolean) {
     return;
   }
 
-  heading("Database backups, newest first");
+  const folders = Map.groupBy(backups, (backup) => backup.folder);
 
-  for (const backup of all ? backups : backups.slice(0, LISTED)) {
-    const rows = countEventRows(backup.path);
-    const counts = rows
-      ? `${rows.events} events, ${rows.visits} visits, ${rows.draws} draws`
-      : "unreadable";
-    plain(
-      `  ${formatTime(backup.takenAt).padEnd(20)} ${backup.kind.padEnd(8)} ${counts.padEnd(40)} ${backup.name}`,
-    );
-  }
+  for (const [folder, inFolder] of folders) {
+    heading(`${folder.title}, newest first: ${folder.dir}`);
 
-  if (!all && backups.length > LISTED) {
-    plain(
-      `  … ${backups.length - LISTED} older: ${command("booth restore --all")}`,
-    );
+    for (const backup of all ? inFolder : inFolder.slice(0, LISTED)) {
+      plain(
+        `  ${formatTime(backup.takenAt).padEnd(20)} ${describeRows(countEventRows(backup.path)).padEnd(40)} ${backup.name}`,
+      );
+    }
+
+    if (!all && inFolder.length > LISTED) {
+      plain(
+        `  … ${inFolder.length - LISTED} older: ${command("booth restore --all")}`,
+      );
+    }
   }
 
   plain();
-  info(`Put one back: ${command("sudo booth restore <name>")}`);
+  info(
+    `Times are the booth's clock. Put one back: ${command("sudo booth restore <name>")}`,
+  );
 }
 
 export default defineCommand({
@@ -93,13 +101,8 @@ export default defineCommand({
 
       try {
         const backup = await findBackup(layout, args.backup);
-        const rows = countEventRows(backup);
         heading("Restore the database");
-        info(
-          rows
-            ? `${backup} holds ${rows.events} events, ${rows.visits} visits, ${rows.draws} draws.`
-            : backup,
-        );
+        info(`${backup} holds ${describeRows(countEventRows(backup))}.`);
 
         const proceed = await confirm(
           "Restart the booth on this backup? What happened since it was taken is set aside.",

@@ -32,6 +32,7 @@ import {
   BACKUP_LOG_SOURCE,
   createEventBackups,
   EVENT_BACKUPS_DIR,
+  EVENT_BACKUPS_MIRROR_DIR,
 } from "#domains/backup/backup.service";
 import { createSetupServerAccess } from "#domains/captive/captive.service";
 import { createDarkroomAccess } from "#domains/darkroom/darkroom.service";
@@ -153,11 +154,12 @@ export async function runEngineServer(options: {
   const eventBackups = createEventBackups({
     sqlite,
     dir: EVENT_BACKUPS_DIR,
+    mirrorDir: EVENT_BACKUPS_MIRROR_DIR,
     isBusy: () => printer.isPrinting(),
     log: (level, event, details) =>
       logKioskEvent(level, BACKUP_LOG_SOURCE, event, { details }),
   });
-  // Before anything writes: the database as this start found it.
+  // Migrated and seeded, before the first guest or staff edit.
   eventBackups.start();
 
   const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle();
@@ -265,6 +267,7 @@ export async function runEngineServer(options: {
       page,
       db,
       darkroomAccess,
+      eventBackups,
       hubReporter,
       darkroomToken:
         typeof darkroomToken === "string" ? darkroomToken : undefined,

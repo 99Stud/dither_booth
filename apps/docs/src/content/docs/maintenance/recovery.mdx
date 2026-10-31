@@ -20,14 +20,19 @@ import { Aside } from "@astrojs/starlight/components";
 
 The booth backs up its own database while it runs: you don't have to.
 
-| When                                  | File                                                           |
-| ------------------------------------- | -------------------------------------------------------------- |
-| Every start of the booth              | `/mnt/ssd/dither-booth/data/backups/event-<time>-start.sqlite` |
-| Every 5 minutes, if something changed | `…/event-<time>-interval.sqlite`                               |
-| Every clean stop (restart, update)    | `…/event-<time>-stop.sqlite`, if something changed             |
-| Before each update                    | `/mnt/ssd/dither-booth/backups/update-*.sqlite`                |
+A crash or a power cut doesn't lose what the booth already recorded: SQLite keeps every finished write. The backups are for a database that is wrong (a bad edit, a broken update) or damaged.
 
-The booth keeps the last 288 event backups: a full day at one every 5 minutes, about 150 KB each. A backup waits for a ticket to finish printing. `<time>` is UTC.
+| When                                  | Where                                                     |
+| ------------------------------------- | --------------------------------------------------------- |
+| Every start of the booth              | `/mnt/ssd/dither-booth/data/backups/event-…-start.sqlite` |
+| Every 5 minutes, if something changed | `…/event-…-interval.sqlite`                               |
+| Before a change in admin              | `…/event-…-edit.sqlite`, at most one a minute             |
+| Every clean stop (restart, update)    | `…/event-…-stop.sqlite`, if something changed             |
+| Before each update                    | `/mnt/ssd/dither-booth/backups/update-….sqlite`           |
+
+The booth keeps the last 288 event backups on the SSD, a full day at one every 5 minutes, and a copy of the newest 12 on the SD card, in `/opt/dither-booth-shared/.local/backups/`, in case the SSD fails. Each is about 150 KB. A backup waits for a ticket to finish printing.
+
+A name reads `event-<number>-<time>-<why>.sqlite`. The number counts up, so the highest is the newest. `<time>` is the booth's clock in UTC: after a power cut without internet it can be off by up to an hour.
 
 To see them, with what each holds:
 
@@ -35,35 +40,36 @@ To see them, with what each holds:
 booth restore
 ```
 
+To take one now, with the booth running (it lands in `/mnt/ssd/dither-booth/backups/manual-….sqlite`, the last 10 kept):
+
+```bash
+sudo booth backup
+```
+
 To keep a copy off the booth, from your computer:
 
 ```bash
-scp -r pi@<booth>.local:/mnt/ssd/dither-booth/data/backups ./booth-backups
+scp -r pi@<booth>.local:/mnt/ssd/dither-booth/data ./booth-data
 ```
 
-To take one by hand, with the booth running:
-
-```bash
-sqlite3 /mnt/ssd/dither-booth/data/dither-booth.sqlite \
-  ".backup '/mnt/ssd/dither-booth/backup-$(date +%F).sqlite'"
-```
+That copies the backups, and the logos and fonts staff added, which the backups don't hold.
 
 ## Restore a backup
 
-When the event's data is wrong or gone (a crash, a bad edit, a database that won't open), go back to how it stood a few minutes before:
+When the event's data is wrong or gone (a bad edit, a broken update, a database that won't open), go back to how it stood a few minutes before:
 
-1. **Pick the backup.** `booth restore` lists them, newest first, with their time and how many events, visits and draws each holds. Pick the last one from before the problem.
+1. **Pick the backup.** `booth restore` lists them by folder, newest first, with their time and how many events, visits and draws each holds. Pick the last one from before the problem.
 2. **Restore it:**
 
    ```bash
-   sudo booth restore event-2026-10-31T19-05-00-000Z-interval
+   sudo booth restore event-00000042-2026-10-31T19-05-00-000Z-interval
    ```
 
-   It asks first, then stops the booth, puts the backup in place and starts the booth again, in about a minute. A path to a copy brought back with `scp` works too.
+   It asks first, then stops the booth, puts the backup in place and starts the booth again, in about a minute. For a backup on the SD card, or a copy brought back with `scp`, give its path.
 
 3. **Check** the event in admin, and run `booth doctor`.
 
-The database it replaced is kept as `/mnt/ssd/dither-booth/backups/restore-<time>.sqlite` (the last 3). Restore that one to undo. What the booth recorded after the backup was taken (visits, draws, stock) is only in that copy.
+The database it replaced is kept as `/mnt/ssd/dither-booth/backups/restore-….sqlite` (the last 3), or `restore-damaged-….sqlite` when it couldn't be opened. Restore that one to undo. What the booth recorded after the backup was taken (visits, draws, stock) is only in that copy.
 
 `booth restore` refuses a backup made by a newer release than the one the booth runs, and never runs during an update or a rollback.
 
