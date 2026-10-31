@@ -1,6 +1,7 @@
 import type { KioskReloadMode } from "@dither-booth/shared/kiosk";
 
 import { sleep } from "@dither-booth/shared/async";
+import { getKioskCameraHealth } from "@dither-booth/shared/kiosk";
 import { IconBubble } from "@dither-booth/ui/components/misc/IconBubble";
 import { Accordion } from "@dither-booth/ui/components/ui/accordion";
 import { Button } from "@dither-booth/ui/components/ui/button";
@@ -25,7 +26,6 @@ import type {
 import { CONTROL_CENTER_LOG_SOURCE } from "#app/ControlCenter/internal/ControlCenter.constants";
 import { StatusDot } from "#components/Misc/StatusDot/index";
 import { notify } from "#lib/feedback/notify";
-import { getKioskCameraHealth } from "#lib/healthz/healthz.utils";
 import { reportKioskError } from "#lib/logging/logging.utils";
 import { getOverallSystemStatus } from "#lib/system/system.utils";
 import { useSystemMetrics } from "#lib/system/useSystemMetrics";

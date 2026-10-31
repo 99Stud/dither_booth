@@ -110,8 +110,8 @@ const EventTimes = ({
           className={clsx("mt-0.5 size-4 shrink-0 text-muted-foreground")}
         />
         {booth.liveFrom && booth.liveUntil
-          ? `Event on ${format(new Date(booth.liveFrom), "EEE d MMM HH:mm")} to ${format(new Date(booth.liveUntil), "EEE d MMM HH:mm")}: a silent booth is an alert then.`
-          : "No event times: a silent booth is never an alert."}
+          ? `Event on ${format(new Date(booth.liveFrom), "EEE d MMM HH:mm")} to ${format(new Date(booth.liveUntil), "EEE d MMM HH:mm")}: a silent booth or a camera off is an alert then.`
+          : "No event times: a silent booth or a camera off is never an alert."}
       </p>
       {editing ? (
         <form className={clsx("flex flex-col gap-3")} onSubmit={submit}>

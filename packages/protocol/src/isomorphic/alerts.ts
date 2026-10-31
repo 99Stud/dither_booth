@@ -16,6 +16,7 @@ export const ALERT_KEYS = [
   "printer.cover-open",
   "booth.silent",
   "booth.update-failed",
+  "booth.camera-off",
   "lottery.out-of-stock",
 ] as const;
 
@@ -74,6 +75,11 @@ export const ALERT_WORDING: Record<AlertKey, AlertWording> = {
     what: "Update failed",
     todo: "The booth runs what it ran. See why under the booth, then ask again.",
     fixed: "A new update was asked for, or it runs the release.",
+  },
+  "booth.camera-off": {
+    what: "Camera off",
+    todo: "Guests can't start a visit. Check that the iPad is on, awake and on the Wi-Fi, with the Shutter open.",
+    fixed: "The iPad is back with its camera.",
   },
   "lottery.out-of-stock": {
     what: "Lottery empty",

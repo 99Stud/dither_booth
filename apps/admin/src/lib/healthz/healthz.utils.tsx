@@ -1,38 +1,12 @@
 import type { PrinterCondition } from "@dither-booth/shared/printer";
 
+import { getKioskCameraHealth } from "@dither-booth/shared/kiosk";
+
 import { getPrinterStatusLine } from "#lib/printer/printer.copy";
 
 import type { HealthzResponse } from "./healthz.types";
 
 type KioskPage = HealthzResponse["shutter"]["kiosk"]["pages"][number];
-
-/**
- * The booth camera's health, from what the kiosk pages report: unhealthy
- * as soon as one page's camera failed, healthy once every camera that runs
- * is ready, and unknown (undefined) while none runs or one is starting.
- */
-export const getKioskCameraHealth = (
-  pages: readonly KioskPage[],
-): boolean | undefined => {
-  const cameras = pages.flatMap((page) => (page.camera ? [page.camera] : []));
-
-  if (
-    cameras.some(
-      (camera) => camera.status === "error" || camera.status === "unsupported",
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    cameras.length > 0 &&
-    cameras.every((camera) => camera.status === "ready")
-  ) {
-    return true;
-  }
-
-  return undefined;
-};
 
 /** What the booth's problems need from the health checks. */
 export type BoothHealthInput = {

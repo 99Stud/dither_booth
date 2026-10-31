@@ -2,6 +2,7 @@ import type { KioskCommand, KioskScreen } from "@dither-booth/shared/kiosk";
 
 import { initializeBrowserLogging } from "@dither-booth/logging/browser";
 import { createDeviceId } from "@dither-booth/shared/id";
+import { KIOSK_STATUS_REPORT_INTERVAL_MS } from "@dither-booth/shared/kiosk";
 import { useMutation } from "@tanstack/react-query";
 import { useSubscription } from "@trpc/tanstack-react-query";
 import { useEffect, useState } from "react";
@@ -82,8 +83,10 @@ export const useKioskCommandStream = (
   );
   const isConnected = status === "pending";
 
-  // Sent on every status change and on every (re)connection: the engine
-  // forgets a page's report when its stream ends.
+  // Sent on every status change and on every (re)connection (the engine
+  // forgets a page's report when its stream ends), then every
+  // KIOSK_STATUS_REPORT_INTERVAL_MS as proof the page is still there: an
+  // iPad switched off or out of Wi-Fi closes nothing the engine can see.
   useEffect(() => {
     if (!isConnected) return;
 
@@ -107,10 +110,15 @@ export const useKioskCommandStream = (
     };
 
     void report(0);
+    const intervalId = window.setInterval(
+      () => void report(0),
+      KIOSK_STATUS_REPORT_INTERVAL_MS,
+    );
 
     return () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
     };
   }, [camera, isConnected, isMaintenanceShown, page.pageId, reportKioskStatus]);
 };

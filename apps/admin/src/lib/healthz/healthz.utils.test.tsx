@@ -1,56 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import {
-  type BoothHealthInput,
-  getBoothProblems,
-  getKioskCameraHealth,
-} from "./healthz.utils";
-
-describe("getKioskCameraHealth", () => {
-  const page = (
-    camera: {
-      status: "initializing" | "ready" | "error" | "unsupported";
-      error: string | null;
-    } | null,
-  ) => ({
-    pageId: "p",
-    deviceId: "d",
-    screen: "shutter" as const,
-    camera,
-    maintenance: false,
-    connectedAt: "2026-10-16T09:00:00.000Z",
-    reportedAt: null,
-  });
-
-  it("is unknown with no page, or no camera running", () => {
-    expect(getKioskCameraHealth([])).toBeUndefined();
-    expect(getKioskCameraHealth([page(null)])).toBeUndefined();
-  });
-
-  it("is unknown while a camera is starting", () => {
-    expect(
-      getKioskCameraHealth([page({ status: "initializing", error: null })]),
-    ).toBeUndefined();
-  });
-
-  it("is healthy once every running camera is ready", () => {
-    expect(
-      getKioskCameraHealth([
-        page({ status: "ready", error: null }),
-        page(null),
-      ]),
-    ).toBe(true);
-  });
-
-  it("is unhealthy as soon as one camera failed", () => {
-    expect(
-      getKioskCameraHealth([
-        page({ status: "ready", error: null }),
-        page({ status: "error", error: "Camera permission denied." }),
-      ]),
-    ).toBe(false);
-  });
-});
+import { type BoothHealthInput, getBoothProblems } from "./healthz.utils";
 
 describe("getBoothProblems", () => {
   const healthy = (): BoothHealthInput => ({

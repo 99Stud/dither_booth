@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { KIOSK_COMMAND_SCHEMA, kioskPageStatusSchema } from "#isomorphic/kiosk";
+import {
+  getKioskCameraHealth,
+  KIOSK_COMMAND_SCHEMA,
+  type KioskCamera,
+  kioskPageStatusSchema,
+} from "#isomorphic/kiosk";
 
 describe("KIOSK_COMMAND_SCHEMA", () => {
   test("parses a reload command", () => {
@@ -67,5 +72,34 @@ describe("kioskPageStatusSchema", () => {
     expect(kioskPageStatusSchema.safeParse({ camera: null }).success).toBe(
       false,
     );
+  });
+});
+
+describe("getKioskCameraHealth", () => {
+  const page = (camera: KioskCamera | null) => ({ camera });
+  const ready: KioskCamera = { status: "ready", error: null };
+
+  test("is unknown with no page, or no camera running", () => {
+    expect(getKioskCameraHealth([])).toBeUndefined();
+    expect(getKioskCameraHealth([page(null)])).toBeUndefined();
+  });
+
+  test("is unknown while a camera is starting", () => {
+    expect(
+      getKioskCameraHealth([page({ status: "initializing", error: null })]),
+    ).toBeUndefined();
+  });
+
+  test("is healthy once every running camera is ready", () => {
+    expect(getKioskCameraHealth([page(ready), page(null)])).toBe(true);
+  });
+
+  test("is unhealthy as soon as one camera failed", () => {
+    expect(
+      getKioskCameraHealth([
+        page(ready),
+        page({ status: "error", error: "Camera permission denied." }),
+      ]),
+    ).toBe(false);
   });
 });

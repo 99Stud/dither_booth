@@ -40,7 +40,7 @@ Every `ops.*` command returns `{ delivered }`, the number of pages that got it. 
 
 ## Status back
 
-`booth.reportKioskStatus({ pageId, camera, maintenance })`: a page reports its camera state (or `null` while it runs none, as on the Darkroom's PIN screen) and whether it shows the maintenance screen yet, on every change and every reconnection. The engine stores it on the page's entry until its stream ends, and answers `{ registered: false }` for a page it doesn't know (the page retries). Admin's **Camera** health item reads it; a failed camera is unhealthy.
+`booth.reportKioskStatus({ pageId, camera, maintenance })`: a page reports its camera state (or `null` while it runs none, as on the Darkroom's PIN screen) and whether it shows the maintenance screen yet, on every change and every reconnection, then every 30 s (`KIOSK_STATUS_REPORT_INTERVAL_MS`) as proof it is still there: an iPad switched off, asleep or off the Wi-Fi closes nothing, so its stream stays open on the engine's side until TCP gives up, many minutes later. The engine stores each report on the page's entry (`reportedAt`) until its stream ends, and answers `{ registered: false }` for a page it doesn't know (the page retries). Admin's **Camera** health item reads it; a failed camera is unhealthy. The [heartbeat](/docs/development/hub/#how-a-registered-booth-reports) reads it too, as one flag: the booth has its camera while a page has reported within 90 s and no page's camera failed, and the Hub's **Camera off** alert fires once it hasn't for two minutes during the booth's event times or an event.
 
 ## The camera on the page
 

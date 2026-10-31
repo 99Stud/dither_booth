@@ -60,6 +60,11 @@ describe("heartbeatSchema", () => {
     expect(heartbeatSchema.parse(ready).lottery).toBeUndefined();
   });
 
+  test("reads a booth from before the camera's state, which sends none", () => {
+    const { ready } = HEARTBEAT_FIXTURES;
+    expect(heartbeatSchema.parse(ready).camera).toBeUndefined();
+  });
+
   test("ignores a field a newer booth adds", () => {
     const { ready } = HEARTBEAT_FIXTURES;
     const parsed = heartbeatSchema.parse({ ...ready, spoolBacklog: 3 });
@@ -81,6 +86,10 @@ describe("heartbeatSchema", () => {
     ["an empty release", { release: " " }],
     ["a negative protocol", { protocol: -1 }],
     ["a negative stock", { lottery: { live: true, stockLeft: -1 } }],
+    [
+      "a camera state with no time",
+      { camera: { on: false, changedAt: undefined } },
+    ],
     [
       "an unknown maintenance reason",
       { maintenance: { on: true, reasons: ["tired"] } },

@@ -105,6 +105,20 @@ export const heartbeatSchema = z.object({
     })
     .optional(),
   /**
+   * The booth camera: `on` while a kiosk page on the iPad keeps reporting
+   * and none reports a failed camera, false once no page has reported for
+   * 90 s (the iPad off, asleep or out of Wi-Fi, the Shutter closed) or a
+   * camera failed. `changedAt` is when `on` last flipped, which the Hub's
+   * grace period counts from. A booth from before it never sends it; a Hub
+   * from before it drops it.
+   */
+  camera: z
+    .object({
+      on: z.boolean(),
+      changedAt: z.iso.datetime(),
+    })
+    .optional(),
+  /**
    * Only while Studio has asked this booth to update. A booth from before
    * it never sends it; a Hub from before it drops it.
    */
