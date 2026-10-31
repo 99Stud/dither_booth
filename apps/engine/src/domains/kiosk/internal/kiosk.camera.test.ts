@@ -1,6 +1,6 @@
 import type { KioskCamera as KioskCameraReport } from "@dither-booth/shared/kiosk";
 
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 
 import { createKioskCamera, type KioskCameraState } from "./kiosk.camera";
 import { createKioskChannel } from "./kiosk.channel";
@@ -12,6 +12,7 @@ const FAILED: KioskCameraReport = {
   status: "error",
   error: "Camera permission denied.",
 };
+const STALE_AFTER_MS = 90_000;
 
 const page = (pageId: string, screen: "shutter" | "darkroom" = "shutter") => ({
   pageId,
@@ -19,27 +20,38 @@ const page = (pageId: string, screen: "shutter" | "darkroom" = "shutter") => ({
   screen,
 });
 
+const cameras: Array<{ stop: () => void }> = [];
+afterEach(() => {
+  for (const camera of cameras.splice(0)) camera.stop();
+});
+
 function setup() {
-  const kioskChannel = createKioskChannel();
   const clock = { at: START };
+  const now = () => clock.at;
+  const kioskChannel = createKioskChannel({ now });
   const flips: KioskCameraState[] = [];
-  const camera = createKioskCamera({ kioskChannel, now: () => clock.at });
+  const camera = createKioskCamera({
+    kioskChannel,
+    staleAfterMs: STALE_AFTER_MS,
+    now,
+  });
+  cameras.push(camera);
   camera.subscribe((state) => flips.push(state));
-  return { camera, clock, flips, kioskChannel };
+  const advance = (ms: number) => {
+    clock.at = new Date(clock.at.getTime() + ms);
+  };
+  return { advance, camera, clock, flips, kioskChannel };
 }
 
 describe("createKioskCamera", () => {
-  test("is off from the start, until a page shows a picture", () => {
+  test("is off from the start, until a page is there", () => {
     const { camera, clock, flips, kioskChannel } = setup();
-    expect(camera.get()).toEqual({ ready: false, changedAt: START });
-
-    kioskChannel.subscribe(page("a"));
-    expect(camera.get().ready).toBe(false);
+    expect(camera.get()).toEqual({ on: false, changedAt: START });
 
     clock.at = LATER;
-    kioskChannel.reportStatus("a", { camera: READY, maintenance: false });
-    expect(camera.get()).toEqual({ ready: true, changedAt: LATER });
-    expect(flips).toEqual([{ ready: true, changedAt: LATER }]);
+    kioskChannel.subscribe(page("a"));
+    expect(camera.get()).toEqual({ on: true, changedAt: LATER });
+    expect(flips).toEqual([{ on: true, changedAt: LATER }]);
   });
 
   test("goes off when the page leaves, or its camera fails", () => {
@@ -50,25 +62,67 @@ describe("createKioskCamera", () => {
 
     clock.at = LATER;
     kioskChannel.reportStatus("a", { camera: FAILED, maintenance: false });
-    expect(camera.get()).toEqual({ ready: false, changedAt: LATER });
+    expect(camera.get()).toEqual({ on: false, changedAt: LATER });
 
     kioskChannel.reportStatus("a", { camera: READY, maintenance: false });
     controller.abort();
-    expect(camera.get().ready).toBe(false);
-    expect(flips.map((flip) => flip.ready)).toEqual([true, false, true, false]);
+    expect(camera.get().on).toBe(false);
+    expect(flips.map((flip) => flip.on)).toEqual([true, false, true, false]);
   });
 
-  test("any page's picture counts, and a report that changes nothing is no flip", () => {
+  test("a page whose reports stopped is gone, once its last one is stale", () => {
+    const { advance, camera, flips, kioskChannel } = setup();
+    kioskChannel.subscribe(page("a"));
+    kioskChannel.reportStatus("a", { camera: READY, maintenance: false });
+
+    advance(STALE_AFTER_MS - 1);
+    expect(camera.get().on).toBe(true);
+    advance(1);
+    expect(camera.get()).toEqual({
+      on: false,
+      changedAt: camera.get().changedAt,
+    });
+    expect(flips.at(-1)).toEqual({
+      on: false,
+      changedAt: flips.at(-1)?.changedAt,
+    });
+
+    // The same report again: the page is back.
+    kioskChannel.reportStatus("a", { camera: READY, maintenance: false });
+    expect(camera.get().on).toBe(true);
+  });
+
+  test("a page that never reported counts from when it connected", () => {
+    const { advance, camera, kioskChannel } = setup();
+    kioskChannel.subscribe(page("a"));
+    expect(camera.get().on).toBe(true);
+
+    advance(STALE_AFTER_MS);
+    expect(camera.get().on).toBe(false);
+  });
+
+  test("a page with no camera counts as there; one failed camera turns it off", () => {
     const { camera, clock, flips, kioskChannel } = setup();
     kioskChannel.subscribe(page("a"));
     kioskChannel.subscribe(page("b", "darkroom"));
-    kioskChannel.reportStatus("b", { camera: READY, maintenance: false });
-    expect(camera.get()).toEqual({ ready: true, changedAt: START });
+    kioskChannel.reportStatus("b", { camera: null, maintenance: false });
+    expect(camera.get()).toEqual({ on: true, changedAt: START });
 
     clock.at = LATER;
-    kioskChannel.reportStatus("a", { camera: FAILED, maintenance: false });
     kioskChannel.reportStatus("b", { camera: READY, maintenance: true });
-    expect(camera.get()).toEqual({ ready: true, changedAt: START });
     expect(flips).toHaveLength(1);
+
+    kioskChannel.reportStatus("a", { camera: FAILED, maintenance: false });
+    expect(camera.get()).toEqual({ on: false, changedAt: LATER });
+  });
+
+  test("stops looking once stopped", () => {
+    const { advance, camera, flips, kioskChannel } = setup();
+    kioskChannel.subscribe(page("a"));
+    camera.stop();
+
+    advance(STALE_AFTER_MS);
+    kioskChannel.subscribe(page("b"));
+    expect(flips.map((flip) => flip.on)).toEqual([true]);
   });
 });

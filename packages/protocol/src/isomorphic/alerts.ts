@@ -78,8 +78,8 @@ export const ALERT_WORDING: Record<AlertKey, AlertWording> = {
   },
   "booth.camera-off": {
     what: "Camera off",
-    todo: "Guests can't start a visit. Check that the iPad is on and awake, with the Shutter open.",
-    fixed: "The camera shows a picture again.",
+    todo: "Guests can't start a visit. Check that the iPad is on, awake and on the Wi-Fi, with the Shutter open.",
+    fixed: "The iPad is back with its camera.",
   },
   "lottery.out-of-stock": {
     what: "Lottery empty",
@@ -104,12 +104,3 @@ export const alertWording = (key: string): AlertWording =>
  * `evaluate_silence` holds the same 3 minutes (`v_silent`).
  */
 export const SILENT_AFTER_MS = 3 * 60_000;
-
-/**
- * How long the booth camera stays off before the Hub alerts, on the
- * booth's own clock (`camera.changedAt` to `sentAt`). Long enough for a
- * kiosk reload, the camera's three restarts or an iPad reboot; longer is
- * an iPad off or asleep. The Hub's `evaluate_heartbeat` holds the same 2
- * minutes (`v_camera_grace`).
- */
-export const CAMERA_OFF_AFTER_MS = 2 * 60_000;

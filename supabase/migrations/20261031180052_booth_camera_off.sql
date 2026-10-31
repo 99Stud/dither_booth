@@ -1,8 +1,8 @@
--- The booth has no camera: no kiosk page on the iPad shows a picture, so no
--- guest can start a visit. Most often the iPad is off or asleep, or the
--- Shutter was closed. Critical, like a silence: the booth is of no use
+-- The booth has no camera: its iPad is gone (no kiosk page has reported
+-- for 90 s: off, asleep, out of Wi-Fi, the Shutter closed) or a page's
+-- camera failed, so no guest can start a visit. Critical, like a silence: the booth is of no use
 -- until someone goes to it. The heartbeat carries the camera's state
--- (`camera`: ready, changedAt). A heartbeat without it (a booth from before
+-- (`camera`: on, changedAt). A heartbeat without it (a booth from before
 -- it) says nothing about the camera: it neither opens this alert nor closes
 -- one that is open.
 
@@ -30,9 +30,12 @@ alter table public.alert
 --   minute: a kiosk reload, the camera's three restarts and an iPad reboot
 --   all fit. A negative age counts as past it. Once open, it stays open
 --   while the camera is off, whatever else changes.
--- - A picture closes it, and so does the booth going out of its windows
---   (here on the next heartbeat; evaluate_silence does it for a booth that
---   went quiet too). `create or replace` keeps the function's grants.
+-- - It is counted from `changedAt` even when that is before the window: a
+--   booth entering its event times with its iPad off alerts on its first
+--   heartbeat in, since staff expect it up by then.
+-- - The iPad back with its camera closes it, and so does the booth going
+--   out of its windows (here on the next heartbeat; evaluate_silence does
+--   it for a booth that went quiet too). `create or replace` keeps the function's grants.
 create or replace function public.evaluate_heartbeat(p_booth_id uuid, p_heartbeat jsonb)
 returns void
 language plpgsql
@@ -55,7 +58,7 @@ declare
     false);
   v_camera_known boolean := p_heartbeat ? 'camera';
   v_camera_off boolean := coalesce(
-    not (p_heartbeat #>> '{camera,ready}')::boolean, false);
+    not (p_heartbeat #>> '{camera,on}')::boolean, false);
   v_camera_age interval :=
     (p_heartbeat ->> 'sentAt')::timestamptz
     - (p_heartbeat #>> '{camera,changedAt}')::timestamptz;

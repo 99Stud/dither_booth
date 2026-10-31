@@ -92,7 +92,7 @@ function setup({
   }
   const hub = fakeHub();
   let status = READY;
-  let camera: KioskCameraState = { ready: true, changedAt: CAMERA_SINCE };
+  let camera: KioskCameraState = { on: true, changedAt: CAMERA_SINCE };
   let lottery = { enabled: true, remainingPrizes: 2 };
   const listeners = new Set<(s: PrinterStatus) => void>();
   const cameraListeners = new Set<(s: KioskCameraState) => void>();
@@ -173,7 +173,7 @@ describe("hub reporter", () => {
       release: "0.7.0",
       dryRun: false,
       printer: { conditions: [], canPrint: true },
-      camera: { ready: true, changedAt: CAMERA_SINCE.toISOString() },
+      camera: { on: true, changedAt: CAMERA_SINCE.toISOString() },
       lottery: { live: true, stockLeft: 2 },
     });
     expect(reporter.getState()).toEqual({
@@ -187,21 +187,21 @@ describe("hub reporter", () => {
     reporter.start();
     await waitFor(() => hub.heartbeats.length >= 1);
 
-    setCamera({ ready: false, changedAt: NOW });
+    setCamera({ on: false, changedAt: NOW });
     await waitFor(() => hub.heartbeats.length >= 2);
     expect(heartbeatSchema.parse(hub.heartbeats[1]?.body).camera).toEqual({
-      ready: false,
+      on: false,
       changedAt: NOW.toISOString(),
     });
 
-    setCamera({ ready: true, changedAt: NOW });
+    setCamera({ on: true, changedAt: NOW });
     await waitFor(() => hub.heartbeats.length >= 3);
-    expect(heartbeatSchema.parse(hub.heartbeats[2]?.body).camera?.ready).toBe(
+    expect(heartbeatSchema.parse(hub.heartbeats[2]?.body).camera?.on).toBe(
       true,
     );
 
     reporter.stop();
-    setCamera({ ready: false, changedAt: NOW });
+    setCamera({ on: false, changedAt: NOW });
     expect(hub.heartbeats).toHaveLength(3);
   });
 

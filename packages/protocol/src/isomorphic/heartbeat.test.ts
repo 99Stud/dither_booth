@@ -88,7 +88,7 @@ describe("heartbeatSchema", () => {
     ["a negative stock", { lottery: { live: true, stockLeft: -1 } }],
     [
       "a camera state with no time",
-      { camera: { ready: false, changedAt: undefined } },
+      { camera: { on: false, changedAt: undefined } },
     ],
     [
       "an unknown maintenance reason",

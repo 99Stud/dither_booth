@@ -427,6 +427,7 @@ export async function runEngineServer(options: {
       // After the last request: the backup holds everything it wrote.
       await closeResource("event-backups", () => eventBackups.stop());
       await closeResource("hub-reporter", () => hubReporter.stop());
+      await closeResource("kiosk-camera", () => kioskCamera.stop());
       await closeResource("browser", () => puppeteerLifecycle.close());
       await closeResource("printer", async () => {
         setupTicketAutoPrint.stop();

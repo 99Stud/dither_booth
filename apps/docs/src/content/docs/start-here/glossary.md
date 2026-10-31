@@ -212,7 +212,7 @@ _Avoid_: org, organisation (in staff-facing text).
 **On call**: the staff picked for an event to get its booth's alerts while it's on, from the booth's team. With nobody on call, or none of them with a device, the whole team gets them. Staff see it in Studio's **This device**: **You're on call**.
 _Avoid_: crew, on duty, recipients (in staff-facing text).
 
-**Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions, its maintenance state, whether its camera shows a picture and whether its lottery is live with stock left. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
+**Heartbeat**: what a booth tells the Hub every 30 seconds: its release, its printer's conditions, its maintenance state, whether its iPad is there with its camera and whether its lottery is live with stock left. It carries the booth's state, not events, so repeating one is harmless. The Hub opens an alert when it changes for the worse and closes it when it clears.
 
 **Alert**: something staff must act on, opened by the Hub from a heartbeat or a silence: **Out of paper**, **Printer error**, **Printer not connected**, **Paper low**, **Cover open**, **Lottery empty**, **Update failed**, **Camera off** or **Silent booth**. It closes by itself when the condition clears, and staff can acknowledge it meanwhile. **Paper low** never fires on our booth: the printer is mounted upright, where its near-end sensor must stay off.
 
@@ -234,7 +234,7 @@ _Avoid_: live window (in staff-facing text).
 **Silent booth**: a booth that has sent no heartbeat for three minutes between its event times or during one of its events. Only the Hub can notice it, since a booth that lost power or its network can't say so.
 _Avoid_: offline, down (in staff-facing text).
 
-**Camera off** (alert): no page on the booth's iPad has shown a picture for two minutes, between its event times or during one of its events, so no guest can start a visit. Most often the iPad is off or asleep, or the Shutter was closed; or its camera failed (admin's **Camera** health item says why). A picture closes it, and so does the event ending.
+**Camera off** (alert): the booth's iPad is gone, or its camera failed, for two minutes between the booth's event times or during one of its events, so no guest can start a visit. Gone: no page on it has reported for 90 seconds, because it is off, asleep or off the Wi-Fi, or the Shutter was closed. Failed: admin's **Camera** health item says why. The iPad back with its camera closes it, and so does the event ending.
 _Avoid_: iPad offline, kiosk down (in staff-facing text).
 
 **Hub registration**: the booth's own identity on the Hub, made once with a registration code from admin's **Settings → Hub**. A registered booth reports to the Hub; **forgetting the registration** stops that, on the booth only.

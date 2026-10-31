@@ -9,7 +9,10 @@ import { EventEmitter, on } from "node:events";
 export type KioskPageConnection = KioskPage &
   KioskPageStatus & {
     connectedAt: Date;
-    /** When the page last reported its status, if it has. */
+    /**
+     * When the page last reported its status, if it has. A page reports
+     * every `KIOSK_STATUS_REPORT_INTERVAL_MS` even when nothing changed.
+     */
     reportedAt: Date | null;
   };
 
@@ -52,7 +55,9 @@ const COMMAND_EVENT = "command";
 const PAGE_LEFT_EVENT = "page-left";
 const PAGES_CHANGED_EVENT = "pages-changed";
 
-export function createKioskChannel(): KioskChannel {
+export function createKioskChannel({
+  now = () => new Date(),
+}: { now?: () => Date } = {}): KioskChannel {
   const emitter = new EventEmitter();
   // One listener per connected page; there is no fixed upper bound.
   emitter.setMaxListeners(0);
@@ -103,7 +108,7 @@ export function createKioskChannel(): KioskChannel {
         ...page,
         camera: null,
         maintenance: false,
-        connectedAt: new Date(),
+        connectedAt: now(),
         reportedAt: null,
       });
       signal?.addEventListener("abort", () => removePage(connection), {
@@ -121,7 +126,7 @@ export function createKioskChannel(): KioskChannel {
     reportStatus(pageId, status) {
       for (const [connection, page] of pages) {
         if (page.pageId !== pageId) continue;
-        pages.set(connection, { ...page, ...status, reportedAt: new Date() });
+        pages.set(connection, { ...page, ...status, reportedAt: now() });
         emitter.emit(PAGES_CHANGED_EVENT);
         return true;
       }

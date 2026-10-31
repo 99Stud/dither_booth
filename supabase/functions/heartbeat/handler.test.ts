@@ -118,6 +118,19 @@ Deno.test("passes on a heartbeat with no lottery state, from an older booth", as
   assertEquals(evaluated[0]?.heartbeat.lottery, undefined);
 });
 
+Deno.test("passes the camera's state on for its rule, or none from an older booth", async () => {
+  for (const fixture of [
+    HEARTBEAT_FIXTURES.cameraOn,
+    HEARTBEAT_FIXTURES.cameraOffJustNow,
+    HEARTBEAT_FIXTURES.cameraOffForLong,
+    HEARTBEAT_FIXTURES.ready,
+  ]) {
+    const { deps, evaluated } = setup();
+    await handleHeartbeat(post(fixture), deps);
+    assertEquals(evaluated[0]?.heartbeat.camera, fixture.camera);
+  }
+});
+
 Deno.test("the booth is the token's, whatever the body claims", async () => {
   const { deps, evaluated } = setup();
   await handleHeartbeat(

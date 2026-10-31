@@ -76,7 +76,7 @@ export function createHubReporter(deps: {
   hub: HubEndpoint;
   printer: Pick<BoothPrinter, "getStatus" | "subscribe">;
   maintenance: Pick<KioskMaintenance, "get">;
-  /** The booth camera, as the kiosk pages report it. */
+  /** The booth camera: whether the iPad is there with it. */
   camera: Pick<KioskCamera, "get" | "subscribe">;
   /** The active event's lottery, as admin's lottery status reads it. */
   getLotteryStatus: () => Promise<
@@ -221,7 +221,7 @@ export function createHubReporter(deps: {
       },
       maintenance: { on: enabled, reasons },
       camera: {
-        ready: cameraState.ready,
+        on: cameraState.on,
         changedAt: cameraState.changedAt.toISOString(),
       },
       ...(lottery ? { lottery } : {}),

@@ -109,6 +109,42 @@ export const kioskPageStatusSchema = z.object({
   maintenance: z.boolean(),
 });
 
+/**
+ * How often a page repeats its status while nothing changes, as proof it
+ * is still there: an iPad switched off or out of Wi-Fi closes nothing, so
+ * the engine only learns it is gone from the reports stopping.
+ */
+export const KIOSK_STATUS_REPORT_INTERVAL_MS = 30_000;
+
+/**
+ * The booth camera's health, from what the kiosk pages report: unhealthy
+ * as soon as one page's camera failed, healthy once every camera that runs
+ * is ready, and unknown (undefined) while none runs or one is starting.
+ * Admin's Camera health item and the Hub's Camera off alert read it alike.
+ */
+export const getKioskCameraHealth = (
+  pages: readonly { camera: KioskCamera | null }[],
+): boolean | undefined => {
+  const cameras = pages.flatMap((page) => (page.camera ? [page.camera] : []));
+
+  if (
+    cameras.some(
+      (camera) => camera.status === "error" || camera.status === "unsupported",
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    cameras.length > 0 &&
+    cameras.every((camera) => camera.status === "ready")
+  ) {
+    return true;
+  }
+
+  return undefined;
+};
+
 /** Identifies one kiosk page load on one device, and the screen it shows. */
 export const kioskPageSchema = z.object({
   pageId: z.string().trim().min(1).max(64),
