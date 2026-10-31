@@ -9,12 +9,12 @@ import { Aside } from "@astrojs/starlight/components";
 
 ## What is worth keeping
 
-| Data                     | Where                                                                    | Lose it and…                                                                        |
-| ------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| **Database**             | `/mnt/ssd/dither-booth/data/dither-booth.sqlite`                         | Events, prizes, stock history, draws, print settings and the Darkroom PIN are gone. |
-| **Booth CA**             | mkcert's CAROOT for the service user (`booth cert copy` prints its path) | Every iPad has to trust the booth again.                                            |
-| **Saved Wi-Fi networks** | NetworkManager, `/etc/NetworkManager/system-connections/`                | Re-enter them in admin.                                                             |
-| Everything else          | Rebuilt by `booth install`                                               | —                                                                                   |
+| Data                     | Where                                                                    | Lose it and…                                                                     |
+| ------------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| **Database**             | `/mnt/ssd/dither-booth/data/dither-booth.sqlite`                         | Events, prizes, stock history, draws, print settings and the staff PIN are gone. |
+| **Booth CA**             | mkcert's CAROOT for the service user (`booth cert copy` prints its path) | Every iPad has to trust the booth again.                                         |
+| **Saved Wi-Fi networks** | NetworkManager, `/etc/NetworkManager/system-connections/`                | Re-enter them in admin.                                                          |
+| Everything else          | Rebuilt by `booth install`                                               | —                                                                                |
 
 ## Back up the database
 
@@ -153,6 +153,16 @@ sudo systemctl restart ditherbooth.service
 ```
 
 The certificate covers the LAN IP, `<hostname>` and `<hostname>.local`, and the booth Wi-Fi's `10.42.0.1`. A **hostname change** needs a new certificate.
+
+## Forgot the staff PIN
+
+Admin can't be opened without it, so reset it on the booth, over SSH:
+
+```bash
+sudo booth pin
+```
+
+Type the new PIN twice. The booth restarts its apps, which signs every admin and Darkroom out; sign in again with the new PIN.
 
 ## Reset the network setup
 

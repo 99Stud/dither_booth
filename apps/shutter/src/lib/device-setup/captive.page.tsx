@@ -4,7 +4,8 @@ import { renderBoothPage } from "./device-setup.html";
  * What a phone or laptop shows on its own when it joins the booth Wi-Fi
  * while the booth has no network: pick the venue's, and the booth joins it.
  * Plain HTTP on purpose, no certificate needed; the password only crosses
- * the booth's own WPA2 Wi-Fi.
+ * the booth's own WPA2 Wi-Fi. Joining asks for the staff PIN: the Wi-Fi
+ * ticket can end up with a guest.
  */
 export function renderCaptivePage() {
   return renderBoothPage({
@@ -39,6 +40,8 @@ export function renderCaptivePage() {
     <label for="password">Password</label>
     <input id="password" name="password" type="password" autocapitalize="off" autocorrect="off" minlength="8" maxlength="63" />
     <p><small>Leave it empty only for an open network.</small></p>
+    <label for="pin">Staff PIN</label>
+    <input id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required minlength="4" maxlength="8" />
     <p class="error" data-error role="alert" hidden></p>
     <button class="button" type="submit" data-join>Join</button>
   </form>
@@ -78,6 +81,7 @@ export function renderCaptivePage() {
   const form = document.querySelector("[data-form]");
   const ssidInput = form.elements.ssid;
   const passwordInput = form.elements.password;
+  const pinInput = form.elements.pin;
   const errorLine = document.querySelector("[data-error]");
   let networks = [];
   const signalLabel = (signal) => signal >= 70 ? "Strong" : signal >= 40 ? "Good" : "Weak";
@@ -119,7 +123,7 @@ export function renderCaptivePage() {
         ssidInput.value = network.ssid;
         passwordInput.value = "";
         passwordInput.disabled = !network.secured;
-        (network.secured ? passwordInput : document.querySelector("[data-join]")).focus();
+        (network.secured ? passwordInput : pinInput).focus();
       });
       item.append(button);
       return item;
@@ -142,11 +146,18 @@ export function renderCaptivePage() {
       fail(new Error("Wi-Fi passwords are at least 8 characters."));
       return;
     }
+    const pin = pinInput.value;
+    if (!/^[0-9]{4,8}$/.test(pin)) {
+      fail(new Error("The staff PIN is 4 to 8 digits."));
+      pinInput.focus();
+      return;
+    }
     try {
-      await post("/wifi/join", { ssid, password: password || undefined });
+      await post("/wifi/join", { ssid, password: password || undefined, pin });
       for (const slot of document.querySelectorAll("[data-joining-name]")) slot.textContent = ssid;
       show("joining");
     } catch (error) {
+      pinInput.value = "";
       fail(error);
     }
   });

@@ -34,6 +34,7 @@ The `booth` CLI is a single static binary. The Pi needs nothing installed before
    | `repo`          | Clones the repo into `/opt/dither-booth` (or pulls it), `bun install`, `bun run build`, Puppeteer's browser       |
    | `ssd`           | Mounts the NVMe at `/mnt/ssd` via `/etc/fstab` and moves `apps/engine/data` onto it with a symlink                |
    | `db`            | Applies migrations and seeds the default print configuration                                                      |
+   | `pin`           | Asks for the staff PIN when none is set yet. It opens admin and the Darkroom                                      |
    | `cert`          | Creates the booth CA and a certificate for the current LAN IP and `<hostname>.local`                              |
    | `service`       | Installs and starts `ditherbooth.service`, the NetworkManager hook that restarts it on a new IP, and log rotation |
    | `network setup` | Creates the booth Wi-Fi, its captive page DNS, the polkit rule for the engine, and `ditherbooth-network.service`  |
@@ -58,7 +59,7 @@ The `booth` CLI is a single static binary. The Pi needs nothing installed before
 
 5. **Connect the first iPad.** The printer prints a setup ticket as soon as the engine is up. Follow [Connect a device](/docs/venue/connect-a-device/).
 
-6. **Set the Darkroom PIN** in admin's **Settings**, then **create the first event** on the Event page.
+6. **Open admin with the staff PIN** you chose during the install (none yet? `sudo booth pin`), then **create the first event** on the Event page.
 
 7. **Check the whole chain.** In admin's Control Center, Health and Printer should be green. On the iPad, open the Darkroom and run a test print: a receipt should come out within a few seconds.
 

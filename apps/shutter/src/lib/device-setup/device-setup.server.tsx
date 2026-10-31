@@ -18,7 +18,12 @@ export type CaptiveStatus = EngineOutputs["captive"]["getCaptiveStatus"];
 /** The engine's `captive.*` procedures, called with the setup server's token. */
 export type CaptiveBackend = {
   getStatus: () => Promise<CaptiveStatus>;
-  join: (input: { ssid: string; password?: string }) => Promise<void>;
+  /** Throws the engine's refusal, a wrong staff PIN included. */
+  join: (input: {
+    ssid: string;
+    password?: string;
+    pin: string;
+  }) => Promise<void>;
 };
 
 export type DeviceSetupRoutesOptions = {
@@ -106,10 +111,12 @@ export function createDeviceSetupFetch(options: DeviceSetupRoutesOptions) {
         const body = (await request.json()) as {
           ssid?: unknown;
           password?: unknown;
+          pin?: unknown;
         };
         await options.captive.join({
           password:
             typeof body.password === "string" ? body.password : undefined,
+          pin: typeof body.pin === "string" ? body.pin : "",
           ssid: typeof body.ssid === "string" ? body.ssid : "",
         });
       } else {

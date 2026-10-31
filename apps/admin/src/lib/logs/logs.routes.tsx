@@ -26,7 +26,8 @@ import { logServiceSchema, logsClientMessageSchema } from "./logs.protocol";
 
 /*
  * `/admin/logs`: the Logs page's one way in. Every socket shares one log
- * hub. Gate access here (`validateUpgrade`) when the page is restricted.
+ * hub. The admin server opens it only to a page signed in with the staff
+ * PIN (`staffSession.validateUpgrade`).
  *
  * Cursor: the server keeps, per socket, where its history reaches back to
  * (`before`) and how far its live lines reach (`after`), and sends both,

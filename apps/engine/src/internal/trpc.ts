@@ -31,17 +31,22 @@ export const router = t.router;
 
 const publicProcedure = t.procedure;
 
+/**
+ * Admin's own origin, signed in with the staff PIN. The origin alone isn't
+ * enough: anything but a browser can send any `Origin`, and the booth's
+ * tickets lead anyone who picks one up to admin.
+ */
 const isAdminRequest = (ctx: TRPCContext) =>
   isAllowedConfiguredOrigin(
     ctx.requestOrigin,
     ctx.adminOrigin,
     ctx.allowedHostnames,
-  );
+  ) && ctx.darkroomAccess.verify(ctx.darkroomToken);
 
 const forbidden = () =>
   new TRPCError({
     code: "FORBIDDEN",
-    message: "Request origin not allowed.",
+    message: "Sign in with the staff PIN.",
   });
 
 const adminOriginProcedure = publicProcedure.use(({ ctx, next }) => {
@@ -56,9 +61,9 @@ const adminOriginProcedure = publicProcedure.use(({ ctx, next }) => {
 export const boothProcedure = publicProcedure;
 
 /**
- * Event, prize and print authoring, plus operator test prints. A change
- * first backs the database up, when something changed since the last
- * backup and none was taken in the last minute, so `booth restore` can
+ * Event, prize and print authoring, plus operator test prints. Admin only.
+ * A change first backs the database up, when something changed since the
+ * last backup and none was taken in the last minute, so `booth restore` can
  * undo a bad edit.
  */
 export const configProcedure = adminOriginProcedure.use(
@@ -68,16 +73,17 @@ export const configProcedure = adminOriginProcedure.use(
   },
 );
 
-/** Health checks and recovery actions for the booth's own services. */
+/** Health checks and recovery actions for the booth's own services. Admin only. */
 export const opsProcedure = adminOriginProcedure;
 
 /**
  * Print tuning and the checks around it: the admin, or the Darkroom on the
- * booth iPad holding a live token from `booth.unlockDarkroom`. Only those
- * procedures use it; event authoring, restarts and the PIN stay admin-only.
+ * booth iPad, both holding a live token from `booth.unlockDarkroom`. Only
+ * those procedures use it; event authoring, restarts and the PIN stay
+ * admin-only.
  */
 export const darkroomProcedure = publicProcedure.use(({ ctx, next }) => {
-  if (!isAdminRequest(ctx) && !ctx.darkroomAccess.verify(ctx.darkroomToken)) {
+  if (!ctx.darkroomAccess.verify(ctx.darkroomToken)) {
     throw forbidden();
   }
 

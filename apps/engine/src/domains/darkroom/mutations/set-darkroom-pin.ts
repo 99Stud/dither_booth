@@ -8,8 +8,8 @@ import { serializePinStatus } from "../internal/darkroom.access";
 import { DARKROOM_LOG_SOURCE } from "../internal/darkroom.constants";
 
 /**
- * Sets or changes the Darkroom PIN. Admin only: a Darkroom token can never
- * change the PIN. Every open Darkroom is signed out.
+ * Sets or changes the staff PIN. Admin only: the Darkroom can never change
+ * the PIN. Every open Darkroom and admin, this one included, is signed out.
  */
 export const setDarkroomPin = configProcedure
   .input(z.object({ pin: darkroomPinSchema }))

@@ -20,14 +20,16 @@ import { useState } from "react";
 import { SETTINGS_LOG_SOURCE } from "#app/Settings/internal/Settings.constants";
 import { notify } from "#lib/feedback/notify";
 import { reportKioskError } from "#lib/logging/logging.utils";
+import { useLockAdmin } from "#lib/staff-session/useStaffSession";
 import { useTRPC } from "#lib/trpc/trpc.client";
 
 /**
- * Sets the PIN staff type to open the Darkroom (print tuning) on the booth
- * screen. Until one is set, the Darkroom stays locked.
+ * Sets the staff PIN: it opens admin, and the Darkroom (print tuning) on
+ * the booth screen. Changing it signs everyone out, this page included.
  */
 export const DarkroomPinCard = () => {
   const trpc = useTRPC();
+  const lockAdmin = useLockAdmin();
   const [pin, setPin] = useState("");
   const pinStatusQuery = useQuery(
     trpc.config.getDarkroomPinStatus.queryOptions(),
@@ -46,17 +48,16 @@ export const DarkroomPinCard = () => {
       reportKioskError(error, {
         event: "settings-darkroom-pin-failed",
         source: SETTINGS_LOG_SOURCE,
-        userMessage: "Failed to save the Darkroom PIN.",
+        userMessage: "Failed to save the staff PIN.",
       });
     });
 
     if (!saved) return;
 
     setPin("");
-    await pinStatusQuery.refetch();
-    notify.success(
-      "Darkroom PIN saved. Open Darkroom sessions were signed out.",
-    );
+    notify.success("Staff PIN saved. Everyone was signed out: sign in again.");
+    // The engine signed this page out too.
+    await lockAdmin();
   };
 
   return (
@@ -66,14 +67,14 @@ export const DarkroomPinCard = () => {
           <IconBubble tone="violet">
             <KeyRound />
           </IconBubble>
-          <h2>Darkroom PIN</h2>
+          <h2>Staff PIN</h2>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form className={clsx("flex flex-col gap-2")} onSubmit={submit}>
           <div className={clsx("flex gap-2")}>
             <Input
-              aria-label="New Darkroom PIN"
+              aria-label="New staff PIN"
               autoComplete="off"
               enterKeyHint="done"
               inputMode="numeric"
@@ -98,12 +99,20 @@ export const DarkroomPinCard = () => {
             </Button>
           </div>
           <p className={clsx("text-sm text-muted-foreground")}>
-            {pinStatus === undefined
-              ? "Checking…"
-              : pinStatus.isSet && pinStatus.updatedAt
-                ? `Changed ${format(new Date(pinStatus.updatedAt), "MMM d, HH:mm")}.`
-                : "No PIN yet: the Darkroom stays locked."}
+            Opens admin and the Darkroom.{" "}
+            {pinStatus?.isSet && pinStatus.updatedAt
+              ? `Changed ${format(new Date(pinStatus.updatedAt), "MMM d, HH:mm")}.`
+              : null}
           </p>
+          <Button
+            className={clsx("self-start")}
+            type="button"
+            variant="outline"
+            onClick={() => void lockAdmin()}
+          >
+            <LockKeyhole data-icon="inline-start" />
+            Lock admin
+          </Button>
         </form>
       </CardContent>
     </Card>

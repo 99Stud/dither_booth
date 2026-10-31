@@ -24,9 +24,12 @@ export type TRPCContext = {
   adminOrigin: string;
   allowedHostnames: readonly string[];
   db: DB;
-  /** Darkroom PIN and tokens, one per engine process. */
+  /** The staff PIN and its tokens, one per engine process. */
   darkroomAccess: DarkroomAccess;
-  /** The `x-darkroom-token` header, when the Darkroom sent one. */
+  /**
+   * The `x-darkroom-token` header: the Darkroom sends it, the admin server
+   * adds it from its session cookie.
+   */
   darkroomToken?: string;
   /** The database's backups while the engine runs, one per engine process. */
   eventBackups: EventBackups;

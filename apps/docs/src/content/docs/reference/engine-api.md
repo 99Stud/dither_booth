@@ -7,7 +7,7 @@ sidebar:
 
 The engine's API is tRPC (`apps/engine/src/internal/router.ts`). Browsers call it at `/engine/trpc` on the Shutter or Admin origin. Access levels are explained in [Access control](/docs/architecture/access-control/).
 
-**Access**: **any** = any origin · **admin** = admin origin · **darkroom** = admin origin or a Darkroom token · **setup** = setup server token.
+**Access**: **any** = any origin · **admin** = admin origin and a staff token · **darkroom** = a staff token, from any origin · **setup** = setup server token.
 
 ## `booth.*` — the kiosk
 
@@ -22,7 +22,8 @@ The engine's API is tRPC (`apps/engine/src/internal/router.ts`). Browsers call i
 | `onKioskCommand`        | subscription        | any    | The kiosk command stream for one page                                                                              |
 | `reportKioskStatus`     | mutation            | any    | A page reports its camera and maintenance screen state                                                             |
 | `sendKioskCameraSignal` | mutation            | any    | WebRTC signalling from the kiosk page                                                                              |
-| `unlockDarkroom`        | mutation            | any    | Trade the PIN for a Darkroom token                                                                                 |
+| `getDarkroomSession`    | query               | any    | `{ pinSet, signedIn }` for the caller's staff token; admin's PIN screen and the admin server's route checks        |
+| `unlockDarkroom`        | mutation            | any    | Trade the staff PIN for a token (admin or the Darkroom)                                                            |
 | `lockDarkroom`          | mutation            | any    | End the caller's Darkroom session                                                                                  |
 
 ## `config.*` — authoring and tuning
@@ -48,8 +49,8 @@ The engine's API is tRPC (`apps/engine/src/internal/router.ts`). Browsers call i
 | `generateReceipt`                             | mutation | darkroom | Render a receipt preview                                                                                                                                                                                                             |
 | `printReceipt`                                | mutation | darkroom | Test print under ref `000000`; never draws                                                                                                                                                                                           |
 | `printSampleLotteryTicket`                    | mutation | darkroom | Print a sample win (for a prize) or loss ticket                                                                                                                                                                                      |
-| `getDarkroomPinStatus`                        | query    | admin    | Whether a PIN is set                                                                                                                                                                                                                 |
-| `setDarkroomPin`                              | mutation | admin    | Set the PIN; revokes all tokens                                                                                                                                                                                                      |
+| `getDarkroomPinStatus`                        | query    | admin    | Whether a staff PIN is set                                                                                                                                                                                                           |
+| `setDarkroomPin`                              | mutation | admin    | Set the staff PIN; revokes all tokens, admin's included                                                                                                                                                                              |
 | `getDeviceSetup`                              | query    | darkroom | Setup links and QR data                                                                                                                                                                                                              |
 | `printSetupTicket`                            | mutation | darkroom | Print a setup ticket now                                                                                                                                                                                                             |
 | `getNetworkStatus`                            | query    | darkroom | Current connection, saved and nearby networks                                                                                                                                                                                        |
@@ -78,7 +79,7 @@ Admin also restarts PM2 processes through its own server (not the engine), which
 | Procedure          | Kind     | Access | Purpose                                                                          |
 | ------------------ | -------- | ------ | -------------------------------------------------------------------------------- |
 | `getCaptiveStatus` | query    | setup  | `pick-network`, `booth-wifi-chosen` or `not-on-booth-wifi`, with nearby networks |
-| `joinFromCaptive`  | mutation | setup  | Join a network; refused unless `pick-network`                                    |
+| `joinFromCaptive`  | mutation | setup  | Join a network with the staff `pin`; refused unless `pick-network`               |
 
 ## Errors
 

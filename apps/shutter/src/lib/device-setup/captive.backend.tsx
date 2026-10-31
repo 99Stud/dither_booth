@@ -6,10 +6,15 @@ import { TRPCClientError, createTRPCClient, httpLink } from "@trpc/client";
 import type { CaptiveBackend } from "./device-setup.server";
 
 /** An input the engine refused: staff need a sentence, not zod's report. */
-const toStaffError = (error: unknown) =>
-  error instanceof TRPCClientError && error.data?.zodError
-    ? new Error("Check the network name and password.")
-    : error;
+const toStaffError = (error: unknown) => {
+  if (!(error instanceof TRPCClientError) || !error.data?.zodError) {
+    return error;
+  }
+
+  return error.data.zodError.fieldErrors?.pin
+    ? new Error("The staff PIN is 4 to 8 digits.")
+    : new Error("Check the network name and password.");
+};
 
 /**
  * The engine's `captive.*` procedures. The token is read on every call: the
