@@ -307,7 +307,7 @@ describe("engineRouter", () => {
   test("an admin change backs the database up first, a read doesn't", async () => {
     let backups = 0;
     const caller = createCaller(ADMIN_ORIGIN, undefined, undefined, {
-      start: () => {},
+      start: () => Promise.resolve(),
       beforeEdit: async () => {
         backups += 1;
       },

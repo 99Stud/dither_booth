@@ -13,6 +13,8 @@ let wallClock: number;
 /** Time since the engine started, which spaces them. */
 let elapsed: number;
 let busy: boolean;
+/** The check the engine would run every minute, run by hand. */
+let check: () => Promise<void>;
 const logged: { level: string; event: string }[] = [];
 
 beforeEach(async () => {
@@ -35,7 +37,7 @@ const sd = () => join(root, "sd");
 const files = async (dir = ssd()) =>
   (await readdir(dir).catch(() => [] as string[])).toSorted();
 
-const settle = () => Bun.sleep(20);
+const tick = () => check();
 const advance = (ms: number) => {
   wallClock += ms;
   elapsed += ms;
@@ -52,15 +54,17 @@ const createUnderTest = ({ dir = ssd(), mirrorDir = sd() } = {}) =>
     now: () => new Date(wallClock),
     elapsedMs: () => elapsed,
     everyMs: 5 * 60_000,
-    checkMs: 5,
     editGapMs: 60_000,
+    repeat: (run) => {
+      check = run;
+      return () => {};
+    },
   });
 
 describe("createEventBackups", () => {
   test("takes one at start, on the SSD and on the SD card", async () => {
     const eventBackups = createUnderTest();
-    eventBackups.start();
-    await settle();
+    await eventBackups.start();
     await eventBackups.stop();
 
     const name = "event-00000001-2026-10-31T19-00-00-000Z-start.sqlite";
@@ -70,37 +74,49 @@ describe("createEventBackups", () => {
 
   test("takes one every 5 minutes, only when something changed", async () => {
     const eventBackups = createUnderTest();
-    eventBackups.start();
-    await settle();
+    await eventBackups.start();
 
     // Changed, but too soon.
     draw();
     advance(60_000);
-    await settle();
+    await tick();
     expect(await files()).toHaveLength(1);
 
     advance(4 * 60_000);
-    await settle();
+    await tick();
     expect((await files()).at(-1)).toBe(
       "event-00000002-2026-10-31T19-05-00-000Z-interval.sqlite",
     );
 
     // Nothing changed since.
     advance(10 * 60_000);
-    await settle();
+    await tick();
     await eventBackups.stop();
     expect(await files()).toHaveLength(2);
   });
 
+  test("spaces them from the snapshot, not from when its file was written", async () => {
+    const eventBackups = createUnderTest();
+    // A slow disk: 5 minutes pass while the start backup is written.
+    const started = eventBackups.start();
+    advance(5 * 60_000);
+    await started;
+
+    draw();
+    await tick();
+    await eventBackups.stop();
+
+    expect((await files()).at(-1)).toEndWith("-interval.sqlite");
+  });
+
   test("keeps going when the booth's clock is set back", async () => {
     const eventBackups = createUnderTest();
-    eventBackups.start();
-    await settle();
+    await eventBackups.start();
 
     draw();
     wallClock -= 60 * 60_000;
     elapsed += 5 * 60_000;
-    await settle();
+    await tick();
     await eventBackups.stop();
 
     expect((await files()).at(-1)).toBe(
@@ -110,25 +126,23 @@ describe("createEventBackups", () => {
 
   test("waits for the print to end", async () => {
     const eventBackups = createUnderTest();
-    eventBackups.start();
-    await settle();
+    await eventBackups.start();
 
     draw();
     busy = true;
     advance(5 * 60_000);
-    await settle();
+    await tick();
     expect(await files()).toHaveLength(1);
 
     busy = false;
-    await settle();
+    await tick();
     await eventBackups.stop();
     expect(await files()).toHaveLength(2);
   });
 
   test("takes one before an edit, at most once a minute", async () => {
     const eventBackups = createUnderTest();
-    eventBackups.start();
-    await settle();
+    await eventBackups.start();
 
     // Nothing changed since the start.
     advance(2 * 60_000);
@@ -153,8 +167,7 @@ describe("createEventBackups", () => {
 
   test("takes a last one at stop when something changed", async () => {
     const eventBackups = createUnderTest();
-    eventBackups.start();
-    await settle();
+    await eventBackups.start();
 
     draw();
     advance(60_000);
@@ -170,8 +183,7 @@ describe("createEventBackups", () => {
   test("keeps the SD card copy when the SSD fails, and logs it", async () => {
     // A file where the SSD folder should be.
     const eventBackups = createUnderTest({ dir: join(root, "live.sqlite") });
-    eventBackups.start();
-    await settle();
+    await eventBackups.start();
     await eventBackups.stop();
 
     expect(logged).toContainEqual({

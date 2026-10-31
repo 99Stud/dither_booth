@@ -32,7 +32,8 @@ export type EventBackupReason = "start" | "interval" | "edit" | "stop";
  * logged, never thrown.
  */
 export type EventBackups = {
-  start: () => void;
+  /** Resolves once the start backup is written. */
+  start: () => Promise<void>;
   /** Before an admin change: a backup, if something changed since the last one. */
   beforeEdit: () => Promise<void>;
   /** Takes the last backup if anything changed since the one before. */
@@ -55,6 +56,8 @@ export function createEventBackups(deps: {
   everyMs?: number;
   checkMs?: number;
   editGapMs?: number;
+  /** Runs `check` every `ms`; returns how to stop it. */
+  repeat?: (check: () => Promise<void>, ms: number) => () => void;
 }): EventBackups {
   const {
     sqlite,
@@ -67,8 +70,12 @@ export function createEventBackups(deps: {
     everyMs = EVENT_BACKUP_EVERY_MS,
     checkMs = EVENT_BACKUP_CHECK_MS,
     editGapMs = EVENT_BACKUP_EDIT_GAP_MS,
+    repeat = (check, ms) => {
+      const timer = setInterval(() => void check(), ms);
+      return () => clearInterval(timer);
+    },
   } = deps;
-  let timer: ReturnType<typeof setInterval> | undefined;
+  let stopChecks: (() => void) | undefined;
   let taking: Promise<void> | null = null;
   let lastAt: number | null = null;
   // Rows this connection changed, at the last backup. VACUUM INTO adds none.
@@ -105,7 +112,10 @@ export function createEventBackups(deps: {
 
   const take = (reason: EventBackupReason) => {
     taking ??= (async () => {
+      // Read with the snapshot, not after it's written: the next backup is
+      // spaced from what this one holds.
       const changes = totalChanges();
+      const at = elapsedMs();
       const label = `${backupStamp(now())}-${reason}`;
       const onSsd = await copyTo(reason, dir, label);
       const onSd = await copyTo(
@@ -117,7 +127,7 @@ export function createEventBackups(deps: {
 
       if (onSsd || onSd) {
         changesAtLast = changes;
-        lastAt = elapsedMs();
+        lastAt = at;
       }
     })().finally(() => {
       taking = null;
@@ -133,21 +143,21 @@ export function createEventBackups(deps: {
 
   return {
     start() {
-      if (timer) return;
-      void take("start");
-      timer = setInterval(() => {
+      if (stopChecks) return Promise.resolve();
+      stopChecks = repeat(async () => {
         if (sinceLast() >= everyMs && changed() && !isBusy()) {
-          void take("interval");
+          await take("interval");
         }
       }, checkMs);
+      return take("start");
     },
     async beforeEdit() {
       await taking;
       if (sinceLast() >= editGapMs && changed()) await take("edit");
     },
     async stop() {
-      clearInterval(timer);
-      timer = undefined;
+      stopChecks?.();
+      stopChecks = undefined;
       await taking;
       if (changed()) await take("stop");
     },

@@ -160,7 +160,7 @@ export async function runEngineServer(options: {
       logKioskEvent(level, BACKUP_LOG_SOURCE, event, { details }),
   });
   // Migrated and seeded, before the first guest or staff edit.
-  eventBackups.start();
+  void eventBackups.start();
 
   const puppeteerLifecycle = createPuppeteerReceiptViewerLifecycle();
 
