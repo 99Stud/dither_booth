@@ -25,9 +25,8 @@ Diagnosing a booth meant SSH and `tail` on raw PM2 files ([spec, issue #95](http
 - **PM2 files.** `pm2.config.js` sets `log_type: "json"` and one combined `log_file` per process, `logs/pm2/<process>.log`. `out_file` and `error_file` are `/dev/null`, so PM2 writes nothing else. `time: true` is gone: the envelope carries the timestamp. Each stdout or stderr chunk becomes one line, `{"message", "timestamp", "type": "out" | "err", "process_id", "app_name"}` (PM2 7.0.3, `lib/God/ForkMode.js`). Old `-out.log` and `-err.log` files stay where they are.
 - **Rotation.** `booth service` installs `/etc/logrotate.d/ditherbooth`: the three files by name, daily, `maxsize 20M`, `rotate 7`, `compress`, `copytruncate`, as `pi`, checked hourly. Copy-and-truncate keeps PM2's open file handle valid, so rotation needs no PM2 signal or restart.
 - **Journal access.** `booth service` adds `pi` to `systemd-journal`. The apps run as `pi`, so they can read the whole journal without root.
-- **Journal kept.** `booth service` sets `Storage=persistent`, `SystemMaxUse=200M` and `SyncIntervalSec=30s`. Raspberry Pi OS keeps the journal in memory to spare the SD card, so the boots that died at the 2026-10-31 event left no system log. The journal is small next to the card's life, and the 30 s interval, down from journald's 5 min, is what lets a boot that dies within minutes leave its under-voltage warnings.
 - **Who reads.** The admin server reads the PM2 files and the journal and serves them to the Logs page. It already controls PM2, and it stays up when the engine doesn't.
-- **Checked.** `booth doctor` fails when the rotation rule is missing and warns when it is out of date `pi` can't read the journal, or the journal is kept in memory.
+- **Checked.** `booth doctor` fails when the rotation rule is missing and warns when it is out of date or `pi` can't read the journal.
 
 ### Not chosen
 

@@ -66,7 +66,7 @@ describe("PM2 log rotation", () => {
 });
 
 describe("system journal", () => {
-  test("is kept on disk, capped, and written every 30 s", () => {
+  test("is kept on disk, capped at 200 MB", () => {
     const lines = buildJournaldDropIn()
       .split("\n")
       .map((line) => line.trim())
@@ -76,7 +76,6 @@ describe("system journal", () => {
       "[Journal]",
       "Storage=persistent",
       "SystemMaxUse=200M",
-      "SyncIntervalSec=30s",
     ]);
   });
 });

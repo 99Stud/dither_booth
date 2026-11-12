@@ -72,7 +72,9 @@ On a phone, the chips scroll sideways; levels, source and **Wrap lines** are und
 The system journal is kept on the SD card, in `/var/log/journal`, so the boots before this one can still be read. `booth service` sets this up (`/etc/systemd/journald.conf.d/ditherbooth.conf`): Raspberry Pi OS keeps the journal in memory otherwise, and a boot that ends in a power cut leaves nothing.
 
 - journald deletes its oldest entries past 200 MB.
-- It writes to the card every 30 s, and at once for an error. The last 30 s before a cut can be missing.
+- It writes to the card every 5 minutes, and at once after a critical line, which the kernel's under-voltage warning is. Milder lines from the last minutes before a cut can be missing.
+
+Why it is set up this way: [decision 0014](/docs/decisions/0014-system-journal-on-the-sd-card/).
 
 ```bash
 journalctl --list-boots          # every boot kept, with its first and last line's time

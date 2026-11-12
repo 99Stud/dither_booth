@@ -81,15 +81,17 @@ describe("doctor: journal access", () => {
 });
 
 describe("doctor: journal storage", () => {
-  test("passes when the settings are the ones this CLI writes", () => {
-    const check = journalStorageCheck(buildJournaldDropIn());
+  const journal = { installed: buildJournaldDropIn(), onDisk: true };
+
+  test("passes when the settings are this CLI's and journald writes to disk", () => {
+    const check = journalStorageCheck(journal);
 
     expect(check.status).toBe("pass");
     expect(check.label).toBe("System journal kept on disk, up to 200 MB");
   });
 
   test("warns when nothing is installed: the journal is in memory", () => {
-    const check = journalStorageCheck(undefined);
+    const check = journalStorageCheck({ ...journal, installed: undefined });
 
     expect(check.status).toBe("warn");
     expect(check.label).toBe("System journal kept in memory only");
@@ -97,10 +99,21 @@ describe("doctor: journal storage", () => {
   });
 
   test("warns when the settings are out of date", () => {
-    const check = journalStorageCheck("[Journal]\nStorage=volatile\n");
+    const check = journalStorageCheck({
+      ...journal,
+      installed: "[Journal]\nStorage=persistent\n",
+    });
 
     expect(check.status).toBe("warn");
     expect(check.label).toContain("/etc/systemd/journald.conf.d/");
+  });
+
+  test("warns when journald never took the settings: a restart that failed", () => {
+    const check = journalStorageCheck({ ...journal, onDisk: false });
+
+    expect(check.status).toBe("warn");
+    expect(check.label).toBe("System journal still in memory");
+    expect(check.detail).toContain("sudo booth service");
   });
 });
 

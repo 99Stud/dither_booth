@@ -17,9 +17,9 @@ import { requireRoot } from "#internal/args";
 import {
   BOOTH_BIN,
   JOURNALD_DROP_IN_PATH,
+  JOURNAL_DISK_DIR,
   JOURNAL_GROUP,
   JOURNAL_MAX_SIZE_MB,
-  JOURNAL_SYNC_INTERVAL_S,
   LOGROTATE_MAX_SIZE_MB,
   LOGROTATE_RULE_PATH,
   LOGROTATE_TIMER_DROP_IN_PATH,
@@ -159,17 +159,30 @@ OnCalendar=hourly
 /**
  * Raspberry Pi OS keeps the journal in memory, to spare the SD card, so a
  * boot that ends in a power cut leaves no system log. This keeps it on
- * disk, capped. journald writes errors at once but anything milder (the
- * kernel's under-voltage warnings) only every 5 min by default: a boot
- * that died sooner left nothing, hence the shorter interval.
+ * disk, capped.
  */
 export function buildJournaldDropIn(): string {
   return `# Installed by \`booth service\`. Keeps the system journal across power cuts.
 [Journal]
 Storage=persistent
 SystemMaxUse=${JOURNAL_MAX_SIZE_MB}M
-SyncIntervalSec=${JOURNAL_SYNC_INTERVAL_S}s
 `;
+}
+
+/**
+ * Whether the running journald writes to disk. In memory it never creates
+ * `system.journal` there, whatever its settings file says.
+ */
+export async function isJournalOnDisk(): Promise<boolean> {
+  const files = new Bun.Glob("*/system.journal").scan({
+    cwd: JOURNAL_DISK_DIR,
+  });
+
+  try {
+    return !(await files.next()).done;
+  } catch {
+    return false;
+  }
 }
 
 /** One per rollback mode, as the admin starts them. */
@@ -282,15 +295,20 @@ async function isActive(unit: string): Promise<boolean> {
 /**
  * journald reads its settings at start only. The flush moves what this
  * boot logged in memory onto the disk; without it that waits for a reboot.
+ * Asks journald, not whether the file changed: a run that wrote the file
+ * and then failed is finished by the next one.
  */
-async function persistJournal(): Promise<void> {
+async function keepJournalOnDisk(): Promise<void> {
   await mkdir(dirname(JOURNALD_DROP_IN_PATH), { recursive: true });
-
-  if (!(await writeIfChanged(JOURNALD_DROP_IN_PATH, buildJournaldDropIn()))) {
-    return;
-  }
-
+  const changed = await writeIfChanged(
+    JOURNALD_DROP_IN_PATH,
+    buildJournaldDropIn(),
+  );
+  // `booth doctor` reads it without sudo.
   await chmod(JOURNALD_DROP_IN_PATH, 0o644);
+
+  if (!changed && (await isJournalOnDisk())) return;
+
   step("Restarting systemd-journald so the journal is kept on disk");
   await run(["systemctl", "restart", "systemd-journald"]);
   await run(["journalctl", "--flush"]);
@@ -349,7 +367,7 @@ export async function runServiceCommand(
   await writeIfChanged(SYSTEM_POLKIT_RULE_PATH, buildSystemPolkitRule());
   await chmod(SYSTEM_POLKIT_RULE_PATH, 0o644);
 
-  await persistJournal();
+  await keepJournalOnDisk();
 
   const wasActive = await isActive(SERVICE_NAME);
   const joinedJournal = await joinJournalGroup();

@@ -23,6 +23,7 @@ import {
   buildRollbackUnit,
   buildSystemPolkitRule,
   buildUpdateUnit,
+  isJournalOnDisk,
 } from "#commands/service";
 import { printCommandBanner } from "#internal/banner";
 import {
@@ -421,25 +422,44 @@ export function journalGroupCheck(groups: string | undefined): CheckResult {
   };
 }
 
-/** `installed` is the journald drop-in's content, undefined when missing. */
-export function journalStorageCheck(
-  installed: string | undefined,
-): CheckResult {
-  if (installed === buildJournaldDropIn()) {
+/**
+ * `installed` is the journald settings file's content, undefined when it is
+ * missing. `onDisk` is whether the running journald writes to disk: it
+ * reads the file at start only.
+ */
+export function journalStorageCheck(journal: {
+  installed: string | undefined;
+  onDisk: boolean;
+}): CheckResult {
+  if (journal.installed === undefined) {
     return {
-      status: "pass",
-      label: `System journal kept on disk, up to ${JOURNAL_MAX_SIZE_MB} MB`,
+      status: "warn",
+      label: "System journal kept in memory only",
+      detail:
+        "A power cut leaves no system log of that boot. Run `sudo booth service`.",
+    };
+  }
+
+  if (journal.installed !== buildJournaldDropIn()) {
+    return {
+      status: "warn",
+      label: `Journal settings out of date (${JOURNALD_DROP_IN_PATH})`,
+      detail: "Run `sudo booth service`.",
+    };
+  }
+
+  if (!journal.onDisk) {
+    return {
+      status: "warn",
+      label: "System journal still in memory",
+      detail:
+        "Its settings are installed, but journald hasn't taken them. Run `sudo booth service`.",
     };
   }
 
   return {
-    status: "warn",
-    label:
-      installed === undefined
-        ? "System journal kept in memory only"
-        : `Journal settings out of date (${JOURNALD_DROP_IN_PATH})`,
-    detail:
-      "A power cut leaves no system log of that boot. Run `sudo booth service`.",
+    status: "pass",
+    label: `System journal kept on disk, up to ${JOURNAL_MAX_SIZE_MB} MB`,
   };
 }
 
@@ -567,11 +587,12 @@ async function checkJournalGroup(results: CheckResult[]): Promise<void> {
 
 async function checkJournalStorage(results: CheckResult[]): Promise<void> {
   results.push(
-    journalStorageCheck(
-      await Bun.file(JOURNALD_DROP_IN_PATH)
+    journalStorageCheck({
+      installed: await Bun.file(JOURNALD_DROP_IN_PATH)
         .text()
         .catch(() => undefined),
-    ),
+      onDisk: await isJournalOnDisk(),
+    }),
   );
 }
 

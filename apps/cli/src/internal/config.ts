@@ -60,8 +60,8 @@ export const JOURNALD_DROP_IN_PATH =
   "/etc/systemd/journald.conf.d/ditherbooth.conf";
 /** journald deletes its oldest entries past this many MB. */
 export const JOURNAL_MAX_SIZE_MB = 200;
-/** journald writes what it holds to disk at least this often. */
-export const JOURNAL_SYNC_INTERVAL_S = 30;
+/** Where journald keeps the journal once it is on disk, one folder per machine. */
+export const JOURNAL_DISK_DIR = "/var/log/journal";
 /** Members read the whole system journal; the admin's Logs page needs it. */
 export const JOURNAL_GROUP = "systemd-journal";
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";

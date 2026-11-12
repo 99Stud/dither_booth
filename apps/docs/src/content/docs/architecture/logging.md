@@ -187,7 +187,7 @@ Journal lines aren't [kiosk] events: they have no `event` and nothing in them is
 - older: `--reverse --cursor=<c>` (from `a:`, the entry included) or `--reverse --after-cursor=<c>` (from `b:`);
 - newer: `--after-cursor=<c>` or `--cursor=<c>`, bounded by `--until=@<seconds>` (rounded up) and stopped exactly at the `until` entry's cursor.
 
-The filter runs on the admin, so a page of rare matches reads as far back as the journal goes. journald's own size limits bound that; there is no rotation to detect.
+The filter runs on the admin, so a page of rare matches reads as far back as the journal goes. The journal is kept on the SD card across boots, up to 200 MB ([decision 0014](/docs/decisions/0014-system-journal-on-the-sd-card/)), which bounds that; there is no rotation to detect.
 
 **Unavailable.** Without `journalctl` (macOS, a dev machine), the source is `unavailable` with "No journalctl on this machine" and pages are empty. When journalctl warns that the user can't see the system journal (`pi` not in `systemd-journal`), it is `unavailable` with what to run. Neither breaks the socket.
 
