@@ -51,6 +51,17 @@ export const ROLLBACK_UNIT_PATH = `/etc/systemd/system/${BOOTH_ROLLBACK_UNIT_TEM
 /** Lets the admin restart the apps, reboot, power off, update and roll back. */
 export const SYSTEM_POLKIT_RULE_PATH =
   "/etc/polkit-1/rules.d/50-ditherbooth-system.rules";
+/**
+ * Keeps the system journal on disk. Raspberry Pi OS ships it in memory
+ * (`40-rpi-volatile-storage.conf`); this name sorts after that file, so
+ * its settings win.
+ */
+export const JOURNALD_DROP_IN_PATH =
+  "/etc/systemd/journald.conf.d/ditherbooth.conf";
+/** journald deletes its oldest entries past this many MB. */
+export const JOURNAL_MAX_SIZE_MB = 200;
+/** journald writes what it holds to disk at least this often. */
+export const JOURNAL_SYNC_INTERVAL_S = 30;
 /** Members read the whole system journal; the admin's Logs page needs it. */
 export const JOURNAL_GROUP = "systemd-journal";
 export const SERVICE_USER = process.env.BOOTH_SERVICE_USER ?? "pi";

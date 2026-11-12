@@ -16,7 +16,10 @@ import type { BoothContext } from "#internal/context";
 import { requireRoot } from "#internal/args";
 import {
   BOOTH_BIN,
+  JOURNALD_DROP_IN_PATH,
   JOURNAL_GROUP,
+  JOURNAL_MAX_SIZE_MB,
+  JOURNAL_SYNC_INTERVAL_S,
   LOGROTATE_MAX_SIZE_MB,
   LOGROTATE_RULE_PATH,
   LOGROTATE_TIMER_DROP_IN_PATH,
@@ -153,6 +156,22 @@ OnCalendar=hourly
 `;
 }
 
+/**
+ * Raspberry Pi OS keeps the journal in memory, to spare the SD card, so a
+ * boot that ends in a power cut leaves no system log. This keeps it on
+ * disk, capped. journald writes errors at once but anything milder (the
+ * kernel's under-voltage warnings) only every 5 min by default: a boot
+ * that died sooner left nothing, hence the shorter interval.
+ */
+export function buildJournaldDropIn(): string {
+  return `# Installed by \`booth service\`. Keeps the system journal across power cuts.
+[Journal]
+Storage=persistent
+SystemMaxUse=${JOURNAL_MAX_SIZE_MB}M
+SyncIntervalSec=${JOURNAL_SYNC_INTERVAL_S}s
+`;
+}
+
 /** One per rollback mode, as the admin starts them. */
 const ROLLBACK_UNITS =
   boothRollbackModeSchema.options.map(getBoothRollbackUnit);
@@ -260,6 +279,23 @@ async function isActive(unit: string): Promise<boolean> {
   return active.stdout.trim() === "active";
 }
 
+/**
+ * journald reads its settings at start only. The flush moves what this
+ * boot logged in memory onto the disk; without it that waits for a reboot.
+ */
+async function persistJournal(): Promise<void> {
+  await mkdir(dirname(JOURNALD_DROP_IN_PATH), { recursive: true });
+
+  if (!(await writeIfChanged(JOURNALD_DROP_IN_PATH, buildJournaldDropIn()))) {
+    return;
+  }
+
+  await chmod(JOURNALD_DROP_IN_PATH, 0o644);
+  step("Restarting systemd-journald so the journal is kept on disk");
+  await run(["systemctl", "restart", "systemd-journald"]);
+  await run(["journalctl", "--flush"]);
+}
+
 /** True when the service user was added now, false when already a member. */
 async function joinJournalGroup(): Promise<boolean> {
   const groups = await capture(["id", "-nG", SERVICE_USER], {
@@ -312,6 +348,8 @@ export async function runServiceCommand(
   await writeIfChanged(ROLLBACK_UNIT_PATH, buildRollbackUnit());
   await writeIfChanged(SYSTEM_POLKIT_RULE_PATH, buildSystemPolkitRule());
   await chmod(SYSTEM_POLKIT_RULE_PATH, 0o644);
+
+  await persistJournal();
 
   const wasActive = await isActive(SERVICE_NAME);
   const joinedJournal = await joinJournalGroup();

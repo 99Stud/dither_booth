@@ -2,11 +2,13 @@ import { describe, expect, test } from "bun:test";
 
 import {
   journalGroupCheck,
+  journalStorageCheck,
   logRotationCheck,
   powerControlsCheck,
   updatesCheck,
 } from "./doctor";
 import {
+  buildJournaldDropIn,
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
   buildRollbackUnit,
@@ -75,6 +77,30 @@ describe("doctor: journal access", () => {
 
   test("warns when the user's groups can't be read", () => {
     expect(journalGroupCheck(undefined).status).toBe("warn");
+  });
+});
+
+describe("doctor: journal storage", () => {
+  test("passes when the settings are the ones this CLI writes", () => {
+    const check = journalStorageCheck(buildJournaldDropIn());
+
+    expect(check.status).toBe("pass");
+    expect(check.label).toBe("System journal kept on disk, up to 200 MB");
+  });
+
+  test("warns when nothing is installed: the journal is in memory", () => {
+    const check = journalStorageCheck(undefined);
+
+    expect(check.status).toBe("warn");
+    expect(check.label).toBe("System journal kept in memory only");
+    expect(check.detail).toContain("sudo booth service");
+  });
+
+  test("warns when the settings are out of date", () => {
+    const check = journalStorageCheck("[Journal]\nStorage=volatile\n");
+
+    expect(check.status).toBe("warn");
+    expect(check.label).toContain("/etc/systemd/journald.conf.d/");
   });
 });
 

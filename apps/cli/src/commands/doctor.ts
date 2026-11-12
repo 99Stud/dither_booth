@@ -17,6 +17,7 @@ import {
   readAvahiHostName,
 } from "#commands/network";
 import {
+  buildJournaldDropIn,
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
   buildRollbackUnit,
@@ -31,7 +32,9 @@ import {
 import {
   ENGINE_DATA_RELATIVE,
   ENGINE_DB_RELATIVE,
+  JOURNALD_DROP_IN_PATH,
   JOURNAL_GROUP,
+  JOURNAL_MAX_SIZE_MB,
   LOGROTATE_MAX_SIZE_MB,
   LOGROTATE_RULE_PATH,
   LOGROTATE_TIMER_DROP_IN_PATH,
@@ -418,6 +421,28 @@ export function journalGroupCheck(groups: string | undefined): CheckResult {
   };
 }
 
+/** `installed` is the journald drop-in's content, undefined when missing. */
+export function journalStorageCheck(
+  installed: string | undefined,
+): CheckResult {
+  if (installed === buildJournaldDropIn()) {
+    return {
+      status: "pass",
+      label: `System journal kept on disk, up to ${JOURNAL_MAX_SIZE_MB} MB`,
+    };
+  }
+
+  return {
+    status: "warn",
+    label:
+      installed === undefined
+        ? "System journal kept in memory only"
+        : `Journal settings out of date (${JOURNALD_DROP_IN_PATH})`,
+    detail:
+      "A power cut leaves no system log of that boot. Run `sudo booth service`.",
+  };
+}
+
 /**
  * `installed` is the rule's content, undefined when it is missing. The
  * rules folder is root-only: without sudo there is nothing to compare.
@@ -540,6 +565,16 @@ async function checkJournalGroup(results: CheckResult[]): Promise<void> {
   );
 }
 
+async function checkJournalStorage(results: CheckResult[]): Promise<void> {
+  results.push(
+    journalStorageCheck(
+      await Bun.file(JOURNALD_DROP_IN_PATH)
+        .text()
+        .catch(() => undefined),
+    ),
+  );
+}
+
 function printResults(results: CheckResult[]): void {
   for (const result of results) {
     const detail = result.detail ? ` — ${result.detail}` : "";
@@ -606,6 +641,7 @@ export async function runDoctorCommand(context: BoothContext): Promise<void> {
   await checkPm2Processes(results, repoRoot);
   await checkLogRotation(results, repoRoot);
   await checkJournalGroup(results);
+  await checkJournalStorage(results);
   await checkPowerControls(results);
   await checkUpdates(results, repoRoot);
 
