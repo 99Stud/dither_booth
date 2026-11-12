@@ -67,6 +67,23 @@ On a phone, the chips scroll sideways; levels, source and **Wrap lines** are und
 
 `booth service` adds `pi` to the `systemd-journal` group, so `pi` and the apps PM2 runs as `pi` can read the whole journal without `sudo`. Without it, System is unavailable on the Logs page: run `sudo booth service`, then restart the booth so the admin picks up the group.
 
+### After a power cut
+
+The system journal is kept on the SD card, in `/var/log/journal`, so the boots before this one can still be read. `booth service` sets this up (`/etc/systemd/journald.conf.d/ditherbooth.conf`): Raspberry Pi OS keeps the journal in memory otherwise, and a boot that ends in a power cut leaves nothing.
+
+- journald deletes its oldest entries past 200 MB.
+- It writes to the card every 5 minutes, and at once after a critical line, which the kernel's under-voltage warning is. Milder lines from the last minutes before a cut can be missing.
+
+Why it is set up this way: [decision 0014](/docs/decisions/0014-system-journal-on-the-sd-card/).
+
+```bash
+journalctl --list-boots          # every boot kept, with its first and last line's time
+journalctl -b -1                 # the boot before this one
+journalctl -b -1 -k | grep -i -e voltage -e thrott
+```
+
+A boot whose last line is not a shutdown ended in a cut or a freeze. `booth doctor` warns when the journal is still kept in memory: run `sudo booth service`.
+
 ## Reading PM2 logs
 
 PM2's daemon belongs to the service user, so ask it as `pi` from the repo:

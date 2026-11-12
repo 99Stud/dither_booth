@@ -60,6 +60,7 @@ Logs: `log_type: "json"`, one combined `log_file` per process at `logs/pm2/<proc
 | `/etc/logrotate.d/ditherbooth`                                  | `booth service`                                   | Rotates the PM2 log files                                                             |
 | `/etc/systemd/system/logrotate.timer.d/ditherbooth.conf`        | `booth service`                                   | Runs logrotate hourly, not daily                                                      |
 | `pi` in group `systemd-journal`                                 | `booth service`                                   | Lets `pi` read the system journal                                                     |
+| `/etc/systemd/journald.conf.d/ditherbooth.conf`                 | `booth service`                                   | Keeps the system journal on the SD card across power cuts                             |
 | `/etc/polkit-1/rules.d/50-ditherbooth-system.rules`             | `booth service`                                   | Lets admin restart, reboot, power off, update and roll back                           |
 | `/etc/systemd/system/ditherbooth-network.service`               | `booth network setup`                             | Network watch unit                                                                    |
 | `/etc/polkit-1/rules.d/50-ditherbooth-network.rules`            | `booth network setup`                             | Lets `pi` manage Wi-Fi                                                                |

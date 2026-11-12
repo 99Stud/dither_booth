@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 import { buildPolkitRule } from "./network";
 import {
+  buildJournaldDropIn,
   buildLogrotateRule,
   buildLogrotateTimerDropIn,
   buildNetworkDispatcher,
@@ -61,6 +62,21 @@ describe("PM2 log rotation", () => {
 
     // An empty OnCalendar= clears Debian's daily schedule first.
     expect(lines).toEqual(["[Timer]", "OnCalendar=", "OnCalendar=hourly"]);
+  });
+});
+
+describe("system journal", () => {
+  test("is kept on disk, capped at 200 MB", () => {
+    const lines = buildJournaldDropIn()
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith("#"));
+
+    expect(lines).toEqual([
+      "[Journal]",
+      "Storage=persistent",
+      "SystemMaxUse=200M",
+    ]);
   });
 });
 
